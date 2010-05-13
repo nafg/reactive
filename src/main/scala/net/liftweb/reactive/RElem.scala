@@ -41,8 +41,9 @@ class Span(
 	}
 	page.observe(content) { content =>
 	  println("Span content updated")
-		Reactions.queueCmd(SetHtml(id, content))
-		Reactions.flushQueue
+	  Reactions.inAnyScope(page) {
+	    Reactions.queue(SetHtml(id, content))
+	  }
 		true
 	}
 	def render = <span id={id}>{content.now}</span>
@@ -51,9 +52,13 @@ class Span(
 class TextField(
 	valueES: EventStream[String] = new EventStream[String] {}
 )(implicit val page: Page) {
-	def func: List[String]=>Unit = {
+	def func: List[String]=>JsCmd = {
 		case Nil =>
-		case s :: _ => value ()= s
+		  JsCmds.Noop
+		case s :: _ =>
+		  Reactions.inClientScope {
+		    value ()= s
+		  }
 	}
 	val value = new Var("")
 	page.on(valueES) {v =>

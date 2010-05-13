@@ -14,7 +14,7 @@ class Page extends Observing {
   val id = randomString(20)
   def cometName = id
   def render = <lift:comet
-    type="net.liftweb.reactive.comet.ReactionsComet"
+    type="net.liftweb.reactive.ReactionsComet"
     name={cometName}
   />
 }

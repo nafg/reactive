@@ -8,11 +8,13 @@ import net.liftweb.http.{js, CometActor, CometCreationInfo, LiftSession, LiftRul
   import js.{JsCmd, JsCmds}
     import JsCmds._
 import net.liftweb.common.{Box, Full}
-import net.liftweb.util.Helpers
+import net.liftweb.util.{Helpers, ThreadGlobal}
 
-object Reactions extends LiftActor {
-  private val pending = HashMap[String, (JsCmd, Long)]() 
-  private val pages = WeakHashMap[String, comet.ReactionsComet]()
+object Reactions {
+  private val pending = new HashMap[String, (JsCmd, Long)] 
+  private val pages = new WeakHashMap[String, ReactionsComet]
+  
+  private val currentScope = new ThreadGlobal[Either[JsCmd, Page]]
   
   /**
    * Call this method in Boot.boot
@@ -20,84 +22,96 @@ object Reactions extends LiftActor {
   def init {
     LiftRules.cometCreation.append {
       case CometCreationInfo(
-        "net.liftweb.reactive.comet.ReactionsComet",
+        "net.liftweb.reactive.ReactionsComet",
         name,
         defaultXml,
         attributes,
         session
       ) =>
-        val ca = new comet.ReactionsComet(
+        val ca = new ReactionsComet(
           session,
-          Full("net.liftweb.reactive.comet.ReactionsComet"),
-          name,
+          name openOr error("Name required for ReactionsComet"),
           defaultXml,
           attributes
         )
         println("In cometCreation")
         assert(ca.name == Full(CurrentPage.is.id))
-        this ! Register(CurrentPage.is.id, ca)
+        register(CurrentPage.is.id, ca)
         ca
     }
   }
   
-  
-  def messageHandler = {
-    case Register(page: String, comet) =>
-      val pend = pending.remove(page) map { case (js,_) => js } getOrElse JsCmds.Noop
-      
-      pages.get(page) foreach { oldComet =>
-        oldComet.flush
-        comet queue oldComet.take
-      }
-      comet queue pend
-      comet.flush
-      pages(page) = comet
-    case Queue(page, cmd) =>
-      println("Enqueueing " + cmd)
-      println("Comets: " + pages.size)
-      val js =
-        pending.remove(page).map{case (js,_)=>js}.getOrElse(JsCmds.Noop) &
-        cmd
-      
-      pages.get(page) match {
-        case None =>
-          pending(page) = (js, System.currentTimeMillis)
-        case Some(comet) =>
-          comet queue js
-      }
-    case Flush(page) =>
-      pages.get(page) foreach {_.flush}
+  def register(page: String, comet: ReactionsComet) = synchronized {
+    val pend = pending.remove(page) map { case (js,_) => js } getOrElse JsCmds.Noop
+    
+    pages.get(page) foreach { oldComet =>
+      oldComet.flush
+      comet queue oldComet.take
+    }
+    comet queue pend
+    comet.flush
+    pages(page) = comet
   }
-  private case class Register(page: String, comet0: comet.ReactionsComet)
-  private case class Queue(page: String, cmd: JsCmd)
-  private case class Flush(page: String)
   
-  def queueCmd(cmd: JsCmd)(implicit page: Page) =
-    this ! Queue(page.id, cmd)
-  def flushQueue(implicit page: Page) =
-    this ! Flush(page.id)
-  
+  def queue(cmd: JsCmd) {
+    currentScope.box match {
+      case Full(Left(js)) =>
+        currentScope.set(Left(js & cmd))
+      case Full(Right(p)) =>
+        val page = p.id
+        val js =
+          pending.remove(page).map{case (js,_)=>js}.getOrElse(JsCmds.Noop) &
+          cmd
+        
+        pages.get(page) match {
+          case None =>
+            pending(page) = (js, System.currentTimeMillis)
+          case Some(comet) =>
+            comet queue js
+        }
+      case _ =>
+        error("No Reactions scope")
+    }
+  }
+  def inClientScope(p: => Unit): JsCmd = {
+    currentScope.doWith(Left(JsCmds.Noop)) {
+      p
+      currentScope.value.left.get
+    }
+  }
+  def inServerScope(page: Page)(p: => Unit): Unit = {
+    currentScope.doWith(Right(page)) {
+      p
+    }
+    pages.get(page.id) foreach {_.flush}
+  }
+  def inAnyScope(page: Page)(p: =>Unit): Unit = {
+    currentScope.box match {
+      case Full(_) =>  // if there is an existing scope do it there
+        p
+      case _ =>        // otherwise do it in server scope
+        inServerScope(page)(p)
+    }
+  }
 }
 
   
-package comet {
 class ReactionsComet(
   theSession: LiftSession,
-  theType: Box[String],
-  name: Box[String],
+  name: String,
   defaultXml: NodeSeq,
   attributes: Map[String, String]
 ) extends CometActor {
   
-  super.initCometActor(theSession, theType, name, defaultXml, attributes)
+  super.initCometActor(theSession, Full("net.liftweb.reactive.ReactionsComet"), Full(name), defaultXml, attributes)
   
   private[reactive] val page: Page = CurrentPage.is
   
   private[reactive] var queued: JsCmd = JsCmds.Noop 
   
-//  override def lifespan = Full(new Helpers.TimeSpan(60000))
+  override def lifespan = Full(new Helpers.TimeSpan(60000))
   
-  override def toString = "net.liftweb.reactive.comet.ReactionsComet " + name
+  override def toString = "net.liftweb.reactive.ReactionsComet " + name
   
   def render = <span></span>
 
@@ -126,5 +140,4 @@ class ReactionsComet(
     case _ => JsCmds.Noop
   }
   
-}
 }
