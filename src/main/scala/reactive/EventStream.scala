@@ -33,6 +33,8 @@ trait EventStream[T] { parent =>
   }
   private var listeners: List[WeakReference[T => Unit]] = Nil
   
+  def hasListeners = !listeners.isEmpty
+  
   def fire(event: T) {
 //    val notCollected = listeners.count(_.get ne None)
 //    println("EventStream " + (this) + " firing " + event +
