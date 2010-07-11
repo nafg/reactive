@@ -96,6 +96,37 @@ trait EventStream[T] { parent =>
     that.foreach(ret.fire)
     ret
   }
+  
+  def hold(initial0: =>T)(implicit observing: Observing): Signal[T] = new Signal[T] {
+    private lazy val initial: T = initial0
+    private var current: Option[T] = None
+    def change = EventStream.this
+    change foreach {v => current = Some(v)}
+    def now = current getOrElse initial
+  }
+}
+
+/**
+ * This trait adds the ability to an event stream
+ * to fire an event when the first listener is
+ * added. 
+ * @author nafg
+ *
+ */
+trait TracksAlive[T] extends EventStream[T] {
+  /**
+   * This signal indicates whether the event stream
+   * is being listened to 
+   */
+  private val aliveVar = Var(false)
+  private val o = new Observing {}
+  val alive: Signal[Boolean] = aliveVar.map(identity)(o) // read only
+  override def foreach(f: T=>Unit)(implicit observing: Observing) {
+    if(!aliveVar.now) {
+      aliveVar()=true
+    }
+    super.foreach(f)(observing)
+  }
 }
 
 trait EventStreamProxy[T] extends EventStream[T] {
