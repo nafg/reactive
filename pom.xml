@@ -73,7 +73,7 @@
     	<version>2.0-scala280-SNAPSHOT</version>
     </dependency>
     <dependency>
-    	<groupId>naftoligug</groupId>
+    	<groupId>nafg</groupId>
     	<artifactId>reactive</artifactId>
     	<version>0.0.1-SNAPSHOT</version>
     	<scope>compile</scope>

@@ -1,6 +1,7 @@
 package net.liftweb.reactive
 
 import scala.collection.mutable.{WeakHashMap, HashMap}
+import scala.ref.WeakReference
 import scala.xml.NodeSeq
 
 import net.liftweb.actor.LiftActor
@@ -12,7 +13,7 @@ import net.liftweb.util.{Helpers, ThreadGlobal}
 
 object Reactions {
   private val pending = new HashMap[String, (JsCmd, Long)] 
-  private val pages = new WeakHashMap[String, ReactionsComet]
+  private val pages = new WeakHashMap[Page, WeakReference[ReactionsComet]]
   
   private val currentScope = new ThreadGlobal[Either[JsCmd, Page]]
   
@@ -34,23 +35,22 @@ object Reactions {
           defaultXml,
           attributes
         )
-        println("In cometCreation")
         assert(ca.name == Full(CurrentPage.is.id))
-        register(CurrentPage.is.id, ca)
+        register(CurrentPage.is, ca)
         ca
     }
   }
   
-  def register(page: String, comet: ReactionsComet) = synchronized {
-    val pend = pending.remove(page) map { case (js,_) => js } getOrElse JsCmds.Noop
+  def register(page: Page, comet: ReactionsComet) = synchronized {
+    val pend = pending.remove(page.id) map { case (js,_) => js } getOrElse JsCmds.Noop
     
-    pages.get(page) foreach { oldComet =>
+    pages.get(page).flatMap(_.get) foreach { oldComet =>
       oldComet.flush
-      comet queue oldComet.take
+       comet queue oldComet.take
     }
     comet queue pend
     comet.flush
-    pages(page) = comet
+    pages(page) = new WeakReference(comet)
   }
   
   def queue(cmd: JsCmd) {
@@ -58,14 +58,14 @@ object Reactions {
       case Full(Left(js)) =>
         currentScope.set(Left(js & cmd))
       case Full(Right(p)) =>
-        val page = p.id
+        val page = p
         val js =
-          pending.remove(page).map{case (js,_)=>js}.getOrElse(JsCmds.Noop) &
+          pending.remove(page.id).map{case (js,_)=>js}.getOrElse(JsCmds.Noop) &
           cmd
         
-        pages.get(page) match {
+        pages.get(page).flatMap(_.get) match {
           case None =>
-            pending(page) = (js, System.currentTimeMillis)
+            pending(page.id) = (js, System.currentTimeMillis)
           case Some(comet) =>
             comet queue js
         }
@@ -83,7 +83,7 @@ object Reactions {
     currentScope.doWith(Right(page)) {
       p
     }
-    pages.get(page.id) foreach {_.flush}
+    pages.get(page).flatMap(_.get) foreach {_.flush}
   }
   def inAnyScope(page: Page)(p: =>Unit): Unit = {
     currentScope.box match {
@@ -122,9 +122,6 @@ class ReactionsComet(
     case Queue(js) =>
       queued &= js
     case Flush =>
-      println("Flushing: " + queued.toJsCmd)
-      println("Page: " + page.id)
-      println("CA: " + this)
       val q = queued
       partialUpdate(q)
       queued = JsCmds.Noop

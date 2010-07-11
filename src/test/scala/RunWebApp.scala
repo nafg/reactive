@@ -16,13 +16,13 @@ object RunWebApp extends Application {
 //  context.setWar("src/main/webapp")
 
   server.addHandler(context)
-
+  Class.forName("net.liftweb.http.LiftRules$")
   try {
     println(">>> STARTING EMBEDDED JETTY SERVER, PRESS ANY KEY TO STOP")
     server.start
-//    context.start
-//    println(context.isStarted)
-//    println(context.isFailed)
+    context.start
+    println(context.isStarted)
+    println(context.isFailed)
     Console.readLine
 //    while (System.in.available() == 0) {
 //      Thread.sleep(5000)
