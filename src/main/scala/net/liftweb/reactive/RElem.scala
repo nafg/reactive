@@ -148,7 +148,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
 		    if(S.request.dmap(false)(_.isIE)) fromElement else relatedTarget
   		)
   		val eventEncoding = if(!eventStream.alive.now) {
-		    ""
+		    "''"
   		} else eventName match {
   		  case "blur" | "change" | "error" | "focus" | "resize" | "unload" => ""
   		  case "click" | "dblclick" | "select" => modifiers
@@ -208,7 +208,14 @@ class JSEventSource[T <: JSEvent : Manifest] {
           }
         }: _*
       )
-      eventStream.fire(decodeEvent(evt))
+      println("Received encoding event: " + evt)
+      if(eventStream.hasListeners) try {
+        eventStream.fire(decodeEvent(evt))
+      } catch {
+        case e: java.util.NoSuchElementException =>
+          System.err.println(eventName + " has listeners but caught exception while decoding event:")
+          e.printStackTrace()
+      }
       extraEventStream.fire(evt)
     }
     S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(handler))) {funcId =>
