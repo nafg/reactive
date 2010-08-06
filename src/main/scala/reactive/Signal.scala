@@ -1,12 +1,39 @@
 package reactive
 
 object Signal {
-  implicit def signalToEventStream[T](signal: Signal[T]): EventStream[T] = signal.change
+  //implicit def signalToEventStream[T](signal: SignalBase[T]): EventStreamBase[T] = signal.change
+}
+trait SignalBase[+T] {
+  def now: T
+  def change: EventStream[_ <: T]
+  def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
 }
 /**
  * A Signal in FRP represents a continuous value.
 */
-trait Signal[T] {
+trait Signal[T] extends SignalBase[T] { parent =>
+  protected class MappedSignal[U](f: T=>U)(implicit observing: Observing) extends Signal[U] {
+    import scala.ref.WeakReference
+    private val emptyCache = new WeakReference[Option[U]](None)
+    protected var cached = emptyCache
+    protected def cache(v: U): U = {
+      cached = new WeakReference(Some(v))
+      v
+    }
+    def now = cached.get match {
+      case None | Some(None) =>
+        cache(f(Signal.this.now))
+      case Some(Some(ret)) => ret
+    }
+    /**
+     * Fire change events whenever (the outer) Signal.this changes,
+     * but the events should be transformed by f
+     */
+    lazy val change = Signal.this.change.map(f)
+
+    //TODO we need a way to be able to do this only if there are no real listeners
+    for(v <- change) cache(v)
+  }
   /**
    * Used to store the current value. This value should not be
    * used from the outside in many cases; rather, pass functions
@@ -31,25 +58,7 @@ trait Signal[T] {
    * b represents a Signal whose value is always 1 greater than a.
    * Whenever a fires an event of x, b fires an event of x+1.
    */
-  def map[U](f: T=>U)(implicit observing: Observing) = new Signal[U] {
-    // this could be done more efficiently by saving
-    // the new value of value after every change event
-    private val emptyCache = new scala.ref.WeakReference[Option[U]](None)
-    private var cached = emptyCache
-    def now = cached.get match {
-      case None | Some(None) =>
-        val ret = f(Signal.this.now)
-        cached = new scala.ref.WeakReference(Some(ret))
-        ret
-      case Some(Some(ret)) => ret
-    }
-    for(_ <- change) cached = emptyCache
-    /**
-     * Fire change events whenever (the outer) Signal.this changes,
-     * but the events should be transformed by f
-     */
-    def change = Signal.this.change.map(f)
-  }
+  def map[U](f: T=>U)(implicit observing: Observing) = new MappedSignal[U](f)
   
   /**
    * Combine two Signals to form a new composite Signal.
@@ -64,8 +73,32 @@ trait Signal[T] {
    * val sc = sa.flatMap(a => sb(a))
    */
   def flatMap[U](f: T => Signal[U])(implicit observing: Observing) = new Signal[U] {
-    def now = f(Signal.this.now).now
-    val change = Signal.this.change.flatMap(Signal.this.now){_ => f(Signal.this.now).change}(observing)
+    //TODO cache
+    def now = f(parent.now).now
+    val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}(observing)
+    parent.change foreach {_ =>
+      println("Parent change, firing " + now)
+      change fire now
+    }
+  }
+  def flatMap[U](f: T => SeqSignal[U])(implicit o: Observing) = new SeqSignal[U] {
+    //TODO cache
+    def now = f(parent.now).now
+    def observing = o
+    override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}(observing)
+    parent.change.foldLeft[Seq[Message[T,U]]](Nil){(prev: Seq[Message[T,U]], cur: T) =>
+      val n = f(cur)
+      change fire n.transform
+      println(n.transform.getClass)
+      val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
+      val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
+      val toApply = db.filterNot(da.contains)
+      println("toUndo: "  + toUndo)
+      println("toApply: "  + toApply)
+      deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+      db
+    }
+    override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}(observing)
   }
 }
 
@@ -79,26 +112,29 @@ object Var {
 }
 class Var[T](initial: T) extends Signal[T] {
   private var _value = initial
-  def now = _value
-  final def value = now
+  def now = value
+  def value = _value
   def value_=(v: T) {
     _value = v
     change.fire(v)
   }
   final def update(v: T) = value = v
   
-  val change = new EventStream[T] {}
+  lazy val change = new EventStream[T] {}
 }
 
-private object timer extends java.util.Timer
+private object _timer extends java.util.Timer {
+  def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit) =
+    super.scheduleAtFixedRate(new java.util.TimerTask {def run = p}, delay, interval)
+}
 
-class Clock_(private val startTime: Long = 0, interval: Long) extends Var(startTime) {
+class Timer(private val startTime: Long = 0, interval: Long) extends Var(startTime) {
   private val origMillis = System.currentTimeMillis
-  timer.scheduleAtFixedRate(
-    new java.util.TimerTask {
-      def run = value = System.currentTimeMillis - origMillis + startTime 
-    },
-    0,
-    interval
-  )
+  _timer.scheduleAtFixedRate(interval, interval){
+    value = System.currentTimeMillis - origMillis + startTime
+  }
+}
+
+class RefreshingVar[T](interval: Long)(supplier: =>T) extends Var(supplier) {
+  _timer.scheduleAtFixedRate(interval, interval){value = supplier}
 }
