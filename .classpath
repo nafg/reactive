@@ -10,5 +10,8 @@
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/lift-webkit"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/reactive"/>
+	<classpathentry kind="lib" path="lib_managed/scala_2.8.0.RC6/test/jetty-6.1.22.jar"/>
+	<classpathentry kind="lib" path="lib_managed/scala_2.8.0.RC6/test/jetty-util-6.1.22.jar"/>
+	<classpathentry kind="lib" path="lib_managed/scala_2.8.0.RC6/test/servlet-api-2.5-20081211.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

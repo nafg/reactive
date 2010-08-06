@@ -12,15 +12,15 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.util.{Helpers, ThreadGlobal}
 
 object Reactions {
-  private val pending = new HashMap[String, (JsCmd, Long)] 
+  private val pending = new HashMap[String, (JsCmd, Long)]
   private val pages = new WeakHashMap[Page, WeakReference[ReactionsComet]]
   
   private val currentScope = new ThreadGlobal[Either[JsCmd, Page]]
   
   /**
-   * Call this method in Boot.boot
+   * Call this method in Boot.boot if you want server-initiated reactions
    */
-  def init {
+  def initComet {
     LiftRules.cometCreation.append {
       case CometCreationInfo(
         "net.liftweb.reactive.ReactionsComet",
@@ -57,37 +57,43 @@ object Reactions {
     currentScope.box match {
       case Full(Left(js)) =>
         currentScope.set(Left(js & cmd))
-      case Full(Right(p)) =>
-        val page = p
+      case Full(Right(page)) =>
         val js =
           pending.remove(page.id).map{case (js,_)=>js}.getOrElse(JsCmds.Noop) &
           cmd
         
         pages.get(page).flatMap(_.get) match {
           case None =>
+            println(page.id + ": No page, so pending " + js)
             pending(page.id) = (js, System.currentTimeMillis)
           case Some(comet) =>
+            println(page.id + ": Queueing " + js)
             comet queue js
         }
       case _ =>
         error("No Reactions scope")
     }
   }
+  def removePage(page: Page) = pages.remove(page)
+  
   def inClientScope(p: => Unit): JsCmd = {
     currentScope.doWith(Left(JsCmds.Noop)) {
       p
       currentScope.value.left.get
     }
   }
-  def inServerScope(page: Page)(p: => Unit): Unit = {
-    currentScope.doWith(Right(page)) {
+  def inServerScope[T](page: Page)(p: => T): T = {
+    val ret = currentScope.doWith(Right(page)) {
       p
     }
+    println(page.id + ": Finished server scope " + page + ": " + pages.get(page))
     pages.get(page).flatMap(_.get) foreach {_.flush}
+    ret
   }
-  def inAnyScope(page: Page)(p: =>Unit): Unit = {
+  def inAnyScope[T](page: Page)(p: =>T): T = {
     currentScope.box match {
       case Full(_) =>  // if there is an existing scope do it there
+        println(page.id + ": Already in scope: " + currentScope)
         p
       case _ =>        // otherwise do it in server scope
         inServerScope(page)(p)
@@ -114,6 +120,10 @@ class ReactionsComet(
   override def toString = "net.liftweb.reactive.ReactionsComet " + name
   
   def render = <span></span>
+  
+  override protected def localShutdown {
+    Reactions.removePage(page)
+  }
 
   private case class Queue(js: JsCmd)
   private case object Flush
@@ -123,6 +133,7 @@ class ReactionsComet(
       queued &= js
     case Flush =>
       val q = queued
+      println(page.id + ": partialUpdating: " + q.toJsCmd)
       partialUpdate(q)
       queued = JsCmds.Noop
     case Take =>

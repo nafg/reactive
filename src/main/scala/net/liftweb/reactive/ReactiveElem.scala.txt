@@ -1,0 +1,104 @@
+package reactive
+
+import scala.xml._
+
+object Styles {
+  sealed trait Angle
+  case class Degrees(d: Int) extends Angle
+  case class Radians(r: Double) extends Angle
+  case class Gradients(g: Double) extends Angle
+  
+  sealed trait Style {
+    def signal: Signal[String]
+  }
+  sealed trait AzimuthBase extends Style
+  case class Azimuth(angle: Signal[Angle]) extends AzimuthBase {
+    val signal = angle.map{
+      case Degrees(d) => "azimuth: " + d.toString + " deg"
+      case Radians(r) => "azimuth: " + r.toString + " rad"
+      case Gradients(g) => "azimuth: " + g.toString + " grad"
+    }
+  }
+  
+  
+}
+
+object Attributes {
+  sealed trait Attribute {
+    def signal: Signal[(String, String)]
+  }
+  sealed class SimpleAttribute(val signal: Signal[(String, String)]) extends Attribute
+  sealed trait TextInputAttribute extends Attribute
+  case class Size(value: Signal[Int]) extends SimpleAttribute(value.map{"size" -> _.toString}) with TextInputAttribute
+  
+  sealed trait CoreAttribute extends TextInputAttribute
+  case class Class(names: Signal[Seq[String]]) extends SimpleAttribute(names.map{"class" -> _.mkString(" ")}) with CoreAttribute
+  case class Dir(rtl: Signal[Boolean]) extends SimpleAttribute(rtl.map{b => "size" -> (if(b) "rtl" else "ltr")}) with CoreAttribute
+  case class Id(id: Signal[String]) extends SimpleAttribute(id.map{"id" -> _}) with CoreAttribute
+  case class Lang(lang: Signal[String]) extends SimpleAttribute(lang.map{"lang" -> _.toString}) with CoreAttribute
+  case class Style(styles: Signal[Seq[Style]]) extends SimpleAttribute(styles.map{"style" -> _.mkString("; ")}) with CoreAttribute
+  case class Title(title: Signal[String]) extends SimpleAttribute(title.map{"title" -> _}) with CoreAttribute
+}
+
+trait ReactionDelegate {
+  def addAttr(parentId: String, name: String, value: String)
+  def removeAttr(parentId: String, name: String)
+  
+  def addChild(parentId: String, child: NodeSeq)
+  def removeChild(parentId: String, childId: String)
+  
+  def randomString: String
+}
+
+trait ReactiveElem {
+  import Attributes._
+  def delegate: ReactionDelegate
+  val label: String
+  lazy val defaultId = delegate.randomString
+  lazy val attributes: Signal[Seq[Attribute]] = new WritableSignal(Nil)
+  lazy val id: Signal[String] = attributes.flatMap {attrs =>
+    attrs.find{case Id(_) => true; case _ => false}.map{case Id(idsig) => idsig}.getOrElse(Constant(defaultId))
+  }
+  lazy val children: Signal[Seq[ReactiveElem]] = new WritableSignal(Nil)
+  lazy val render: Signal[NodeSeq] = totalSignal.map {
+    case None => NodeSeq.Empty
+    case Some((id, attrs, children: NodeSeq)) =>
+      val metadata = attrs.foldLeft[MetaData](Null){case (md, (name,value)) => new UnprefixedAttribute(name, Text(value), md)}
+      Elem(null, label, metadata, TopScope, children: _*)
+  }
+  
+  lazy val integratedAttributes: Signal[List[(String, String)]] = attributes.flatMap{attrs: Seq[Attribute] =>
+    attrs.foldLeft[Signal[List[(String,String)]]](Constant(Nil)) {
+      case (foldedSignal, attr) => foldedSignal.flatMap{attrs => attr.signal.map{_ :: attrs}}
+    }
+  }
+  lazy val integratedChildren: Signal[NodeSeq] = children.flatMap { children: Seq[ReactiveElem] =>
+    children.foldLeft[Signal[NodeSeq]](Constant(NodeSeq.Empty)) { case (accumulatedNodeSeq, child) =>
+      accumulatedNodeSeq.flatMap(ns => child.render.map(ns ++ _))
+    }
+  }
+  
+  protected type TotalSignal = Option[(String, List[(String,String)], NodeSeq)]
+  protected lazy val totalSignal: Signal[TotalSignal] = for {
+    attrs <- integratedAttributes
+    id <- id
+    children <- integratedChildren
+  } yield Some(id, attrs, children)
+  
+  // naive implementation: delete all previous attributes and children and add new ones
+  for{
+    event <- totalSignal.change.foldLeft[TotalSignal](None){case (_, x) => x}
+  } event match {
+    case (old, Some((id, attrs, children))) =>
+      old match {
+        case None =>
+        case Some((oldId, oldAttrs, oldChildren)) =>
+          oldAttrs.foreach{case (name, _) => delegate.removeAttr(oldId, name)}
+          oldChildren.foreach{case ns =>
+            delegate.removeChild(oldId, ns.attributes("id").text)
+          }
+      }
+      attrs.foreach{case (name, value) => delegate.addAttr(id, name, value)}
+      children.foreach{case ns => delegate.addChild(id, ns)}
+  }
+}

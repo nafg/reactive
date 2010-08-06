@@ -1,7 +1,10 @@
 package net.liftweb.reactive
 
 object JSEvent {
-  def eventName[T <: JSEvent : Manifest] = manifest[T].erasure.getSimpleName.toLowerCase
+  def eventName[T <: JSEvent : Manifest] = manifest[T].erasure.getSimpleName.toLowerCase match {
+    case s if s endsWith "$" => s.substring(0, s.length-1)
+    case s => s
+  }
 }
 sealed trait JSEvent
 
@@ -24,5 +27,5 @@ case class MouseOut(buttons: Buttons, pos: Position, related: Option[RElem]) ext
 case class MouseOver(buttons: Buttons, pos: Position, related: Option[RElem]) extends JSEvent
 case class MouseUp(buttons: Buttons, pos: Position) extends JSEvent
 case object Resize extends JSEvent
-case class Select(modifiers: Modifiers) extends JSEvent
+case class SelectText(modifiers: Modifiers) extends JSEvent
 case object Unload extends JSEvent
