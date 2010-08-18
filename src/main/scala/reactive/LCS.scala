@@ -74,6 +74,7 @@ object LCS {
     lcs
   }
 
+  //TODO only compare from the first different element to the last different element
   def lcsdiff[T,U](a: Seq[T], b: Seq[U], equals: (T,U)=>Boolean): Seq[Message[T,U]] = {
     val n = a.length
     val m = b.length

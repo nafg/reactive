@@ -10,7 +10,14 @@ trait SignalBase[+T] {
 }
 /**
  * A Signal in FRP represents a continuous value.
-*/
+ * Here it is represented by the Signal trait, which is currently implemented in terms of a 'now' value
+ * and a 'change' event stream. Transformations are implemented around those two members.
+ * To obtain a signal, see Var, Val, Timer, and BufferSignal. In addition, new signals can be derived from
+ * existing signals using the transformation methods defined in this trait.
+ * @param T the type of value this signal contains
+ */
+//TODO transformations to not need to take an Observing--see parallel comment in EventStream
+//TODO provide change veto (cancel) support
 trait Signal[T] extends SignalBase[T] { parent =>
   protected class MappedSignal[U](f: T=>U)(implicit observing: Observing) extends Signal[U] {
     import scala.ref.WeakReference
@@ -34,16 +41,17 @@ trait Signal[T] extends SignalBase[T] { parent =>
     //TODO we need a way to be able to do this only if there are no real listeners
     for(v <- change) cache(v)
   }
+  
   /**
-   * Used to store the current value. This value should not be
-   * used from the outside in many cases; rather, pass functions
-   * that operate on the value to the Signal. 
+   * Represents the current value. Often, this value does not need to be
+   * (or should not be) used explicitly from the outside; instead you can pass functions
+   * that operate on the value, to the Signal.
    */
   def now: T
   
   /**
-   * Returns an EventStream that represents the value every time
-   * it changes.
+   * Returns an EventStream that, every time this signal's value changes, fires
+   * an event consisting of the new value.
    */
   def change: EventStream[T]
   
@@ -81,6 +89,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
       change fire now
     }
   }
+  //TODO differentiate types at runtime rather than compile time
   def flatMap[U](f: T => SeqSignal[U])(implicit o: Observing) = new SeqSignal[U] {
     //TODO cache
     def now = f(parent.now).now
@@ -103,23 +112,43 @@ trait Signal[T] extends SignalBase[T] { parent =>
 }
 
 
+/**
+ * A signal representing a value that never changes
+ * (and hence never firees change events)
+ */
 case class Val[T](now: T) extends Signal[T] {
   def change = new EventStream[T] {}
 }
 
+/**
+ * Defines a factory for Vars
+ */
 object Var {
   def apply[T](v: T) = new Var(v)
 }
+/**
+ * A signal whose value can be changed directly
+ */
 class Var[T](initial: T) extends Signal[T] {
   private var _value = initial
   def now = value
+  //TODO do we need value? why not just now and now_= ? Or just now and update?
   def value = _value
+  /**
+   * Setter. Usage: var.value = x
+   */
   def value_=(v: T) {
     _value = v
     change.fire(v)
   }
+  /**
+   * Usage: var()=x
+   */
   final def update(v: T) = value = v
   
+  /**
+   * Fires an event after every mutation, consisting of the new value
+   */
   lazy val change = new EventStream[T] {}
 }
 
@@ -128,6 +157,14 @@ private object _timer extends java.util.Timer {
     super.scheduleAtFixedRate(new java.util.TimerTask {def run = p}, delay, interval)
 }
 
+/**
+ * A signal whose value represents elapsed time in milliseconds, and is updated
+ * on a java.util.Timer thread.
+ * @param startTime the value this signal counts up from
+ * @param interval the frequency at which to update the signal's value.
+ */
+//TODO should this really extend Var?
+//TODO could/should this be implemented as a RefreshingVar?
 class Timer(private val startTime: Long = 0, interval: Long) extends Var(startTime) {
   private val origMillis = System.currentTimeMillis
   _timer.scheduleAtFixedRate(interval, interval){
@@ -135,6 +172,13 @@ class Timer(private val startTime: Long = 0, interval: Long) extends Var(startTi
   }
 }
 
+/**
+ * A Var that updates itself based on the supplied call-by-name
+ * regularly, at a given interval, on a java.util.Timer thread.
+ * @param interval the rate at which to update self
+ * @param supplier a call-by-name that calculates the signal's value
+ */
+//TODO should this really extend Var?
 class RefreshingVar[T](interval: Long)(supplier: =>T) extends Var(supplier) {
   _timer.scheduleAtFixedRate(interval, interval){value = supplier}
 }

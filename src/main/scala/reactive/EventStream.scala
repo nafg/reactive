@@ -3,21 +3,85 @@ package reactive
 import scala.ref.WeakReference
 import scala.util.DynamicVariable
 
+
+/**
+ * Keeps a list of strong references. Used to control when observers
+ * can be garbage collected. The observable uses weak references to hold
+ * the observers, so that observers aren't retained in memory for the
+ * entire lifetime of the observable.
+ * Therefore, to make sure the observer isn't garbage collected too early, a
+ * reference to it is stored in an Observing.
+ * Usage: Most methods that add observers to an observable take an Observing
+ * as an implicit parameter, so usually you put an implicit Observing in
+ * the scope in question, and make sure it lasts as long as you need the
+ * observers to last. You can do this by having the containing class
+ * extends Observing (it contains an implicit pointing to itself), or
+ * by writing
+ * implicit val observing = new Observing {}
+ * or the like. You can also pass an Observing instance explicitly to
+ * any method that takes one, bypassing the implicit resolution mechanism.
+ */
 trait Observing {
+  /**
+   * Places an implicit reference to 'this' in scope
+   */
   implicit val observing: Observing = this
   private var refs = List[AnyRef]()
   private[reactive] def addRef(ref: AnyRef) { refs ::= ref }
-  def observe[T](s: Signal[T])(f: T => Unit) = s.change foreach f
-  def on[T](e: EventStream[T])(f: T => Unit) = e foreach f
+  /**
+   * You can write
+   * [observing.] observe(signal){value => action}
+   * as an alternative syntax to
+   * signal.change.foreach{value => action} [(observing)]
+   */
+  def observe[T](s: Signal[T])(f: T => Unit) = s.change.foreach(f)(this)
+  /**
+   * You can write
+   * [observing.] on(eventStream){event => action}
+   * as an alternative syntax to
+   * eventStream.change.foreach{event => action} [(observing)]
+   */
+  def on[T](e: EventStream[T])(f: T => Unit) = e.foreach(f)(this)
 }
+
+/**
+ * An Observing that, rather than maintaing references itself,
+ * maintains a List of Observings that all maintain all references.
+ */
 trait ObservingGroup extends Observing {
   protected def observings: List[Observing]
   override private[reactive] def addRef(ref: AnyRef) = observings foreach {_.addRef(ref)}
 }
 
+
+
 trait EventStreamBase[+T] {
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit
 }
+/**
+ * An EventStream is a source of events (arbitrary values sent to listener functions).
+ * You can fire events from it, you can react to events with any behavior, and you can
+ * create derived EventStreams, whose events are based on the original EventStream.
+ * The API is modeled after the Scala standard library collections framework.
+ * An EventStream is like a collection in the sense that it consists of multiple values.
+ * However, unlike actual collections, the values are not available upon request; they
+ * occur whenever they occur. Nevertheless, many operations that apply to collections
+ * apply to event streams. To react to events, use foreach or foldLeft. To create derived,
+ * transformed EventStreams, use map, flatMap, filter, foldLeft, and the | (union) operator.
+ * Note that you can of course use for comprehensions as syntactic sugar for many
+ * of the above.
+ * You can also create a Signal from an EventStream using hold.
+ * @tparam T the type of values fired as events
+ */
+//TODO methods that return a new EventStream should not be used for side effects and therefore
+//the caller is expected to keep a reference the new EventStream (perhaps calling foreach on it).
+//For this reason they should not take an Observing parameter (and therefore should not
+//be implemented in terms of foreach). Instead, foreach should add to the Observing not only
+//a reference to the callback but also to the EventStream itself; and derived EventStreams should
+//always hold a reference to their parent EventStream. This way, the Observing is only burdened
+//with holding a reference to the callback and the "leaf node" EventStream, which in turn references
+//its parent and grandparents. As a result, transformation functions could be called in an
+//Observing-agnostic context.
 trait EventStream[T] extends EventStreamBase[T] { parent =>
   var debug = false
   class FlatMapped[U](initial: Option[T])(f: T=>EventStream[U])(implicit observing: Observing) extends EventStream[U] {
@@ -39,12 +103,19 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
   }
   private var listeners: List[WeakReference[T => Unit]] = Nil
   
+  /**
+   * Whether this EventStream has any listeners depending on it
+   */
   def hasListeners = !listeners.isEmpty
   
   protected def dumpListeners {
     println(listeners.map(_.get.map(x => x.getClass + "@" + System.identityHashCode(x) + ": " + x.toString)).mkString("[",",","]"))
   }
   
+  /**
+   * Sends an event to all listeners.
+   * @param event the event to send
+   */
   def fire(event: T) {
     if(debug) {
       val notCollected = listeners.count(_.get ne None)
@@ -64,6 +135,8 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
    * the original EventStream, at which time the previously
    * returned EventStream is no longer used and a new one
    * is used instead.
+   * @param f the function that is applied for every event
+   * to produce the next segment of the resulting EventStream.
    */
   def flatMap[U](f: T=>EventStream[U])(implicit observing: Observing): EventStream[U] =
     new FlatMapped(None)(f)(observing)
@@ -86,12 +159,23 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
     }
   } */
   
+  /**
+   * Returns a new EventStream, that for every event that this EventStream
+   * fires, that one will fire an event that is the result of
+   * applying 'f' to this EventStream's event.
+   * @param f the function that transforms events fired by this EventStream
+   * into events to be fired by the resulting EventStream.
+   */
   def map[U](f: T=>U)(implicit observing: Observing): EventStream[U] = {
     new EventStream[U] {
       EventStream.this.foreach{event => this fire f(event)}
     }
   }
   
+  /**
+   * Adds a listener to this EventStream.
+   * @param f a function to be applied on every event
+   */
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = {
     listeners = listeners.filter(_.get.isDefined) ++ List(new WeakReference(f))
     if(debug) {
@@ -102,12 +186,33 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
     observing.addRef(f)
   }
   
+  /**
+   * Returns a new EventStream that fires a subset of the events that
+   * this EventStream fires.
+   * @param f the predicate function that determines which events will
+   * be fired by the new EventStream.
+   */
   def filter(f: T=>Boolean)(implicit observing: Observing): EventStream[T] = new EventStream[T] {
     for(event <- EventStream.this) {
       if(f(event)) fire(event)
     }
   }
   
+  /**
+   * Allows one, in a functional manner, to respond to an event while
+   * taking into account past events.
+   * For every event t, f is called with arguments (u, t), where u
+   * is initially the value of the 'initial' parameter, and subsequently
+   * the result of the previous application of f.
+   * Returns a new EventStream that, for every event t fired by
+   * the original EventStream, fires the result of the application of f
+   * (which will also be the next value of u passed to it).
+   * Often 'u' will be an object representing some accumulated state.
+   * For instance, given an EventStream[Int] named 'es',
+   * es.foldLeft(0)(_ + _)
+   * would return an EventStream that, for every (integer) event fired
+   * by es, would fire the sum of all events that have been fired by es.
+   */
   def foldLeft[U](initial: U)(f: (U,T)=>U)(implicit observing: Observing): EventStream[U] = new EventStream[U] {
     var last = initial
     for(event <- EventStream.this) {
@@ -116,6 +221,13 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
     }
   }
   
+  /**
+   * Union of two EventStreams.
+   * Returns a new EventStream that consists of all events
+   * fired by both this EventStream and 'that.'
+   * @param that the other EventStream to combine in the resulting
+   * EventStream.
+   */
   def |(that: EventStream[T])(implicit observing: Observing): EventStream[T] = {
     val ret = new EventStream[T] {}
     this.foreach(ret.fire)
@@ -123,14 +235,25 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
     ret
   }
   
-  def hold(initial0: =>T)(implicit observing: Observing): Signal[T] = new Signal[T] {
-    private lazy val initial: T = initial0
+  /**
+   * Returns a Signal whose value is initially the 'init' parameter,
+   * and after every event fired by this EventStream, the value of
+   * that event.
+   * @param init the initial value of the signal
+   */
+  def hold(init: =>T)(implicit observing: Observing): Signal[T] = new Signal[T] {
+    private lazy val initial: T = init
     private var current: Option[T] = None
     def change = EventStream.this
     change foreach {v => current = Some(v)}
     def now = current getOrElse initial
   }
   
+  /**
+   * Causes all events fired by this EventStream to be sent to
+   * another EventStream as well.
+   * @param recipient the EventStream to forward events to
+   */
   def forward(recipient: EventStream[T])(implicit observing: Observing) {
     this foreach recipient.fire
   }
@@ -144,12 +267,12 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
  *
  */
 trait TracksAlive[T] extends EventStream[T] {
+  private val o = new Observing {}
+  private val aliveVar = Var(false)
   /**
    * This signal indicates whether the event stream
    * is being listened to 
    */
-  private val aliveVar = Var(false)
-  private val o = new Observing {}
   val alive: Signal[Boolean] = aliveVar.map(identity)(o) // read only
   override def foreach(f: T=>Unit)(implicit observing: Observing) {
     if(!aliveVar.now) {
@@ -162,26 +285,48 @@ trait TracksAlive[T] extends EventStream[T] {
 /**
   This EventStream allows one to block events
   from within a certain scope. This can be used
-  to help prevent infinite loops.
+  to help prevent infinite loops when two EventStreams may depend on each other.
 */
 trait Suppressable[T] extends EventStream[T] {
   protected val suppressed = new DynamicVariable(false)
-  def suppressing[R](p: =>R) = suppressed.withValue(true)(p)
+  /**
+   * Runs code while suppressing events from being fired on the same thread.
+   * While running the code, calls to 'fire' on the same thread do nothing.
+   * @param p the code to run while suppressing events
+   * @return the result of evaluating p
+   */
+  def suppressing[R](p: =>R): R = suppressed.withValue(true)(p)
   override def fire(event: T) = if(!suppressed.value) super.fire(event)
 }
+
 /**
   This EventStream fires Messages (Seq deltas) and can batch them up.
 */
 trait Batchable[A,B] extends EventStream[Message[A,B]] {
   protected val batch = new DynamicVariable(List[Message[A,B]]())
   private val inBatch = new DynamicVariable(false)
-  def batching[R](p: =>R) = if(batch.value.isEmpty) {
-    inBatch.withValue(true) {p}
+  /**
+   * Runs code while batching messages.
+   * While the code is running, calls to 'fire' on the same
+   * thread will not fire messages immediately, but will collect
+   * them. When the code completes, the messages are wrapped in a
+   * single Batch which is then fired.
+   * Nested calls to batching are ignored, so all messages
+   * collected from within the outermost call are collected and
+   * they are fired in one batch at the end.
+   * @param p the code to run
+   * @return the result of evaluating p
+   */
+  def batching[R](p: =>R): R = if(batch.value.isEmpty) {
+    val ret = inBatch.withValue(true) {p}
     batch.value match {
       case Nil =>
       case msgs =>
         super.fire(Batch(msgs.reverse: _*))
     }
+    ret
+  } else {
+    p
   }
   override def fire(msg: Message[A,B]) = {
     if(inBatch.value)
@@ -191,6 +336,9 @@ trait Batchable[A,B] extends EventStream[Message[A,B]] {
   }
 }
 
+/**
+ * An EventStream that is implemented by delegating everything to another EventStream
+ */
 trait EventStreamProxy[T] extends EventStream[T] {
   def underlying: EventStream[T]
   override def fire(event: T) = underlying.fire(event)
