@@ -4,9 +4,9 @@ import _root_.reactive._
 
 class Select[T](
   items: SeqSignal[T],
-  renderer: T=>String = {t:T => t.toString}
+  renderer: T=>String = {t:T => t.toString},
+  val size: Int = 1
 ) extends RParentElem {
-  val size = 1
   implicit val o = new Observing {}
   val children = items.map {items: TransformedSeq[T] =>
     items.map {item: T =>
@@ -37,6 +37,7 @@ class Select[T](
   def properties = List(selectedIndex)
   def events = List(change)
 }
+
 object Select {
   def apply[T](selected: Option[T], items: Seq[T], renderer: T=>String, size: Int)(handleChange: Option[T]=>Unit): Select[T] =
     apply(selected, SeqSignal(Val(items))(new Observing{}), renderer, size)(handleChange)
