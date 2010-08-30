@@ -69,12 +69,15 @@ trait Signal[T] extends SignalBase[T] { parent =>
   def map[U](f: T=>U)(implicit observing: Observing) = new MappedSignal[U](f)
   
   /**
-   * Combine two Signals to form a new composite Signal.
-   * The new Signal has the value of the Signal calculated
-   * by applying f to this Signal's value.
+   * Returns a new signal, that for every value of this parent signal,
+   * will correspond to the signal resulting from applying f to
+   * the respective value of this parent signal.
    * Whenever this Signal's change EventStream fires, the
-   * resulting Signal's change EventStream will corresponds
-   * to the calculated Signal's change EventStream.
+   * resulting Signal's change EventStream will fire the
+   * value of the new signal, and subsequently will fire
+   * all change events fired by that signal.
+   * This can be used to build a signal that switches
+   * among several other signals.
    * For example:
    * val sa: Signal[Int] = ...
    * def sb(a: Int): Signal[Int] = a.map(_ + 1)
@@ -85,26 +88,43 @@ trait Signal[T] extends SignalBase[T] { parent =>
     def now = f(parent.now).now
     val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}(observing)
     parent.change foreach {_ =>
-      println("Parent change, firing " + now)
       change fire now
     }
   }
-  //TODO differentiate types at runtime rather than compile time
+  /**
+   * 
+   * @param f
+   * @return a SeqSignal whose deltas and change events correspond to
+   * those of the SeqSignals returned by ''f'', after each invocation
+   * of ''f'', which result from change events fired by the parent signal.
+   * In addition, every change to the parent results in a change event
+   * as well as deltas reflecting the transition from the SeqSignal
+   * previously returned by ''f'' and the on returned by it now.
+   */
+  //TODO differentiate types at runtime rather than compile time?
+  //Maybe use some kind of manifest or other evidence?
+  //Or have f implicitly wrapped in some wrapper?
   def flatMap[U](f: T => SeqSignal[U])(implicit o: Observing) = new SeqSignal[U] {
     //TODO cache
     def now = f(parent.now).now
     def observing = o
     override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}(observing)
-    parent.change.foldLeft[Seq[Message[T,U]]](Nil){(prev: Seq[Message[T,U]], cur: T) =>
+    private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+    parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
+      //TODO should we do use a direct diff of the seqs instead? 
+//      println("Entering foldLeft")
       val n = f(cur)
       change fire n.transform
-      println(n.transform.getClass)
+//      println(n.transform.getClass)
+//      println(n.transform)
       val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
+//      println("(da, db): " + (da,db))
       val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
       val toApply = db.filterNot(da.contains)
-      println("toUndo: "  + toUndo)
-      println("toApply: "  + toApply)
+//      println("toUndo: "  + toUndo)
+//      println("toApply: "  + toApply)
       deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+//      println("Returning from foldLeft")
       db
     }
     override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}(observing)
@@ -114,7 +134,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
 
 /**
  * A signal representing a value that never changes
- * (and hence never firees change events)
+ * (and hence never fires change events)
  */
 case class Val[T](now: T) extends Signal[T] {
   def change = new EventStream[T] {}

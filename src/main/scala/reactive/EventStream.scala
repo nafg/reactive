@@ -28,6 +28,11 @@ trait Observing {
   implicit val observing: Observing = this
   private var refs = List[AnyRef]()
   private[reactive] def addRef(ref: AnyRef) { refs ::= ref }
+  private[reactive] def removeRef(ref: AnyRef) {
+    refs = refs.span(ref.ne) match {
+      case (nes, firstEqs) => nes ++ firstEqs.drop(1)
+    }
+  }
   /**
    * You can write
    * [observing.] observe(signal){value => action}
@@ -106,6 +111,7 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
   /**
    * Whether this EventStream has any listeners depending on it
    */
+  //TODO should it return false if it has listeners that have been gc'ed?
   def hasListeners = !listeners.isEmpty
   
   protected def dumpListeners {
@@ -116,6 +122,7 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
    * Sends an event to all listeners.
    * @param event the event to send
    */
+  //TODO should this be public API in the main trait?
   def fire(event: T) {
     if(debug) {
       val notCollected = listeners.count(_.get ne None)
@@ -177,7 +184,7 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
    * @param f a function to be applied on every event
    */
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = {
-    listeners = listeners.filter(_.get.isDefined) ++ List(new WeakReference(f))
+    addListener(f)
     if(debug) {
       println("Added a listener to " + this)
       dumpListeners
@@ -187,7 +194,7 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
   }
   
   /**
-   * Returns a new EventStream that fires a subset of the events that
+   * Returns a new EventStream that propagates a subset of the events that
    * this EventStream fires.
    * @param f the predicate function that determines which events will
    * be fired by the new EventStream.
@@ -196,6 +203,27 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
     for(event <- EventStream.this) {
       if(f(event)) fire(event)
     }
+  }
+  
+  /**
+   * Returns a new EventStream that propagates this EventStream's events
+   * until the predicate returns false.
+   * @param p the precate function, taking an event as its argument
+   * and returning true if event propagation should continue
+   */
+  def takeWhile(p: T=>Boolean)(implicit observing: Observing): EventStream[T] = new EventStream[T] {
+    val f: T=>Unit = (event: T)=> {
+      if(p(event)) fire(event) else {
+        observing.removeRef(f)
+//        println("Before removeListener: ")
+//        dumpListeners
+        EventStream.this.removeListener(f)
+//        println("After removeListener: ")
+//        dumpListeners
+      }
+    }
+    observing.addRef(f)
+    EventStream.this.addListener(f)
   }
   
   /**
@@ -257,6 +285,27 @@ trait EventStream[T] extends EventStreamBase[T] { parent =>
   def forward(recipient: EventStream[T])(implicit observing: Observing) {
     this foreach recipient.fire
   }
+  
+  private def addListener(f: (T) => Unit): Unit = {
+    listeners = listeners.filter(_.get.isDefined) :+ new WeakReference(f)
+  }
+  private def removeListener(f: (T) => Unit): Unit = {
+    //remove the last listener that is identical to f.
+    //do this with a foldRight, passing around the
+    //part of the list already processed, and a boolean
+    //indicating whether to remove the next occurrence of f.
+    listeners.foldRight((List[WeakReference[T=>Unit]](), true)){
+      case (wr,(list, true)) => wr.get match {
+        case Some(l) if l eq f => (list, false)
+        case _ => (list :+ wr, true)
+      }
+      case (wr,(list, false)) =>
+        (if(wr.get.isDefined) list :+ wr else list, false)
+    } match {
+      case (l, _) => listeners = l
+    }
+  }
+  
 }
 
 /**
@@ -287,6 +336,8 @@ trait TracksAlive[T] extends EventStream[T] {
   from within a certain scope. This can be used
   to help prevent infinite loops when two EventStreams may depend on each other.
 */
+//TODO suppressable event streams' transformed derivatives
+//should also be Suppressable
 trait Suppressable[T] extends EventStream[T] {
   protected val suppressed = new DynamicVariable(false)
   /**
@@ -302,6 +353,8 @@ trait Suppressable[T] extends EventStream[T] {
 /**
   This EventStream fires Messages (Seq deltas) and can batch them up.
 */
+//TODO batchable event streams' transformed derivatives
+//should also be Batchable
 trait Batchable[A,B] extends EventStream[Message[A,B]] {
   protected val batch = new DynamicVariable(List[Message[A,B]]())
   private val inBatch = new DynamicVariable(false)
@@ -310,7 +363,8 @@ trait Batchable[A,B] extends EventStream[Message[A,B]] {
    * While the code is running, calls to 'fire' on the same
    * thread will not fire messages immediately, but will collect
    * them. When the code completes, the messages are wrapped in a
-   * single Batch which is then fired.
+   * single Batch which is then fired. If there is only one message
+   * to be fired it is not wrapped in a Batch but fired directly.
    * Nested calls to batching are ignored, so all messages
    * collected from within the outermost call are collected and
    * they are fired in one batch at the end.
@@ -321,9 +375,12 @@ trait Batchable[A,B] extends EventStream[Message[A,B]] {
     val ret = inBatch.withValue(true) {p}
     batch.value match {
       case Nil =>
+      case msg :: Nil =>
+        super.fire(msg)
       case msgs =>
         super.fire(Batch(msgs.reverse: _*))
     }
+    batch.value = Nil
     ret
   } else {
     p
