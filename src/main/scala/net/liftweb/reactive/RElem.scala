@@ -67,7 +67,7 @@ object RElem {
   }
 }
 
-trait RElem {
+trait RElem extends net.liftweb.util.Bindable {
   import scala.ref.WeakReference
   protected var _pages = List[WeakReference[Page]]()
   protected def pages = _pages.flatMap(_.get)
@@ -102,4 +102,6 @@ trait RElem {
       case (e, _) => e
     }
   }
+  
+  def asHtml = render
 }
