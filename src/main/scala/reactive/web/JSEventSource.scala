@@ -1,6 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
 
-import _root_.reactive._
 
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.{JsExp, JE}

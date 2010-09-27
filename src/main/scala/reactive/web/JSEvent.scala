@@ -1,4 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
+
 
 object JSEvent {
   def eventName[T <: JSEvent : Manifest] = manifest[T].erasure.getSimpleName.toLowerCase match {

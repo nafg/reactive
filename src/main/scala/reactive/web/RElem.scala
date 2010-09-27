@@ -1,4 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
+
 
 
 import net.liftweb.http._
@@ -10,7 +12,6 @@ import net.liftweb.common._
 import net.liftweb.actor._
 import scala.xml._
 
-import _root_.reactive._
 
 
 

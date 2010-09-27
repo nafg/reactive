@@ -1,10 +1,10 @@
-package net.liftweb
+package reactive
 
 import net.liftweb.http.{js, SHtml, S}
   import js.JE.{JsRaw, Str}
   import js.JsCmds.Run
 
-package object reactive {
+package object web {
   def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page): Unit = {
     val funcWrapper: String=>Unit = {
       case "true" => if(response.isDefinedAt(true)) response(true)

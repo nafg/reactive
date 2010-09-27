@@ -1,6 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
 
-import _root_.reactive._
 import net.liftweb.http.js.{JsCmds, JE, JsCmd, JsExp}
 	import JsCmds.SetExp
 	import JE.{JsRaw, Str}

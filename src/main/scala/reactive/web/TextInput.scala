@@ -1,6 +1,5 @@
-package net.liftweb.reactive
-
-import _root_.reactive._
+package reactive
+package web
 
 
 class TextInput(

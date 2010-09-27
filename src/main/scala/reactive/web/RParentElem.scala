@@ -1,6 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
 
-import _root_.reactive._
 import scala.xml.NodeSeq
 
 import net.liftweb.http.js.JsCmds.{Run, JsTry, Replace}

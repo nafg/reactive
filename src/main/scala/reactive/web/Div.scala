@@ -1,6 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
 
-import reactive._
 
 
 class Div(

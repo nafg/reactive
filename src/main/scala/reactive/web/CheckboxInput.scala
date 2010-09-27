@@ -1,6 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
 
-import _root_.reactive._
 
 
 class CheckboxInput(

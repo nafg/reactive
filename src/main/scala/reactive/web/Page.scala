@@ -1,9 +1,10 @@
-package net.liftweb.reactive
+package reactive
+package web
+
 
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.http.{RequestVar, S}
 
-import reactive._
 
 object CurrentPage extends RequestVar(new Page)
 

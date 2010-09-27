@@ -1,4 +1,6 @@
-package net.liftweb.reactive
+package reactive
+package web
+
 
 import scala.collection.mutable.{WeakHashMap, HashMap}
 import scala.ref.WeakReference
