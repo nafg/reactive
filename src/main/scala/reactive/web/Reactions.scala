@@ -42,7 +42,12 @@ object Reactions {
         ca
     }
   }
-  
+
+  def findPage(id: String): Option[Page] = pages.collect{case (p,_) if p.id==id => p}.headOption
+  def isPageAlive(id: String): Boolean = pages.collect{case (p,c) if p.id==id => c.get.isDefined} match {
+    case xs: Seq[Boolean] => xs.nonEmpty && xs.exists(identity)
+  }
+
   def register(page: Page, comet: ReactionsComet) = synchronized {
     val pend = pending.remove(page.id) map { case (js,_) => js } getOrElse JsCmds.Noop
     
@@ -85,6 +90,8 @@ object Reactions {
     }
   }
   def inServerScope[T](page: Page)(p: => T): T = {
+    //TODO should we do anything different if page doesn't exist in pages?
+    //is it possible the page will still be registered?
     val ret = currentScope.doWith(Right(page)) {
       p
     }
