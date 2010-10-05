@@ -7,7 +7,6 @@ class Select[T](
   renderer: T=>String = {t:T => t.toString},
   val size: Int = 1
 ) extends RParentElem {
-  implicit val o = new Observing {}
   val children = items.map {items: TransformedSeq[T] =>
     items.map {item: T =>
       val elem = if(selectedItem.now == Some(item))
@@ -17,7 +16,7 @@ class Select[T](
         
       RElem(elem)
     }
-  }(o)
+  }
   
   val change = new JSEventSource[Change.type]
   val selectedIndex = new JSProperty[Option[Int]] {
@@ -40,22 +39,25 @@ class Select[T](
 
 object Select {
   def apply[T](selected: Option[T], items: Seq[T], renderer: T=>String, size: Int)(handleChange: Option[T]=>Unit): Select[T] =
-    apply(selected, SeqSignal(Val(items))(new Observing{}), renderer, size)(handleChange)
+    apply(selected, SeqSignal(Val(items)), renderer, size)(handleChange)
   
   def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T=>String, size: Int = 1)(handleChange: Option[T]=>Unit): Select[T] = {
     def _size = size
     new Select[T](items, renderer) {
       override val size = _size
       selectItem(selected)
-      selectedItem.change foreach handleChange
+      override protected def addPage(implicit page: Page) {
+        super.addPage(page)
+        selectedItem.change foreach handleChange
+      }
     }
   }
   def apply[T](items: SeqSignal[T], renderer: T=>String): Select[T] =
     new Select[T](items, renderer)
   def apply[T](items: SeqSignal[T]): Select[T] =
     new Select[T](items)
-  def apply[T](items: Signal[Seq[T]], renderer: T=>String)(implicit o: Observing): Select[T] =
-    new Select[T](SeqSignal(items)(o), renderer)
-  def apply[T](items: Signal[Seq[T]])(implicit o: Observing): Select[T] =
-    new Select[T](SeqSignal(items)(o))
+  def apply[T](items: Signal[Seq[T]], renderer: T=>String): Select[T] =
+    new Select[T](SeqSignal(items), renderer)
+  def apply[T](items: Signal[Seq[T]]): Select[T] =
+    new Select[T](SeqSignal(items))
 }
