@@ -19,28 +19,7 @@ trait SignalBase[+T] {
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
 trait Signal[T] extends SignalBase[T] { parent =>
-  protected class MappedSignal[U](f: T=>U) extends Signal[U] {
-    import scala.ref.WeakReference
-    private val emptyCache = new WeakReference[Option[U]](None)
-    protected var cached = emptyCache
-    protected def cache(v: U): U = {
-      cached = new WeakReference(Some(v))
-      v
-    }
-    def now = cached.get match {
-      case None | Some(None) =>
-        cache(f(Signal.this.now))
-      case Some(Some(ret)) => ret
-    }
-    /**
-     * Fire change events whenever (the outer) Signal.this changes,
-     * but the events should be transformed by f
-     */
-    lazy val change = Signal.this.change.map(f)
-
-    //TODO we need a way to be able to do this only if there are no real listeners
-    change addListener cache
-  }
+  
   
   /**
    * Represents the current value. Often, this value does not need to be
@@ -66,7 +45,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
    * b represents a Signal whose value is always 1 greater than a.
    * Whenever a fires an event of x, b fires an event of x+1.
    */
-  def map[U](f: T=>U) = new MappedSignal[U](f)
+  def map[U](f: T=>U)(implicit canMapSignal: CanMapSignal[Signal, T, U, I.I[T]=>I.I[U]]) = canMapSignal.map(this, f)
   
   /**
    * Returns a new signal, that for every value of this parent signal,
@@ -82,56 +61,116 @@ trait Signal[T] extends SignalBase[T] { parent =>
    * val sa: Signal[Int] = ...
    * def sb(a: Int): Signal[Int] = a.map(_ + 1)
    * val sc = sa.flatMap(a => sb(a))
-   */
-  def flatMap[U](f: T => Signal[U]) = new Signal[U] {
-    //TODO cache
-    def now = f(parent.now).now
-    val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
-    val parentChange = parent.change
-    parentChange addListener {_ =>
-      change fire now
-    }
-  }
-  
-  /**
    * 
-   * @param f
-   * @return a SeqSignal whose deltas and change events correspond to
+   * If the function is typed to return a SeqSignal, its deltas and also correspond to
    * those of the SeqSignals returned by ''f'', after each invocation
-   * of ''f'', which result from change events fired by the parent signal.
+   * of ''f''.
    * In addition, every change to the parent results in a change event
    * as well as deltas reflecting the transition from the SeqSignal
    * previously returned by ''f'' and the on returned by it now.
    */
-  //TODO differentiate types at runtime rather than compile time?
-  //Maybe use some kind of manifest or other evidence?
-  //Or have f implicitly wrapped in some wrapper?
-  def flatMap[U](f: T => SeqSignal[U]) = new SeqSignal[U] {
-    //TODO cache
-    def now = f(parent.now).now
-    override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
-    private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
-    parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
-      //TODO should we do use a direct diff of the seqs instead? 
-//      println("Entering foldLeft")
-      val n = f(cur)
-      change fire n.transform
-//      println(n.transform.getClass)
-//      println(n.transform)
-      val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
-//      println("(da, db): " + (da,db))
-      val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
-      val toApply = db.filterNot(da.contains)
-//      println("toUndo: "  + toUndo)
-//      println("toApply: "  + toApply)
-      deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
-//      println("Returning from foldLeft")
-      db
-    }
-    override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
+  def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
+  
+  
+//  /**
+//   * 
+//   * @param f
+//   * @return a SeqSignal whose deltas and change events correspond to
+//   * those of the SeqSignals returned by ''f'', after each invocation
+//   * of ''f'', which result from change events fired by the parent signal.
+//   * In addition, every change to the parent results in a change event
+//   * as well as deltas reflecting the transition from the SeqSignal
+//   * previously returned by ''f'' and the on returned by it now.
+//   */
+//  //TODO differentiate types at runtime rather than compile time?
+//  //Maybe use some kind of manifest or other evidence?
+//  //Or have f implicitly wrapped in some wrapper?
+//  def flatMap[U](f: T => SeqSignal[U]) = new FlatMappedSeqSignal[T,U](this, f) 
+}
+
+protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
+  //TODO cache
+  def now = f(parent.now).now
+  val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
+  val parentChange = parent.change
+  parentChange addListener {_ =>
+    change fire now
   }
 }
 
+protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
+  //TODO cache
+  def now = f(parent.now).now
+  override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
+  private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
+    //TODO should we do use a direct diff of the seqs instead? 
+    val n = f(cur)
+    change fire n.transform
+    val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
+    val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
+    val toApply = db.filterNot(da.contains)
+    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+    db
+  }
+  override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
+}
+  
+protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends Signal[U] {
+  import scala.ref.WeakReference
+  private val emptyCache = new WeakReference[Option[U]](None)
+  protected var cached = emptyCache
+  protected def cache(v: U): U = {
+    cached = new WeakReference(Some(v))
+    v
+  }
+  def now = cached.get match {
+  case None | Some(None) =>
+  cache(f(parent.now))
+  case Some(Some(ret)) => ret
+  }
+  /**
+   * Fire change events whenever (the outer) Signal.this changes,
+   * but the events should be transformed by f
+   */
+  lazy val change = parent.change.map(f)
+
+  //TODO we need a way to be able to do this only if there are no real listeners
+  change addListener cache
+}
+
+trait CanFlatMapSignal[S1[T], S2[T]] {
+  def flatMap[T, U](parent: S1[T], f: T => S2[U]): S2[U]
+}
+trait LowPriorityCanFlatMapSignalImplicits {
+  implicit def canFlatMapSignal: CanFlatMapSignal[Signal, Signal] = new CanFlatMapSignal[Signal, Signal] {
+    def flatMap[T, U](parent: Signal[T], f: T=>Signal[U]) = new FlatMappedSignal[T,U](parent,f)
+  }
+}
+object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
+  implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
+    def flatMap[T, U](parent: Signal[T], f: T=>SeqSignal[U]) = new FlatMappedSeqSignal[T,U](parent,f)
+  }
+}
+
+object I {
+  type I[X] = X
+}
+
+trait CanMapSignal[Sig[X], In, Out, Fun] {
+  def map(parent: Sig[In], f: Fun): Sig[Out]
+}
+trait LowPriorityMapSignalImplicits {
+  implicit def canMapSignal[T,U]: CanMapSignal[Signal, T, U, T=>U] = new CanMapSignal[Signal, T, U, T=>U] {
+    def map(parent: Signal[T], f: T=>U) = new MappedSignal[T,U](parent,f)
+  }
+}
+object CanMapSignal extends LowPriorityMapSignalImplicits {
+  implicit def canMapSeqSignal[T, U]: CanMapSignal[SeqSignal, T, U, TransformedSeq[T] => TransformedSeq[U]] =
+    new CanMapSignal[SeqSignal, T, U, TransformedSeq[T] => TransformedSeq[U]] {
+      def map(parent: SeqSignal[T], f: TransformedSeq[T]=>TransformedSeq[U]) = new MappedSeqSignal[T,U](parent, f)
+    }
+}
 
 /**
  * A signal representing a value that never changes
