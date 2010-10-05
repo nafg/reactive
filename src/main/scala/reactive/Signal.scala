@@ -19,7 +19,7 @@ trait SignalBase[+T] {
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
 trait Signal[T] extends SignalBase[T] { parent =>
-  protected class MappedSignal[U](f: T=>U)(implicit observing: Observing) extends Signal[U] {
+  protected class MappedSignal[U](f: T=>U) extends Signal[U] {
     import scala.ref.WeakReference
     private val emptyCache = new WeakReference[Option[U]](None)
     protected var cached = emptyCache
@@ -39,7 +39,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
     lazy val change = Signal.this.change.map(f)
 
     //TODO we need a way to be able to do this only if there are no real listeners
-    for(v <- change) cache(v)
+    change addListener cache
   }
   
   /**
@@ -66,7 +66,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
    * b represents a Signal whose value is always 1 greater than a.
    * Whenever a fires an event of x, b fires an event of x+1.
    */
-  def map[U](f: T=>U)(implicit observing: Observing) = new MappedSignal[U](f)
+  def map[U](f: T=>U) = new MappedSignal[U](f)
   
   /**
    * Returns a new signal, that for every value of this parent signal,
@@ -83,14 +83,16 @@ trait Signal[T] extends SignalBase[T] { parent =>
    * def sb(a: Int): Signal[Int] = a.map(_ + 1)
    * val sc = sa.flatMap(a => sb(a))
    */
-  def flatMap[U](f: T => Signal[U])(implicit observing: Observing) = new Signal[U] {
+  def flatMap[U](f: T => Signal[U]) = new Signal[U] {
     //TODO cache
     def now = f(parent.now).now
-    val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}(observing)
-    parent.change foreach {_ =>
+    val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
+    val parentChange = parent.change
+    parentChange addListener {_ =>
       change fire now
     }
   }
+  
   /**
    * 
    * @param f
@@ -104,11 +106,10 @@ trait Signal[T] extends SignalBase[T] { parent =>
   //TODO differentiate types at runtime rather than compile time?
   //Maybe use some kind of manifest or other evidence?
   //Or have f implicitly wrapped in some wrapper?
-  def flatMap[U](f: T => SeqSignal[U])(implicit o: Observing) = new SeqSignal[U] {
+  def flatMap[U](f: T => SeqSignal[U]) = new SeqSignal[U] {
     //TODO cache
     def now = f(parent.now).now
-    def observing = o
-    override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}(observing)
+    override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
     private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
     parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
       //TODO should we do use a direct diff of the seqs instead? 
@@ -127,7 +128,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
 //      println("Returning from foldLeft")
       db
     }
-    override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}(observing)
+    override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
   }
 }
 

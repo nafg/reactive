@@ -27,7 +27,6 @@ trait TransformedSeq[T]
   //println("instantiated TransformedSeq " + getClass + "@" + System.identityHashCode(this) + ": " + this)
   
   trait Transformed[U] extends TransformedSeq[U] {
-    implicit val observing = new Observing {}
     protected def xform(index: Int, elem: T): List[(Int, U)]
     protected[reactive] def xform(m: Message[T,T]): List[Message[U,U]] = m match {
       case Include(loc, elem) => xform(loc, elem) map {
@@ -227,7 +226,6 @@ trait TransformedSeq[T]
   
   lazy val deltas: EventStream[Message[T,T]] = new EventStream[Message[T,T]] {}
 
-  implicit def observing: Observing
   def underlying: scala.collection.Seq[T]
   def apply(i: Int): T = underlying.apply(i)
   def length = underlying.length
@@ -317,21 +315,19 @@ trait TransformedSeq[T]
   */
   def baseDeltas: Seq[Message[_,T]] = underlying.zipWithIndex.map{case (e,i)=>Include(i,e)}
   
-  override protected[this] def newBuilder: Builder[T, TransformedSeq[T]] = new TransformedSeq.TransformedBuilder(observing)
+  override protected[this] def newBuilder: Builder[T, TransformedSeq[T]] = new TransformedSeq.TransformedBuilder
 }
 object TransformedSeq extends SeqFactory[TransformedSeq] {
   implicit def canBuildFrom[T]: CanBuildFrom[Coll, T, TransformedSeq[T]] =
     new GenericCanBuildFrom[T] {
       override def apply(from: Coll) = from match {
-        case f: TransformedSeq[_] => new TransformedBuilder[T](f.observing)
+        case f: TransformedSeq[_] => new TransformedBuilder[T]
       }
     }
-  def newBuilder[T] = new TransformedBuilder[T](new Observing{})
-  class TransformedBuilder[T](o: Observing)
-  extends Builder[T, TransformedSeq[T]] {
+  def newBuilder[T] = new TransformedBuilder[T]
+  class TransformedBuilder[T] extends Builder[T, TransformedSeq[T]] {
     var list = List[T]()
     def result = new TransformedSeq[T] {
-      val observing = o 
       lazy val underlying = list.reverse
     }
     def clear { list = Nil}
