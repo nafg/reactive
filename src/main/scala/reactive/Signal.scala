@@ -2,12 +2,18 @@ package reactive
 
 object Signal {
   //implicit def signalToEventStream[T](signal: SignalBase[T]): EventStreamBase[T] = signal.change
+  protected class SignalMappable[T](s: Signal[T]) {
+    def map[U](f: T=>U): Signal[U] = new MappedSignal[T,U](s, f)
+  }
+  implicit def signalToMappable[T](s: Signal[T]): SignalMappable[T] = new SignalMappable(s)
 }
 trait SignalBase[+T] {
   def now: T
   def change: EventStream[_ <: T]
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
 }
+
+
 /**
  * A Signal in FRP represents a continuous value.
  * Here it is represented by the Signal trait, which is currently implemented in terms of a 'now' value
@@ -34,18 +40,18 @@ trait Signal[T] extends SignalBase[T] { parent =>
    */
   def change: EventStream[T]
   
-  /**
-   * Return a new Signal whose value is computed from the value
-   * of this Signal, transformed by f. It fires change events
-   * whenever (and only when) the original Signal does, but the
-   * event values are transformed by f.
-   * For example:
-   * val a: Signal[Int] = ...
-   * val b = a.map(_ + 1)
-   * b represents a Signal whose value is always 1 greater than a.
-   * Whenever a fires an event of x, b fires an event of x+1.
-   */
-  def map[U](f: T=>U)(implicit canMapSignal: CanMapSignal[Signal, T, U, I.I[T]=>I.I[U]]) = canMapSignal.map(this, f)
+//  /**
+//   * Return a new Signal whose value is computed from the value
+//   * of this Signal, transformed by f. It fires change events
+//   * whenever (and only when) the original Signal does, but the
+//   * event values are transformed by f.
+//   * For example:
+//   * val a: Signal[Int] = ...
+//   * val b = a.map(_ + 1)
+//   * b represents a Signal whose value is always 1 greater than a.
+//   * Whenever a fires an event of x, b fires an event of x+1.
+//   */
+//  def map[U](f: T=>U)(implicit canMapSignal: CanMapSignal[Signal, T, U, T=>U]) = canMapSignal.map(this, f)
   
   /**
    * Returns a new signal, that for every value of this parent signal,
@@ -62,7 +68,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
    * def sb(a: Int): Signal[Int] = a.map(_ + 1)
    * val sc = sa.flatMap(a => sb(a))
    * 
-   * If the function is typed to return a SeqSignal, its deltas and also correspond to
+   * If the function is typed to return a SeqSignal, its deltas and changes correspond to
    * those of the SeqSignals returned by ''f'', after each invocation
    * of ''f''.
    * In addition, every change to the parent results in a change event
@@ -153,24 +159,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   }
 }
 
-object I {
-  type I[X] = X
-}
 
-trait CanMapSignal[Sig[X], In, Out, Fun] {
-  def map(parent: Sig[In], f: Fun): Sig[Out]
-}
-trait LowPriorityMapSignalImplicits {
-  implicit def canMapSignal[T,U]: CanMapSignal[Signal, T, U, T=>U] = new CanMapSignal[Signal, T, U, T=>U] {
-    def map(parent: Signal[T], f: T=>U) = new MappedSignal[T,U](parent,f)
-  }
-}
-object CanMapSignal extends LowPriorityMapSignalImplicits {
-  implicit def canMapSeqSignal[T, U]: CanMapSignal[SeqSignal, T, U, TransformedSeq[T] => TransformedSeq[U]] =
-    new CanMapSignal[SeqSignal, T, U, TransformedSeq[T] => TransformedSeq[U]] {
-      def map(parent: SeqSignal[T], f: TransformedSeq[T]=>TransformedSeq[U]) = new MappedSeqSignal[T,U](parent, f)
-    }
-}
 
 /**
  * A signal representing a value that never changes

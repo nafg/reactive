@@ -166,6 +166,10 @@ trait SeqSignal[T] extends Signal[Seq[T]] {
 }
 
 object SeqSignal {
+  protected class SeqSignalMappable[T](s: SeqSignal[T]) {
+    def map[U](f: TransformedSeq[T] => TransformedSeq[U]): SeqSignal[U] = new MappedSeqSignal[T,U](s,f)
+  }
+  implicit def seqSignalToMappable[T](s: SeqSignal[T]): SeqSignalMappable[T] = new SeqSignalMappable[T](s)
   /**
    * This factory creates a SeqSignal that wraps an ordinary Signal[Seq[_]],
    * with the behavior that whenever the original signal's value changes,
