@@ -340,7 +340,7 @@ trait TracksAlive[T] extends EventStream[T] {
    * This signal indicates whether the event stream
    * is being listened to 
    */
-  val alive: Signal[Boolean] = aliveVar.map(identity) // read only
+  //val alive: Signal[Boolean] = aliveVar.map[Boolean, Signal[Boolean]](identity) // read only
   override def foreach(f: T=>Unit)(implicit observing: Observing) {
     if(!aliveVar.now) {
       aliveVar()=true

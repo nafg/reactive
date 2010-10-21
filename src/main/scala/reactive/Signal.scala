@@ -2,17 +2,59 @@ package reactive
 
 object Signal {
   //implicit def signalToEventStream[T](signal: SignalBase[T]): EventStreamBase[T] = signal.change
-  protected class SignalMappable[T](s: Signal[T]) {
-    def map[U](f: T=>U): Signal[U] = new MappedSignal[T,U](s, f)
-  }
-  implicit def signalToMappable[T](s: Signal[T]): SignalMappable[T] = new SignalMappable(s)
+  // protected class SignalMappable[T](s: Signal[T]) {
+    // def map[U](f: T=>U): Signal[U] = new MappedSignal[T,U](s, f)
+  // }
+  // implicit def signalToMappable[T](s: Signal[T]): SignalMappable[T] = new SignalMappable(s)
 }
+
 trait SignalBase[+T] {
+  type This[+T] <: Signal[T]
   def now: T
   def change: EventStream[_ <: T]
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
 }
 
+/*trait SignalMapper[B, S1[T], S2] {
+ def apply[A](s: S1[A], f: A => B): S2
+}
+
+trait LowPriorityMap {
+  implicit def mapSignal[B]: SignalMapper[B, Signal, Signal[B]] = new SignalMapper[B, Signal, Signal[B]] {
+    def apply[A](s: Signal[A],  f: A => B): Signal[B] = new MappedSignal(s, f)
+  }
+}
+
+trait HighPriorityMap extends LowPriorityMap {
+  implicit def mapSeqSignal[B]: SignalMapper[TransformedSeq[B], SeqSignal, SeqSignal[B]] = new SignalMapper[TransformedSeq[B], SeqSignal, SeqSignal[B]] {
+    def apply[A](s: SeqSignal[A],  f: TransformedSeq[A] => TransformedSeq[B]): SeqSignal[B] = new MappedSeqSignal(s, f)
+  }
+}
+
+object SignalMapper extends HighPriorityMap*/
+
+/////////////////
+
+trait SignalLike[A, +This <: SignalLike[A, This]] {
+  def map[B, To](f: A => B)(implicit mapper: SignalMapper[This, A, B, To]): To
+}
+
+trait SignalMapper[-From, A, B, To] {
+  def apply(from: From, f: A => B): To
+}
+
+trait GenericSignalMapper {
+  implicit def mapSignal[A, B] = new SignalMapper[Signal[A], A, B, Signal[B]] {
+    def apply(s: Signal[A], f: A => B): Signal[B] = new MappedSignal(s, f)
+  }
+}
+
+object SignalMapper extends GenericSignalMapper {
+  implicit def mapSeqSignal[A, B] = new SignalMapper[SeqSignal[A], TransformedSeq[A], TransformedSeq[B], SeqSignal[B]] {
+    def apply(s: SeqSignal[A], f: TransformedSeq[A] => TransformedSeq[B]): SeqSignal[B] = new MappedSeqSignal(s, f)
+  }
+}
+/////
 
 /**
  * A Signal in FRP represents a continuous value.
@@ -24,8 +66,7 @@ trait SignalBase[+T] {
  */
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
-trait Signal[T] extends SignalBase[T] { parent =>
-  
+trait Signal[T] extends SignalBase[T] with SignalLike[T, Signal[T]] { parent =>
   
   /**
    * Represents the current value. Often, this value does not need to be
@@ -92,6 +133,10 @@ trait Signal[T] extends SignalBase[T] { parent =>
 //  //Maybe use some kind of manifest or other evidence?
 //  //Or have f implicitly wrapped in some wrapper?
 //  def flatMap[U](f: T => SeqSignal[U]) = new FlatMappedSeqSignal[T,U](this, f) 
+  
+  
+//  def map[U, S2](f: T => U)(implicit mapper: SignalMapper[U, This, S2]): S2 = mapper(this.asInstanceOf[This[T]], f)
+
 }
 
 protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
@@ -158,6 +203,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
     def flatMap[T, U](parent: Signal[T], f: T=>SeqSignal[U]) = new FlatMappedSeqSignal[T,U](parent,f)
   }
 }
+
 
 
 
