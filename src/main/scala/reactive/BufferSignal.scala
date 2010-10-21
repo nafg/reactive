@@ -141,7 +141,21 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
  * preserving the transformation relationship of derived signals by propagating
  * deltas (Messages).
  */
-trait SeqSignal[T] extends Signal[Seq[T]] {
+//class SeqSignal[A](seq: TransformedSeq[A]) extends Signal[TransformedSeq[A]] with SignalLike[TransformedSeq[A], SeqSignal[A]] {
+//  def this(seq: Seq[A]) = this(TransformedSeq(seq: _*))
+//  def content = seq
+//  def map[B, To](f: TransformedSeq[A] => B)(implicit mapper: SignalMapper[SeqSignal[A], TransformedSeq[A], B, To]): To = mapper(this, f)
+//  override def toString = seq.mkString("SeqSignal(", ", ", ")")
+//}
+
+//object SeqSignal {
+//  def apply[A](values: A*) = new SeqSignal(TransformedSeq(values: _*))
+//}
+
+
+trait SeqSignal[T] extends Signal[Seq[T]] with SignalLike[TransformedSeq[T], SeqSignal[T]]{
+  override type This[T] = SeqSignal[T]
+  
   //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
   //  _ => f(transform)
   //}
@@ -166,10 +180,6 @@ trait SeqSignal[T] extends Signal[Seq[T]] {
 }
 
 object SeqSignal {
-//  protected class SeqSignalMappable[T](s: SeqSignal[T]) {
-//    def map[U](f: TransformedSeq[T] => TransformedSeq[U]): SeqSignal[U] = new MappedSeqSignal[T,U](s,f)
-//  }
-//  implicit def seqSignalToMappable[T](s: SeqSignal[T]): SeqSignalMappable[T] = new SeqSignalMappable[T](s)
   /**
    * This factory creates a SeqSignal that wraps an ordinary Signal[Seq[_]],
    * with the behavior that whenever the original signal's value changes,
