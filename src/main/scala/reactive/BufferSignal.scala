@@ -153,8 +153,7 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
 //}
 
 
-trait SeqSignal[T] extends Signal[Seq[T]] with SignalLike[TransformedSeq[T], SeqSignal[T]]{
-  override type This[T] = SeqSignal[T]
+trait SeqSignal[T] extends Signal[Seq[T]] with SignalLike[Seq[T], TransformedSeq[T], SeqSignal[T]]{
   
   //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
   //  _ => f(transform)

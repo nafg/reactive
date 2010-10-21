@@ -35,24 +35,31 @@ object SignalMapper extends HighPriorityMap*/
 
 /////////////////
 
-trait SignalLike[A, +This <: SignalLike[A, This]] {
-  def map[B, To](f: A => B)(implicit mapper: SignalMapper[This, A, B, To]): To
+trait SignalLike[A, MapType <: A, +This <: SignalLike[A, MapType, This]] {
+  def map[B, To](f: A => B)(implicit mapper: SignalMapper[This, MapType, B, To]): To
 }
 
 trait SignalMapper[-From, A, B, To] {
   def apply(from: From, f: A => B): To
 }
 
+/**
+ * This contains the implicit SignalMapper for all signals
+ */
 trait GenericSignalMapper {
-  implicit def mapSignal[A, B] = new SignalMapper[Signal[A], A, B, Signal[B]] {
+  implicit def mapSignal[A, B]: SignalMapper[Signal[A], A, B, Signal[B]] = new SignalMapper[Signal[A], A, B, Signal[B]] {
     def apply(s: Signal[A], f: A => B): Signal[B] = new MappedSignal(s, f)
   }
 }
 
+/**
+ * This adds the implicit SignalMapper for SeqSignal
+ */
 object SignalMapper extends GenericSignalMapper {
-  implicit def mapSeqSignal[A, B] = new SignalMapper[SeqSignal[A], TransformedSeq[A], TransformedSeq[B], SeqSignal[B]] {
-    def apply(s: SeqSignal[A], f: TransformedSeq[A] => TransformedSeq[B]): SeqSignal[B] = new MappedSeqSignal(s, f)
-  }
+  implicit def mapSeqSignal[A, B]: SignalMapper[SeqSignal[A], TransformedSeq[A], TransformedSeq[B], SeqSignal[B]] =
+    new SignalMapper[SeqSignal[A], TransformedSeq[A], TransformedSeq[B], SeqSignal[B]] {
+      def apply(s: SeqSignal[A], f: TransformedSeq[A] => TransformedSeq[B]): SeqSignal[B] = new MappedSeqSignal(s, f)
+    }
 }
 /////
 
@@ -66,7 +73,7 @@ object SignalMapper extends GenericSignalMapper {
  */
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
-trait Signal[T] extends SignalBase[T] with SignalLike[T, Signal[T]] { parent =>
+trait Signal[T] extends SignalBase[T] with SignalLike[T, T, Signal[T]] { parent =>
   
   /**
    * Represents the current value. Often, this value does not need to be
@@ -147,6 +154,10 @@ protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signa
   parentChange addListener {_ =>
     change fire now
   }
+}
+object T {
+  def m[A, T <: A] = 0
+  m[Seq[Int], TransformedSeq[Int]]
 }
 
 protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
