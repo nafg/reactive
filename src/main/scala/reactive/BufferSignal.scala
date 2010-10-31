@@ -164,7 +164,7 @@ trait SeqSignal[T] extends Signal[Seq[T]] with SignalLike[Seq[T], TransformedSeq
   /**
    * Returns the TransformedSeq, the actual delta-propagating Seq.
    */
-  def transform = underlying
+  def transform: TransformedSeq[T] = underlying
 
   override lazy val change: EventStream[Seq[T]] = new EventSource[Seq[T]] {}
   /**
@@ -185,7 +185,7 @@ object SeqSignal {
    * a diff is calculated and the new SeqSignal fires deltas representing
    * the change incrementally.
    */
-  implicit def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
+  implicit def apply[T](orig: Signal[TransformedSeq[T]]): SeqSignal[T] =
     new Var(orig.now) with DiffSeqSignal[T] {
       val origChange = orig.change
       origChange addListener { seq =>
@@ -219,7 +219,7 @@ class MappedSeqSignal[T,E, U <: TransformedSeq[E]](
       //        println("change")
       cache(f(s))
   }
-  def now = underlying.toList
+  def now = underlying
   override def transform = underlying
   //change foreach {
   //  case s: TransformedSeq[U] => cache(s)
@@ -299,7 +299,7 @@ object BufferSignal {
  * Whenever this SeqSignal's change EventStream fires, it calculates the  deltas by diffing the old Seq and the new one.  Normally you would mix this in to a Var.
  */
 @deprecated("Instead we need a DiffSignal that extracts deltas from diffs")
-trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[Seq[T]] =>
+trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
   def comparator: (T, T) => Boolean = { _ == _ }
   override lazy val transform = new TransformedSeq[T] {
     def underlying = DiffSeqSignal.this.now
@@ -315,7 +315,7 @@ trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[Seq[T]] =>
 /**  This trait provides a SeqSignal that fires deltas on change, and
  */
 @deprecated("Instead we need a BufferVar that fires change on mutate; and a DiffSignal that extracts deltas from diffs")
-trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[Seq[T]] =>
+trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]] =>
   protected val underlying = new ObservableBuffer[T]
   underlying.messages.suppressing {
     underlying.clear
@@ -345,7 +345,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[Seq[T]] =>
 }
 
 class DiffSignal[T](
-  signal: SignalBase[Seq[T]],
+  signal: SignalBase[TransformedSeq[T]],
   comparator: (T, T) => Boolean = { (_: T) == (_: T) })(
   implicit _observing: Observing) extends SeqSignal[T] {
   protected var _now = signal.now

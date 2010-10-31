@@ -30,8 +30,8 @@ object SignalMapper extends HighPriorityMap*/
 
 /////////////////
 
-trait SignalLike[A, MapType <: A, +This <: SignalLike[A, MapType, This]] {
-  def map[B, To](f: A => B)(implicit mapper: SignalMapper[This, MapType, B, To]): To
+trait SignalLike[A, MapType, +This <: SignalLike[A, MapType, This]] {
+  def map[B, To](f: MapType => B)(implicit mapper: SignalMapper[This, MapType, B, To]): To
 }
 
 trait SignalMapper[-From, A, B, To] {
@@ -68,7 +68,7 @@ object SignalMapper extends GenericSignalMapper {
  */
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
-trait Signal[T] extends SignalBase[T] with SignalLike[T, T, Signal[T]] { parent =>
+trait Signal[T] extends SignalBase[T] { parent: SignalLike[T, _ <: T, Signal[T]] =>
   
   
   /**
@@ -176,38 +176,6 @@ trait Signal[T] extends SignalBase[T] with SignalLike[T, T, Signal[T]] { parent 
 
 }
 
-/*protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
-  //TODO cache
-  def now = f(parent.now).now
-  val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
-  val parentChange = parent.change
-  parentChange addListener {_ =>
-    change fire now
-  }
-}
-object T {
-  def m[A, T <: A] = 0
-  m[Seq[Int], TransformedSeq[Int]]
-}
-
-protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
-  //TODO cache
-  def now = f(parent.now).now
-  override lazy val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
-  private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
-  parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
-    //TODO should we do use a direct diff of the seqs instead? 
-    val n = f(cur)
-    change fire n.transform
-    val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
-    val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
-    val toApply = db.filterNot(da.contains)
-    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
-    db
-  }
-  override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
-}
-*/
 
 protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends Signal[U] {
   import scala.ref.WeakReference
