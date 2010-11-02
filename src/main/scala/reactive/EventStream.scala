@@ -67,7 +67,7 @@ trait EventStream[+T] {
   def filter(f: T=>Boolean): EventStream[T]
   def takeWhile(p: T=>Boolean): EventStream[T]
   def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U]
-//  def |(that: EventStream[T]): EventStream[T]
+  def |[U>:T](that: EventStream[U]): EventStream[U]
   
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
@@ -286,10 +286,10 @@ trait EventSource[T] extends EventStream[T] {
    * @param that the other EventStream to combine in the resulting
    * EventStream.
    */
-  def |(that: EventStream[T]): EventStream[T] = {
-    val ret = new EventSource[T] {
+  def |[U>:T](that: EventStream[U]): EventStream[U] = {
+    val ret = new EventSource[U] {
       val parent = EventSource.this
-      val f0: T=>Unit = fire _
+      val f0: U=>Unit = fire _
     }
     val f = ret.f0
     this.addListener(f)
@@ -440,5 +440,5 @@ trait EventSourceProxy[T] extends EventSource[T] {
   override def foldLeft[U](z: U)(f: (U,T)=>U): EventStream[U] = underlying.foldLeft[U](z)(f)
   override def map[U](f: T=>U): EventStream[U] = underlying.map[U](f)
   override def foreach(f: T=>Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
-  override def |(that: EventStream[T]): EventStream[T] = underlying.|(that)
+  override def |[U>:T](that: EventStream[U]): EventStream[U] = underlying.|(that)
 }
