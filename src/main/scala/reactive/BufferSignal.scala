@@ -172,7 +172,7 @@ trait SeqSignal[T] extends Signal[Seq[T]] {
     //change foreach {
     //  case s: TransformedSeq[U] => cache(s)
     //}
-    override lazy val deltas = new EventStream[Message[U, U]] {} /* change.flatMap(underlying){
+    override lazy val deltas = new EventSource[Message[U, U]] {} /* change.flatMap(underlying){
       case s: TransformedSeq[U] =>
 	    println(this + " changing deltas")
 	    s.deltas
@@ -194,7 +194,7 @@ trait SeqSignal[T] extends Signal[Seq[T]] {
    */
   def transform = underlying
 
-  override lazy val change = new EventStream[Seq[T]] {}
+  override lazy val change: EventStream[Seq[T]] = new EventSource[Seq[T]] {}
   /**
    * The EventStream of incremental updates (Messages) to the underlying Seq.
    */
@@ -227,9 +227,11 @@ object SeqSignal {
 /**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.  Note that you must make sure ''observing'' is initialized  before this trait's body is executed.
  */
 trait ChangingSeqSignal[T] extends SeqSignal[T] {
+  private lazy val change0 = new EventSource[Seq[T]] {}
+  override lazy val change: EventStream[Seq[T]] = change0
   deltas addListener { _ =>
     //    println("Received delta, firing change")
-    change.fire(transform) //TODO transform? underlying? now?
+    change0.fire(transform) //TODO transform? underlying? now?
     //    println("Fired change")
   }
 }
@@ -316,7 +318,8 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[Seq[T]] =>
       }
     case Batch(ms@_*) => ms foreach applyDelta
   }
-  transform.deltas.filter(_ => !fromBuffer.value) addListener applyDelta
+  private lazy val o = new Observing {}
+  transform.deltas.filter(_ => !fromBuffer.value).foreach(applyDelta)(o)
 }
 
 class DiffSignal[T](

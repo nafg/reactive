@@ -22,15 +22,15 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   implicit val observing = new Observing {}
   
   test("hasListeners") {
-    val es = new EventStream[Nothing] {}
+    val es = new EventSource[Nothing] {}
     es.hasListeners should equal (false)
     es.foreach{_ => }
     es.hasListeners should equal (true)
   }
  
   test("flatMap (w/o initial)") {
-    val parentES = new EventStream[Int] {}
-    val childESs = (0 to 1) map {_ => new EventStream[Int] {} }
+    val parentES = new EventSource[Int] {}
+    val childESs = (0 to 1) map {_ => new EventSource[Int] {} }
     val f = childESs.apply _
     val flatMapped = parentES flatMap f
     
@@ -51,7 +51,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("map") {
-    val es = new EventStream[Int] {}
+    val es = new EventSource[Int] {}
     val x = math.random*100
     val f = (_:Int)*x toInt
     val mapped = es map f
@@ -65,7 +65,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("filter") {
-    val es = new EventStream[Int] {}
+    val es = new EventSource[Int] {}
     val f = (_:Int) % 2 == 0 
     val filtered = es filter f
     collecting(filtered)(es fire 2) should equal (List(2) filter f)
@@ -77,7 +77,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("takeWhile") {
-    val es = new EventStream[Int] {}
+    val es = new EventSource[Int] {}
     val f = (_:Int) < 3
     val takenWhile = es takeWhile f
     collecting(takenWhile){
@@ -89,7 +89,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("foldLeft") {
-    val es = new EventStream[Int] {}
+    val es = new EventSource[Int] {}
     val foldedLeft = es.foldLeft(20)(_ + _)
     collecting(foldedLeft)(es fire 1) should equal (List(21))
     collecting(foldedLeft)(es fire 2) should equal (List(23))
@@ -97,7 +97,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("| (union)") {
-    val es1, es2 = new EventStream[Int] {}
+    val es1, es2 = new EventSource[Int] {}
     val union = es1 | es2
     collecting(union){
       es1 fire 1
@@ -108,7 +108,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("hold") {
-    val es = new EventStream[Int] {}
+    val es = new EventSource[Int] {}
     val held = es.hold(72)
     held.now should equal (72)
     es fire 35
@@ -121,7 +121,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   test("garbage collection (foreach)") {
     def innerScope(observing1: Observing) = {
       val observing2 = new Observing {}
-      val ret = new EventStream[Nothing] {}
+      val ret = new EventSource[Nothing] {}
       val f1,f2 = {_:Any => }
       val weakref1 = new scala.ref.WeakReference(f1)
       val weakref2 = new scala.ref.WeakReference(f2)
@@ -137,7 +137,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("garbage collection (takeWhile)") {
-    val es = new EventStream[Int] {}
+    val es = new EventSource[Int] {}
     def makeTakenWhile = {
       val takenWhile = es takeWhile (_ < 3)
       new scala.ref.WeakReference(takenWhile)
@@ -145,10 +145,10 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
     val weakref = makeTakenWhile
     es fire 2
     System.gc
-    if(weakref.get.isEmpty) info("Warning - takeWhile EventStream was gc'ed")
+    if(weakref.get.isEmpty) info("Warning - takeWhile EventSource was gc'ed")
     es fire 10
     System.gc
-    if(weakref.get.isDefined) info("Warning - takeWhile EventStream was not gc'ed")
+    if(weakref.get.isDefined) info("Warning - takeWhile EventSource was not gc'ed")
   }
 }
 
