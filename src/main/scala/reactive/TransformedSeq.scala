@@ -224,7 +224,7 @@ trait TransformedSeq[T]
   }
 
   
-  lazy val deltas: EventStream[Message[T,T]] = new EventStream[Message[T,T]] {}
+  lazy val deltas: EventSource[Message[T,T]] = new EventSource[Message[T,T]] {}
 
   def underlying: scala.collection.Seq[T]
   def apply(i: Int): T = underlying.apply(i)

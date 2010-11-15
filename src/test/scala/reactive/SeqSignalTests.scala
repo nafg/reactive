@@ -31,11 +31,11 @@ class ObservableBufferTests extends FunSuite with ShouldMatchers with Observing 
 }
 
 class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
-  test("map(TransformedSeq=>TransformedSeq)") {
+  test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1,2,3)
-    val mapped = ss.map{ts =>
+    val mapped: MappedSeqSignal[Int, Int, TransformedSeq[Int]] = ss.map[TransformedSeq[Int],SeqSignal[Int]]{ts =>
       ts.map(_ * 10)
-    }
+    }.asInstanceOf[MappedSeqSignal[Int, Int, TransformedSeq[Int]]]
     collecting(mapped.deltas){
       ss.now += 4
     } should equal (List(

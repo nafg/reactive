@@ -1,15 +1,26 @@
 package reactive
 
-object Signal {
-  //implicit def signalToEventStream[T](signal: SignalBase[T]): EventStreamBase[T] = signal.change
-  protected class SignalMappable[T](s: Signal[T]) {
-    def map[U](f: T=>U): Signal[U] = new MappedSignal[T,U](s, f)
-  }
-  implicit def signalToMappable[T](s: Signal[T]): SignalMappable[T] = new SignalMappable(s)
+trait LowPrioritySignalImplicits {
+//  protected class FlatMappableSignal[T](s: Signal[T]) {
+//    def flatMap[U](f: T=>Signal[U]) = new FlatMappedSignal[T,U](s,f)
+//  }
+//  implicit def signalToFlatMappable[T](s: Signal[T]): FlatMappableSignal[T] = new FlatMappableSignal[T](s)  
+}
+object Signal extends LowPrioritySignalImplicits {
+  //implicit def signalToEventStream[T](signal: SignalBase[T]): EventStream[T] = signal.change
+//  protected class SignalMappable[T](s: Signal[T]) {
+//    def map[U](f: T=>U): Signal[U] = new MappedSignal[T,U](s, f)
+//  }
+//  implicit def signalToMappable[T](s: Signal[T]): SignalMappable[T] = new SignalMappable(s)
+  
+//  protected class SeqFlatMappableSignal[T](s: Signal[T]) {
+//    def flatMap[U](f: T=>SeqSignal[U]) = new FlatMappedSeqSignal[T,U](s,f)
+//  }
+//  implicit def signalToSeqFlatMappable[T](s: Signal[T]): SeqFlatMappableSignal[T] = new SeqFlatMappableSignal[T](s)
 }
 trait SignalBase[+T] {
   def now: T
-  def change: EventStream[_ <: T]
+  def change: EventStream[T]
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
 }
 
@@ -25,6 +36,7 @@ trait SignalBase[+T] {
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
 trait Signal[T] extends SignalBase[T] { parent =>
+  
   
   
   /**
@@ -51,7 +63,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
 //   * b represents a Signal whose value is always 1 greater than a.
 //   * Whenever a fires an event of x, b fires an event of x+1.
 //   */
-//  def map[U](f: T=>U)(implicit canMapSignal: CanMapSignal[Signal, T, U, T=>U]) = canMapSignal.map(this, f)
+  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
   
   /**
    * Returns a new signal, that for every value of this parent signal,
@@ -77,6 +89,40 @@ trait Signal[T] extends SignalBase[T] { parent =>
    */
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
   
+  //TODO differentiate types at runtime rather than compile time?
+  //Maybe use some kind of manifest or other evidence?
+  //Or have f implicitly wrapped in some wrapper?
+  /*def flatMap[U](f: T => SeqSignal[U]) = new FlatMappedSeqSignal[T,U](this,f)*//* {
+    //TODO cache
+    def now = currentSignal.now
+    private var currentSignal = f(parent.now)
+    lazy val change0 = parent.change.flatMap(parent.now){_ => f(parent.now).change}
+    change0 addListener change.fire
+    override lazy val change = new EventStream[Seq[U]] {}
+    private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+    
+    private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: Seq[U]): Seq[Message[T,U]] = {
+      val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
+      val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
+      val toApply = db.filterNot(da.contains)
+      deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+      db
+    }
+    parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
+      //TODO should we do use a direct diff of the seqs instead? 
+//      println("Entering foldLeft")
+      val n = f(cur)
+      change fire n.transform
+//      println(n.transform.getClass)
+//      println(n.transform)
+      fireDeltaDiff(prev, n.transform)
+    }
+    lazy val deltas0 = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
+    deltas0 addListener deltas.fire
+    override lazy val deltas = new EventStream[Message[U,U]] {}
+  }*/
+
+  
   
 //  /**
 //   * 
@@ -94,7 +140,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
 //  def flatMap[U](f: T => SeqSignal[U]) = new FlatMappedSeqSignal[T,U](this, f) 
 }
 
-protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
+/*protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
   //TODO cache
   def now = f(parent.now).now
   val change = parent.change.flatMap(parent.now){_ => f(parent.now).change}
@@ -121,7 +167,8 @@ protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T=>S
   }
   override lazy val deltas = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
 }
-  
+*/
+
 protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends Signal[U] {
   import scala.ref.WeakReference
   private val emptyCache = new WeakReference[Option[U]](None)
@@ -139,23 +186,90 @@ protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extend
    * Fire change events whenever (the outer) Signal.this changes,
    * but the events should be transformed by f
    */
+//<<<<<<< HEAD
   lazy val change = parent.change.map(f)
 
   //TODO we need a way to be able to do this only if there are no real listeners
   change addListener cache
 }
 
+trait CanMapSignal[U, S] {
+  def map[T](parent: Signal[T], f: T=>U): S
+}
+
+trait LowPriorityCanMapSignalImplicits {
+  implicit def canMapSignal[U]: CanMapSignal[U, Signal[U]] = new CanMapSignal[U, Signal[U]] {
+    println("Creating simple CanMapSignal")
+    def map[T](parent: Signal[T], f: T=>U): Signal[U] = new MappedSignal[T,U](parent,f)
+  }
+}
+object CanMapSignal extends LowPriorityCanMapSignalImplicits {
+  implicit def canMapSeqSignal[E, U <: TransformedSeq[E]]: CanMapSignal[U, SeqSignal[E]] = new CanMapSignal[U, SeqSignal[E]] {
+    println("Creating SeqSignal CanMapSignal")
+    def map[T](parent: Signal[T], f: T=>U): SeqSignal[E] = new MappedSeqSignal[T,E,U](parent,f)
+  }
+}
+
 trait CanFlatMapSignal[S1[T], S2[T]] {
   def flatMap[T, U](parent: S1[T], f: T => S2[U]): S2[U]
 }
+
 trait LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSignal: CanFlatMapSignal[Signal, Signal] = new CanFlatMapSignal[Signal, Signal] {
-    def flatMap[T, U](parent: Signal[T], f: T=>Signal[U]) = new FlatMappedSignal[T,U](parent,f)
+    def flatMap[T, U](parent: Signal[T], f: T=>Signal[U]): Signal[U] = new FlatMappedSignal[T,U](parent,f)
   }
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
-    def flatMap[T, U](parent: Signal[T], f: T=>SeqSignal[U]) = new FlatMappedSeqSignal[T,U](parent,f)
+    def flatMap[T, U](parent: Signal[T], f: T=>SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T,U](parent,f)
+  }
+}
+
+
+protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
+  def now = currentMappedSignal.now
+  // We send out own change events as we are an aggregate signal
+  val change = new EventSource[U] {}
+  private val listener: U => Unit = { x => change fire x}
+  // Currently mapped value
+  private var currentMappedSignal = f(parent.now)
+  // Register our first listener
+  currentMappedSignal.change addListener listener
+  // When the parent changes, we need to update our forwarding listeners and send the new state of this aggregate signal.
+  parent.change addListener { x =>
+    currentMappedSignal.change removeListener listener
+    currentMappedSignal = f(x)
+    currentMappedSignal.change addListener listener
+    listener(now)
+  }
+}
+protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
+  def now = currentMappedSignal.now
+  override lazy val change = new EventSource[Seq[U]] {}
+  private val changeListener: Seq[U]=>Unit = change.fire _
+  private val deltasListener: Message[U,U]=>Unit = deltas.fire _
+  private var currentMappedSignal = f(parent.now)
+  private var lastDeltas: Seq[Message[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  currentMappedSignal.change addListener changeListener
+  currentMappedSignal.deltas addListener deltasListener
+  
+  parent.change addListener { x =>
+    currentMappedSignal.change removeListener changeListener
+    currentMappedSignal.deltas removeListener deltasListener
+    currentMappedSignal = f(x)
+    val n = currentMappedSignal.transform
+    change.fire(n)
+    lastDeltas = fireDeltaDiff(lastDeltas, n)
+    currentMappedSignal.change addListener changeListener
+    currentMappedSignal.deltas addListener deltasListener
+  }
+  
+  private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: TransformedSeq[U]): Seq[Message[T,U]] = {
+    val newDeltas: Seq[Message[T,U]] = Batch[T,U](newSeq.baseDeltas.collect{case m: Message[T,U] => m}: _*).flatten
+    val toUndo = lastDeltas.filterNot(newDeltas.contains) map {_.inverse} reverse
+    val toApply = newDeltas.filterNot(lastDeltas.contains)
+    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+    newDeltas
   }
 }
 
@@ -166,7 +280,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
  * (and hence never fires change events)
  */
 case class Val[T](now: T) extends Signal[T] {
-  def change = new EventStream[T] {}
+  def change = new EventSource[T] {}
 }
 
 /**
@@ -188,7 +302,7 @@ class Var[T](initial: T) extends Signal[T] {
    */
   def value_=(v: T) {
     _value = v
-    change.fire(v)
+    change0.fire(v)
   }
   /**
    * Usage: var()=x
@@ -198,7 +312,8 @@ class Var[T](initial: T) extends Signal[T] {
   /**
    * Fires an event after every mutation, consisting of the new value
    */
-  lazy val change = new EventStream[T] {}
+  lazy val change: EventStream[T] = change0
+  private lazy val change0 = new EventSource[T] {}
 }
 
 private object _timer extends java.util.Timer {
