@@ -7,7 +7,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
-    val mapped = s map (_ * 3)
+    val mapped = s.map[Int, Signal[Int]](_ * 3)
     
     mapped.now should equal (30)
     

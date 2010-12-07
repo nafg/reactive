@@ -17,4 +17,7 @@ class LiftReactive(info: ProjectInfo) extends DefaultProject(info) {
     "org.scalatest" % "scalatest" % "1.2" % "test->default" withSources
   ) ++ super.libraryDependencies
 
+  //override def compileOptions = super.compileOptions ++ 
+  //  compileOptions("-Xprint-types")
+  //override def testCompileOptions = super.compileOptions
 }
