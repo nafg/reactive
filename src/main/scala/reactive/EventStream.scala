@@ -304,7 +304,7 @@ trait EventSource[T] extends EventStream[T] {
    * that event.
    * @param init the initial value of the signal
    */
-  def hold[U>:T](init: =>U): Signal[U] = new Signal[U] {
+  def hold[U>:T](init: =>U): Signal[U] = new SimpleSignal[U] {
     private lazy val initial: U = init
     private var current: Option[T] = None
     

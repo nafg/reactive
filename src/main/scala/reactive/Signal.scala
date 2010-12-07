@@ -3,11 +3,12 @@ package reactive
 object Signal {
 }
 
-trait SignalBase[+T] {
-//  type This[+T] <: Signal[T]
+trait Signal[+T] {
   def now: T
   def change: EventStream[T]
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
+  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U,S]): S
+  def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U]
 }
 
 
@@ -31,7 +32,7 @@ sealed trait SignalMapping[T,U,S] {
  */
 //TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
-trait Signal[T] extends SignalBase[T] { parent =>
+trait SimpleSignal[T] extends Signal[T] { parent =>
   
   
   /**
@@ -140,7 +141,7 @@ trait Signal[T] extends SignalBase[T] { parent =>
 }
 
 
-protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends Signal[U] {
+protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends SimpleSignal[U] {
   import scala.ref.WeakReference
   private val emptyCache = new WeakReference[Option[U]](None)
   protected var cached = emptyCache
@@ -197,7 +198,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
 }
 
 
-protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
+protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends SimpleSignal[U] {
   def now = currentMappedSignal.now
   // We send out own change events as we are an aggregate signal
   val change = new EventSource[U] {}
@@ -251,7 +252,7 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
  * A signal representing a value that never changes
  * (and hence never fires change events)
  */
-case class Val[T](now: T) extends Signal[T] {
+case class Val[T](now: T) extends SimpleSignal[T] {
   def change = new EventSource[T] {}
 }
 
@@ -264,7 +265,7 @@ object Var {
 /**
  * A signal whose value can be changed directly
  */
-class Var[T](initial: T) extends Signal[T] {
+class Var[T](initial: T) extends SimpleSignal[T] {
   private var _value = initial
   def now = value
   //TODO do we need value? why not just now and now_= ? Or just now and update?

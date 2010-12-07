@@ -151,7 +151,7 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
 //}
 
 
-trait SeqSignal[T] extends Signal[Seq[T]] {
+trait SeqSignal[T] extends SimpleSignal[Seq[T]] {
   
   //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
   //  _ => f(transform)
@@ -344,7 +344,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[Seq[T]] =>
 }
 
 class DiffSignal[T](
-  signal: SignalBase[TransformedSeq[T]],
+  signal: Signal[TransformedSeq[T]],
   comparator: (T, T) => Boolean = { (_: T) == (_: T) })(
   implicit _observing: Observing) extends SeqSignal[T] {
   protected var _now = signal.now
