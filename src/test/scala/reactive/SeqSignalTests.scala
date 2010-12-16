@@ -33,30 +33,32 @@ class ObservableBufferTests extends FunSuite with ShouldMatchers with Observing 
 class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1,2,3)
-    val mapped: MappedSeqSignal[Int, Int, TransformedSeq[Int]] = ss.map{
-      case ts: TransformedSeq[Int] =>
-      (ts.map(_ * 10): TransformedSeq[Int])
-    }.asInstanceOf[MappedSeqSignal[Int, Int, TransformedSeq[Int]]]
+    val mapped = ss.map{ts =>
+      println("Map _*10 : " + ts)
+      (ts.map(_ * 10))
+    }
+    println(mapped.getClass)
     collecting(mapped.deltas){
-      ss.now += 4
+      ss.value += 4
     } should equal (List(
       Include(3, 40)
     ))
-    
+    ss.change foreach {x => println("ss change: " + x)}
+    mapped.change foreach {x => println("mapped change: " + x)}
     val mapMapped = ss.map(_.map(_ * 10))
     val flatMapMapped = ss.map { _ flatMap { n =>
       <xml>{n}</xml>
     } }
-//    collecting(mapMapped.deltas){
-//      collecting(flatMapMapped.deltas){
-//        ss.now += 4
-//      } should equal (
-//        1
-//      )
-//    } should equal (List(
-//      Include(3, 40)
-//    ))
-    mapped.now should equal (List(10,20,30,40))
+    collecting(mapMapped.deltas){
+      collecting(flatMapMapped.deltas){
+        ss.value += 5
+      } should equal (List(
+        Include(4, <xml>{5}</xml>)
+      ))
+    } should equal (List(
+      Include(4, 50)
+    ))
+    mapped.now should equal (List(10,20,30,40,50))
   }
 }
 
@@ -77,8 +79,8 @@ class BufferSignalTests extends FunSuite with ShouldMatchers with Observing {
 //    signal.change foreach {_ should equal (ob)}
     signal.change foreach {_ => changes += 1}
     
-    signal.now += 4
-    signal.now -= 3
+    signal.value += 4
+    signal.value -= 3
     signal ()= Seq(10,9,8,7,6,5,4,3)
     
     signal.now should equal (ob)

@@ -59,6 +59,9 @@ trait ObservingGroup extends Observing {
 }
 
 
+object EventSource {
+  var debug = false
+}
 
 trait EventStream[+T] {
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit
@@ -99,7 +102,7 @@ trait EventStream[+T] {
  * @tparam T the type of values fired as events
  */
 trait EventSource[T] extends EventStream[T] {
-  var debug = false
+  var debug = EventSource.debug
   class FlatMapped[U](initial: Option[T])(val f: T=>EventStream[U]) extends EventSource[U] {
     // thread-unsafe implementation for now
     val thunk: U=>Unit = fire _ // = (u: U) => fire(u)
@@ -133,9 +136,9 @@ trait EventSource[T] extends EventStream[T] {
    * Whether this EventStream has any listeners depending on it
    */
   //TODO should it return false if it has listeners that have been gc'ed?
-  def hasListeners = !listeners.isEmpty
+  def hasListeners = listeners.nonEmpty //&& listeners.forall(_.get.isDefined)
   
-  protected def dumpListeners {
+  protected[reactive] def dumpListeners {
     println(listeners.map(_.get.map(x => x.getClass + "@" + System.identityHashCode(x) + ": " + x.toString)).mkString("[",",","]"))
   }
   
@@ -143,7 +146,6 @@ trait EventSource[T] extends EventStream[T] {
    * Sends an event to all listeners.
    * @param event the event to send
    */
-  //TODO should this really be public API in the main trait?
   def fire(event: T) {
     if(debug) {
       val notCollected = listeners.count(_.get ne None)

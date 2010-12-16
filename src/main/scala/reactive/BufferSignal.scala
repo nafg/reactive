@@ -98,8 +98,7 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
   override def insertAll(n: Int, newElements: Traversable[T]): Unit = {
     super.insertAll(n, newElements)
     messages fire Batch(
-      newElements.toSeq.zipWithIndex.map { case (e, i) => Include(n + i, e) }: _*
-      )
+      newElements.toSeq.zipWithIndex.map { case (e, i) => Include(n + i, e) }: _*)
   }
 
   override def update(n: Int, newelement: T): Unit = {
@@ -150,9 +149,8 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
 //  def apply[A](values: A*) = new SeqSignal(TransformedSeq(values: _*))
 //}
 
+trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
 
-trait SeqSignal[T] extends SimpleSignal[Seq[T]] {
-  
   //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
   //  _ => f(transform)
   //}
@@ -164,7 +162,7 @@ trait SeqSignal[T] extends SimpleSignal[Seq[T]] {
    */
   def transform: TransformedSeq[T] = underlying
 
-  override lazy val change: EventStream[Seq[T]] = new EventSource[Seq[T]] {}
+  override lazy val change: EventStream[TransformedSeq[T]] = new EventSource[TransformedSeq[T]] {}
 
   /**
    * The EventStream of incremental updates (Messages) to the underlying Seq.
@@ -172,8 +170,8 @@ trait SeqSignal[T] extends SimpleSignal[Seq[T]] {
   def deltas = transform.deltas
 
   //TODO override regular map and check for type at runtime.
-//  def map[U](f: TransformedSeq[T] => TransformedSeq[U]): SeqSignal[U] =
-//    new MappedSeqSignal[U](f)
+  //  def map[U](f: TransformedSeq[T] => TransformedSeq[U]): SeqSignal[U] =
+  //    new MappedSeqSignal[U](f)
 
 }
 
@@ -184,9 +182,11 @@ object SeqSignal {
    * a diff is calculated and the new SeqSignal fires deltas representing
    * the change incrementally.
    */
+  //TODO
   implicit def apply[T](orig: Signal[TransformedSeq[T]]): SeqSignal[T] =
-    new Var[Seq[T]](orig.now) with DiffSeqSignal[T] {
+    new Var(orig.now) with DiffSeqSignal[T] {
       val origChange = orig.change
+      //TODO anchor
       origChange addListener { seq =>
         update(new TransformedSeq[T] {
           def underlying = seq
@@ -195,10 +195,9 @@ object SeqSignal {
     }
 }
 
-class MappedSeqSignal[T,E, U <: TransformedSeq[E]](
-  parent: Signal[T],    
-  f: T => U
-) extends ChangingSeqSignal[E] {
+class MappedSeqSignal[T, E, U <: TransformedSeq[E]](
+  parent: Signal[T],
+  f: T => U) extends ChangingSeqSignal[E] {
   import scala.ref.WeakReference
   private val emptyCache = new WeakReference[Option[U]](None)
   protected var cached = emptyCache
@@ -213,10 +212,12 @@ class MappedSeqSignal[T,E, U <: TransformedSeq[E]](
       cache(f(parent.now))
     case Some(Some(ret)) => ret
   }
-  override lazy val change: EventStream[Seq[E]] = parent.change.map {
+  override lazy val change: EventStream[TransformedSeq[E]] = parent.change.map {
     case s: T =>
-      //        println("change")
+      println("change: " + s)
       cache(f(s))
+    case _ =>
+      error("unmatched change")
   }
   def now = underlying
   override def transform = underlying
@@ -228,46 +229,45 @@ class MappedSeqSignal[T,E, U <: TransformedSeq[E]](
     println(this + " changing deltas")
     s.deltas
   }*/
-  parent match {
-  case ss: SeqSignal[T] =>
-    println("parent is a SeqSignal")
-    val parentDeltas = ss.deltas
-    parentDeltas.addListener { m =>
-      underlying match {
-        case t: TransformedSeq[T]#Transformed[E] =>
-          Batch.single(t.xform(m)) foreach deltas.fire
-        case _ =>
-      }
+  private val deltasListener: Message[T,T]=>Unit = { m =>
+    underlying match {
+      case t: TransformedSeq[T]#Transformed[E] =>
+//            println("propagating delta " + m)
+        Batch.single(t.xform(m)) foreach deltas.fire
+      case _ =>
+        println("not propagating delta " + m)
     }
-  case _ =>
-    println("parent is not a SeqSignal")
+  }
+  parent match {
+    case ss: SeqSignal[T] =>
+      println("parent is a SeqSignal")
+      val parentDeltas = ss.deltas
+      parentDeltas addListener deltasListener
+    case _ =>
+      println("parent is not a SeqSignal")
   }
 }
-
 
 /**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.  Note that you must make sure ''observing'' is initialized  before this trait's body is executed.
  */
 trait ChangingSeqSignal[T] extends SeqSignal[T] {
-  private lazy val change0 = new EventSource[Seq[T]] {}
-  override lazy val change: EventStream[Seq[T]] = change0
-  deltas addListener { _ =>
-    //    println("Received delta, firing change")
-    change0.fire(transform) //TODO transform? underlying? now?
-    //    println("Fired change")
-  }
+  private lazy val change0 = new EventSource[TransformedSeq[T]] {}
+  override lazy val change: EventStream[TransformedSeq[T]] = change0
+  private val fireTransform: Message[T,T]=>Unit = _ => change0 fire transform //TODO transform? underlying? now?
+  deltas addListener fireTransform
 }
 
 /**  This SeqSignal contains a Buffer which you can modify  directly, causing deltas to be fired.  You can also replace the buffer contents directly,  causing a diff to be calculated and the resulting deltas  to be fired.  @see ChangingSeqSignal
  */
 trait BufferSignal[T] extends SeqSignal[T] with ChangingSeqSignal[T] {
   protected lazy val underlying = new ObservableBuffer[T]
-  def now: Buffer[T] = underlying
+  def now = transform
   /**
    * Override this to customize the comparator used
    * by the diff algorithm
    */
   def comparator: (T, T) => Boolean = { _ == _ }
-  final def value = now
+  def value: ArrayBuffer[T] = underlying
   /**
    * Set the contents from another Seq. Does not set it directly;
    * rather calculates the diff and applies it.
@@ -298,7 +298,7 @@ object BufferSignal {
  * Whenever this SeqSignal's change EventStream fires, it calculates the  deltas by diffing the old Seq and the new one.  Normally you would mix this in to a Var.
  */
 @deprecated("Instead we need a DiffSignal that extracts deltas from diffs")
-trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[Seq[T]] =>
+trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
   def comparator: (T, T) => Boolean = { _ == _ }
   override lazy val transform = new TransformedSeq[T] {
     def underlying = DiffSeqSignal.this.now
@@ -314,13 +314,13 @@ trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[Seq[T]] =>
 /**  This trait provides a SeqSignal that fires deltas on change, and
  */
 @deprecated("Instead we need a BufferVar that fires change on mutate; and a DiffSignal that extracts deltas from diffs")
-trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[Seq[T]] =>
+trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]] =>
   protected val underlying = new ObservableBuffer[T]
   underlying.messages.suppressing {
     underlying.clear
     underlying ++= value
   }
-  override def now: Buffer[T] = underlying
+  override def now = transform
   private val fromBuffer = new scala.util.DynamicVariable(false)
 
   underlying.messages addListener { m =>
@@ -346,7 +346,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[Seq[T]] =>
 class DiffSignal[T](
   signal: Signal[TransformedSeq[T]],
   comparator: (T, T) => Boolean = { (_: T) == (_: T) })(
-  implicit _observing: Observing) extends SeqSignal[T] {
+    implicit _observing: Observing) extends SeqSignal[T] {
   protected var _now = signal.now
   def observing = _observing
   def now = _now

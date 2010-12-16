@@ -4,6 +4,8 @@ import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
 class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
+  def dumpListeners(es: EventStream[_]) = es match {case es: EventSource[_] => es.dumpListeners}
+  
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -21,7 +23,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val aVar = Var(3)
     val vals = List(Val(1), Val(2), aVar)
     val parent = Var(0)
-    val flatMapped = parent.flatMap(vals)
+    val flatMapped = parent.flatMap[Int, Signal](vals)
 
     collecting(flatMapped.change) {
       flatMapped.now should equal (1)
@@ -41,6 +43,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("flatMap (T=>SeqSignal[U])") {
+//    EventSource.debug = true
     val bufSig1 = BufferSignal(1,2,3)
     val bufSig2 = BufferSignal(2,3,4)
     val parent = Var(false)
@@ -53,13 +56,25 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     collecting(flatMapped.deltas){
       
       collecting(flatMapped.change){
+        parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
+        System.gc()
+        parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
+//        println("Setting to true...")
         parent ()= true
+//        println("done")
+//        System.gc()
         flatMapped.now should equal (Seq(2,3,4))
       } should equal (List(List(2,3,4)))
       
       collecting(flatMapped.change){
+        bufSig2.deltas.asInstanceOf[EventSource[_]].debug=true
+        bufSig2.change.asInstanceOf[EventSource[_]].debug=true
+//        dumpListeners(bufSig2.deltas)
+        System.gc
+//        dumpListeners(bufSig2.deltas)
         bufSig2 ()= Seq(2,3,4,5)
         flatMapped.now should equal (Seq(2,3,4,5))
+//        dumpListeners(bufSig2.deltas)
       } should equal (List(List(2,3,4,5)))
       
       collecting(flatMapped.change){
@@ -74,4 +89,8 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     ))
     
   }
+}
+
+object Run {
+  def main(args: Array[String]) = new SignalTests().execute()
 }

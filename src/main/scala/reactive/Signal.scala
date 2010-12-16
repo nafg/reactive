@@ -217,15 +217,15 @@ protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signa
 }
 protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
   def now = currentMappedSignal.now
-  override lazy val change = new EventSource[Seq[U]] {}
-  private val changeListener: Seq[U]=>Unit = change.fire _
+  override lazy val change = new EventSource[TransformedSeq[U]] {}
+  private val changeListener: TransformedSeq[U]=>Unit = change.fire _
   private val deltasListener: Message[U,U]=>Unit = deltas.fire _
   private var currentMappedSignal = f(parent.now)
   private var lastDeltas: Seq[Message[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
   currentMappedSignal.change addListener changeListener
   currentMappedSignal.deltas addListener deltasListener
   
-  parent.change addListener { x =>
+  private val parentChangeListener: T=>Unit = { x =>
     currentMappedSignal.change removeListener changeListener
     currentMappedSignal.deltas removeListener deltasListener
     currentMappedSignal = f(x)
@@ -235,6 +235,7 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
     currentMappedSignal.change addListener changeListener
     currentMappedSignal.deltas addListener deltasListener
   }
+  parent.change addListener parentChangeListener
   
   private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: TransformedSeq[U]): Seq[Message[T,U]] = {
     val newDeltas: Seq[Message[T,U]] = Batch[T,U](newSeq.baseDeltas.collect{case m: Message[T,U] => m}: _*).flatten

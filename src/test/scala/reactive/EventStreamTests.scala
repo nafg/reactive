@@ -11,7 +11,13 @@ trait CollectEvents {
     var log = List[T]()
     var executing = true
     implicit val observing = new Observing {}
-    es.takeWhile(_ => executing).foreach{e=>log:+=e}(observing)
+    es.takeWhile{_ =>
+      println("takeWhile predicate")
+      executing
+    }.foreach{e=>
+      println("Logging " + e)
+      log:+=e
+    }(observing)
     f
     executing = false
     log
