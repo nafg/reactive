@@ -323,11 +323,12 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
   override def now = transform
   private val fromBuffer = new scala.util.DynamicVariable(false)
 
-  underlying.messages addListener { m =>
+  private val propagate: Message[T,T]=>Unit = { m =>
     fromBuffer.withValue(true) {
       transform.deltas.fire(m)
     }
   }
+  underlying.messages addListener  propagate
   private def applyDelta: Message[T, T] => Unit = {
     case Include(i, e) =>
       underlying.messages.suppressing {

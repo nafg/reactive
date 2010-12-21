@@ -108,11 +108,7 @@ trait EventSource[T] extends EventStream[T] {
     val thunk: U=>Unit = fire _ // = (u: U) => fire(u)
 //    val thunkA: Any=>Unit = {case u: U => fire(u)}
     var curES: Option[EventStream[U]] = initial.map(f)
-    curES.foreach{es =>
-      es.addListener(thunk)
-    }
-    val parent = EventSource.this
-    parent.addListener {parentEvent =>
+    private val handleParentEvent: T=>Unit = {parentEvent =>
       curES.foreach{es =>
         es.removeListener(thunk)
       }
@@ -121,6 +117,11 @@ trait EventSource[T] extends EventStream[T] {
         es.addListener(thunk)
       }
     }
+    curES.foreach{es =>
+      es.addListener(thunk)
+    }
+    val parent = EventSource.this
+    parent addListener handleParentEvent
   }
   
 //  case class Listeners[-T](listeners: Seq[WeakReference[T => Unit]])
@@ -200,7 +201,8 @@ trait EventSource[T] extends EventStream[T] {
     new EventSource[U] {
       val parent = EventSource.this
       val f0 = f
-      parent.addListener{event => this fire f(event)}
+      private val handler: T=>Unit = {event => this fire f(event)}
+      parent addListener handler
     }
   }
   
@@ -228,9 +230,10 @@ trait EventSource[T] extends EventStream[T] {
   def filter(f: T=>Boolean): EventStream[T] = new EventSource[T] {
     val parent = EventSource.this
     val f0 = f
-    parent.addListener{event=>
+    private val listener = {event: T =>
       if(f(event)) fire(event)
     }
+    parent addListener listener
   }
   
   /**
@@ -274,12 +277,15 @@ trait EventSource[T] extends EventStream[T] {
    */
   def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U] = new EventSource[U] {
     var last = initial
+//    println("last: " + last)
     val f0 = f
     val parent = EventSource.this
-    parent.addListener{event=>
+    private val listener = {event: T =>
+//      println("last: " + last)
       last = f(last, event)
       fire(last)
     }
+    parent addListener listener
   }
   
   /**

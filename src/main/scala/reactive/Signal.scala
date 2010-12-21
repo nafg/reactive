@@ -145,20 +145,22 @@ protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extend
   import scala.ref.WeakReference
   private val emptyCache = new WeakReference[Option[U]](None)
   protected var cached = emptyCache
-  protected def cache(v: U): U = {
+  protected val cache = {v: U =>
     cached = new WeakReference(Some(v))
-    v
   }
   def now = cached.get match {
-  case None | Some(None) =>
-  cache(f(parent.now))
-  case Some(Some(ret)) => ret
+    case None | Some(None) =>
+      val ret = f(parent.now)
+      cache(ret)
+      ret
+    case Some(Some(v)) =>
+      v
   }
+  
   /**
    * Fire change events whenever (the outer) Signal.this changes,
    * but the events should be transformed by f
    */
-
   lazy val change = parent.change.map(f)
 
   //TODO we need a way to be able to do this only if there are no real listeners
@@ -208,12 +210,13 @@ protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signa
   // Register our first listener
   currentMappedSignal.change addListener listener
   // When the parent changes, we need to update our forwarding listeners and send the new state of this aggregate signal.
-  parent.change addListener { x =>
+  private val parentListener = { x: T =>
     currentMappedSignal.change removeListener listener
     currentMappedSignal = f(x)
     currentMappedSignal.change addListener listener
     listener(now)
   }
+  parent.change addListener parentListener
 }
 protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
   def now = currentMappedSignal.now

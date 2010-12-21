@@ -43,8 +43,8 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     } should equal (List(
       Include(3, 40)
     ))
-    ss.change foreach {x => println("ss change: " + x)}
-    mapped.change foreach {x => println("mapped change: " + x)}
+//    ss.change foreach {x => println("ss change: " + x)}
+//    mapped.change foreach {x => println("mapped change: " + x)}
     val mapMapped = ss.map(_.map(_ * 10))
     val flatMapMapped = ss.map { _ flatMap { n =>
       <xml>{n}</xml>
