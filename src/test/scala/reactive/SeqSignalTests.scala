@@ -34,7 +34,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1,2,3)
     val mapped = ss.map{ts =>
-      println("Map _*10 : " + ts)
+//      println("Map _*10 : " + ts)
       (ts.map(_ * 10))
     }
     println(mapped.getClass)

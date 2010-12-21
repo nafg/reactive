@@ -7,17 +7,17 @@ import org.scalatest.matchers.ShouldMatchers
 object CollectEvents extends CollectEvents
 //TODO fold trait into singleton, and change inheritance to imports
 trait CollectEvents {
+  val observing1 = new Observing {}
   def collecting[T](es: EventStream[T])(f: =>Unit): List[T] = {
     var log = List[T]()
     var executing = true
-    implicit val observing = new Observing {}
     es.takeWhile{_ =>
-      println("takeWhile predicate")
+//      println("takeWhile predicate")
       executing
     }.foreach{e=>
-      println("Logging " + e)
+//      println("Logging " + e)
       log:+=e
-    }(observing)
+    }(observing1)
     f
     executing = false
     log
