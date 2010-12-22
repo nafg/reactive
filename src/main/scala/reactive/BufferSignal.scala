@@ -182,15 +182,24 @@ object SeqSignal {
    * a diff is calculated and the new SeqSignal fires deltas representing
    * the change incrementally.
    */
-  //TODO
-  implicit def apply[T](orig: Signal[TransformedSeq[T]]): SeqSignal[T] =
-    new Var(orig.now) with DiffSeqSignal[T] {
-      val origChange = orig.change
-      //TODO anchor
-      origChange addListener { seq =>
-        update(new TransformedSeq[T] {
-          def underlying = seq
-        })
+  //TODO this should be built on a public method that just creates an
+  //EventStream of the diffs
+  implicit def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
+    new SeqSignal[T] {
+      def now = transform
+      //TODO cache?
+      override lazy val transform = new TransformedSeq[T] {
+        def underlying = orig.now
+      }
+      override lazy val change = orig.change map {s =>
+        new TransformedSeq[T] { def underlying = s}
+      }
+      
+      change.foldLeft(now.toList) {
+        case (_prev, _cur) =>
+          val diff = LCS.lcsdiff(_prev, _cur, (_:T) == (_:T))
+          transform.deltas.fire(Batch(diff: _*))
+          _cur.toList
       }
     }
 }
