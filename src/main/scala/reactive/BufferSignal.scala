@@ -154,7 +154,7 @@ trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
   //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
   //  _ => f(transform)
   //}
-  private lazy val underlying = new TransformedSeq[T] {
+  private lazy val underlying: TransformedSeq[T] = new TransformedSeq[T] {
     def underlying = SeqSignal.this.now
   }
   /**
@@ -197,42 +197,24 @@ object SeqSignal {
 
 class MappedSeqSignal[T, E, U <: TransformedSeq[E]](
   parent: Signal[T],
-  f: T => U) extends ChangingSeqSignal[E] {
-  import scala.ref.WeakReference
-  private val emptyCache = new WeakReference[Option[U]](None)
-  protected var cached = emptyCache
-  private var cache2: AnyRef = null
-  protected def cache(v: U): U = {
-    cached = new WeakReference(Some(v))
-    cache2 = v
-    v
-  }
-  def underlying: U = (if (cached == null) None else cached.get) match {
-    case None | Some(None) =>
-      cache(f(parent.now))
-    case Some(Some(ret)) => ret
-  }
-  override lazy val change: EventStream[TransformedSeq[E]] = parent.change.map {
-    case s: T =>
-      println("change: " + s)
-      cache(f(s))
-    case _ =>
-      error("unmatched change")
-  }
+  f: T => U
+) extends ChangingSeqSignal[E] {
+  
   def now = underlying
   override def transform = underlying
-  //change foreach {
-  //  case s: TransformedSeq[U] => cache(s)
-  //}
-  override lazy val deltas = new EventSource[Message[E, E]] {} /* change.flatMap(underlying){
-    case s: TransformedSeq[U] =>
-    println(this + " changing deltas")
-    s.deltas
-  }*/
+  def underlying = _underlying
+  private var _underlying: U = f(parent.now)
+  
+  private val parentChangeListener = {x: T =>
+    _underlying = f(x)
+  }
+  parent.change addListener parentChangeListener
+  
+  
+  override lazy val deltas = new EventSource[Message[E, E]] {}
   private val deltasListener: Message[T,T]=>Unit = { m =>
     underlying match {
       case t: TransformedSeq[T]#Transformed[E] =>
-//            println("propagating delta " + m)
         Batch.single(t.xform(m)) foreach deltas.fire
       case _ =>
         println("not propagating delta " + m)
@@ -241,8 +223,7 @@ class MappedSeqSignal[T, E, U <: TransformedSeq[E]](
   parent match {
     case ss: SeqSignal[T] =>
       println("parent is a SeqSignal")
-      val parentDeltas = ss.deltas
-      parentDeltas addListener deltasListener
+      ss.deltas addListener deltasListener
     case _ =>
       println("parent is not a SeqSignal")
   }
