@@ -13,7 +13,7 @@ class LiftReactive(info: ProjectInfo) extends DefaultProject(info) {
 
   override def libraryDependencies = Set(
     "junit" % "junit" % "4.5" % "test->default",
-    "org.scala-tools.testing" %% "specs" % "1.6.5" % "test->default" withSources,
+    "org.scala-tools.testing" %% "specs" % "1.6.6" % "test->default" withSources,
     "org.scalatest" % "scalatest" % "1.2" % "test->default" withSources
   ) ++ super.libraryDependencies
 

@@ -22,5 +22,6 @@
 		<nature>ch.epfl.lamp.sdt.core.scalanature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 		<nature>org.eclipse.wst.common.project.facet.core.nature</nature>
+		<nature>de.element34.sbt-eclipse-integration.nature</nature>
 	</natures>
 </projectDescription>

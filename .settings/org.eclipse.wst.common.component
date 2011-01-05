@@ -3,5 +3,7 @@
     <wb-module deploy-name="reactive">
         <wb-resource deploy-path="/" source-path="/src/main/scala"/>
         <wb-resource deploy-path="/" source-path="/src/test/scala"/>
+        <wb-resource deploy-path="/" source-path="/src/main/resources"/>
+        <wb-resource deploy-path="/" source-path="/src/test/resources"/>
     </wb-module>
 </project-modules>
