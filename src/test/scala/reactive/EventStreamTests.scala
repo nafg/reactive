@@ -8,7 +8,10 @@ object CollectEvents extends CollectEvents
 //TODO fold trait into singleton, and change inheritance to imports
 trait CollectEvents {
   val observing1 = new Observing {}
-  def collecting[T](es: EventStream[T])(f: =>Unit): List[T] = {
+  def collecting[T](es: EventStream[T])(f: =>Unit)/*(implicit observing1: Observing)*/: List[T] = {
+//    val observing1 = new Observing {
+//      override def finalize = "println Observing gc'ed!"
+//    }
     var log = List[T]()
     var executing = true
     es.takeWhile{_ =>

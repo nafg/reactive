@@ -224,7 +224,8 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
   private val changeListener: TransformedSeq[U]=>Unit = change.fire _
   private val deltasListener: Message[U,U]=>Unit = deltas.fire _
   private var currentMappedSignal = f(parent.now)
-  private var lastDeltas: Seq[Message[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+//  private var lastDeltas: Seq[Message[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  private var lastSeq: Seq[U] = now
   currentMappedSignal.change addListener changeListener
   currentMappedSignal.deltas addListener deltasListener
   
@@ -234,19 +235,42 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
     currentMappedSignal = f(x)
     val n = currentMappedSignal.transform
     change.fire(n)
-    lastDeltas = fireDeltaDiff(lastDeltas, n)
+    lastSeq = fireDeltaDiff(lastSeq, n)
     currentMappedSignal.change addListener changeListener
     currentMappedSignal.deltas addListener deltasListener
   }
   parent.change addListener parentChangeListener
   
-  private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: TransformedSeq[U]): Seq[Message[T,U]] = {
-    val newDeltas: Seq[Message[T,U]] = Batch[T,U](newSeq.baseDeltas.collect{case m: Message[T,U] => m}: _*).flatten
-    val toUndo = lastDeltas.filterNot(newDeltas.contains) map {_.inverse} reverse
-    val toApply = newDeltas.filterNot(lastDeltas.contains)
-    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
-    newDeltas
+  private def fireDeltaDiff(lastSeq: Seq[U], newSeq: Seq[U]): Seq[U] = {
+    deltas fire Batch(LCS.lcsdiff(lastSeq, newSeq, (_:U) == (_:U)): _*)
+    newSeq
   }
+  
+//  BROKEN!! Makes false assumptions about baseDeltas 
+//  Perhaps baseDeltas should be deprecated or changed 
+//  private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: TransformedSeq[U]): Seq[Message[T,U]] = {
+//    val newDeltas: Seq[Message[T,U]] =
+//      Batch[T,U](newSeq.baseDeltas.toList.collect{case m: Message[T,U] => m}: _*).flatten
+//    
+//    //FIXME!!
+//    var shift = 0
+//    val normalized = newDeltas map {
+//      case Include(i, e) =>
+//        Include(i, e)
+//      case Remove(i, e) =>
+//        shift += 1
+//        Remove(i + shift - 1, e)
+//    }
+//
+//    println("lastDeltas: " + lastDeltas)
+//    println("normalized: " + normalized)
+//    val toUndo = lastDeltas.map(_.inverse).filterNot(normalized.contains) reverse
+//    val toApply = normalized.filterNot(lastDeltas.contains) //TODO lastDelta?? should be toUndo??
+//    println("toUndo: " + toUndo)
+//    println("toApply: " + toApply)
+//    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+//    normalized
+//  }
 }
 
 

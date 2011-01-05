@@ -54,7 +54,6 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     flatMapped.now should equal (Seq(1,2,3))
     
     collecting(flatMapped.deltas){
-      
       collecting(flatMapped.change){
         parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
         System.gc()
@@ -89,12 +88,33 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
         flatMapped.now should equal (Seq(1,2,3))    
       } should equal (List(List(1,2,3)))
     
-    } should equal (List(
-      Batch(Remove(2,3), Remove(1,2), Remove(0,1), Include(0,2), Include(1,3), Include(2,4)),
-      Batch(Include(3,5)),
-      Batch(Remove(2,4), Remove(1,3), Remove(0,2), Include(0,1), Include(1,2), Include(2,3))
+    }.toBatch.applyToSeq(List(2,3,4,5)) should equal (List(1,2,3))
+    
+  }
+
+  test("flatMap(value => seqSignal.map(_ filter pred))") {
+    val switch = Var(false)
+    val numbers = BufferSignal(1,2,3,4,5)
+    val filteredNumbers = numbers.map(_ filter (_ < 3))
+    val flatMapped = switch.flatMap {
+      case false => numbers
+      case true => filteredNumbers
+    }
+    
+    numbers.now.baseDeltas should equal (Seq(
+      Include(0,1), Include(1,2), Include(2,3), Include(3,4), Include(4,5)
+    ))
+    filteredNumbers.now.baseDeltas should equal (Seq(
+      Remove(2,3), Remove(2,4), Remove(2,5)
     ))
     
+    collecting(flatMapped.deltas) {
+      switch ()= true
+    } should equal (List(
+      Batch(
+        Remove(2,3), Remove(2,4), Remove(2,5)
+      )
+    ))
   }
 }
 
