@@ -11,6 +11,32 @@ import scala.collection.mutable.{
  * @tparam B the type of the new element
  */
 //TODO rename to Delta or SeqDelta
+object Message {
+  def flatten[A,B](messages: Seq[Message[A,B]]): Seq[Message[A, B]] = messages.flatMap {
+    case b: Batch[A, B] => flatten(b.messages)
+    case m => List(m)
+  }  
+  def single[A, B](ms: Seq[Message[A, B]]): Option[Message[A, B]] =
+    if (ms.isEmpty) None
+    else if (ms.length == 1) Some(ms(0))
+    else Some(Batch(ms: _*))
+    
+  def applyToSeq[A](messages: Seq[Message[A,A]])(seq: Seq[A]): Seq[A] = {
+    val buf = ArrayBuffer(seq: _*)
+    def applyDelta(m: Message[A, A]): Unit = m match {
+      case Include(i, e) => buf.insert(i, e)
+      case Remove(i, e) => buf.remove(i)
+      case Update(i, old, e) => buf.update(i, e)
+      case Batch(ms@_*) => ms foreach applyDelta
+    }
+    messages foreach applyDelta
+    buf.toSeq
+  }
+  final class Batchable[A,B](source: Seq[Message[A,B]]) {
+    def toBatch: Batch[A,B] = Batch(source: _*)
+  }
+  implicit def seqToBatchable[A,B](source: Seq[Message[A,B]]) = new Batchable(source)
+}
 sealed trait Message[+A, +B] {
   /**
    * The message that, if applied, would undo the result of this message
@@ -53,17 +79,10 @@ case class Batch[+A, +B](messages: Message[A, B]*) extends Message[A, B] {
    * Returns the messages as a Seq of Messages that does not contain
    * any batches.
    */
-  def flatten: Seq[Message[A, B]] = messages.flatMap {
-    case b: Batch[A, B] => b.flatten
-    case m => List(m)
-  }
+  def flatten = Message.flatten(messages)
+  def applyToSeq[T >: A](seq: Seq[T]) = Message.applyToSeq(messages)(seq)
 }
-object Batch {
-  def single[A, B](ms: Seq[Message[A, B]]): Option[Message[A, B]] =
-    if (ms.isEmpty) None
-    else if (ms.length == 1) Some(ms(0))
-    else Some(Batch(ms: _*))
-}
+
 
 /**
  * A Buffer that contains an EventStream which fires Message events
@@ -224,7 +243,7 @@ class MappedSeqSignal[T, E, U <: TransformedSeq[E]](
   private val deltasListener: Message[T,T]=>Unit = { m =>
     underlying match {
       case t: TransformedSeq[T]#Transformed[E] =>
-        Batch.single(t.xform(m)) foreach deltas.fire
+        Message.single(t.xform(m)) foreach deltas.fire
       case _ =>
         println("not propagating delta " + m)
     }

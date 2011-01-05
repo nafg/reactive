@@ -1,6 +1,6 @@
 package reactive
 
-import org.scalatest.{FunSuite, BeforeAndAfterEach}
+import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
 
