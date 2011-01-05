@@ -20,7 +20,7 @@
         <dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/reactive/reactive">
             <dependency-type>uses</dependency-type>
         </dependent-module>
-        <property name="java-output-path" value="/lift-reactive/target/classes"/>
+        <property name="java-output-path" value="/reactive-web/target/classes"/>
         <property name="context-root" value="reactive-web"/>
     </wb-module>
 </project-modules>
