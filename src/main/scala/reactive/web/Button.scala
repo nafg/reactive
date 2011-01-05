@@ -4,7 +4,7 @@ package web
 import scala.xml.{NodeSeq, Text}
 import net.liftweb.http.js.JsCmds.SetHtml
 
-class Button(buttonType: ButtonType.Value = ButtonType.Button, content: SignalBase[NodeSeq] = Val(NodeSeq.Empty)) extends RElem {
+class Button(buttonType: ButtonType.Value = ButtonType.Button, content: Signal[NodeSeq] = Val(NodeSeq.Empty)) extends RElem {
   val click = new JSEventSource[Click]
   def baseElem = <button type={buttonType.toString.toLowerCase}>{content.now}</button>
   def events = List(click)
@@ -23,7 +23,7 @@ class Button(buttonType: ButtonType.Value = ButtonType.Button, content: SignalBa
 object Button {
   def apply(buttonType: ButtonType.Value=ButtonType.Button,content: Signal[NodeSeq] = Val(NodeSeq.Empty)) = new Button(buttonType,content)
   def apply(
-    content: SignalBase[NodeSeq]
+    content: Signal[NodeSeq]
   )(
     action: =>Unit
   )(
