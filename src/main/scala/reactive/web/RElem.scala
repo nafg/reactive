@@ -30,9 +30,17 @@ object RElem {
   }
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String,RElem]
   
-  def ajaxFunc(f: String=>Unit): List[String]=>JsCmd = {
+  def ajaxFunc(f: String=>Unit): S.AFuncHolder = S.LFuncHolder{
     case Nil => JsCmds.Noop
-    case s :: _ => Reactions.inClientScope(f(s))
+    case s :: _ => Reactions.inClientScope {
+      try {
+        f(s)
+      } catch {
+        case e: Exception =>
+          e.printStackTrace
+          JsCmds.Noop
+      }
+    }
   }
   
   def apply(parent: Elem, children: RElem*): RElem = new ElemWrapper(parent, children: _*)
