@@ -41,6 +41,9 @@ object Reactions {
         register(CurrentPage.is, ca)
         ca
     }
+    LiftRules.snippets.append {
+      case "reactive"::Nil => _ => CurrentPage.is.render
+    }
   }
 
   def findPage(id: String): Option[Page] = pages.collect{case (p,_) if p.id==id => p}.headOption
