@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" output="target/eclipse/classes" path="src/main/scala"/>
+	<classpathentry kind="src" output="target/eclipse/resources" path="src/main/resources"/>
+	<classpathentry kind="src" output="target/eclipse/test-classes" path="src/test/scala"/>
+	<classpathentry kind="src" output="target/eclipse/test-resources" path="src/test/resources"/>
+	<classpathentry kind="con" path="de.element34.sbt_eclipse.classpath.ManagedClasspathContainer"/>
+	<classpathentry kind="con" path="de.element34.sbt_eclipse.classpath.UnmanagedClasspathContainer"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="ch.epfl.lamp.sdt.launching.SCALA_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/reactive-web"/>
+	<classpathentry kind="output" path="target/eclipse/classes"/>
+</classpath>

@@ -1,0 +1,7 @@
+target/
+lib/
+.scala_dependencies
+project/boot/
+*.class
+lib_managed/
+
