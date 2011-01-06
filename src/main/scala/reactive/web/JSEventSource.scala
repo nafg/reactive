@@ -17,6 +17,10 @@ class JSEventSource[T <: JSEvent : Manifest] {
   def eventName = JSEvent.eventName[T]
   def attributeName = "on" + eventName
   
+  //TODO maybe rename to rawEvent*?
+  //TODO perhaps instead of managing the two event streams separately,
+  // rather manage rawEventStream directly, and eventStream should
+  // be derived from it via map.
   var extraEventData = Map[String, JsExp]()
   val extraEventStream =
     new EventStream[Map[String, String]]
@@ -100,7 +104,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
           }
         }: _*
       )
-      println("Received encoding event: " + evt)
+      println(eventName + ": Received encoding event: " + evt)
       if(eventStream.hasListeners) try {
         eventStream.fire(decodeEvent(evt))
       } catch {

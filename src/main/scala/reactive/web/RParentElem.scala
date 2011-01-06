@@ -37,8 +37,9 @@ trait RParentElem extends RElem with net.liftweb.http.js.HtmlFixer {
       ids(index) = elem.id
     case Remove(index, oldElem) =>
       println("Received " + m + "; ids == " + ids)
+      //TODO
       val oldId = ids(index)
-      Reactions.queue(JsTry(Replace(oldId, NodeSeq.Empty),false))
+      Reactions queue JsTry(Replace(oldId, NodeSeq.Empty),false)
       ids.remove(index)
     case Batch(ms @ _*) => ms foreach {handleUpdate(_, ids)}
   }
@@ -47,7 +48,9 @@ trait RParentElem extends RElem with net.liftweb.http.js.HtmlFixer {
     super.addPage(page)
     val ids = children.now.map(_.id).toBuffer
     children.deltas foreach {m =>
-      Reactions.inAnyScope(page)(handleUpdate(m, ids))
+      Reactions.inAnyScope(page){
+        handleUpdate(m, ids)
+      }
     }
   }
 }

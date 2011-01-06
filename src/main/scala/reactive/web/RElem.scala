@@ -72,7 +72,7 @@ object RElem {
         }
       }
     }
-    fn(xhtml)      
+    fn(xhtml)
   }
 }
 
