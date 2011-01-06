@@ -7,16 +7,6 @@ class Select[T](
   renderer: T=>String = {t:T => t.toString},
   val size: Int = 1
 ) extends RParentElem {
-  val children = items.map {items: TransformedSeq[T] =>
-    items.map {item: T =>
-      val elem = if(selectedItem.now == Some(item))
-        <option selected="selected">{renderer(item)}</option>
-      else
-        <option>{renderer(item)}</option>
-        
-      RElem(elem)
-    }
-  }
   
   val change = new JSEventSource[Change.type]
   val selectedIndex = new JSProperty[Option[Int]] {
@@ -32,6 +22,19 @@ class Select[T](
     selectedIndex.value ()= item map {e=>items.now.indexOf(e)} filter(_ != -1)
   }
 
+  lazy val children: SeqSignal[RElem] = items.map {items =>
+    println("selectedItem: " + selectedItem.now)
+    println(items)
+    items.map {item: T =>
+      val elem = if(selectedItem.now == Some(item))
+        <option selected="selected">{renderer(item)}</option>
+      else
+        <option>{renderer(item)}</option>
+        
+      RElem(elem)
+    }
+  }
+  
   def baseElem = <select size={size.toString}/>
   def properties = List(selectedIndex)
   def events = List(change)
