@@ -20,6 +20,11 @@ class Span(content: Signal[NodeSeq] = Val(NodeSeq.Empty)) extends RElem {
   }
   override def toString = "TextSpan(" + render + ")"
 }
+
 object Span {
   def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty)) = new Span(content)
+  
+  def apply(binding: Signal[NodeSeq=>NodeSeq]) = {ns: NodeSeq =>
+    new Span(binding map (_(ns))).render
+  }  
 }
