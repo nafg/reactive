@@ -214,11 +214,13 @@ object SeqSignal {
         new TransformedSeq[T] { def underlying = s}
       }
       
-      change.foldLeft(now.toList) {
-        case (_prev, _cur) =>
-          val diff = LCS.lcsdiff(_prev, _cur, (_:T) == (_:T))
-          transform.deltas.fire(Batch(diff: _*))
-          _cur.toList
+      change addListener changeListener
+      private var _prev: List[T] = now.toList
+      private lazy val changeListener = { _cur: Seq[T] =>
+        val c = _cur.toList
+        val diff = LCS.lcsdiff(_prev, c, (_: T) == (_: T))
+        transform.deltas.fire(Batch(diff: _*))
+        _prev = c
       }
     }
 }
