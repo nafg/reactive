@@ -21,3 +21,18 @@ class Div(
   }
 }
 
+object Div {
+  import scala.xml.NodeSeq
+  
+  def apply(content: SeqSignal[RElem]) = new Div(content)
+  
+  def apply(binding: SeqSignal[_ <: NodeSeq=>NodeSeq]) = {ns: NodeSeq =>
+    new Div(
+      binding map {
+        _ map {(f: NodeSeq=>NodeSeq) =>
+          Span(Val(f(ns))): RElem
+        }
+      }
+    ).render
+  }
+}
