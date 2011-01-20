@@ -262,6 +262,8 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
 //    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
 //    normalized
 //  }
+
+  override def toString = "FlatMappedSeqSignal("+parent+","+System.identityHashCode(f)+")"
 }
 
 
@@ -306,6 +308,8 @@ class Var[T](initial: T) extends SimpleSignal[T] {
    */
   lazy val change: EventStream[T] = change0
   private lazy val change0 = new EventSource[T] {}
+
+  override def toString = "Var("+now+")"  
 }
 
 private object _timer extends java.util.Timer {

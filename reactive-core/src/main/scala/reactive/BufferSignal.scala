@@ -222,6 +222,8 @@ object SeqSignal {
         transform.deltas.fire(Batch(diff: _*))
         _prev = c
       }
+      
+      override def toString = "SeqSignal("+now+")"
     }
 }
 
@@ -256,6 +258,7 @@ class MappedSeqSignal[T, E](
     case _ =>
       println("parent is not a SeqSignal")
   }
+  override def toString = "MappedSeqSignal("+parent+","+f.getClass+"@"+Integer.toHexString(System.identityHashCode(f))+")"
 }
 
 /**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.  Note that you must make sure ''observing'' is initialized  before this trait's body is executed.
@@ -297,6 +300,8 @@ trait BufferSignal[T] extends SeqSignal[T] with ChangingSeqSignal[T] {
     def underlying = BufferSignal.this.underlying
     override lazy val deltas = underlying.messages
   }
+
+  override def toString = "BufferSignal("+now+")"
 }
 object BufferSignal {
   def apply[T](init: T*): BufferSignal[T] = new BufferSignal[T] {
@@ -369,6 +374,7 @@ class DiffSignal[T](
       transform.deltas.fire(Batch(diff: _*))
       cur
   }
+  override def toString = "DiffSeqSignal"
 }
 
 /*
