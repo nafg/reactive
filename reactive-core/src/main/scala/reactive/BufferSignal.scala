@@ -203,7 +203,7 @@ object SeqSignal {
    */
   //TODO this should be built on a public method that just creates an
   //EventStream of the diffs
-  implicit def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
+  def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
     new SeqSignal[T] {
       def now = transform
       //TODO cache?
