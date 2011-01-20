@@ -13,7 +13,7 @@ import net.liftweb.util.Helpers.urlDecode
  * pass the event to the server.
  */
 class JSEventSource[T <: JSEvent : Manifest] {
-  val eventStream = new EventStream[T] with TracksAlive[T] {}
+  val eventStream = new EventSource[T] {}
   def eventName = JSEvent.eventName[T]
   def attributeName = "on" + eventName
   
@@ -22,9 +22,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
   // rather manage rawEventStream directly, and eventStream should
   // be derived from it via map.
   var extraEventData = Map[String, JsExp]()
-  val extraEventStream =
-    new EventStream[Map[String, String]]
-    with TracksAlive[Map[String, String]] {}
+  val extraEventStream = new EventSource[Map[String, String]] {}
   
   def propagateJS: String = {
     def encodeEvent = {
@@ -43,7 +41,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
       def over = mouse + "+';'+" + (
         if(S.request.dmap(false)(_.isIE)) fromElement else relatedTarget
       )
-      val eventEncoding = if(!eventStream.alive.now) {
+      val eventEncoding = if(!eventStream.hasListeners) {
         "''"
       } else eventName match {
         case "blur" | "change" | "error" | "focus" | "resize" | "unload" => ""
@@ -53,7 +51,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
         case "mouseout" => out
         case "mouseover" => over
       }
-      if(!extraEventStream.alive.now)
+      if(!extraEventStream.hasListeners)
         eventEncoding
       else extraEventData.foldLeft(eventEncoding){
         case (encoding, (key, expr)) =>
@@ -120,7 +118,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
       ).toJsCmd
     }
   }
-  def asAttribute: xml.MetaData = if(eventStream.alive.now || extraEventStream.alive.now) {
+  def asAttribute: xml.MetaData = if(eventStream.hasListeners || extraEventStream.hasListeners) {
     new xml.UnprefixedAttribute(
       attributeName,
       propagateJS,
