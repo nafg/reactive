@@ -168,8 +168,8 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
 //  def apply[A](values: A*) = new SeqSignal(TransformedSeq(values: _*))
 //}
 
+//TODO covariance
 trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
-
   //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
   //  _ => f(transform)
   //}
@@ -248,16 +248,17 @@ class MappedSeqSignal[T, E](
       case t: TransformedSeq[T]#Transformed[E] =>
         Message.single(t.xform(m)) foreach deltas.fire
       case _ =>
-        println("not propagating delta " + m)
+        println("not propagating delta "+m+": underlying is not a TransformedSeq#Transformed")
     }
   }
   parent match {
     case ss: SeqSignal[T] =>
-      println("parent is a SeqSignal")
+      println(toString+": parent is a SeqSignal")
       ss.deltas addListener deltasListener
     case _ =>
-      println("parent is not a SeqSignal")
+      println(toString+": parent is not a SeqSignal")
   }
+
   override def toString = "MappedSeqSignal("+parent+","+f.getClass+"@"+Integer.toHexString(System.identityHashCode(f))+")"
 }
 

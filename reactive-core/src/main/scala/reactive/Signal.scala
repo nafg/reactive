@@ -164,14 +164,12 @@ trait CanMapSignal[U, S] {
 
 trait LowPriorityCanMapSignalImplicits {
   implicit def canMapSignal[U]: CanMapSignal[U, Signal[U]] = new CanMapSignal[U, Signal[U]] {
-    println("Creating simple CanMapSignal")
     def map[T](parent: Signal[T], f: T=>U): Signal[U] = new MappedSignal[T,U](parent,f)
   }
 }
 object CanMapSignal extends LowPriorityCanMapSignalImplicits {
   implicit def canMapSeqSignal[E]: CanMapSignal[TransformedSeq[E], SeqSignal[E]] = new CanMapSignal[TransformedSeq[E], SeqSignal[E]] {
     def map[T](parent: Signal[T], f: T=>TransformedSeq[E]): SeqSignal[E] = new MappedSeqSignal[T,E](parent,f)
-    println("Creating SeqSignal CanMapSignal")
   }
 }
 
@@ -288,8 +286,11 @@ object Var {
  */
 class Var[T](initial: T) extends SimpleSignal[T] {
   private var _value = initial
+  
   def now = value
   //TODO do we need value? why not just now and now_= ? Or just now and update?
+  //Advantage of setter other than update is to allow for += type assignments
+  // 'var.value += 2' works; 'var ()+= 2' does not work.
   def value = _value
   /**
    * Setter. Usage: var.value = x
