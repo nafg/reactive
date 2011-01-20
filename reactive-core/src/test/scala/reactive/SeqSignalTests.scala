@@ -64,15 +64,15 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   test("Factory (diff signal)") {
     val signal = Var(List(1,2,3))
     val diff = SeqSignal(signal)
-    collecting(diff.change) {
-      collecting(diff.deltas) {
+    collecting(diff.deltas) {
+      collecting(diff.change) {
         signal ()= List(2,3,4)
-      } should equal (List(Batch(
-        Remove(0,1), Include(2,4)
-      )))
-    } should equal (List(
-      Seq(2,3,4)
-    ))
+      } should equal (List(
+        Seq(2,3,4)
+      ))
+    } should equal (List(Batch(
+      Remove(0,1), Include(2,4)
+    )))
   }
 }
 
