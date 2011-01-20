@@ -96,7 +96,7 @@ trait RElem extends net.liftweb.util.Bindable {
     }
   }
   def render: Elem = {
-    println("Rendering " + getClass + "@" + System.identityHashCode(this))
+//    println("Rendering " + getClass + "@" + System.identityHashCode(this))
     if(S.request.isEmpty) println("Warning: Rendering even though there is no current request")
     S.request.foreach{_ =>
       // println("Calling addPage")

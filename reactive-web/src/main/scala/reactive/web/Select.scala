@@ -24,7 +24,7 @@ class Select[T](
 
   lazy val children: SeqSignal[RElem] = items.map {items =>
     println("selectedItem: " + selectedItem.now)
-    println(items)
+//    println(items)
     items.map {item: T =>
       val elem = if(selectedItem.now == Some(item))
         <option selected="selected">{renderer(item)}</option>

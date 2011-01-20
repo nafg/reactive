@@ -105,7 +105,7 @@ object Reactions {
   def inAnyScope[T](page: Page)(p: =>T): T = {
     currentScope.box match {
       case Full(scope) =>  // if there is an existing scope do it there
-        println(page.id + ": Already in scope: " + scope)
+        println(page.id + ": Already in scope: " + (if(scope.isLeft) "client" else "server"))
         p
       case _ =>        // otherwise do it in server scope
         inServerScope(page)(p)

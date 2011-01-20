@@ -18,7 +18,7 @@ class Span(content: Signal[NodeSeq] = Val(NodeSeq.Empty)) extends RElem {
       }
     }
   }
-  override def toString = "TextSpan(" + render + ")"
+  override def toString = "Span(" + render + ")"
 }
 
 object Span {

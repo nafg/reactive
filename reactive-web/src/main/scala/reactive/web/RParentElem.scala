@@ -14,7 +14,7 @@ trait RParentElem extends RElem with net.liftweb.http.js.HtmlFixer {
   
   def handleUpdate(m: Message[RElem,RElem], ids: scala.collection.mutable.Buffer[String]): Unit = m match {
     case Include(index, elem) =>
-      println("Received " + m + "; ids == " + ids)
+//      println("Received " + m + "; ids == " + ids)
       val e = elem.render
       Reactions.queue(Run(
         "try{var e=document.createElement('" + e.label + "');" + (
@@ -36,7 +36,7 @@ trait RParentElem extends RElem with net.liftweb.http.js.HtmlFixer {
       Reactions.queue(JsTry(Replace(oldId, e),false))
       ids(index) = elem.id
     case Remove(index, oldElem) =>
-      println("Received " + m + "; ids == " + ids)
+//      println("Received " + m + "; ids == " + ids)
       //TODO
       val oldId = ids(index)
       Reactions queue JsTry(Replace(oldId, NodeSeq.Empty),false)
