@@ -12,15 +12,6 @@ trait Signal[+T] {
 }
 
 
-object SignalMapping {
-  implicit def signalMapping[T,U](f: T=>U): SignalMapping[T,U,Signal[U]] = new SignalMapping[T,U,Signal[U]] {
-    def map(parent: Signal[T]) = new MappedSignal(parent, f)
-  }
-}
-sealed trait SignalMapping[T,U,S] {
-  def map(parent: Signal[T]): S
-}
-
 
 /**
  * A Signal in FRP represents a continuous value.
@@ -179,8 +170,8 @@ trait LowPriorityCanMapSignalImplicits {
 }
 object CanMapSignal extends LowPriorityCanMapSignalImplicits {
   implicit def canMapSeqSignal[E]: CanMapSignal[TransformedSeq[E], SeqSignal[E]] = new CanMapSignal[TransformedSeq[E], SeqSignal[E]] {
+    def map[T](parent: Signal[T], f: T=>TransformedSeq[E]): SeqSignal[E] = new MappedSeqSignal[T,E](parent,f)
     println("Creating SeqSignal CanMapSignal")
-    def map[T](parent: Signal[T], f: T=>TransformedSeq[E]): SeqSignal[E] = new MappedSeqSignal[T,E, TransformedSeq[E]](parent,f)
   }
 }
 

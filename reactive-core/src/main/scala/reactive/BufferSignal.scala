@@ -223,16 +223,15 @@ object SeqSignal {
     }
 }
 
-class MappedSeqSignal[T, E, U <: TransformedSeq[E]](
   parent: Signal[T],
-  f: T => U
+class MappedSeqSignal[T, E](
+  f: T => TransformedSeq[E]
 ) extends ChangingSeqSignal[E] {
-  
   def now = underlying
   override def transform = underlying
-  def underlying = _underlying
-  private var _underlying: U = f(parent.now)
-  
+  def underlying: TransformedSeq[E] = _underlying
+  private var _underlying: TransformedSeq[E] = f(parent.now)
+
   private val parentChangeListener = {x: T =>
     _underlying = f(x)
   }
