@@ -4,6 +4,9 @@ import scala.ref.WeakReference
 import scala.util.DynamicVariable
 
 
+
+
+
 /**
  * Keeps a list of strong references. Used to control when observers
  * can be garbage collected. The observable uses weak references to hold
@@ -103,6 +106,7 @@ trait EventStream[+T] {
  */
 trait EventSource[T] extends EventStream[T] {
   var debug = EventSource.debug
+  
   class FlatMapped[U](initial: Option[T])(val f: T=>EventStream[U]) extends EventSource[U] {
     // thread-unsafe implementation for now
     val thunk: U=>Unit = fire _ // = (u: U) => fire(u)

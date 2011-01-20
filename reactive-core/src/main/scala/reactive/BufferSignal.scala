@@ -12,15 +12,15 @@ import scala.collection.mutable.{
  */
 //TODO rename to Delta or SeqDelta
 object Message {
-  def flatten[A,B](messages: Seq[Message[A,B]]): Seq[Message[A, B]] = messages.flatMap {
+  def flatten[A,B](messages: Seq[Message[A,B]]): Seq[Message[A,B]] = messages.flatMap {
     case b: Batch[A, B] => flatten(b.messages)
     case m => List(m)
-  }  
-  def single[A, B](ms: Seq[Message[A, B]]): Option[Message[A, B]] =
+  }
+  def single[A,B](ms: Seq[Message[A,B]]): Option[Message[A,B]] =
     if (ms.isEmpty) None
     else if (ms.length == 1) Some(ms(0))
     else Some(Batch(ms: _*))
-    
+
   def applyToSeq[A](messages: Seq[Message[A,A]])(seq: Seq[A]): Seq[A] = {
     val buf = ArrayBuffer(seq: _*)
     def applyDelta(m: Message[A, A]): Unit = m match {
@@ -211,9 +211,9 @@ object SeqSignal {
         def underlying = orig.now
       }
       override lazy val change = orig.change map {s =>
-        new TransformedSeq[T] { def underlying = s}
+        new TransformedSeq[T] { def underlying = s }
       }
-      
+
       change addListener changeListener
       private var _prev: List[T] = now.toList
       private lazy val changeListener = { _cur: Seq[T] =>
@@ -240,8 +240,7 @@ class MappedSeqSignal[T, E](
     _underlying = f(x)
   }
   parent.change addListener parentChangeListener
-  
-  
+
   override lazy val deltas = new EventSource[Message[E, E]] {}
   private val deltasListener: Message[T,T]=>Unit = { m =>
     underlying match {
@@ -289,9 +288,7 @@ trait BufferSignal[T] extends SeqSignal[T] with ChangingSeqSignal[T] {
    */
   def value_=(v: Seq[T]) {
     val diff = Batch(LCS.lcsdiff(now, v, comparator): _*)
-    //    println("Value changed, applying diff: " + diff)
     underlying applyDelta diff
-    //    println("Applied diff")
   }
   /**
    * Usage: bufferSignal ()= newContentsSeq
@@ -311,7 +308,9 @@ object BufferSignal {
 }
 
 /**
- * Whenever this SeqSignal's change EventStream fires, it calculates the  deltas by diffing the old Seq and the new one.  Normally you would mix this in to a Var.
+ * Whenever this SeqSignal's change EventStream fires, it calculates the
+ * deltas by diffing the old Seq and the new one.
+ * Normally you would mix this in to a Var.
  */
 @deprecated("Instead we need a DiffSignal that extracts deltas from diffs")
 trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
@@ -344,7 +343,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
       transform.deltas.fire(m)
     }
   }
-  underlying.messages addListener  propagate
+  underlying.messages addListener propagate
   private def applyDelta: Message[T, T] => Unit = {
     case Include(i, e) =>
       underlying.messages.suppressing {
@@ -362,8 +361,10 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
 
 class DiffSignal[T](
   signal: Signal[TransformedSeq[T]],
-  comparator: (T, T) => Boolean = { (_: T) == (_: T) })(
-    implicit _observing: Observing) extends SeqSignal[T] {
+  comparator: (T, T) => Boolean = { (_: T) == (_: T) }
+)(
+  implicit _observing: Observing
+) extends SeqSignal[T] {
   protected var _now = signal.now
   def observing = _observing
   def now = _now
