@@ -2,6 +2,7 @@ target/
 lib/
 .scala_dependencies
 project/boot/
+*/project/boot/
 *.class
 lib_managed/
-
+reactive.wiki
