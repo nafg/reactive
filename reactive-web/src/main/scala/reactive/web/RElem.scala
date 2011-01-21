@@ -16,7 +16,7 @@ import scala.xml._
 
 
 object RElem {
-  private case class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
+  class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
     val (baseElem, _id) = parent.attributes.get("id") match {
       case Some(id) =>
         (parent, id.text)
