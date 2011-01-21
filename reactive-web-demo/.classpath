@@ -4,6 +4,7 @@
 	<classpathentry kind="src" output="target/eclipse/resources" path="src/main/resources"/>
 	<classpathentry kind="src" output="target/eclipse/test-classes" path="src/test/scala"/>
 	<classpathentry kind="src" output="target/eclipse/test-resources" path="src/test/resources"/>
+	<classpathentry kind="src" path="src/main/webapp"/>
 	<classpathentry kind="con" path="de.element34.sbt_eclipse.classpath.ManagedClasspathContainer"/>
 	<classpathentry kind="con" path="de.element34.sbt_eclipse.classpath.UnmanagedClasspathContainer"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
