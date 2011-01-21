@@ -1,7 +1,5 @@
 package reactive
 
-object Signal {
-}
 
 trait Signal[+T] {
   def now: T
