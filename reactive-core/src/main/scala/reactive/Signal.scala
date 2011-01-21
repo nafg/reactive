@@ -311,33 +311,3 @@ class Var[T](initial: T) extends SimpleSignal[T] {
   override def toString = "Var("+now+")"  
 }
 
-private object _timer extends java.util.Timer {
-  def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit) =
-    super.scheduleAtFixedRate(new java.util.TimerTask {def run = p}, delay, interval)
-}
-
-/**
- * A signal whose value represents elapsed time in milliseconds, and is updated
- * on a java.util.Timer thread.
- * @param startTime the value this signal counts up from
- * @param interval the frequency at which to update the signal's value.
- */
-//TODO should this really extend Var?
-//TODO could/should this be implemented as a RefreshingVar?
-class Timer(private val startTime: Long = 0, interval: Long) extends Var(startTime) {
-  private val origMillis = System.currentTimeMillis
-  _timer.scheduleAtFixedRate(interval, interval){
-    value = System.currentTimeMillis - origMillis + startTime
-  }
-}
-
-/**
- * A Var that updates itself based on the supplied call-by-name
- * regularly, at a given interval, on a java.util.Timer thread.
- * @param interval the rate at which to update self
- * @param supplier a call-by-name that calculates the signal's value
- */
-//TODO should this really extend Var?
-class RefreshingVar[T](interval: Long)(supplier: =>T) extends Var(supplier) {
-  _timer.scheduleAtFixedRate(interval, interval){value = supplier}
-}
