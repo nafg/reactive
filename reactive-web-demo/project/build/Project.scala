@@ -1,6 +1,6 @@
 import sbt._
 
-class LiftReactive(info: ProjectInfo) extends DefaultWebProject(info) {
+class ReactiveWebDemoProject(info: ProjectInfo) extends DefaultWebProject(info) {
   val mavenLocal = "Local Maven Repository" at
   "file://"+Path.userHome+"/.m2/repository"
 
