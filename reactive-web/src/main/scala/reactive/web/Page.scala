@@ -6,12 +6,23 @@ import net.liftweb.util.Helpers.randomString
 import net.liftweb.http.{RequestVar, S}
 
 
+
+/**
+ * A RequestVar to generate a maximum of one Page instance
+ * per request.
+ */
 object CurrentPage extends RequestVar(new Page)
 
+
+/**
+ * Inheriting this trait gives your Lift snippet classes
+ * access to some useful functionality. It is not mandatory,
+ * but you do need a Page in the implicit scope.
+ */
 trait ReactiveSnippet {
   private var lastPage: Option[String] = None
   /**
-   * Returns the Page this snippet represents.
+   * Returns the Page this snippet is rendering to.
    * Since Page extends Observing, this provides an Observing
    * in the implicit scope.
    */
@@ -35,6 +46,13 @@ trait ReactiveSnippet {
     // hasn't expired
 }
 
+
+/**
+ * A Page uniquely identifies a web page rendered with reactive-web components.
+ * It is used to associate RElems and ReactionsComets.
+ * An RElem can be associated with multiple Pages. The corresponding
+ * element will be kept in sync in both places.
+ */
 class Page extends Observing {
   val id = randomString(20)
   def cometName = id

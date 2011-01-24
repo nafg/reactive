@@ -9,13 +9,29 @@ import scala.xml.{MetaData, Null, UnprefixedAttribute}
 
 /**
  * Represents a javascript property synchronized in from the client to the server
+ * and updateable on the client via the server
+ * @tparam T the type of the value represented by the property
 */
 trait JSProperty[T] {
+  /**
+   * The Var that represents the property's value
+   */
   val value: Var[T]
   
+  /**
+   * The javascript name of the property
+   */
   def name: String
+  /**
+   * The id of the element this property belongs to
+   */
   def elemId: String
+  /**
+   * The value of the property is sent to the server with
+   * events using this key in the set of key-value pairs
+   */
   def eventDataKey = "jsprop" + name
+  
   private var pages = List[scala.ref.WeakReference[Page]]()
   private var eventSources = List[JSEventSource[_]]()
   
@@ -24,18 +40,42 @@ trait JSProperty[T] {
    */
   private val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
   
+  /**
+   * The javascript expression that evaluates to the value of this property
+   */
   def readJS: JsExp = JsRaw("document.getElementById('" + elemId + "')." + name)
+  /**
+   * The javascript statement to mutate this property
+   * @param v the value to mutate it to, as a String
+   */
   def writeJS(v: String): JsCmd = SetExp(readJS, Str(v))
   
+  /**
+   * How to get a T from the String sent via ajax with events
+   */
   protected def fromString(s: String): T
+  /**
+   * How to get a String to put in the attribute or send to the browser via ajax or comet, given a T
+   */
   protected def asString(v: T): String
   
+  /**
+   * Returns an attribute representing the value of this property, if applicable
+   */
   def asAttribute: MetaData = new UnprefixedAttribute(name, asString(value.now), Null)
   
   /**
-   * Registers a Page with this JSProperty, so that when
-   * @param page
+   * Registers a Page with this JSProperty.
+   * This means that any events linked to this property will
+   * have a listener added that will update this property and
+   * that is associated with the Page.
+   * For every page registered a listener is added to the
+   * property value's change EventStream, that will propagate
+   * the changes to all other pages.
+   * The Page is wrapped in a WeakReference.
+   * @param page the Page to add. If it exists no action is taken.
    */
+  //TODO should events be associated with a Page more directly/explicitly?
   def addPage(implicit page: Page): Unit = if(!pages.exists(_.get==Some(page))) {
     /**
      * Causes the value of this property to be updated by extracting its new value
@@ -68,17 +108,29 @@ trait JSProperty[T] {
       }
     }
   }
+  
+  /**
+   * Link an event with this property. The value
+   * will be updated on the server whenever an
+   * event fires.
+   */
   def updateOn(es: JSEventSource[_]) {
     es.extraEventData += (eventDataKey -> readJS)
     eventSources ::= es
   }
 }
 
+/**
+ * Provides identity conversions
+ */
 trait JSStringProperty extends JSProperty[String] {
   def fromString(s: String) = s
   def asString(v: String) = v
 }
 
+/**
+ * Provides conversions between Int and String
+ */
 trait JSIntProperty extends JSProperty[Int] {
   def default = 0
   def fromString(s: String) = try{s.toInt} catch {case _ => default}

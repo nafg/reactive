@@ -12,18 +12,39 @@ import net.liftweb.util.Helpers.urlDecode
  * Generates the javascript necessary for an event listener to
  * pass the event to the server.
  */
+//TODO rename to DOMEventSource
 class JSEventSource[T <: JSEvent : Manifest] {
+	/**
+	 * The EventStream that represents the primary event data
+	 */
   val eventStream = new EventSource[T] {}
+  /**
+   * The name of the event
+   */
   def eventName = JSEvent.eventName[T]
+  /**
+   * The name of the attribute to add the handler to
+   */
   def attributeName = "on" + eventName
   
   //TODO maybe rename to rawEvent*?
   //TODO perhaps instead of managing the two event streams separately,
   // rather manage rawEventStream directly, and eventStream should
   // be derived from it via map.
+  /**
+   * Addition data can be sent with every event by putting a name and
+   * a javascript expression in this Map
+   */
   var extraEventData = Map[String, JsExp]()
+  /**
+   * The EventStram that contains all the data sent with the event
+   */
   val extraEventStream = new EventSource[Map[String, String]] {}
   
+  /**
+   * The javascript to run whenever the browser fires the event, to
+   * propagate the event to the server
+   */
   def propagateJS: String = {
     def encodeEvent = {
       def modifiers =
@@ -118,6 +139,10 @@ class JSEventSource[T <: JSEvent : Manifest] {
       ).toJsCmd
     }
   }
+  
+  /**
+   * Returns an attribute that will register a handler with the event
+   */
   def asAttribute: xml.MetaData = if(eventStream.hasListeners || extraEventStream.hasListeners) {
     new xml.UnprefixedAttribute(
       attributeName,

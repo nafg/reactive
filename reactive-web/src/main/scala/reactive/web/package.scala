@@ -6,7 +6,19 @@ import net.liftweb.http.{js, SHtml, S}
   import js.JE.{JsRaw, Str}
   import js.JsCmds.Run
 
+  
+/**
+ * reactive-web package
+ */
 package object web {
+  /**
+   * Queues a javascript confirm dialog. The user's response is passed to the
+   * provided PartialFunction.
+   * Requires a Page to be in the implicit scope or to be passed in manually. However
+   * it is only used if there is no current reactions scope.
+   * @param message The message to display in the confirm dialog box
+   * @param response a PartialFunction[Boolean, Unit] used to handle the user's response to the dialog box
+   */
   def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page): Unit = {
     val funcWrapper: String=>Unit = {
       case "true" => if(response.isDefinedAt(true)) response(true)

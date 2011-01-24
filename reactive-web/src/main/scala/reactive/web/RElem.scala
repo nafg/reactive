@@ -14,8 +14,15 @@ import scala.xml._
 
 
 
-
+/**
+ * This singleton provides some useful things, including factories for creating RElems from standard Scala types.
+ */
 object RElem {
+  /**
+   * An RElem based on a scala.xml.Elem.
+   * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
+   * @param children any addition RElems to append
+   */
   class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
     val (baseElem, _id) = parent.attributes.get("id") match {
       case Some(id) =>
@@ -30,6 +37,10 @@ object RElem {
   }
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String,RElem]
   
+  /**
+   * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
+   * runs the provided function in the client scope. Exceptions are intercepted.
+   */
   def ajaxFunc(f: String=>Unit): S.AFuncHolder = S.LFuncHolder{
     case Nil => JsCmds.Noop
     case s :: _ => Reactions.inClientScope {
@@ -43,51 +54,70 @@ object RElem {
     }
   }
   
+  /**
+   * Creates an RElem from the given scala.xml.Elem. One may provide 0 or more RElems to append.
+   * @param parent the Elem to use. If it has an id you must ensure it is unique
+   * @param children any children to append
+   */
   def apply(parent: Elem, children: RElem*): RElem = new ElemWrapper(parent, children: _*)
+  /**
+   * Creates an RElem from a text String, wrapping it in a span
+   */
   def apply(text: String): RElem = new ElemWrapper(<span>{text}</span>)
-  implicit def relemsToNS(relems: Seq[RElem]): NodeSeq = relems.map(_.render)
-  
-  implicit def unboxNS: Box[NodeSeq] => NodeSeq = _.openOr(NodeSeq.Empty)
-  class Matcher(pre: String) {
-    implicit def bindParamsToPF(seq: Seq[BindParam]): PartialFunction[Node,NodeSeq] = {
-      import _root_.scala.collection.immutable.{Map, HashMap}
-      val map: Map[String, BindParam] = HashMap.empty ++ seq.map(p => (p.name, p));
-      
-      { case e @ Elem(`pre`, label, _, _, child @ _*) if map.contains(label) =>
-           map(label).calcValue(child) getOrElse NodeSeq.Empty
-      }
-    }
-  }
-  def bindPF(xhtml: NodeSeq)(PF: PartialFunction[Node, RElem]) = {
-    def fn(ns: NodeSeq): Seq[RElem] = {
-      ns.toSeq map {n =>
-        if(PF.isDefinedAt(n))
-          PF(n)
-        else n match {
-          case Elem(pre, label, attributes, scope, child @ _*) =>
-            RElem(Elem(pre, label, attributes, scope), child map fn flatten : _*)
-          case Text(text) => RElem(text)
-          //case Group(nodes) => Group(nodes flatMap fn)
-          //case other => other
-        }
-      }
-    }
-    fn(xhtml)
-  }
+
 }
 
+/**
+ * The base trait of all reactive elements.
+ * Has the ability to be rendered. Rendering will generate an Elem that
+ * contains attributes representing the current state of properties,
+ * and attributes with event handlers. Note that you must add listeners
+ * to events before it is rendered; otherwise the attribute may not be
+ * generated. DOM events will be sent to the server and appear as an
+ * EventStream.
+ * In addition properties can be kept in sync with the browser in
+ * response to events, and mutating them causes the DOM to be updated
+ * in the browser.
+ */
 trait RElem extends net.liftweb.util.Bindable {
   import scala.ref.WeakReference
   protected var _pages = List[WeakReference[Page]]()
+  /**
+   * Which Pages this RElem has been rendered to.
+   * It will be kept in sync on all of them.
+   */
   protected def pages = _pages.flatMap(_.get)
-  //protected def observings = pages.flatMap(_.get)
+  
+  /**
+   * The value of the id attribute 
+   */
   lazy val id = randomString(20)
   
+  /**
+   * The events that contribute to rendering
+   */
   def events: Seq[JSEventSource[_<:JSEvent]]
+  /**
+   * The properties that contribute to rendering
+   */
   def properties: Seq[JSProperty[_]]
   
+  /**
+   * The Elem used as the basis to render this RElem.
+   * The final rendering is contributed to by events
+   * and properties as well.
+   */
   def baseElem: Elem
   
+  /**
+   * Called (from render) to register a Page with this
+   * RElem.
+   * Pages are used (a) as an Observing to manage listener
+   * references; (b) to link server-context updates
+   * with the right comet actor; and (c) to allow
+   * the same element state to be maintained on
+   * multiple pages. 
+   */
   protected def addPage(implicit page: Page) {
     // println("In addPage, properties: " + properties)
     if(!_pages.exists(_.get==Some(page))) {
@@ -95,6 +125,11 @@ trait RElem extends net.liftweb.util.Bindable {
       properties.foreach{_ addPage page}
     }
   }
+  /**
+   * Returns the Elem used to initially incorporate this RElem in the view.
+   * If called inside a Lift request, registers the current page with this RElem first.
+   * @return an Elem consisting of baseElem plus attributes contributed by events and properties, not to mention the id.
+   */
   def render: Elem = {
 //    println("Rendering " + getClass + "@" + System.identityHashCode(this))
     if(S.request.isEmpty) println("Warning: Rendering even though there is no current request")
