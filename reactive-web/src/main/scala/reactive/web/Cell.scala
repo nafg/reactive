@@ -2,7 +2,7 @@ package reactive
 package web
 
 
-import scala.xml.NodeSeq
+import scala.xml.{Elem, NodeSeq}
 
 import net.liftweb.http.js.JsCmds.SetHtml
 
@@ -19,5 +19,16 @@ trait Cell extends RElem {
         Reactions.queue(SetHtml(id, s))
       }
     }
+  }
+}
+
+
+object Cell {
+  def apply(binding: Signal[NodeSeq=>NodeSeq]) = {ns: NodeSeq =>
+    new Cell {
+      val events, properties = Nil
+      val baseElem = nodeSeqToElem(ns)
+      lazy val content = binding map {_(ns)}
+    }.render
   }
 }

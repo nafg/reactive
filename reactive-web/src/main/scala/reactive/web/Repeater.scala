@@ -1,7 +1,7 @@
 package reactive
 package web
 
-import scala.xml.NodeSeq
+import scala.xml.{Elem, NodeSeq}
 
 import net.liftweb.http.js.{JsCmd, JsCmds, HtmlFixer}
   import JsCmds.{Run, JsTry, Replace}
@@ -60,6 +60,19 @@ trait Repeater extends RElem with HtmlFixer {
         Reactions.queue(js)
       }
     }
+  }
+}
+
+
+object Repeater {
+  def apply(binding: SeqSignal[NodeSeq=>NodeSeq]) = {ns: NodeSeq =>
+    new Repeater {
+      val baseElem = nodeSeqToElem(ns)
+      val events, properties = Nil
+      lazy val children = binding map {
+        _ map {f => RElem(nodeSeqToElem(f(baseElem.child)))}
+      } 
+    }.render
   }
 }
 
