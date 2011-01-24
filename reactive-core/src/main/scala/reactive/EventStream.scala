@@ -249,18 +249,12 @@ trait EventSource[T] extends EventStream[T] {
   def takeWhile(p: T=>Boolean): EventStream[T] = new EventSource[T] {
     val parent = EventSource.this
     val f: T=>Unit = (event: T)=> {
-      if(p(event)) fire(event) else {
-//        observing.removeRef(f)
-//        observing.removeRef(this)
-//        println("Before removeListener: ")
-//        dumpListeners
+      if(p(event)) {
+        fire(event)
+      } else {
         EventSource.this.removeListener(f)
-//        println("After removeListener: ")
-//        dumpListeners
       }
     }
-//    observing.addRef(f)
-//    observing.addRef(this)
     parent.addListener(f)
   }
   

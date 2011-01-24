@@ -1,8 +1,14 @@
 package reactive
 
-private object _timer extends java.util.Timer {
-  def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit) =
-    super.scheduleAtFixedRate(new java.util.TimerTask {def run = p}, delay, interval)
+import java.util.{Timer => juTimer, TimerTask}
+
+
+private object _timer extends juTimer {
+  def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit): TimerTask = {
+    val tt = new java.util.TimerTask {def run = p}
+    super.scheduleAtFixedRate(tt, delay, interval)
+    tt
+  }
 }
 
 /**
@@ -13,10 +19,20 @@ private object _timer extends java.util.Timer {
  * @param startTime the value this signal counts up from
  * @param interval the frequency at which to update the signal's value.
  */
-class Timer(private val startValue: Long = 0, interval: Long) extends EventSource[Long] {
+class Timer(
+  private val startValue: Long = 0,
+  interval: Long,
+  cancel: ()=>Boolean = ()=>false
+) extends EventSource[Long] {
   private val origMillis = System.currentTimeMillis
-  _timer.scheduleAtFixedRate(interval, interval){
-    fire(System.currentTimeMillis - origMillis + startValue)
+  private val tt: TimerTask = _timer.scheduleAtFixedRate(interval, interval){
+    if(cancel()) {
+      println("Timer canceling")
+      tt.cancel
+    } else {
+      println("Timer firing")
+      fire(System.currentTimeMillis - origMillis + startValue)
+    }
   }
 }
 
