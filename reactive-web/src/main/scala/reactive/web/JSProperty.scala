@@ -78,3 +78,9 @@ trait JSStringProperty extends JSProperty[String] {
   def fromString(s: String) = s
   def asString(v: String) = v
 }
+
+trait JSIntProperty extends JSProperty[Int] {
+  def default = 0
+  def fromString(s: String) = try{s.toInt} catch {case _ => default}
+  def asString(v: Int) = v.toString
+}

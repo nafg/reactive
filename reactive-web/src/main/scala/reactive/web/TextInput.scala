@@ -17,8 +17,14 @@ class TextInput(
     val value = _value
   }
   
+  val size = new JSIntProperty {
+    def name = "size"
+    def elemId = id
+    val value = Var(-1)
+  }
+  
   def events = List(dblClick, keyUp, change)
-  def properties = List(value)
+  def properties = List(value, size)
   def baseElem = <input type="text" />
 }
 
