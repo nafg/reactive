@@ -13,5 +13,5 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
 
 	lazy val reactive = project("reactive-core")
 	lazy val reactive_web = project("reactive-web", reactive)
-  lazy val demo = project("reactive-web-demo", reactive_web)
+  lazy val reactive_web_demo = project("reactive-web-demo", reactive_web)
 }

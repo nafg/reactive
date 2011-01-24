@@ -1,11 +1,11 @@
 <lift:surround with="default" at="content">
-	<h2>Welcome to your project!</h2>
-	<p><lift:MainPage>
-		<re:field /><br />
-		You say: <pre style="display: inline"><re:span /></pre> at <re:clock />
-		<p><re:div /></p>
-	</lift:MainPage></p>
-	
-	<lift:reactive />
+	<h2>reactive-web demo</h2>
+	<hr/>
+  <div class="lift:reactive" />
+	<p></p>
+	<div class="lift:MainPage">Type in this field: <input id="field" /><br />
+	You say: "<span style="white-space: pre; font-family: monospace;" id="span"/>" at <span id="clock" /> <br />
+	<div id="div"><span> [[ <span id="number" /> ]] </span></div></div>
+
 </lift:surround>
 
