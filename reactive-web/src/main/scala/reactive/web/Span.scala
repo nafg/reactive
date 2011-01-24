@@ -5,16 +5,16 @@ import scala.xml.NodeSeq
 
 
 trait Span extends RElem {
-  def baseElem = <span/>
-  def events = Nil
-  def properties = Nil
+  val baseElem = <span/>
+  val events = Nil
+  val properties = Nil
   
   override def toString = "Span(" + render + ")"
 }
 
 object Span {
   def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty)) = {
-    val tmp = content
+    def tmp = content
     new Span with Cell {
       def content = tmp
     }

@@ -1,5 +1,7 @@
 package reactive
 
+import scala.xml.{Elem, Group, Node, NodeSeq}
+
 import net.liftweb.http.{js, SHtml, S}
   import js.JE.{JsRaw, Str}
   import js.JsCmds.Run
@@ -20,5 +22,15 @@ package object web {
         Run(js)
       )
     )
+  }
+  
+  //TODO logging
+  private[web] def nodeSeqToElem(ns: NodeSeq): Elem = ns match {
+    case e: Elem => e
+    case Group(nodes) if nodes.length==1 => nodeSeqToElem(nodes(0))
+    case nodes: Seq[Node] if nodes.length==1 => nodeSeqToElem(nodes(0))
+    case other =>
+      println("Warning: NodeSeq is not an Elem; wrapping it in a span. "+other.getClass+": "+other.toString)
+      <span>{other}</span>
   }
 }

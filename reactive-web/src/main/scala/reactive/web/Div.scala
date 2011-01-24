@@ -13,7 +13,7 @@ trait Div extends RElem {
 }
 
 object Div {
-  import scala.xml.NodeSeq
+  import scala.xml.{Elem, NodeSeq}
   
   def apply(content: SeqSignal[RElem]) = new Div with Repeater {
     def children = content
@@ -22,7 +22,7 @@ object Div {
   def apply(binding: SeqSignal[_ <: NodeSeq=>NodeSeq]) = {ns: NodeSeq =>
     new Div with Repeater {
       lazy val children = binding map {
-        _ map {f => RElem(<span>{f(ns)}</span>)}
+        _ map {f => RElem(nodeSeqToElem(f(ns)))}
       }
     }.render
   }
