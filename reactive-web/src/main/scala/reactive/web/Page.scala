@@ -28,6 +28,7 @@ trait ReactiveSnippet {
   /**
    * Returns true if the page has not expired yet.
    */
+  //TODO the comet shouldn't have to be placed above the snippet
   def isPageAlive =
     lastPage.map(Reactions.isPageAlive) getOrElse true 
     // if lastPage wasn't set yet then the page didn't even begin its lifetime and certainly

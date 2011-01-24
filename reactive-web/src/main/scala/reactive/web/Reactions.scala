@@ -131,7 +131,7 @@ class ReactionsComet(
   
   override def toString = "net.liftweb.reactive.ReactionsComet " + name
   
-  def render = <span></span>
+  def render = <span/>
   
   override protected def localShutdown {
     Reactions.removePage(page)
@@ -145,7 +145,7 @@ class ReactionsComet(
       queued &= js
     case Flush =>
       val q = queued
-      println(page.id + ": partialUpdating: " + q.toJsCmd)
+//      println(page.id + ": partialUpdating: " + q.toJsCmd)
       partialUpdate(q)
       queued = JsCmds.Noop
     case Take =>
