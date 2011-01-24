@@ -111,3 +111,23 @@ class MainPage extends ReactiveSnippet {
     "#clock" #> clockSpan &
     "#div" #> repeater
 }
+
+
+/**
+ * A bit more declarative
+ */
+class MainPage2 extends MainPage {
+  override def render =
+    "#field" #> field &
+    "#span" #> Cell {
+      field.value.value map {v => "*" #> Text(v) }
+    } &
+    "#clock" #> Span {
+      clockSig map {t => Text(t/1000 toString)}
+    } &
+    "#div" #> Repeater {
+      items map {
+        _ map { i => ("#number" #> i) : (NodeSeq=>NodeSeq)}
+      }
+    }    
+}
