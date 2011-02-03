@@ -4,7 +4,7 @@ import scala.xml.{Elem, Group, Node, NodeSeq}
 
 import net.liftweb.http.{js, SHtml, S}
   import js.JE.{JsRaw, Str}
-  import js.JsCmds.Run
+  import js.JsCmds
 
   
 /**
@@ -31,7 +31,7 @@ package object web {
     }
     Reactions.inAnyScope(page)(
       Reactions.queue(
-        Run(js)
+        JsCmds.Run(js)
       )
     )
   }
