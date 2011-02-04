@@ -13,7 +13,7 @@ class ReactiveWebDemoProject(info: ProjectInfo) extends DefaultWebProject(info) 
   val liftVersion = "2.3-SNAPSHOT"
 
   override def libraryDependencies = Set(
-    "net.liftweb" %% "lift-webkit" % liftVersion % "compile->master",
+    "net.liftweb" %% "lift-webkit" % liftVersion % "compile->default" withSources,
     "org.mortbay.jetty" % "jetty" % "6.1.22" % "test->default",
     //"nafg" %% "reactive" % "0.0.1",
     "junit" % "junit" % "4.5" % "test->default",
