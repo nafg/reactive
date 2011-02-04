@@ -37,17 +37,17 @@ trait SimpleSignal[T] extends Signal[T] { parent =>
    */
   def change: EventStream[T]
   
-//  /**
-//   * Return a new Signal whose value is computed from the value
-//   * of this Signal, transformed by f. It fires change events
-//   * whenever (and only when) the original Signal does, but the
-//   * event values are transformed by f.
-//   * For example:
-//   * val a: Signal[Int] = ...
-//   * val b = a.map(_ + 1)
-//   * b represents a Signal whose value is always 1 greater than a.
-//   * Whenever a fires an event of x, b fires an event of x+1.
-//   */
+  /**
+   * Return a new Signal whose value is computed from the value
+   * of this Signal, transformed by f. It fires change events
+   * whenever (and only when) the original Signal does, but the
+   * event values are transformed by f.
+   * For example:
+   * val a: Signal[Int] = ...
+   * val b = a.map(_ + 1)
+   * b represents a Signal whose value is always 1 greater than a.
+   * Whenever a fires an event of x, b fires an event of x+1.
+   */
   def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
   
   /**
@@ -74,58 +74,6 @@ trait SimpleSignal[T] extends Signal[T] { parent =>
    */
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
   
-  //TODO differentiate types at runtime rather than compile time?
-  //Maybe use some kind of manifest or other evidence?
-  //Or have f implicitly wrapped in some wrapper?
-  /*def flatMap[U](f: T => SeqSignal[U]) = new FlatMappedSeqSignal[T,U](this,f)*//* {
-    //TODO cache
-    def now = currentSignal.now
-    private var currentSignal = f(parent.now)
-    lazy val change0 = parent.change.flatMap(parent.now){_ => f(parent.now).change}
-    change0 addListener change.fire
-    override lazy val change = new EventStream[Seq[U]] {}
-    private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
-    
-    private def fireDeltaDiff(lastDeltas: Seq[SeqDelta[T,U]], newSeq: Seq[U]): Seq[SeqDelta[T,U]] = {
-      val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[SeqDelta[T,U]]}: _*).flatten)
-      val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
-      val toApply = db.filterNot(da.contains)
-      deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[SeqDelta[U,U]]}: _*)
-      db
-    }
-    parent.change.foldLeft[Seq[SeqDelta[T,U]]](startDeltas){(prev: Seq[SeqDelta[T,U]], cur: T) =>
-      //TODO should we do use a direct diff of the seqs instead? 
-//      println("Entering foldLeft")
-      val n = f(cur)
-      change fire n.transform
-//      println(n.transform.getClass)
-//      println(n.transform)
-      fireDeltaDiff(prev, n.transform)
-    }
-    lazy val deltas0 = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
-    deltas0 addListener deltas.fire
-    override lazy val deltas = new EventStream[SeqDelta[U,U]] {}
-  }*/
-
-  
-  
-//  /**
-//   * 
-//   * @param f
-//   * @return a SeqSignal whose deltas and change events correspond to
-//   * those of the SeqSignals returned by ''f'', after each invocation
-//   * of ''f'', which result from change events fired by the parent signal.
-//   * In addition, every change to the parent results in a change event
-//   * as well as deltas reflecting the transition from the SeqSignal
-//   * previously returned by ''f'' and the on returned by it now.
-//   */
-//  //TODO differentiate types at runtime rather than compile time?
-//  //Maybe use some kind of manifest or other evidence?
-//  //Or have f implicitly wrapped in some wrapper?
-//  def flatMap[U](f: T => SeqSignal[U]) = new FlatMappedSeqSignal[T,U](this, f) 
-  
-  
-//  def map[U, S2](f: T => U)(implicit mapper: SignalMapper[U, This, S2]): S2 = mapper(this.asInstanceOf[This[T]], f)
 
 }
 
@@ -233,32 +181,6 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
     newSeq
   }
   
-//  BROKEN!! Makes false assumptions about baseDeltas 
-//  Perhaps baseDeltas should be deprecated or changed 
-//  private def fireDeltaDiff(lastDeltas: Seq[SeqDelta[T,U]], newSeq: TransformedSeq[U]): Seq[SeqDelta[T,U]] = {
-//    val newDeltas: Seq[SeqDelta[T,U]] =
-//      Batch[T,U](newSeq.baseDeltas.toList.collect{case m: SeqDelta[T,U] => m}: _*).flatten
-//    
-//    //FIXME!!
-//    var shift = 0
-//    val normalized = newDeltas map {
-//      case Include(i, e) =>
-//        Include(i, e)
-//      case Remove(i, e) =>
-//        shift += 1
-//        Remove(i + shift - 1, e)
-//    }
-//
-//    println("lastDeltas: " + lastDeltas)
-//    println("normalized: " + normalized)
-//    val toUndo = lastDeltas.map(_.inverse).filterNot(normalized.contains) reverse
-//    val toApply = normalized.filterNot(lastDeltas.contains) //TODO lastDelta?? should be toUndo??
-//    println("toUndo: " + toUndo)
-//    println("toApply: " + toApply)
-//    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[SeqDelta[U,U]]}: _*)
-//    normalized
-//  }
-
   override def toString = "FlatMappedSeqSignal("+parent+","+System.identityHashCode(f)+")"
 }
 
