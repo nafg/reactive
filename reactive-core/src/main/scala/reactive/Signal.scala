@@ -86,14 +86,14 @@ trait SimpleSignal[T] extends Signal[T] { parent =>
     override lazy val change = new EventStream[Seq[U]] {}
     private val startDeltas = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
     
-    private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: Seq[U]): Seq[Message[T,U]] = {
-      val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[Message[T,U]]}: _*).flatten)
+    private def fireDeltaDiff(lastDeltas: Seq[SeqDelta[T,U]], newSeq: Seq[U]): Seq[SeqDelta[T,U]] = {
+      val (da, db) = (prev, Batch(n.transform.baseDeltas.map{_.asInstanceOf[SeqDelta[T,U]]}: _*).flatten)
       val toUndo = da.filterNot(db.contains) map {_.inverse} reverse
       val toApply = db.filterNot(da.contains)
-      deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+      deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[SeqDelta[U,U]]}: _*)
       db
     }
-    parent.change.foldLeft[Seq[Message[T,U]]](startDeltas){(prev: Seq[Message[T,U]], cur: T) =>
+    parent.change.foldLeft[Seq[SeqDelta[T,U]]](startDeltas){(prev: Seq[SeqDelta[T,U]], cur: T) =>
       //TODO should we do use a direct diff of the seqs instead? 
 //      println("Entering foldLeft")
       val n = f(cur)
@@ -104,7 +104,7 @@ trait SimpleSignal[T] extends Signal[T] { parent =>
     }
     lazy val deltas0 = parent.change.flatMap(parent.now){_ => f(parent.now).deltas}
     deltas0 addListener deltas.fire
-    override lazy val deltas = new EventStream[Message[U,U]] {}
+    override lazy val deltas = new EventStream[SeqDelta[U,U]] {}
   }*/
 
   
@@ -209,9 +209,9 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
   def now = currentMappedSignal.now
   override lazy val change = new EventSource[TransformedSeq[U]] {}
   private val changeListener: TransformedSeq[U]=>Unit = change.fire _
-  private val deltasListener: Message[U,U]=>Unit = deltas.fire _
+  private val deltasListener: SeqDelta[U,U]=>Unit = deltas.fire _
   private var currentMappedSignal = f(parent.now)
-//  private var lastDeltas: Seq[Message[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+//  private var lastDeltas: Seq[SeqDelta[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
   private var lastSeq: Seq[U] = now
   currentMappedSignal.change addListener changeListener
   currentMappedSignal.deltas addListener deltasListener
@@ -235,9 +235,9 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
   
 //  BROKEN!! Makes false assumptions about baseDeltas 
 //  Perhaps baseDeltas should be deprecated or changed 
-//  private def fireDeltaDiff(lastDeltas: Seq[Message[T,U]], newSeq: TransformedSeq[U]): Seq[Message[T,U]] = {
-//    val newDeltas: Seq[Message[T,U]] =
-//      Batch[T,U](newSeq.baseDeltas.toList.collect{case m: Message[T,U] => m}: _*).flatten
+//  private def fireDeltaDiff(lastDeltas: Seq[SeqDelta[T,U]], newSeq: TransformedSeq[U]): Seq[SeqDelta[T,U]] = {
+//    val newDeltas: Seq[SeqDelta[T,U]] =
+//      Batch[T,U](newSeq.baseDeltas.toList.collect{case m: SeqDelta[T,U] => m}: _*).flatten
 //    
 //    //FIXME!!
 //    var shift = 0
@@ -255,7 +255,7 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
 //    val toApply = normalized.filterNot(lastDeltas.contains) //TODO lastDelta?? should be toUndo??
 //    println("toUndo: " + toUndo)
 //    println("toApply: " + toApply)
-//    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[Message[U,U]]}: _*)
+//    deltas fire Batch(toUndo ++ toApply map {_.asInstanceOf[SeqDelta[U,U]]}: _*)
 //    normalized
 //  }
 

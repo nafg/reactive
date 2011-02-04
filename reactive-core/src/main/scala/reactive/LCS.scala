@@ -75,7 +75,7 @@ object LCS {
   }
 
   //TODO only compare from the first different element to the last different element
-  def lcsdiff[T,U](a: Seq[T], b: Seq[U], equals: (T,U)=>Boolean): Seq[Message[T,U]] = {
+  def lcsdiff[T,U](a: Seq[T], b: Seq[U], equals: (T,U)=>Boolean): Seq[SeqDelta[T,U]] = {
     val n = a.length
     val m = b.length
     
@@ -128,7 +128,7 @@ object LCS {
     // The length of the longest substring is S[n][m]
     var pos = S(n)(m) - 1
 
-    var diffs = List[Message[T,U]]()
+    var diffs = List[SeqDelta[T,U]]()
 
     // Trace the backtracking matrix.
     var ii = n

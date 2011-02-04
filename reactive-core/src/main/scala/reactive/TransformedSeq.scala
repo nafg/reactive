@@ -28,7 +28,7 @@ trait TransformedSeq[T]
   
   trait Transformed[U] extends TransformedSeq[U] {
     protected def xform(index: Int, elem: T): List[(Int, U)]
-    protected[reactive] def xform(m: Message[T,T]): List[Message[U,U]] = m match {
+    protected[reactive] def xform(m: SeqDelta[T,T]): List[SeqDelta[U,U]] = m match {
       case Include(loc, elem) => xform(loc, elem) map {
         case (loc, elem) => Include(loc, elem)
       }
@@ -46,12 +46,12 @@ trait TransformedSeq[T]
   trait IndexTransformed[U] extends Transformed[U] {
     protected var index: ArrayBuffer[Int] = initIndex
     protected def initIndex: ArrayBuffer[Int]
-    private def fixIndexes(ms: List[Message[U,U]]): List[Message[U,U]] = {
-      def merged(ms: List[Message[U,U]]) = ms flatMap {
+    private def fixIndexes(ms: List[SeqDelta[U,U]]): List[SeqDelta[U,U]] = {
+      def merged(ms: List[SeqDelta[U,U]]) = ms flatMap {
         case Batch(ms @ _*) => ms
         case m => List(m)
       }
-      def idx(m: Message[U,U]) = m match {
+      def idx(m: SeqDelta[U,U]) = m match {
         case Include(i,_) => i
         case Remove(i, _) => i
         case Update(i, _, _) => i
@@ -64,7 +64,7 @@ trait TransformedSeq[T]
         case Update(i, a, b) => Update(i - off, a, b)
       }
     }
-    override protected[reactive] def xform(m: Message[T,T]): List[Message[U,U]] = m match {
+    override protected[reactive] def xform(m: SeqDelta[T,T]): List[SeqDelta[U,U]] = m match {
       case Include(n, _) =>
         val ret = super.xform(m)
         index.insert(n,index(n))
@@ -178,7 +178,7 @@ trait TransformedSeq[T]
     }
     protected def calcLastValid = valid.prefixLength(identity) - 1
     protected var lastValid = calcLastValid
-    override protected[reactive] def xform(m: Message[T,T]) = {
+    override protected[reactive] def xform(m: SeqDelta[T,T]) = {
 //      println("In xform("+m+"), valid = " + valid)
       val ret = super.xform(m)
       m match {
@@ -224,7 +224,7 @@ trait TransformedSeq[T]
   }
 
   
-  lazy val deltas: EventSource[Message[T,T]] = new EventSource[Message[T,T]] {}
+  lazy val deltas: EventSource[SeqDelta[T,T]] = new EventSource[SeqDelta[T,T]] {}
 
   def underlying: scala.collection.Seq[T]
   def apply(i: Int): T = underlying.apply(i)
@@ -313,7 +313,7 @@ trait TransformedSeq[T]
    * The delta from the parent TransformedSeq to this one,
    * or if no parent, from Nil to this TransformedSeq
   */
-  def baseDeltas: Seq[Message[_,T]] = underlying.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  def baseDeltas: Seq[SeqDelta[_,T]] = underlying.zipWithIndex.map{case (e,i)=>Include(i,e)}
   
   override protected[this] def newBuilder: Builder[T, TransformedSeq[T]] = new TransformedSeq.TransformedBuilder
 }

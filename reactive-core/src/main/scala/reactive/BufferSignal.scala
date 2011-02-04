@@ -10,20 +10,19 @@ import scala.collection.mutable.{
  * @tparam A the type of the old element
  * @tparam B the type of the new element
  */
-//TODO rename to Delta or SeqDelta
-object Message {
-  def flatten[A,B](messages: Seq[Message[A,B]]): Seq[Message[A,B]] = messages.flatMap {
+object SeqDelta {
+  def flatten[A,B](messages: Seq[SeqDelta[A,B]]): Seq[SeqDelta[A,B]] = messages.flatMap {
     case b: Batch[A, B] => flatten(b.messages)
     case m => List(m)
   }
-  def single[A,B](ms: Seq[Message[A,B]]): Option[Message[A,B]] =
+  def single[A,B](ms: Seq[SeqDelta[A,B]]): Option[SeqDelta[A,B]] =
     if (ms.isEmpty) None
     else if (ms.length == 1) Some(ms(0))
     else Some(Batch(ms: _*))
 
-  def applyToSeq[A](messages: Seq[Message[A,A]])(seq: Seq[A]): Seq[A] = {
+  def applyToSeq[A](messages: Seq[SeqDelta[A,A]])(seq: Seq[A]): Seq[A] = {
     val buf = ArrayBuffer(seq: _*)
-    def applyDelta(m: Message[A, A]): Unit = m match {
+    def applyDelta(m: SeqDelta[A, A]): Unit = m match {
       case Include(i, e) => buf.insert(i, e)
       case Remove(i, e) => buf.remove(i)
       case Update(i, old, e) => buf.update(i, e)
@@ -32,40 +31,40 @@ object Message {
     messages foreach applyDelta
     buf.toSeq
   }
-  final class Batchable[A,B](source: Seq[Message[A,B]]) {
+  final class Batchable[A,B](source: Seq[SeqDelta[A,B]]) {
     def toBatch: Batch[A,B] = Batch(source: _*)
   }
-  implicit def seqToBatchable[A,B](source: Seq[Message[A,B]]) = new Batchable(source)
+  implicit def seqToBatchable[A,B](source: Seq[SeqDelta[A,B]]) = new Batchable(source)
 }
-sealed trait Message[+A, +B] {
+sealed trait SeqDelta[+A, +B] {
   /**
    * The message that, if applied, would undo the result of this message
    */
-  def inverse: Message[B, A]
+  def inverse: SeqDelta[B, A]
 }
 /**
  * Represents an insertion at an index
  */
 //TODO maybe rename to Insert?
-case class Include[+B](index: Int, elem: B) extends Message[Nothing, B] {
+case class Include[+B](index: Int, elem: B) extends SeqDelta[Nothing, B] {
   def inverse = Remove(index, elem)
 }
 /**
  * Represents an element being replaced at an index.
  */
 //TODO maybe rename to Replace?
-case class Update[+A, +B](index: Int, old: A, elem: B) extends Message[A, B] {
+case class Update[+A, +B](index: Int, old: A, elem: B) extends SeqDelta[A, B] {
   def inverse = Update(index, elem, old)
 }
 /**
  * Represents an element being removed at an index
  */
-case class Remove[+A](index: Int, old: A) extends Message[A, Nothing] {
+case class Remove[+A](index: Int, old: A) extends SeqDelta[A, Nothing] {
   def inverse = Include(index, old)
 }
 /**
- * Represents a batch of Messages.
- * Can be used to roll together a number of Messages
+ * Represents a batch of SeqDeltas.
+ * Can be used to roll together a number of SeqDeltas
  * so that they will be applied in one go, which is often
  * more efficient. For instance if after every change
  * something needs to be updated, by using a Batch
@@ -73,19 +72,19 @@ case class Remove[+A](index: Int, old: A) extends Message[A, Nothing] {
  * set of changes are applied.
  * @param messages the messages contained in the batch
  */
-case class Batch[+A, +B](messages: Message[A, B]*) extends Message[A, B] {
+case class Batch[+A, +B](messages: SeqDelta[A, B]*) extends SeqDelta[A, B] {
   def inverse = Batch(messages map { _.inverse } reverse: _*)
   /**
-   * Returns the messages as a Seq of Messages that does not contain
+   * Returns the messages as a Seq of SeqDeltas that does not contain
    * any batches.
    */
-  def flatten = Message.flatten(messages)
-  def applyToSeq[T >: A](seq: Seq[T]) = Message.applyToSeq(messages)(seq)
+  def flatten = SeqDelta.flatten(messages)
+  def applyToSeq[T >: A](seq: Seq[T]) = SeqDelta.applyToSeq(messages)(seq)
 }
 
 
 /**
- * A Buffer that contains an EventStream which fires Message events
+ * A Buffer that contains an EventStream which fires SeqDelta events
  * after every time the Buffer is updated.
  */
 //TODO Should this really be a trait mixable into any Buffer?
@@ -100,7 +99,7 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
    * An EventStream that fires events after each buffer mutation
    */
   //TODO rename to deltas
-  lazy val messages = new Batchable[T, T] with Suppressable[Message[T, T]] {}
+  lazy val messages = new Batchable[T, T] with Suppressable[SeqDelta[T, T]] {}
 
   override def +=(element: T): this.type = {
     super.+=(element)
@@ -140,11 +139,11 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
   }
 
   /**
-   * Mutates this buffer by applying a Message to it.
+   * Mutates this buffer by applying a SeqDelta to it.
    * To keep two ObservableBuffers in sync, you could write
    * buffer1.messages foreach buffer2.applyDelta
    */
-  def applyDelta: Message[T, T] => Unit = {
+  def applyDelta: SeqDelta[T, T] => Unit = {
     case Include(i, e) => insert(i, e)
     case Remove(i, e) => remove(i)
     case Update(i, old, e) => update(i, e)
@@ -155,7 +154,7 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
 /**
  * This trait provides special behavior implementations for signals of sequences,
  * preserving the transformation relationship of derived signals by propagating
- * deltas (Messages).
+ * deltas (SeqDeltas).
  */
 //class SeqSignal[A](seq: TransformedSeq[A]) extends Signal[TransformedSeq[A]] with SignalLike[TransformedSeq[A], SeqSignal[A]] {
 //  def this(seq: Seq[A]) = this(TransformedSeq(seq: _*))
@@ -184,7 +183,7 @@ trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
   override lazy val change: EventStream[TransformedSeq[T]] = new EventSource[TransformedSeq[T]] {}
 
   /**
-   * The EventStream of incremental updates (Messages) to the underlying Seq.
+   * The EventStream of incremental updates (SeqDeltas) to the underlying Seq.
    */
   def deltas = transform.deltas
 
@@ -241,11 +240,11 @@ class MappedSeqSignal[T, E](
   }
   parent.change addListener parentChangeListener
 
-  override lazy val deltas = new EventSource[Message[E, E]] {}
-  private val deltasListener: Message[T,T]=>Unit = { m =>
+  override lazy val deltas = new EventSource[SeqDelta[E, E]] {}
+  private val deltasListener: SeqDelta[T,T]=>Unit = { m =>
     underlying match {
       case t: TransformedSeq[T]#Transformed[E] =>
-        Message.single(t.xform(m)) foreach deltas.fire
+        SeqDelta.single(t.xform(m)) foreach deltas.fire
       case _ =>
         println("not propagating delta "+m+": underlying is not a TransformedSeq#Transformed")
     }
@@ -266,7 +265,7 @@ class MappedSeqSignal[T, E](
 trait ChangingSeqSignal[T] extends SeqSignal[T] {
   private lazy val change0 = new EventSource[TransformedSeq[T]] {}
   override lazy val change: EventStream[TransformedSeq[T]] = change0
-  private val fireTransform: Message[T,T]=>Unit = _ => change0 fire transform //TODO transform? underlying? now?
+  private val fireTransform: SeqDelta[T,T]=>Unit = _ => change0 fire transform //TODO transform? underlying? now?
   deltas addListener fireTransform
 }
 
@@ -317,7 +316,7 @@ trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
   def comparator: (T, T) => Boolean = { _ == _ }
   override lazy val transform = new TransformedSeq[T] {
     def underlying = DiffSeqSignal.this.now
-    //override val deltas = new EventStream[Message[T]] {}
+    //override val deltas = new EventStream[SeqDelta[T]] {}
   }
   change.foldLeft(value) {
     case (_prev, _cur) =>
@@ -338,13 +337,13 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
   override def now = transform
   private val fromBuffer = new scala.util.DynamicVariable(false)
 
-  private val propagate: Message[T,T]=>Unit = { m =>
+  private val propagate: SeqDelta[T,T]=>Unit = { m =>
     fromBuffer.withValue(true) {
       transform.deltas.fire(m)
     }
   }
   underlying.messages addListener propagate
-  private def applyDelta: Message[T, T] => Unit = {
+  private def applyDelta: SeqDelta[T, T] => Unit = {
     case Include(i, e) =>
       underlying.messages.suppressing {
         underlying.insert(i, e)

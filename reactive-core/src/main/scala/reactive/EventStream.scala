@@ -394,12 +394,12 @@ trait Suppressable[T] extends EventSource[T] {
 }
 
 /**
-  This EventStream fires Messages (Seq deltas) and can batch them up.
+  This EventStream fires SeqDeltas (Seq deltas) and can batch them up.
 */
 //TODO batchable event streams' transformed derivatives
 //should also be Batchable
-trait Batchable[A,B] extends EventSource[Message[A,B]] {
-  protected val batch = new DynamicVariable(List[Message[A,B]]())
+trait Batchable[A,B] extends EventSource[SeqDelta[A,B]] {
+  protected val batch = new DynamicVariable(List[SeqDelta[A,B]]())
   private val inBatch = new DynamicVariable(false)
   /**
    * Runs code while batching messages.
@@ -428,7 +428,7 @@ trait Batchable[A,B] extends EventSource[Message[A,B]] {
   } else {
     p
   }
-  override def fire(msg: Message[A,B]) = {
+  override def fire(msg: SeqDelta[A,B]) = {
     if(inBatch.value)
       batch.value ::= msg
     else

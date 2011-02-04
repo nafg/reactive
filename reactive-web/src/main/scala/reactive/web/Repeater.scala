@@ -20,7 +20,7 @@ class RepeaterManager(parentId: String, children: SeqSignal[RElem]) extends Html
    * @param ids the current ids of the child elements, in order
    * @return a JsCmd that when executed by the browser will cause update the DOM to reflect the change represented by the delta.
    */
-  def handleUpdate(m: Message[RElem,RElem], ids: scala.collection.mutable.Buffer[String]): JsCmd = m match {
+  def handleUpdate(m: SeqDelta[RElem,RElem], ids: scala.collection.mutable.Buffer[String]): JsCmd = m match {
     case Include(index, elem) =>
       val e = elem.render
       ids.insert(index, elem.id)

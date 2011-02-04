@@ -10,7 +10,7 @@ class TransformedSeqTests extends FunSuite with ShouldMatchers {
     val underlying = List(1, 2, 3, 4)
   }
 
-  def xform(t: TransformedSeq[Int])(m: Message[Int,Int]) = t match { case t: TransformedSeq[Int]#Transformed[Int] => t.xform(m)}
+  def xform(t: TransformedSeq[Int])(m: SeqDelta[Int,Int]) = t match { case t: TransformedSeq[Int]#Transformed[Int] => t.xform(m)}
 
   test("(untransformed)") {
     ts.baseDeltas should equal (Seq(
