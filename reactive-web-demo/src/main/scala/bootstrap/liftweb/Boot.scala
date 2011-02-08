@@ -25,8 +25,18 @@ class Boot {
     reactive.web.Reactions.initComet
     
     // Build SiteMap
-    val entries = Menu(Loc("Home", List("index"), "Home")) :: Nil
-    LiftRules.setSiteMap(SiteMap(entries:_*))
+    def sitemap = () => SiteMap(
+      Menu("Demos")  /"index",
+      Menu("Scaladocs")  /"1"  >>PlaceHolder  submenus(
+        Menu("reactive-core")  /"reactive-core-api"/ **,
+        Menu("reactive-web")  /"reactive-web-api"/ **
+      )
+    )
+    LiftRules.setSiteMapFunc(sitemap)
+    LiftRules.liftRequest.append {
+      case Req("reactive-core-api"::_, _, _) => false
+      case Req("reactive-web-api"::_, _, _) => false
+    }
   }
 }
 
