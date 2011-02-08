@@ -6,3 +6,6 @@ project/boot/
 *.class
 lib_managed/
 reactive.wiki
+*~
+work/
+
