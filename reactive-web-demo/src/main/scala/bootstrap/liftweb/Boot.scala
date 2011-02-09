@@ -37,6 +37,7 @@ class Boot {
       case Req("reactive-core-api"::_, _, _) => false
       case Req("reactive-web-api"::_, _, _) => false
     }
+    LiftRules.useXhtmlMimeType = false
   }
 }
 

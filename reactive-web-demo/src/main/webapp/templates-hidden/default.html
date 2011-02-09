@@ -20,88 +20,25 @@
     <script type="text/javascript">
         SyntaxHighlighter.all()
     </script>
-    <style type="text/css">
-    
-/* Menu CSS based on http://www.visualbasicscript.com/Pure-CSS-Pull-Down-Menu-m56046.aspx */
-
- .menu ul {
-     position:relative;
-     text-align:left;
-     list-style: none;
-     margin-left: auto;
-     margin-right: auto;
-     padding: 0px;
-     background-color: #DDDDDD;
-     border:1px solid gray;
-     font-size: large;
- }
- 
- .menu li{
-     position:relative;
-     display:inline;
-     cursor:pointer;
-     padding-right: .5em;
- }
- 
- .menu li a{
-     text-decoration:none;
-     color:black;
-     width:100%;
-     height:100%;
- }
- 
- .menu li a:hover{
-     color:black;
- }
- 
- .menu li:hover{
-     background-color:#EEEEEE;
-     color:black;
- }
- 
- .menu li ul{
-     position:absolute;
-     white-space:nowrap;
-     text-align:left;
-     list-style:none;
-     display:none;
-     z-index:5;
-     left:0%;
-     top:1.15em;
-     margin:0px;
-     padding:0px;
-     border:1px solid gray;
-     background-color: #DDDDDD;
- }
- 
- .menu li ul li{
-     position:relative;
-     left:0px;
-     display: list-item;
-     cursor:pointer;
-     width:200px;
-     float: none;
- }
- 
- 
- .menu li ul li a{
-     display:block;
-     margin-left:3px;
-     margin-right:3px;
- }
- 
- .menu li:hover > ul{
-     display:block;
- }
- 
- 
-
-  </style>
+    <link href="menu.css" rel="stylesheet" type="text/css" />
 </head>
   <body>
-  <h2>reactive-web demo</h2>
+    <h1>reactive-web demo</h1>
 
     <div class="menu"><div class="lift:Menu.builder?expandAll=true" /></div>
+    <div style="float:right; padding-top: 10px; padding-left: 3px">
+      <script type="text/javascript"><!--
+      google_ad_client = "ca-pub-1968326021570297";
+      /* reactive-web-demo */
+      google_ad_slot = "2740543239";
+      google_ad_width = 120;
+      google_ad_height = 240;
+      //-->
+      </script>
+      <script type="text/javascript"
+      src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+      </script>
+    </div>
     <div><lift:bind name="content" /></div>
     <lift:msgs/>
 
