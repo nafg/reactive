@@ -1,0 +1,292 @@
+<div class="lift:surround?with=default;at=content">
+
+<h2>EventStream</h2>
+<h3>Introduction</h3>
+<p><code>EventStream</code> is the central trait in reactive-core,
+in the sense that everything else is built on it. It provides a
+functional abstraction over the well-known listener pattern. Rather than
+using imperative techniques, however, using <code>EventStream</code> you
+can send or receive events using a more effective abstraction.</p>
+
+<p>It is important to note that reactive does not handle threading
+implicitly. Events are delivered on whichever thread they are fired, and
+execution returns to the caller when all listeners have processed the
+event.</p>
+
+<p>One can think of an <code>EventStream</code> as a collection of
+values, where, rather than all values existing side by side, each one
+exists at a different point in time. Keep this analogy in mind, because
+methods in reactive-core are named with it in mind.</p>
+
+<h3>Adding Listeners: <code>foreach</code></h3>
+<p>Under the hood <code>EventStream</code> manages a collection of
+listeners, but that's not how you should think of it conceptually.
+Conceptually, by adding a listener what you really want is to execute a
+function for each event fired. In other words, for all values of the <code>EventStream</code>.
+So, just like when you want to execute a function for all values of a
+Scala Collection you call <code>foreach</code>, you do the same here.
+Unlike in the collections, though, <code>foreach</code> returns
+immediately, and your function is saved to be executed whenever an event
+fires.</p>
+<p>This begs the question: How will the function, and any references
+it has, ever be garbage collected (before the <code>EventStream</code>
+is)? The answer is that <code>EventStream</code> keeps your function
+inside a <code>WeakReference</code>, thus not preventing it from being
+garbage collected. If so, what's stopping it from being garbage
+collected too soon? For that reason you must have an instance of <code>Observing</code>
+in the implicits scope when calling <code>foreach</code> (and <code>forward</code>).
+<code>EventStream</code> will store a strong reference to the function
+inside the <code>Observing</code> object. Then the responsibility of
+memory lifetime falls on the <code>Observing</code>. The easiest (and
+often most correct) way to implement this, is to have the enclosing
+class extend <code>Observing</code>.</p>
+<p>Of course, you can use for-comprehension syntax. For example:</p>
+
+<pre class="brush: scala">
+// all listeners added in here have the same gc lifetime as the class
+class MyClass extends Observing {
+  def traceEvents[T](es: EventStream[T]) {
+    //desugars to es.foreach(e =&gt; println(e))
+    for(e &lt;- es)
+      println(e)
+  }
+}
+</pre>
+
+<h3>Finer-grained Lifetime Control: <code>takeWhile</code></h3>
+<p>What if you need finer-grained control over your function's
+lifetime?</p>
+<p>Well, recalling the collections analogy, what do you if you want
+to act upon only part of a collection? Well, there are many ways, but
+what if you want to process the beginning, stopping when a condition
+evaluates to true? Of course, the answer is <code>takeWhile</code>. Same
+here. And just like <code>takeWhile</code> on a collection returns a new
+subset collection, so to <code>takeWhile</code> on an <code>EventStream</code>
+returns a new <code>EventStream</code> that will only return events as
+long as the condition evaluates to true.</p>
+<p>You do not need an <code>Observing</code> in scope to use <code>takeWhile</code>.
+As soon as an event fires in the original <code>EventStream</code> that
+causes your condition to evaluate to false, it will cease to receive
+events, and the reference to your predicate function and the new <code>EventStream</code>
+will be removed.</p>
+<p>Idiomatic code should not cause side effects in the predicate;
+however there's nothing stopping you from doing so if you so desire.</p>
+
+<pre class="brush: scala">
+def untilTooHigh(es: EventStream[Int]) =
+  es.takeWhile(_ &lt;= 100)
+
+var stop = false
+def notIdiomatic(es: EventStream[Int]) {
+  es.takeWhile(e =&gt;
+    println("Still receiving events! To stop me set 'stop' to true! Event: " + e)
+    !stop
+  )
+}
+</pre>
+
+<h3>What's the point?</h3>
+<p>At this point you may be wondering why go through all these
+hoops? Why not use the regular listener pattern directly, like Swing
+does?</p>
+<p>The short answer is that, while it's a new way of thinking, in
+the long run it makes life easier. For example, if you take the
+imperative approach of adding a listener in response to one situation,
+in one method, and removing it in response to other situations, in other
+methods, the result is that you have code that manages listeners'
+lifecycles sprinkled in different places in code. Of course that means
+it's harder to keep track of. By abstracting over the concept of
+managing listeners' lifecycles, it becomes possible to program less in
+terms of what the computer should do next, and more in terms of what you
+want to happen, resulting in more maintainable code.</p>
+<p>However, perhaps the greater advantage, is that we have a
+general-purpose abstraction called an <code>EventStream</code> that can
+be transformed and composed. This will become more apparent as you read
+more about <code>EventStream</code> and about everything that interacts
+with it and is built on it.</p>
+
+<h3>A More Focused <code>EventStream</code>: <code>filter</code></h3>
+<p>What if you have an <code>EventStream</code> that fires a lot of
+events but you are only interested in some? You can use <code>filter</code>.</p>
+<p>As you have seen, given one <code>EventStream</code> it is
+possible to derive a new <code>EventStream</code> that is "alive" only
+until a certain point in time (based on a predicate). There are many
+more operations that return transformed <code>EventStream</code>s. Most
+mirror corresponding methods on collections.</p>
+<p>For instance, just as one can <code>filter</code> a collection to
+obtain a new collection that has only those elements that a predicate
+matches, so too can you <code>filter</code> an <code>EventStream</code>
+to obtain a new <code>EventStream</code> that fires only those events
+which the predicate matches.</p>
+
+<pre class="brush: scala">
+def nonnegative(es: EventStream[Int]): EventStream[Int] =
+  es.filter(_ &gt;= 0)
+</pre>
+
+<h3>A Completely Transformed <code>EventStream</code>: <code>map</code></h3>
+<p>Another fundamental collections method is <code>map</code>. It
+lets you transform a collection by applying any function to each
+element; in the returned collection, each element will have the value
+calculated by applying the function to the corresponding element in the
+original collection.</p>
+<p>So too, you can <code>map</code> <code>EventStream</code>s. You
+pass <code>map</code> a function, and for every event that the parent <code>EventStream</code>
+fires, the new <code>EventStream</code> will fire an event whose value
+is the result of applying the function to the parent's event.</p>
+
+<pre class="brush: scala">
+def absolute(es: EventStream[Int]) =
+  es map math.abs
+</pre>
+
+<h3>Switching <code>EventStream</code>s: <code>flatMap</code></h3>
+<p>Let's get a bit more advanced now, and apply <code>flatMap</code>
+to <code>EventStream</code>s.</p>
+<p>What does <code>flatMap</code> do in the Scala Collections
+Framework? In technical terms, it applies a <strong>collection-valued</strong>
+function to all elements of a collection, and returns a new collection
+that consists of all the collections returned by the function
+concatenated. In practical terms, you can do interesting things like
+stringing together several sequences, or flattening a sequence of
+sequences. For instance:</p>
+
+<pre class="brush:scala">
+  val original = List(1, 2, 3)
+  val flatMapped = original.flatMap(x =&gt; List(x*10,x*10+1,x*10_2))
+  flatMapped == List(10,11,12,  20,21,22,  30,31,32)
+</pre>
+
+<p>Similarly, by applying the above to the collection-over-time
+analogy, <code>flatMap</code> allows you to create an <code>EventStream</code>
+that fires events that are fired by different other <code>EventStream</code>s.
+Note that no event will be fired until <em>after</em> the first event
+fired by the parent <code>EventStream</code> is received; then events
+from the child <code>EventStream</code> will be fired until the next
+parent event is received, after which new events will be fired as they
+are received from the next child <code>EventStream</code>; and so on.
+The simplest usage is to cycle through several other <code>EventStreams</code>.
+For instance, suppose you want a shape to expand and then fade out.</p>
+
+<pre class="brush:scala">
+// Assuming Shape is a case class with scale and opacity values
+// and millisTimer fires events once per millisecond, starting
+// at zero.
+// Scale should animate from 0 to 1 over the first second,
+// and opacity should animate from 1 to 0 over the next.
+def compositeAnimation(millisTimer: EventStream[Long], shape: Shape): EventStream[Shape] = {
+  val scale: EventStream[Double] =
+    millisTimer.map(m =&gt; m/1000.0)
+  val opacity: EventStream[Double] =
+    millisTimer.map(m =&gt; 1 - (m-1000)/1000.0)
+  val seconds = millisTimer.filter(_ % 1000 == 0).map(_ / 1000).
+    takeWhile(_ &lt; 2000)
+  
+  seconds.flatMap {
+    case 0 =&gt; scale
+    case 1 =&gt; opacity
+  }
+}
+</pre>
+
+<p>Of course, it's possible to return new <code>EventStream</code>s
+based on the event fired by the parent <code>EventStream</code>.</p>
+
+<pre class="brush:scala">
+//assuming seconds fires an integer from 1 to 100 every
+//second, incrementally
+//we want to reverse each 10: (10,9..2,1, 20..11, 30..21 ...)
+seconds.filter(_ % 10 == 1).flatMap{ t =&gt;
+  seconds.map(s =&gt; t + 10 - s)
+}
+</pre>
+
+
+<h3>Eliminating State: <code>foldLeft</code></h3>
+<p>What if you need the way you handle events to depend on various
+factors, in a way that's more complex than what <code>flatMap</code>
+allows?</p>
+<p>In imperative languages, a common task is to iterate through an
+array etc., while keeping around a bunch of variables that keep track of
+various things that can change depending on what you encounter as you
+iterate over the array. Functional programming often accomplishes such
+tasks using <code>foldLeft</code>. You pass <code>foldLeft</code> an
+initial "state," and a function that takes the last "state" and the next
+element in the collection. The function returns, for each element, what
+the state should be for the next invocation. (Note that the functional
+method allows for concurrent implementations, that do not require any
+modifications to your code). For instance, take the common example of
+totaling a list of numbers:</p>
+<pre class="brush:scala">
+list.foldLeft(0){(totalSoFar, nextElement) =&gt; totalSoFar + nextElement}
+//more commonly written as list.foldLeft(0)(_ + _)
+</pre>
+
+<p>Similarly, you can call <code>foldLeft</code> on an <code>EventStream</code>,
+and pass it an initial value, and a function that takes a "state" value
+and an event and returns a new value. You will get back an <code>EventStream</code>
+that fires the returned value (the same value that will be passed to the
+next function invocation). we can create an <code>EventStream</code>
+that, whenever a number is fired, fires the average value:</p>
+
+<pre class="brush:scala">
+case class AvgState(total: Double, count: Int)
+numbers.foldLeft(AvgState(0,0)){
+  case (AvgState(total, count), n) =&gt; AvgState(total+n,count+1)
+}).map{case AvgState(total, count) =&gt; total.toDouble/count}
+</pre>
+
+
+<h3>Combining <code>EventStream</code>s: <code>|</code></h3>
+<p>You can also get the union of two <code>EventStreams</code>. The
+new <code>EventStream</code> will fire all events that either of the
+original <code>EventStream</code>s fire.</p>
+
+<pre class="brush:scala">
+val allClicks = leftClicks | middleClicks | rightClicks
+</pre>
+
+
+<h3>Turning an <code>EventStream</code> into a <code>Signal</code>:
+<code>hold</code></h3>
+<p>You can turn an <code>EventStream</code> into a <code>Signal</code>
+via the <code>hold</code> method. You have to pass it an initial value
+for the signal to hold until the next event fires.</p>
+
+<pre class="brush:scala">
+val currentTime = clockTicks.hold(0)
+</pre>
+
+
+<h3>Creating an <code>EventStream</code></h3>
+<p>Often you will be dealing with <code>EventStreams</code>s
+obtained from a library. However, often you to need to create one
+yourself. To do this just instantiate <code>EventSource</code>.
+Currently it's a trait, so you have to add curly braces when you
+instantiate it. Perhaps it will be changed to a class in the future. You
+can then send events by calling <code>fire</code>.</p>
+
+<pre class="brush:scala">
+val es = new EventSource[Int] {}
+es.fire(-1)
+(0 to 10) foreach es.fire
+</pre>
+
+<p>Of course, you also create a new <code>EventStream</code> every
+time you call one of the transforming methods. And there's <code>Timer</code>.</p>
+
+<h3><code>Timer</code></h3>
+<p>One useful subclass of <code>EventStream</code> is <code>Timer</code>.
+It fires ticks at a given interval (no guarantee of course). Ticks'
+values are based on the time when they are fired, not when they were
+scheduled to fire.</p>
+
+<pre class="brush:scala">
+// Create a timer that fires every 1/2 second, starting at 0, forever
+new Timer(500)
+// Create a timer that fires every 1/2 second, starting at current time, forever
+new Timer(System.currentTimeMillis, 500)
+// Create a timer that fires every 1/2 second, starting at 0,
+// until the window is closed
+new Timer(0, 500, _ =&gt; isVisible)
+</pre></div>

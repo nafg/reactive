@@ -1,0 +1,63 @@
+<div class="lift:surround?with=default;at=content">
+
+
+<h2>Signal</h2>
+<h3>Introduction</h3>
+<p>While <code>EventStream</code> represents a stream of discrete
+values over time --- that is, each value only exists instantaneously (in
+practice that means that you can never say "what is the current
+value?"), <code>Signal</code> represents a continuous value. In
+practical terms, a <code>Signal</code> has a current value, and an <code>EventStream</code>
+that, whenever the <code>Signal</code>'s value changes, fires the new
+value.</p>
+
+<h3><code>now</code></h3>
+<p>You can get the current value of a <code>Signal</code> by calling
+<code>now</code>. However, functional style means that most of the time
+it should be avoided, and you should find a way to have <code>Signal</code>
+call your code with the value rather than you asking the <code>Signal</code>
+for it.</p>
+
+<h3><code>change</code></h3>
+<p>This is an <code>EventStream</code> that fires an event for every
+change to the <code>Signal</code>'s value.</p>
+
+<pre class="brush:scala">
+signal.change.foreach {v =&gt;
+  assert(v == signal.now)
+}
+</pre>
+
+<h3><code>map</code></h3>
+<p>Just like you can <code>map</code> an <code>EventStream</code> to
+get a new, transformed, <code>EventStream</code>, you can <code>map</code>
+<code>Signal</code>s too.</p>
+
+<h3><code>flatMap</code></h3>
+<p>Just like you can <code>flatMap</code> an <code>EventStream</code>
+to get an <code>EventStream</code> that "switches" between several <code>EventStream</code>s,
+so too you can create a <code>Signal</code> whose value depends on
+several other <code>Signal</code>s. However, there are several
+differences from <code>EventStream</code>'s <code>flatMap</code>, and
+its usage is slightly different. These differences stem from the fact
+that a <code>Signal</code> always has a value. So the semantics are,
+that initially the resulting <code>Signal</code> has the value of the <code>Signal</code>
+created by applying the function passed to <code>flatMap</code> to the
+current value of the parent <code>Signal</code>.</p>
+<p>As an example, suppose you have an application that swaps the
+meaning of the mouse buttons while the <code>Alt</code> key is
+depressed. You have two <code>Signal</code>s, one representing the state
+of the left mouse button and one representing the state of the right
+mouse button. You have a third <code>Signal</code> representing the <code>Alt</code>
+key's state.</p>
+
+<pre class="brush:scala">
+  val selectButton = altKey.flatMap {
+    case true =&gt; leftButton
+    case false =&gt; rightButton
+  }
+  val contextButton = altKey.flatMap {
+    case true =&gt; rightButton
+    case false =&gt; leftButton
+  }
+</pre></div>
