@@ -50,7 +50,7 @@ class MainPage extends ReactiveSnippet {
   
   // Create an EventStream that fires timer ticks until
   // the page is no longer alive
-  val clockES = new Timer(interval = 2000, cancel = ()=> !isPageAlive)
+  val clockES = new Timer(interval = 2000, until = _ => !isPageAlive)
   
   // Create a signal from the EventStream whose value, until
   // the first tick is received, is 0L

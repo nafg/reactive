@@ -18,20 +18,22 @@ private object _timer extends juTimer {
  * Events are fired on a java.util.Timer thread
  * @param startTime the value this signal counts up from
  * @param interval the frequency at which to update the signal's value.
+ * @param until a function called with each tick that should return true to terminate the timer
  */
 class Timer(
   private val startValue: Long = 0,
   interval: Long,
-  cancel: ()=>Boolean = ()=>false
+  until: Long=>Boolean = _ =>false
 ) extends EventSource[Long] {
   private val origMillis = System.currentTimeMillis
-  private val tt: TimerTask = _timer.scheduleAtFixedRate(interval, interval){
-    if(cancel()) {
+  private val tt: TimerTask = _timer.scheduleAtFixedRate(interval, interval) {
+	val tick = System.currentTimeMillis - origMillis + startValue
+    if(until(tick)) {
       println("Timer canceling")
       tt.cancel
     } else {
       println("Timer firing")
-      fire(System.currentTimeMillis - origMillis + startValue)
+      fire(tick)
     }
   }
 }
