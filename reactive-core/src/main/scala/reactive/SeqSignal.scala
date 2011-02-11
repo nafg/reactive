@@ -99,6 +99,39 @@ class MappedSeqSignal[T, E](
   override def toString = "MappedSeqSignal("+parent+","+f.getClass+"@"+Integer.toHexString(System.identityHashCode(f))+")"
 }
 
+protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
+  def now = currentMappedSignal.now
+  override lazy val change = new EventSource[TransformedSeq[U]] {}
+  private val changeListener: TransformedSeq[U]=>Unit = change.fire _
+  private val deltasListener: SeqDelta[U,U]=>Unit = deltas.fire _
+  private var currentMappedSignal = f(parent.now)
+//  private var lastDeltas: Seq[SeqDelta[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  private var lastSeq: Seq[U] = now
+  currentMappedSignal.change addListener changeListener
+  currentMappedSignal.deltas addListener deltasListener
+  
+  private val parentChangeListener: T=>Unit = { x =>
+    currentMappedSignal.change removeListener changeListener
+    currentMappedSignal.deltas removeListener deltasListener
+    currentMappedSignal = f(x)
+    val n = currentMappedSignal.transform
+    change.fire(n)
+    lastSeq = fireDeltaDiff(lastSeq, n)
+    currentMappedSignal.change addListener changeListener
+    currentMappedSignal.deltas addListener deltasListener
+  }
+  parent.change addListener parentChangeListener
+  
+  private def fireDeltaDiff(lastSeq: Seq[U], newSeq: Seq[U]): Seq[U] = {
+    deltas fire Batch(LCS.lcsdiff(lastSeq, newSeq, (_:U) == (_:U)): _*)
+    newSeq
+  }
+  
+  override def toString = "FlatMappedSeqSignal("+parent+","+System.identityHashCode(f)+")"
+}
+
+
+
 /**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.  Note that you must make sure ''observing'' is initialized  before this trait's body is executed.
  */
 trait ChangingSeqSignal[T] extends SeqSignal[T] {
@@ -107,3 +140,4 @@ trait ChangingSeqSignal[T] extends SeqSignal[T] {
   private val fireTransform: SeqDelta[T,T]=>Unit = _ => change0 fire transform //TODO transform? underlying? now?
   deltas addListener fireTransform
 }
+
