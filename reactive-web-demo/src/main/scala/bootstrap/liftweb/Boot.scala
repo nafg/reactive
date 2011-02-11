@@ -28,10 +28,14 @@ class Boot {
     def sitemap = () => SiteMap(
       Menu("Core")  /"0"  >>PlaceHolder  submenus(
         Menu("EventStream")  /"demos"/"core"/"EventStream",
-        Menu("Signal")  /"demos"/"core"/"Signal"
+        Menu("Signal")  /"demos"/"core"/"Signal",
+        Menu("SeqSignal")  /"demos"/"core"/"SeqSignal"
       ),
-      Menu("Web")  /"index",
-      Menu("Scaladocs")  /"1"  >>PlaceHolder  submenus(
+      Menu("Web")  /"1"  >>PlaceHolder  submenus(
+    	Menu("Low Level API")  /"demos"/"web"/"LowLevel",
+    	Menu("Simple demo")  /"index"
+      ),
+      Menu("Scaladocs")  /"2"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
         Menu("reactive-web")  /"reactive-web-api"/ **
       )

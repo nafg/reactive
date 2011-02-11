@@ -11,6 +11,7 @@ practical terms, a <code>Signal</code> has a current value, and an <code>EventSt
 that, whenever the <code>Signal</code>'s value changes, fires the new
 value.</p>
 
+
 <h3><code>now</code></h3>
 <p>You can get the current value of a <code>Signal</code> by calling
 <code>now</code>. However, functional style means that most of the time
@@ -28,10 +29,47 @@ signal.change.foreach {v =&gt;
 }
 </pre>
 
+<h3>Creating a <code>Signal</code></h3>
+<p>The two simplest <code>Signal</code> classes share the names of
+two important Scala keywords. They are <code>Val</code> and <code>Var</code>.
+<code>Val</code> lets you create an immutable <code>Signal</code>.
+Calling <code>now</code> will always return the value it was created
+with. <code>change</code> will never fire an event. <code>Var</code>
+lets you create a mutable <code>Signal</code>. You can update it by writing
+<code>myVar () = newValue</code>, which is syntactic sugar for
+<code>myVar.update(newValue)</code>.</p>
+
+<pre class="brush:scala">
+object MyApp extends Observing {
+  val myVal = Val(72)
+  val myVar = Var(31)
+  myVar.change foreach println
+  myVar ()= 29  // prints 29
+}
+</pre>
+
+<p>You can create a <code>Signal</code> from an existing <code>EventStream</code>
+by calling its <code>hold</code> method. And you can create a
+<code>Signal</code> by transforming another <code>Signal</code> via
+<code>map</code> and <code>flatMap</code>.</p>
+
+
 <h3><code>map</code></h3>
 <p>Just like you can <code>map</code> an <code>EventStream</code> to
 get a new, transformed, <code>EventStream</code>, you can <code>map</code>
-<code>Signal</code>s too.</p>
+<code>Signal</code>s too. The resulting <code>Signal</code> will reflect
+the transformation expressed in the mapping function, both in its
+definition of <code>now</code> and in the events <code>change</code>
+fires.</p>
+
+<pre class="brush:scala">
+val myVar = Var(3)
+val mapped = myVar.map(_ * 10)
+println(mapped.now)  // prints 30
+myVar ()= 62
+println(mapped.now)  // prints 620
+</pre>
+
 
 <h3><code>flatMap</code></h3>
 <p>Just like you can <code>flatMap</code> an <code>EventStream</code>
@@ -43,8 +81,30 @@ its usage is slightly different. These differences stem from the fact
 that a <code>Signal</code> always has a value. So the semantics are,
 that initially the resulting <code>Signal</code> has the value of the <code>Signal</code>
 created by applying the function passed to <code>flatMap</code> to the
-current value of the parent <code>Signal</code>.</p>
-<p>As an example, suppose you have an application that swaps the
+current value of the parent <code>Signal</code>. This is reflected
+in <code>now</code> as well as in <code>change</code>.</p>
+
+<pre class="brush:scala">
+val myVar1 = Var(72)
+val myVar2 = Var(69)
+val myVar3 = Var(false)
+
+val flatMapped = myVar3 flatMap {
+  case true =&gt; myVar1
+  case false =&gt; myVar2
+}
+println(flatMapped.now)  // prints 72
+myVar3 ()= true
+println(flatMapped.now)  // prints 69
+myVar2 ()= 2
+myVar1 ()= 1
+println(flatMapped.now)  // prints 2
+myVar3 ()= false
+println(flatMapped.now)  // prints 1
+
+</pre>
+
+<p>Another example: suppose you have an application that swaps the
 meaning of the mouse buttons while the <code>Alt</code> key is
 depressed. You have two <code>Signal</code>s, one representing the state
 of the left mouse button and one representing the state of the right
@@ -52,12 +112,30 @@ mouse button. You have a third <code>Signal</code> representing the <code>Alt</c
 key's state.</p>
 
 <pre class="brush:scala">
-  val selectButton = altKey.flatMap {
-    case true =&gt; leftButton
-    case false =&gt; rightButton
+val selectButton = altKey.flatMap {
+  case true =&gt; leftButton
+  case false =&gt; rightButton
+}
+val contextButton = altKey.flatMap {
+  case true =&gt; rightButton
+  case false =&gt; leftButton
+}
+</pre>
+
+<p>A third example: filtering a list based on an entered string.</p>
+
+<pre class="brush: scala">
+def filteredList(filterSignal: Signal[String], itemsSignal: Signal[Seq[String]]) =
+  for {
+    filter &lt;- filterSignal
+    items &lt;- itemsSignal
+  } yield items.filter(s =&gt; s.indexOf(filter) &gt;= 0)
+/* The above desugars to:
+filterSignal.flatMap{ filter =&gt;
+  itemsSignal.map{ items =&gt;
+    items.filter(s =&gt; s.indexOf(filter) &gt;= 0)
   }
-  val contextButton = altKey.flatMap {
-    case true =&gt; rightButton
-    case false =&gt; leftButton
-  }
-</pre></div>
+}
+*/
+</pre>
+</div>

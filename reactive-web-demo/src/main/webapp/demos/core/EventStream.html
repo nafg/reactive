@@ -18,6 +18,40 @@ values, where, rather than all values existing side by side, each one
 exists at a different point in time. Keep this analogy in mind, because
 methods in reactive-core are named with it in mind.</p>
 
+<h3>Creating an <code>EventStream</code></h3>
+<p>Often you will be dealing with <code>EventStreams</code>s
+obtained from a library. However, often you to need to create one
+yourself. To do this just instantiate <code>EventSource</code>.
+Currently it's a trait, so you have to add curly braces when you
+instantiate it. Perhaps it will be changed to a class in the future. You
+can then send events by calling <code>fire</code>.</p>
+
+<pre class="brush:scala">
+val es = new EventSource[Int] {}
+es.fire(-1)
+(0 to 10) foreach es.fire
+</pre>
+
+<p>Of course, you also create a new <code>EventStream</code> every
+time you call one of the transforming methods (below). And there's <code>Timer</code>.</p>
+
+<h3><code>Timer</code></h3>
+<p>One useful subclass of <code>EventStream</code> is <code>Timer</code>.
+It fires ticks at a given interval (no guarantee of course). Ticks'
+values are based on the time when they are fired, not when they were
+scheduled to fire.</p>
+
+<pre class="brush:scala">
+// Create a timer that fires every 1/2 second, starting at 0, forever
+new Timer(500)
+// Create a timer that fires every 1/2 second, starting at current time, forever
+new Timer(System.currentTimeMillis, 500)
+// Create a timer that fires every 1/2 second, starting at 0,
+// until the window is closed
+new Timer(0, 500, _ =&gt; isVisible)
+</pre>
+
+
 <h3>Adding Listeners: <code>foreach</code></h3>
 <p>Under the hood <code>EventStream</code> manages a collection of
 listeners, but that's not how you should think of it conceptually.
@@ -53,9 +87,19 @@ class MyClass extends Observing {
 }
 </pre>
 
+<h3>Transformations</h3>
+<p>What makes <code>EventStream</code>s very versatile is their
+set of transformation methods, which return <code>EventStream</code>s
+whose set of events are based on the original <code>EventStream</code>
+plus some modification. You can chain together various transformations
+to get a completely different <code>EventStream</code>. Consumers
+of the resulting <code>EventStream</code> don't need to care about
+how it relates to the original <code>EventStream</code>.</p>
+
+
 <h3>Finer-grained Lifetime Control: <code>takeWhile</code></h3>
 <p>What if you need finer-grained control over your function's
-lifetime?</p>
+lifetime than that afforded by <code>Observing</code>?</p>
 <p>Well, recalling the collections analogy, what do you if you want
 to act upon only part of a collection? Well, there are many ways, but
 what if you want to process the beginning, stopping when a condition
@@ -257,36 +301,4 @@ for the signal to hold until the next event fires.</p>
 val currentTime = clockTicks.hold(0)
 </pre>
 
-
-<h3>Creating an <code>EventStream</code></h3>
-<p>Often you will be dealing with <code>EventStreams</code>s
-obtained from a library. However, often you to need to create one
-yourself. To do this just instantiate <code>EventSource</code>.
-Currently it's a trait, so you have to add curly braces when you
-instantiate it. Perhaps it will be changed to a class in the future. You
-can then send events by calling <code>fire</code>.</p>
-
-<pre class="brush:scala">
-val es = new EventSource[Int] {}
-es.fire(-1)
-(0 to 10) foreach es.fire
-</pre>
-
-<p>Of course, you also create a new <code>EventStream</code> every
-time you call one of the transforming methods. And there's <code>Timer</code>.</p>
-
-<h3><code>Timer</code></h3>
-<p>One useful subclass of <code>EventStream</code> is <code>Timer</code>.
-It fires ticks at a given interval (no guarantee of course). Ticks'
-values are based on the time when they are fired, not when they were
-scheduled to fire.</p>
-
-<pre class="brush:scala">
-// Create a timer that fires every 1/2 second, starting at 0, forever
-new Timer(500)
-// Create a timer that fires every 1/2 second, starting at current time, forever
-new Timer(System.currentTimeMillis, 500)
-// Create a timer that fires every 1/2 second, starting at 0,
-// until the window is closed
-new Timer(0, 500, _ =&gt; isVisible)
-</pre></div>
+</div>
