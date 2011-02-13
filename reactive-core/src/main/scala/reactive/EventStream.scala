@@ -183,6 +183,7 @@ trait EventStream[+T] {
  * 
  * Adds fire and forward methods
  */
+//TODO perhaps EventSource = SimpleEventStream + fire
 trait EventSource[T] extends EventStream[T] {
   var debug = EventSource.debug
   
@@ -207,14 +208,7 @@ trait EventSource[T] extends EventStream[T] {
     parent addListener handleParentEvent
   }
   
-//  case class Listeners[-T](listeners: Seq[WeakReference[T => Unit]])
-  
-//  private var listeners = Listeners(Nil)
-//  def fire[T1 >: T](event: T1) = listeners.listeners.foreach(_.get.foreach(_(event)))
-  
   private var listeners: List[WeakReference[T => Unit]] = Nil
-//  def listeners = l2.l.toList
-//  def listeners_=(xs: List[WeakReference[(_ <: T) =>Unit]]) = l2 = Listeners(xs)
   
   /**
    * Whether this EventStream has any listeners depending on it

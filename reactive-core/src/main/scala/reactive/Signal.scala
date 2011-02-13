@@ -1,54 +1,46 @@
 package reactive
 
-
-trait Signal[+T] {
-  def now: T
-  def change: EventStream[T]
-  def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
-  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U,S]): S
-  def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U]
-}
-
-
-
 /**
  * A Signal in FRP represents a continuous value.
+ * 
  * Here it is represented by the Signal trait, which is currently implemented in terms of a 'now' value
  * and a 'change' event stream. Transformations are implemented around those two members.
+ * 
  * To obtain a signal, see Var, Val, Timer, and BufferSignal. In addition, new signals can be derived from
  * existing signals using the transformation methods defined in this trait.
  * @param T the type of value this signal contains
  */
-//TODO provide change veto (cancel) support
-trait SimpleSignal[T] extends Signal[T] { parent =>
-  
-  
+trait Signal[+T] {
   /**
    * Represents the current value. Often, this value does not need to be
    * (or should not be) used explicitly from the outside; instead you can pass functions
    * that operate on the value, to the Signal.
    */
   def now: T
-  
+
   /**
    * Returns an EventStream that, every time this signal's value changes, fires
    * an event consisting of the new value.
    */
   def change: EventStream[T]
   
+  //TODO perhaps foreach should run for current value too
+  def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
   /**
    * Return a new Signal whose value is computed from the value
    * of this Signal, transformed by f. It fires change events
    * whenever (and only when) the original Signal does, but the
    * event values are transformed by f.
-   * For example:
+   * 
+   * For example:<pre> 
    * val a: Signal[Int] = ...
    * val b = a.map(_ + 1)
+   * </pre>
    * b represents a Signal whose value is always 1 greater than a.
    * Whenever a fires an event of x, b fires an event of x+1.
    */
-  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
-  
+  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U,S]): S
+
   /**
    * Returns a new signal, that for every value of this parent signal,
    * will correspond to the signal resulting from applying f to
@@ -71,6 +63,17 @@ trait SimpleSignal[T] extends Signal[T] { parent =>
    * as well as deltas reflecting the transition from the SeqSignal
    * previously returned by ''f'' and the on returned by it now.
    */
+  def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U]
+}
+
+
+
+//TODO provide change veto (cancel) support
+trait SimpleSignal[T] extends Signal[T] { parent =>
+  
+  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
+  
+  //TODO perhaps allow for flatMap(T => EventStream[U]), i.e., S==EventStream?
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
   
 

@@ -56,6 +56,8 @@ object SeqSignal {
       
       override def toString = "SeqSignal("+now+")"
     }
+  
+  //TODO optimized shortcut for apply(Val(seq))
 }
 
 class MappedSeqSignal[T, E](
