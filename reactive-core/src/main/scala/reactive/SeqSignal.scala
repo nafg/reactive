@@ -8,12 +8,10 @@ package reactive
  */
 //TODO covariance
 trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
-  //private def wrapMapping[U](f: Seq[T]=>Seq[U]): Seq[T]=>Seq[U] = {
-  //  _ => f(transform)
-  //}
   private lazy val underlying: TransformedSeq[T] = new TransformedSeq[T] {
     def underlying = SeqSignal.this.now
   }
+  
   /**
    * Returns the TransformedSeq, the actual delta-propagating Seq.
    */
@@ -25,11 +23,6 @@ trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
    * The EventStream of incremental updates (SeqDeltas) to the underlying Seq.
    */
   def deltas = transform.deltas
-
-  //TODO override regular map and check for type at runtime.
-  //  def map[U](f: TransformedSeq[T] => TransformedSeq[U]): SeqSignal[U] =
-  //    new MappedSeqSignal[U](f)
-
 }
 
 object SeqSignal {

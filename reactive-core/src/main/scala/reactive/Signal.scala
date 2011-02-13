@@ -19,7 +19,6 @@ trait Signal[+T] {
  * existing signals using the transformation methods defined in this trait.
  * @param T the type of value this signal contains
  */
-//TODO transformations to not need to take an Observing--see parallel comment in EventStream
 //TODO provide change veto (cancel) support
 trait SimpleSignal[T] extends Signal[T] { parent =>
   
