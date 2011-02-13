@@ -16,7 +16,7 @@ private object _timer extends juTimer {
  * Event values are (delta time in milliseconds) + startValue
  * There is no guarantee that the delta will be a multiple of interval, of course
  * Events are fired on a java.util.Timer thread
- * @param startTime the value this signal counts up from
+ * @param startValue the value this signal counts up from
  * @param interval the frequency at which to update the signal's value.
  * @param until a function called with each tick that should return true to terminate the timer
  */
