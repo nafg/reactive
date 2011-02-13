@@ -7,7 +7,7 @@ package reactive
  * deltas (SeqDeltas).
  */
 //TODO covariance
-trait SeqSignal[T] extends SimpleSignal[TransformedSeq[T]] {
+trait SeqSignal[T] extends Signal[TransformedSeq[T]] {
   private lazy val underlying: TransformedSeq[T] = new TransformedSeq[T] {
     def underlying = SeqSignal.this.now
   }

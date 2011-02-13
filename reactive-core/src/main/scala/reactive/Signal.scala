@@ -10,6 +10,7 @@ package reactive
  * existing signals using the transformation methods defined in this trait.
  * @param T the type of value this signal contains
  */
+//TODO provide change veto (cancel) support
 trait Signal[+T] {
   /**
    * Represents the current value. Often, this value does not need to be
@@ -39,7 +40,7 @@ trait Signal[+T] {
    * b represents a Signal whose value is always 1 greater than a.
    * Whenever a fires an event of x, b fires an event of x+1.
    */
-  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U,S]): S
+  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U,S]): S = canMapSignal.map(this, f)
 
   /**
    * Returns a new signal, that for every value of this parent signal,
@@ -63,24 +64,14 @@ trait Signal[+T] {
    * as well as deltas reflecting the transition from the SeqSignal
    * previously returned by ''f'' and the on returned by it now.
    */
-  def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U]
-}
-
-
-
-//TODO provide change veto (cancel) support
-trait SimpleSignal[T] extends Signal[T] { parent =>
-  
-  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
-  
   //TODO perhaps allow for flatMap(T => EventStream[U]), i.e., S==EventStream?
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
-  
-
 }
 
 
-protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends SimpleSignal[U] {
+
+
+protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends Signal[U] {
   import scala.ref.WeakReference
   private val emptyCache = new WeakReference[Option[U]](None)
   protected var cached = emptyCache
@@ -137,7 +128,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
 }
 
 
-protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends SimpleSignal[U] {
+protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
   def now = currentMappedSignal.now
   // We send out own change events as we are an aggregate signal
   val change = new EventSource[U] {}
@@ -162,7 +153,7 @@ protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signa
  * A signal representing a value that never changes
  * (and hence never fires change events)
  */
-case class Val[T](now: T) extends SimpleSignal[T] {
+case class Val[T](now: T) extends Signal[T] {
   def change = new EventSource[T] {}
 }
 
@@ -175,7 +166,7 @@ object Var {
 /**
  * A signal whose value can be changed directly
  */
-class Var[T](initial: T) extends SimpleSignal[T] {
+class Var[T](initial: T) extends Signal[T] {
   private var _value = initial
   
   def now = value
