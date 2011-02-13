@@ -15,7 +15,7 @@ class Button(buttonType: ButtonType.Value = ButtonType.Button, content: Signal[N
   /**
    * The click DOM event
    */
-  val click = new JSEventSource[Click]
+  val click = new DOMEventSource[Click]
   def baseElem = <button type={buttonType.toString.toLowerCase}>{content.now}</button>
   def events = List(click)
   def properties = Nil

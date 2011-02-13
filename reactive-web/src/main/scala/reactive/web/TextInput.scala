@@ -12,21 +12,21 @@ class TextInput(
   /**
    * The doubleclick DOM event
    */
-  val dblClick = new JSEventSource[DblClick]
+  val dblClick = new DOMEventSource[DblClick]
   /**
    * The keyup DOM event
    */
-  val keyUp = new JSEventSource[KeyUp]
+  val keyUp = new DOMEventSource[KeyUp]
   /**
    * The change DOM event
    */
-  val change = new JSEventSource[Change.type]
+  val change = new DOMEventSource[Change.type]
   /**
    * The value DOM attribute/property. The contents of the input field.
    * By default, it is updated only on change events. To receive
    * updates even on keyup events, write field.value.updateOn(field.change).
    */
-  val value = new JSStringProperty {
+  val value = new DOMStringProperty {
     def name = "value"
     def elemId = id
     val value = _value
@@ -36,7 +36,7 @@ class TextInput(
   /**
    * The size attribute/property. The width, in characters, of the input.
    */
-  val size = new JSIntProperty {
+  val size = new DOMIntProperty {
     def name = "size"
     def elemId = id
     val value = Var(-1)

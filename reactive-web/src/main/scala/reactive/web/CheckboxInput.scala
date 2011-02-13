@@ -14,19 +14,19 @@ class CheckboxInput(
    * The dblclick DOM event
    */
   //TODO move common events into traits
-  val dblClick = new JSEventSource[DblClick]
+  val dblClick = new DOMEventSource[DblClick]
   /**
    * The keyup DOM event
    */
-  val keyUp = new JSEventSource[KeyUp]
+  val keyUp = new DOMEventSource[KeyUp]
   /**
    * The change DOM event
    */
-  val change = new JSEventSource[Change.type]
+  val change = new DOMEventSource[Change.type]
   /**
    * The checked property. Whether the checkbox is checked.
    */
-  val checked = new JSProperty[Boolean] {
+  val checked = new DOMProperty[Boolean] {
     val value = _value
     def fromString(s: String) = s.toLowerCase match {
       case "" | net.liftweb.util.Helpers.AsInt(0) | "false" => false

@@ -8,12 +8,11 @@ import net.liftweb.http.js.{JsExp, JE}
 import net.liftweb.util.Helpers.urlDecode
 
 /**
- * Represents a javascript event type propagated to the server. 
+ * Represents a DOM event type propagated to the server. 
  * Generates the javascript necessary for an event listener to
  * pass the event to the server.
  */
-//TODO rename to DOMEventSource
-class JSEventSource[T <: JSEvent : Manifest] {
+class DOMEventSource[T <: DOMEvent : Manifest] {
 	/**
 	 * The EventStream that represents the primary event data
 	 */
@@ -21,7 +20,7 @@ class JSEventSource[T <: JSEvent : Manifest] {
   /**
    * The name of the event
    */
-  def eventName = JSEvent.eventName[T]
+  def eventName = DOMEvent.eventName[T]
   /**
    * The name of the attribute to add the handler to
    */

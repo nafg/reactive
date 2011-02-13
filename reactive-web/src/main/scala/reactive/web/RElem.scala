@@ -96,11 +96,11 @@ trait RElem extends net.liftweb.util.Bindable {
   /**
    * The events that contribute to rendering
    */
-  def events: Seq[JSEventSource[_<:JSEvent]]
+  def events: Seq[DOMEventSource[_<:DOMEvent]]
   /**
    * The properties that contribute to rendering
    */
-  def properties: Seq[JSProperty[_]]
+  def properties: Seq[DOMProperty[_]]
   
   /**
    * The Elem used as the basis to render this RElem.
@@ -142,7 +142,7 @@ trait RElem extends net.liftweb.util.Bindable {
       case (e, prop) => e % prop.asAttribute
     }
     events.foldLeft[Elem](withProps){
-      case (e, evt: JSEventSource[_]) => e % evt.asAttribute
+      case (e, evt: DOMEventSource[_]) => e % evt.asAttribute
       case (e, _) => e
     }
   }

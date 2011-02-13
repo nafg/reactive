@@ -8,11 +8,11 @@ import scala.xml.{MetaData, Null, UnprefixedAttribute}
 
 
 /**
- * Represents a javascript property synchronized in from the client to the server
+ * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
  * and updateable on the client via the server
  * @tparam T the type of the value represented by the property
 */
-trait JSProperty[T] {
+trait DOMProperty[T] {
   /**
    * The Var that represents the property's value
    */
@@ -33,7 +33,7 @@ trait JSProperty[T] {
   def eventDataKey = "jsprop" + name
   
   private var pages = List[scala.ref.WeakReference[Page]]()
-  private var eventSources = List[JSEventSource[_]]()
+  private var eventSources = List[DOMEventSource[_]]()
   
   /**
    * The Page whose ajax event the current thread is responding to
@@ -114,7 +114,7 @@ trait JSProperty[T] {
    * will be updated on the server whenever an
    * event fires.
    */
-  def updateOn(es: JSEventSource[_]) {
+  def updateOn(es: DOMEventSource[_]) {
     es.extraEventData += (eventDataKey -> readJS)
     eventSources ::= es
   }
@@ -123,7 +123,8 @@ trait JSProperty[T] {
 /**
  * Provides identity conversions
  */
-trait JSStringProperty extends JSProperty[String] {
+//TODO use implicit objects
+trait DOMStringProperty extends DOMProperty[String] {
   def fromString(s: String) = s
   def asString(v: String) = v
 }
@@ -131,7 +132,7 @@ trait JSStringProperty extends JSProperty[String] {
 /**
  * Provides conversions between Int and String
  */
-trait JSIntProperty extends JSProperty[Int] {
+trait DOMIntProperty extends DOMProperty[Int] {
   def default = 0
   def fromString(s: String) = try{s.toInt} catch {case _ => default}
   def asString(v: Int) = v.toString

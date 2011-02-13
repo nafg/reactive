@@ -19,6 +19,8 @@ package object web {
    * @param message The message to display in the confirm dialog box
    * @param response a PartialFunction[Boolean, Unit] used to handle the user's response to the dialog box
    */
+  //TODO should we optimize so ajax call is only made for response.isDefinedAt case?
+  //  down side is that a nondeterministic PF (e.g. {case _ if random>.5 => } etc.) won't work
   def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page): Unit = {
     val funcWrapper: String=>Unit = {
       case "true" => if(response.isDefinedAt(true)) response(true)
