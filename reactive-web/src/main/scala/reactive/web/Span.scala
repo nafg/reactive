@@ -12,7 +12,7 @@ trait Span extends RElem {
   val events = Nil
   val properties = Nil
   
-  override def toString = "Span(" + render + ")"
+  override def toString = "Span(" + baseElem + ")"
 }
 
 /**
@@ -39,7 +39,7 @@ object Span {
    * @param binding the Signal[NodeSeq=>NodeSeq] that represents the bind function used to generate the contents of the Span.
    * @return a NodeSeq=>NodeSeq that on each invocation renders a new Span Cell
    */
-  def apply(binding: Signal[NodeSeq=>NodeSeq]): NodeSeq=>NodeSeq = {ns: NodeSeq =>
+  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
     new Span with Cell {
       lazy val content = binding map (_(ns))
     }.render

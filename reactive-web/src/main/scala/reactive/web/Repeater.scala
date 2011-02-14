@@ -20,7 +20,7 @@ class RepeaterManager(parentId: String, children: SeqSignal[RElem]) extends Html
    * @param ids the current ids of the child elements, in order
    * @return a JsCmd that when executed by the browser will cause update the DOM to reflect the change represented by the delta.
    */
-  def handleUpdate(m: SeqDelta[RElem,RElem], ids: scala.collection.mutable.Buffer[String]): JsCmd = m match {
+  def handleUpdate(m: SeqDelta[RElem,RElem], ids: scala.collection.mutable.Buffer[String])(implicit p: Page): JsCmd = m match {
     case Include(index, elem) =>
       val e = elem.render
       ids.insert(index, elem.id)
@@ -52,7 +52,7 @@ class RepeaterManager(parentId: String, children: SeqSignal[RElem]) extends Html
   /**
    * Returns an EventStream that will fire a JsCmd whenever children changes
    */
-  def createPageStream: EventStream[JsCmd] = {
+  def createPageStream(implicit p: Page): EventStream[JsCmd] = {
     val ids = children.now.map(_.id).toBuffer
     children.deltas map {m => handleUpdate(m, ids)}
   }
@@ -69,9 +69,9 @@ trait Repeater extends RElem with HtmlFixer {
    */
   def children: SeqSignal[RElem]
   
-  protected def renderChildren: NodeSeq = children.now.map(_.render)
+  protected def renderChildren(implicit p: Page): NodeSeq = children.now.map(_.render)
   
-  override def render = super.render.copy(child = renderChildren)
+  override def render(implicit p: Page) = super.render.copy(child = renderChildren)
   
   private lazy val manager = new RepeaterManager(this.id, children)
   
@@ -97,7 +97,7 @@ object Repeater {
    * to render that element.
    * @param binding a SeqSignal where each element is a binding function that renders one element in the view
    */
-  def apply(binding: SeqSignal[NodeSeq=>NodeSeq]): NodeSeq=>NodeSeq = {ns: NodeSeq =>
+  def apply(binding: SeqSignal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
     new Repeater {
       val baseElem = nodeSeqToElem(ns)
       val events, properties = Nil

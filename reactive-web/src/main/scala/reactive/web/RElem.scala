@@ -33,7 +33,7 @@ object RElem {
     }
     override lazy val id = _id
     val properties, events = Nil
-    override def render = baseElem.copy(child = baseElem.child ++ children.map(_.render))
+    override def render(implicit p: Page) = baseElem.copy(child = baseElem.child ++ children.map(_.render))
   }
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String,RElem]
   
@@ -126,17 +126,15 @@ trait RElem extends net.liftweb.util.Bindable {
     }
   }
   /**
-   * Returns the Elem used to initially incorporate this RElem in the view.
-   * If called inside a Lift request, registers the current page with this RElem first.
+   * Returns an Elem that can be used to initially place this
+   * RElem in the page, with attributes defined to set the properties
+   * and add the event handlers.
+   * Requires a Page in the implicits scope, which is registered
+   * with this RElem before generating the Elem.
    * @return an Elem consisting of baseElem plus attributes contributed by events and properties, not to mention the id.
    */
-  def render: Elem = {
-//    println("Rendering " + getClass + "@" + System.identityHashCode(this))
-    if(S.request.isEmpty) println("Warning: Rendering even though there is no current request")
-    S.request.foreach{_ =>
-      // println("Calling addPage")
-      addPage(CurrentPage.is)
-    }
+  def render(implicit page: Page): Elem = {
+    addPage(page)
     val e = baseElem % new UnprefixedAttribute("id", id, Null)
     val withProps = properties.foldLeft(e){
       case (e, prop) => e % prop.asAttribute
@@ -147,5 +145,8 @@ trait RElem extends net.liftweb.util.Bindable {
     }
   }
   
-  def asHtml = render
+  /**
+   * Calls render with the value of the CurrentPage RequestVar
+   */
+  def asHtml: Elem = render(CurrentPage.is)
 }

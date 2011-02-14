@@ -17,7 +17,7 @@ trait Cell extends RElem {
    */
   def content: Signal[NodeSeq]
   
-  override def render = super.render.copy(child = content.now)
+  override def render(implicit p: Page) = super.render.copy(child = content.now)
   
   override def addPage(implicit page: Page) {
     super.addPage(page)
@@ -41,7 +41,7 @@ object Cell {
    * The Signal's value will be passed the children of the element used as the parent.
    * @param binding the binding-function-valued Signal
    */
-  def apply(binding: Signal[NodeSeq=>NodeSeq]) = {ns: NodeSeq =>
+  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page) = {ns: NodeSeq =>
     new Cell {
       val events, properties = Nil
       val baseElem = nodeSeqToElem(ns)

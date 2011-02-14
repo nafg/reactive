@@ -27,7 +27,7 @@ class Button(buttonType: ButtonType.Value = ButtonType.Button, content: Signal[N
       }
     }
   }
-  override def toString = "Button(" + render + ")"
+  override def toString = "Button(" + baseElem + ")"
 }
 
 
