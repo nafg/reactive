@@ -32,8 +32,9 @@ class Boot {
         Menu("SeqSignal")  /"demos"/"core"/"SeqSignal"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
-    	Menu("Low Level API")  /"demos"/"web"/"LowLevel",
-    	Menu("Simple demo")  /"index"
+        Menu("Low Level API")  /"demos"/"web"/"LowLevel",
+        Menu("Fundamentals")  /"demos"/"web"/"Fundamentals",
+        Menu("Simple demo")  /"index"
       ),
       Menu("Scaladocs")  /"2"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
