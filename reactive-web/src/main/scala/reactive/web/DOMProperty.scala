@@ -92,10 +92,9 @@ trait DOMProperty[T] {
         }
       }
     }
-    //println("In JSProperty.addPage")
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
-    eventSources.foreach(_.extraEventStream.foreach(setFromAjax)(page))
+    eventSources.foreach(_.rawEventStream.foreach(setFromAjax)(page))
     
     // Whenever the property is updated from a page besides the one
     // being added now, send to all other pages javascript to apply
@@ -115,7 +114,7 @@ trait DOMProperty[T] {
    * event fires.
    */
   def updateOn(es: DOMEventSource[_]) {
-    es.extraEventData += (eventDataKey -> readJS)
+    es.rawEventData += (eventDataKey -> readJS)
     eventSources ::= es
   }
 }

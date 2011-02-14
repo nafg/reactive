@@ -12,10 +12,13 @@ import net.liftweb.util.Helpers.urlDecode
  * Generates the javascript necessary for an event listener to
  * pass the event to the server.
  */
+//TODO better name--it is not an EventSource; only wraps and EventStream
+//that happens to be implemented as an EventSource.
+
 class DOMEventSource[T <: DOMEvent : Manifest] {
-	/**
-	 * The EventStream that represents the primary event data
-	 */
+  /**
+   * The EventStream that represents the primary event data
+   */
   val eventStream = new EventSource[T] {}
   /**
    * The name of the event
@@ -26,7 +29,6 @@ class DOMEventSource[T <: DOMEvent : Manifest] {
    */
   def attributeName = "on" + eventName
   
-  //TODO maybe rename to rawEvent*?
   //TODO perhaps instead of managing the two event streams separately,
   // rather manage rawEventStream directly, and eventStream should
   // be derived from it via map.
@@ -34,11 +36,11 @@ class DOMEventSource[T <: DOMEvent : Manifest] {
    * Addition data can be sent with every event by putting a name and
    * a javascript expression in this Map
    */
-  var extraEventData = Map[String, JsExp]()
+  var rawEventData = Map[String, JsExp]()
   /**
    * The EventStram that contains all the data sent with the event
    */
-  val extraEventStream = new EventSource[Map[String, String]] {}
+  val rawEventStream = new EventSource[Map[String, String]] {}
   
   /**
    * The javascript to run whenever the browser fires the event, to
@@ -71,9 +73,9 @@ class DOMEventSource[T <: DOMEvent : Manifest] {
         case "mouseout" => out
         case "mouseover" => over
       }
-      if(!extraEventStream.hasListeners)
+      if(!rawEventStream.hasListeners)
         eventEncoding
-      else extraEventData.foldLeft(eventEncoding){
+      else rawEventData.foldLeft(eventEncoding){
         case (encoding, (key, expr)) =>
           //  xxx + ';key=' + encodeURIComponent(expr)
           encoding + "+';" + key + "='+encodeURIComponent(" + expr.toJsCmd + ")"
@@ -130,7 +132,7 @@ class DOMEventSource[T <: DOMEvent : Manifest] {
           System.err.println(eventName + " has listeners but caught exception while decoding event:")
           e.printStackTrace()
       }
-      extraEventStream.fire(evt)
+      rawEventStream.fire(evt)
     }
     S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(handler))) {funcId =>
       SHtml.makeAjaxCall(
@@ -142,7 +144,7 @@ class DOMEventSource[T <: DOMEvent : Manifest] {
   /**
    * Returns an attribute that will register a handler with the event
    */
-  def asAttribute: xml.MetaData = if(eventStream.hasListeners || extraEventStream.hasListeners) {
+  def asAttribute: xml.MetaData = if(eventStream.hasListeners || rawEventStream.hasListeners) {
     new xml.UnprefixedAttribute(
       attributeName,
       propagateJS,

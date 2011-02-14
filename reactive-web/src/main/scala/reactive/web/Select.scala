@@ -33,6 +33,7 @@ class Select[T](
   /**
    * A signal that represents the selected item as a T.
    */
+  //TODO flatMap items + selectedIndex
   val selectedItem: Signal[Option[T]] = selectedIndex.value map {optN => optN map {n=>items.now(n)}}
   /**
    * Call this to select another (or no) item.
