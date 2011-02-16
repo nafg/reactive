@@ -35,7 +35,7 @@ class Boot {
         Menu("Low Level API")  /"demos"/"web"/"LowLevel",
         Menu("Fundamentals")  /"demos"/"web"/"Fundamentals",
         Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
-        Menu("Simple demo")  /"index"
+        Menu("Simple demo")  /"demos"/"demos"/"SimpleDemo"
       ),
       Menu("Scaladocs")  /"2"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
