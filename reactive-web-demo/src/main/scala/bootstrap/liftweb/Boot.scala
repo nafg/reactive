@@ -34,6 +34,7 @@ class Boot {
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Low Level API")  /"demos"/"web"/"LowLevel",
         Menu("Fundamentals")  /"demos"/"web"/"Fundamentals",
+        Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
         Menu("Simple demo")  /"index"
       ),
       Menu("Scaladocs")  /"2"  >>PlaceHolder  submenus(
