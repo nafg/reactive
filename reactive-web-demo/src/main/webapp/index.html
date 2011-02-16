@@ -1,0 +1,40 @@
+<div class="lift:surround?with=default;at=content">
+<h2>About</h2>
+<p>Reactive-web is new RIA framework, making it easy to write highly
+interactive web applications, similar to GWT, Flex, etc. It's written in
+<a href="http://scala-lang.org">Scala</a> , sits on top of <a
+  href="http://liftweb.net">Lift</a>, and uses the Functional Reactive
+Programming library reactive-core (it's in the same repository).</p>
+<p>It allows your webapp to interact with browser elements as if
+they were regular Scala objects inside the JVM, giving you the
+simplicity of GWT. You can handle events from DOM objects in Scala code,
+and you can update DOM objects by mutating the corresponding object in
+Scala. More importantly though, you can define relationships
+declaratively so that it will be updated automatically, like binding in
+JavaFX and Flex.</p>
+<p>Updates to the browser in response to events that originated from
+the browser are returned from the same ajax request that the event was
+sent through. Events that originate from stimuli on the server can be
+sent through Lift's superb comet support.</p>
+<p>Reactive has powerful support for incremental updates. So you can
+have a set of items transformed it in all sorts of ways and rendered,
+and when the set of items changes, only the necessary changes will be
+made to the DOM.</p>
+<p>You can use it within a regular Lift application, in one place or
+throughout. Or you can use it to completely change the kind of webapps
+you write. No longer do webapps have to be less dynamic than GUI
+applications. You can even use it to build a rich desktop GUI app, using
+an embedded Jetty instance.</p>
+<p>The code is at <a href="http://github.com/nafg/reactive">http://github.com/nafg/reactive</a>.
+Note that while there is still much to be done, it's more in terms of
+completeness (like adding more elements and properties) than in terms of
+plumbing.</p>
+<p>It can integrate with the Lift templating mechanism, so you can
+keep view design completely separate from your code.</p>
+<p>Looking forward to your constructive criticism! (You can discuss
+reactive on the <a href="scala-user@googlegroups.com">scala-user</a> or
+<a href="mailto:liftweb@googlegroups.com">Lift</a> lists, or you can <a
+  href="https://github.com/inbox/new/nafg">send me a message on
+github</a>.)</p>
+<p>To find out more, explore the menu bar above.</p>
+</div>

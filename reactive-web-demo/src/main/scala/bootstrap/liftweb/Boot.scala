@@ -26,6 +26,7 @@ class Boot {
     
     // Build SiteMap
     def sitemap = () => SiteMap(
+      Menu("About")  /"index",
       Menu("Core")  /"0"  >>PlaceHolder  submenus(
         Menu("EventStream")  /"demos"/"core"/"EventStream",
         Menu("Signal")  /"demos"/"core"/"Signal",
