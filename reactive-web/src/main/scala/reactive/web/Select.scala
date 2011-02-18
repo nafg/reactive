@@ -8,7 +8,6 @@ package web
  * @param renderer a function that determines the representation of items. Defaults to calling _.toString
  * @param size the height of the select. Defaults to 1, i.e., a drop-down.
  */
-//TODO should renderer return a NodeSeq?
 class Select[T](
   items: SeqSignal[T],
   renderer: T=>String = {t:T => t.toString},
