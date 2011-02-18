@@ -1,0 +1,18 @@
+<div class="lift:surround?with=default;at=content">
+<h2><code>CheckboxInput</code></h2>
+<p><code>CheckboxInput</code> represents <code>&lt;input
+type="checkbox"/&gt;</code> HTML elements. Currently it has events <code>dblClick</code>,
+<code>keyUp</code>, and <code>change</code>; and property <code>checked</code>.</p>
+<p>There are currently two factories: One that simply takes a <code>Var[Boolean]</code>;
+and one that takes two parameter lists, one with the initial value as a
+<code>Boolean</code> and one with a callback as a <code>Boolean=&gt;Unit</code>.</p>
+
+<pre class="brush: scala">
+val checked = Var(false)
+val check1 = TextInput(checked)
+val check2 = TextInput(checked.now)(v =&gt; checked ()= v) // basically same as above
+
+check1.checked.value foreach {_ =&gt; println("check1 changed")}
+
+check2.change.eventStream.foreach {_ =&gt; println("check2 change event")}
+</pre></div>

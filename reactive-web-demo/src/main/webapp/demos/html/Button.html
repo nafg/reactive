@@ -1,0 +1,50 @@
+<div class="lift:surround?with=default;at=content">
+<h2><code>Button</code></h2>
+<p>The <code>Button</code> trait represents &lt;button&gt; tags.
+Override <code>def buttonType</code> to (or pass to one of the
+factories) one of <code>ButtonType.Button</code>, <code>ButtonType.Submit</code>,
+or <code>ButtonType.Reset</code>.</p>
+<p>Currently, <code>Button</code> defines one event, <code>click</code>.</p>
+<pre class="brush: scala">
+/**
+ * Given a Button, create a Signal that holds
+ * the total number of times the button has been clicked.
+ */
+def buttonClickCount(button: Button): Signal[Int] =
+  button.click.foldLeft(0){case (n, _) =&gt; n+1}.hold(0)
+</pre>
+
+<h3>Instantiating a <code>Button</code></h3>
+<p><code>Button</code> currently has four factories. All four return
+a <code>Button with Cell</code>. From simplest to most complex:</p>
+<ul>
+  <li>For a <code>String</code> label, with one handler, <code>type="button"</code>:
+  <pre class="brush: scala">
+val button = Button("Press Me!"){
+  println("I was pressed!")
+}
+</pre></li>
+
+  <li>For contents defined by a <code>Signal[NodeSeq]</code>, with
+  one handler, <code>type="button"</code>: <pre class="brush:scala">
+val imageButton =
+  Button(Val(&lt;img src="/images/image.png"/&gt;)){
+    println("I was pressed")
+  }
+val changingTextBtn = Button(buttonText map {t =&gt; Text(t)}){
+  println("I was pressed")
+</pre></li>
+
+  <li>For contents defined by a <code>Signal[NodeSeq]</code>, with
+  the option to specify a button type: <pre class="brush: scala">
+val buttonBtn = Button(content = Val(Text("button"))
+val submitBtn = Button(ButtonType.Submit, Val(Text("submit")))
+</pre></li>
+  <li>And last, is the template-friendly factory: <pre class="brush:scala">
+"button" #&gt; Button(ButtonType.Submit, buttonAction map { action =&gt;
+  "img [src]" #&gt; action.img &amp;
+    ".text" #&gt; action.text
+})
+</pre></li>
+</ul>
+</div>

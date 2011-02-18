@@ -38,7 +38,15 @@ class Boot {
         Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
         Menu("Simple demo")  /"demos"/"demos"/"SimpleDemo"
       ),
-      Menu("Scaladocs")  /"2"  >>PlaceHolder  submenus(
+      Menu("HTML")  /"2"  >>PlaceHolder  submenus(
+        Menu("Span")  /"demos"/"html"/"Span",
+        Menu("Div")  /"demos"/"html"/"Div",
+        Menu("Button")  /"demos"/"html"/"Button",
+        Menu("TextInput")  /"demos"/"html"/"TextInput",
+        Menu("CheckboxInput")  /"demos"/"html"/"CheckboxInput",
+        Menu("Select")  /"demos"/"html"/"Select"
+      ),
+      Menu("Scaladocs")  /"3"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
         Menu("reactive-web")  /"reactive-web-api"/ **
       )
