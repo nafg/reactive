@@ -97,7 +97,7 @@ object Repeater {
    * to render that element.
    * @param binding a SeqSignal where each element is a binding function that renders one element in the view
    */
-  def apply(binding: SeqSignal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
+  def apply(binding: SeqSignal[_ <: NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
     new Repeater {
       val baseElem = nodeSeqToElem(ns)
       val events, properties = Nil
