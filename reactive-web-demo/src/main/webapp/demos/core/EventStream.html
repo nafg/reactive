@@ -19,18 +19,17 @@ exists at a different point in time. Keep this analogy in mind, because
 methods in reactive-core are named with it in mind.</p>
 
 <h3>Creating an <code>EventStream</code></h3>
-<p>Often you will be dealing with <code>EventStreams</code>s
+<p>Often you will be dealing with <code>EventStream</code>s
 obtained from a library. However, often you to need to create one
 yourself. To do this just instantiate <code>EventSource</code>.
 Currently it's a trait, so you have to add curly braces when you
 instantiate it. Perhaps it will be changed to a class in the future. You
 can then send events by calling <code>fire</code>.</p>
 
-<pre class="brush:scala">
-val es = new EventSource[Int] {}
-es.fire(-1)
-(0 to 10) foreach es.fire
-</pre>
+<div class="lift:DemoPane?snippet=EventStream_EventSource"><input />
+<button />
+<div class="div" />
+</div>
 
 <p>Of course, you also create a new <code>EventStream</code> every
 time you call one of the transforming methods (below). And there's <code>Timer</code>.</p>
@@ -88,13 +87,13 @@ class MyClass extends Observing {
 </pre>
 
 <h3>Transformations</h3>
-<p>What makes <code>EventStream</code>s very versatile is their
-set of transformation methods, which return <code>EventStream</code>s
-whose set of events are based on the original <code>EventStream</code>
-plus some modification. You can chain together various transformations
-to get a completely different <code>EventStream</code>. Consumers
-of the resulting <code>EventStream</code> don't need to care about
-how it relates to the original <code>EventStream</code>.</p>
+<p>What makes <code>EventStream</code>s very versatile is their set
+of transformation methods, which return <code>EventStream</code>s whose
+set of events are based on the original <code>EventStream</code> plus
+some modification. You can chain together various transformations to get
+a completely different <code>EventStream</code>. Consumers of the
+resulting <code>EventStream</code> don't need to care about how it
+relates to the original <code>EventStream</code>.</p>
 
 
 <h3>Finer-grained Lifetime Control: <code>takeWhile</code></h3>
@@ -299,6 +298,4 @@ for the signal to hold until the next event fires.</p>
 
 <pre class="brush:scala">
 val currentTime = clockTicks.hold(0)
-</pre>
-
-</div>
+</pre></div>
