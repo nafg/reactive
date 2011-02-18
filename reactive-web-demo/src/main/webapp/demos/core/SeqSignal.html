@@ -54,7 +54,7 @@ equality test used by the diffing algorithm.</p>
 
 <pre class="brush:scala">
 val bufferSignal = BufferSignal(1, 2, 3, 4, 5)
-bufferSignal += 6  // fires an Insert
+bufferSignal.value += 6  // fires an Insert
 bufferSignal ()= List(2, 3, 4, 5, 6, 7)  // fires a Remove and an Insert
 </pre>
 
