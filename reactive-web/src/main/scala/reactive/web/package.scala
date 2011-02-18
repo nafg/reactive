@@ -47,4 +47,19 @@ package object web {
       println("Warning: NodeSeq is not an Elem; wrapping it in a span. "+other.getClass+": "+other.toString)
       <span>{other}</span>
   }
+  private[web] def bindFunc2contentFunc[T](
+    bindFunc: Signal[NodeSeq=>NodeSeq]
+  )(
+    andThen: Signal[NodeSeq]=>T
+  ): NodeSeq=>T = {ns =>
+    andThen(bindFunc map (_(ns)))
+  }
+  
+  private[web] def bindFunc2seqContentFunc[T](
+    bindFunc: SeqSignal[NodeSeq=>NodeSeq]
+  )(
+    andThen: SeqSignal[NodeSeq] => T
+  ): NodeSeq=>T = {ns =>
+    andThen(bindFunc map {_ map {_(ns)}})
+  }
 }

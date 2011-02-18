@@ -43,11 +43,8 @@ object Div {
    * @param binding the SeqSignal[NodeSeq=>NodeSeq] whose elements are bind functions used to generate each child of the Div.
    * @return a NodeSeq=>NodeSeq that on each invocation renders a new Repeater Div.
    */
-  def apply(binding: SeqSignal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
-    new Div with Repeater {
-      lazy val children = binding map {
-        _ map {f => RElem(nodeSeqToElem(f(ns)))}
-      }
-    }.render
-  }
+  def apply(binding: SeqSignal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq =
+    bindFunc2seqContentFunc(binding){c =>
+      apply(c map (_ map {ns => RElem(nodeSeqToElem(ns))})).render
+    }
 }
