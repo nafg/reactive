@@ -11,11 +11,7 @@ simplicity of GWT. You can handle events from DOM objects in Scala code,
 and you can update DOM objects by mutating the corresponding object in
 Scala. More importantly though, you can define relationships
 declaratively so that it will be updated automatically, like binding in
-JavaFX and Flex.</p>
-<p>Updates to the browser in response to events that originated from
-the browser are returned from the same ajax request that the event was
-sent through. Events that originate from stimuli on the server can be
-sent through Lift's superb comet support.</p>
+JavaFX and Flex. (Much more powerful than Lift's built in wiring.)</p>
 <p>Reactive has powerful support for incremental updates. So you can
 have a set of items transformed it in all sorts of ways and rendered,
 and when the set of items changes, only the necessary changes will be
@@ -25,17 +21,29 @@ throughout. Or you can use it to completely change the kind of webapps
 you write. No longer do webapps have to be less dynamic than GUI
 applications. You can even use it to build a rich desktop GUI app, using
 an embedded Jetty instance.</p>
+<p>It integrates easily with the Lift templating mechanism, so you
+can keep view design completely separate from your code.</p>
+<p>Updates to the browser in response to events that originated from
+the browser are returned from the same ajax request that the event was
+sent through. Events that originate from stimuli on the server can be
+sent through Lift's superb comet support.</p>
+<p>To find out more about reactive-core and reactive-web, just
+explore the menu bar above.</p>
+<p>You can discuss reactive on the <a
+  href="scala-user@googlegroups.com">scala-user</a> or <a
+  href="mailto:liftweb@googlegroups.com">Lift</a> lists, or you can <a
+  href="https://github.com/inbox/new/nafg">send me a message on
+github</a>. Looking forward to your constructive criticism!</p>
 <p>The code is at <a href="http://github.com/nafg/reactive">http://github.com/nafg/reactive</a>.
 Note that while there is still much to be done, it's more in terms of
 completeness (like adding more elements and properties, and more
 features) than in terms of plumbing or usability.</p>
-<p>It can integrate with the Lift templating mechanism, so you can
-keep view design completely separate from your code.</p>
-<p>Looking forward to your constructive criticism! (You can discuss
-reactive on the <a href="scala-user@googlegroups.com">scala-user</a> or
-<a href="mailto:liftweb@googlegroups.com">Lift</a> lists, or you can <a
-  href="https://github.com/inbox/new/nafg">send me a message on
-github</a>.)</p>
-<p>To find out more about reactive-core and reactive-web, just
-explore the menu bar above!</p>
+<p>Some planned features include:</p>
+<ul>
+  <li>Onsubmit event, so you can use it when JavaScript is not
+  enabled or supported</li>
+  <li>JavaScript events and signals so components can update each
+  other without an Ajax call.</li>
+  <li>Widgets, from scratch and/or ExtJS etc.</li>
+</ul>
 </div>
