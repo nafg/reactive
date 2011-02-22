@@ -10,7 +10,7 @@ can send or receive events using a more effective abstraction.</p>
 
 <p>It is important to note that reactive does not handle threading
 implicitly. Events are delivered on whichever thread they are fired, and
-execution returns to the caller when all listeners have processed the
+execution of that thread continues when all listeners have processed the
 event.</p>
 
 <p>One can think of an <code>EventStream</code> as a collection of
@@ -40,15 +40,10 @@ It fires ticks at a given interval (no guarantee of course). Ticks'
 values are based on the time when they are fired, not when they were
 scheduled to fire.</p>
 
-<pre class="brush:scala">
-// Create a timer that fires every 1/2 second, starting at 0, forever
-new Timer(500)
-// Create a timer that fires every 1/2 second, starting at current time, forever
-new Timer(System.currentTimeMillis, 500)
-// Create a timer that fires every 1/2 second, starting at 0,
-// until the window is closed
-new Timer(0, 500, _ =&gt; isVisible)
-</pre>
+<div class="lift:DemoPane?snippet=EventStream_Timer"><input />
+<button />
+<div class="div" />
+</div>
 
 
 <h3>Adding Listeners: <code>foreach</code></h3>
