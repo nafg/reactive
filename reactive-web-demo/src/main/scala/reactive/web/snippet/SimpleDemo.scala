@@ -14,7 +14,7 @@ import net.liftweb.http._
 
 // Extends Observing so any listeners we have can be garbage collected
 // once the snippet is garbage collected, and not before.
-class MainPage extends Observing {
+class SimpleDemo extends Observing {
   //////////////////////////////////////////////////////////////////
   // DEMONSTRATE REACTIONS TO CLIENT EVENTS
   //////////////////////////////////////////////////////////////////
@@ -110,9 +110,9 @@ class MainPage extends Observing {
 
 
 /**
- * A bit more declarative
+ * Same thing but a bit more declarative
  */
-class MainPage2 extends MainPage {
+class SimpleDemo2 extends SimpleDemo {
   override def render =
     "#field" #> field &
     "#span" #> Cell {
