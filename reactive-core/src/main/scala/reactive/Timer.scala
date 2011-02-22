@@ -16,23 +16,22 @@ private object _timer extends juTimer {
  * Event values are (delta time in milliseconds) + startValue
  * There is no guarantee that the delta will be a multiple of interval, of course
  * Events are fired on a java.util.Timer thread
- * @param startValue the value this signal counts up from
- * @param interval the frequency at which to update the signal's value.
- * @param until a function called with each tick that should return true to terminate the timer
+ * @param startValue the value this signal counts up from. Defaults to 0.
+ * @param interval the frequency at which to update the signal's value. Defaults to 1 second.
+ * @param until a function called with each tick that should return true to terminate the timer. By default it will never termintate.
  */
 class Timer(
   private val startValue: Long = 0,
-  interval: Long,
+  interval: Long = 1000,
   until: Long=>Boolean = _ =>false
 ) extends EventSource[Long] {
   private val origMillis = System.currentTimeMillis
   private val tt: TimerTask = _timer.scheduleAtFixedRate(interval, interval) {
 	val tick = System.currentTimeMillis - origMillis + startValue
     if(until(tick)) {
-      println("Timer canceling")
+      println("Timer canceling at " + tick)
       tt.cancel
     } else {
-      println("Timer firing")
       fire(tick)
     }
   }
