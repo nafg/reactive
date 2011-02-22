@@ -10,17 +10,14 @@ import net.liftweb.util.{Helpers, BindPlus}
 import net.liftweb.http._
 
 
- 
 
-// Among other things, ReactiveSnippet has an implicit
-// val, currentPage, that among other things extends Observing.
-// Thus any listeners we have can be garbage collected (only) once
-// the snippet is garbage collected.
-class MainPage extends ReactiveSnippet {
+
+// Extends Observing so any listeners we have can be garbage collected
+// once the snippet is garbage collected, and not before.
+class MainPage extends Observing {
   //////////////////////////////////////////////////////////////////
   // DEMONSTRATE REACTIONS TO CLIENT EVENTS
   //////////////////////////////////////////////////////////////////
-  
   // Create a reactive text input. By default its value is updated
   // when the browser fires a change event
   val field = TextInput()
@@ -36,7 +33,7 @@ class MainPage extends ReactiveSnippet {
   // Create a Signal that binds the field's value
   // Its value will be kept up to date automatically
   val fieldValue = field.value.value map {v =>
-  	{_: NodeSeq => (Text(v): NodeSeq)}
+    {_: NodeSeq => (Text(v): NodeSeq)}
   }
   
   // Create a NodeSeq=>NodeSeq that renders fieldValue
@@ -48,9 +45,8 @@ class MainPage extends ReactiveSnippet {
   // DEMONSTRATE REACTIONS TO SERVER EVENTS
   //////////////////////////////////////////////////////////////////
   
-  // Create an EventStream that fires timer ticks until
-  // the page is no longer alive
-  val clockES = new Timer(interval = 2000, until = _ => !isPageAlive)
+  // Create an EventStream that fires timer ticks for up to 10 minutes
+  val clockES = new Timer(0, 2000, _ > (10 minutes))
   
   // Create a signal from the EventStream whose value, until
   // the first tick is received, is 0L

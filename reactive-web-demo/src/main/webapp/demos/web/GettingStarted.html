@@ -21,7 +21,7 @@
   <li>
   <h3>Add reactive-web to the dependencies</h3>
   <p>In project/build/Project.scala (or whatever your sbt project
-  file is called). For example:</p>
+  file is called), for example:</p>
   <pre class="brush: scala">
   override def libraryDependencies = Set(
     "reactive" %% "reactive-web" % "0.1",
@@ -41,11 +41,13 @@
   &lt;div class="lift:reactive"&gt;&lt;/div&gt;
   </pre></li>
   <li>
-  <h3>For convenience, make your reactive snippets extend <code>ReactiveSnippet</code></h3>
-  </li>
-  <li>
   <h3>Start coding!</h3>
-  <p>See the rest of this site for more information.</p>
+  <ul>
+    <li>You will probably want to import <code>reactive._</code>
+    and <code>reactive.web._</code></li>
+    <li>Snippets may need to extend <code>Observing</code></li>
+    <li>See the rest of this site for more information</li>
+  </ul>
   </li>
 </ol>
 </div>

@@ -3,30 +3,30 @@ package reactive.web.snippet
 import scala.xml.NodeSeq
 
 import reactive._
-import web._
+  import web._
 
 import net.liftweb.util._
 import Helpers._
 
-class EventStream_EventSource extends EventStreamDemo with ReactiveSnippet {
-  override val eventSource = new EventSource[String] {}
-
-  override def render = {
+class EventStream_EventSource extends EventStreamDemo {
+  override lazy val eventSource = {
+    val es = new EventSource[String] {}
     scala.concurrent.ops.spawn {
       Thread.sleep(10000)
-      eventSource fire "Event after 10 seconds"
-      (1 to 3) map (_.toString) foreach { s =>
+      es fire "Event after 10 seconds"
+      for(i <- 1 to 3) {
         Thread.sleep(5000)
-        eventSource.fire("Event after 5 seconds #" + s)
+        es.fire("Event after 5 seconds #" + i.toString)
       }
     }
-    super.render
+    es
   }
+
 }
 
-trait EventStreamDemo { this: ReactiveSnippet =>
+trait EventStreamDemo extends Observing {
   val text = TextInput()
-  val eventSource = new EventSource[String] {}
+  lazy val eventSource = new EventSource[String] {}
   lazy val eventStream: EventStream[String] = eventSource
   lazy val events = SeqSignal(
     eventStream.foldLeft(List[String]())((list, event) => event :: list).hold(Nil))

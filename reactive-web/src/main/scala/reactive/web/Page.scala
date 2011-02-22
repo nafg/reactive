@@ -10,42 +10,10 @@ import net.liftweb.http.{RequestVar, S}
 /**
  * A RequestVar to generate a maximum of one Page instance
  * per request.
+ * The value is automatically used when an implicit Page
+ * is required while a request is being processed.
  */
 object CurrentPage extends RequestVar(new Page)
-
-
-/**
- * Inheriting this trait gives your Lift snippet classes
- * access to some useful functionality. It is not mandatory,
- * but you do need a Page in the implicit scope.
- */
-trait ReactiveSnippet {
-  private var lastPage: Option[String] = None
-  /**
-   * Returns the Page this snippet is rendering to.
-   * Since Page extends Observing, this provides an Observing
-   * in the implicit scope.
-   */
-  implicit def currentPage: Page =
-    //TODO should the test be instead 'if(lastPage.isDefined)'?
-    if(S.request.isEmpty)
-      lastPage.flatMap(Reactions.findPage) getOrElse error("No page")
-    else {
-      val p = CurrentPage.is
-      lastPage = Some(p.id)
-      p
-    }
-  
-  /**
-   * Returns true if the page has not expired yet.
-   */
-  //TODO the comet shouldn't have to be placed above the snippet
-  def isPageAlive =
-    lastPage.map(Reactions.isPageAlive) getOrElse true 
-    // if lastPage wasn't set yet then the page didn't even begin its lifetime and certainly
-    // hasn't expired
-}
-
 
 /**
  * A Page uniquely identifies a web page rendered with reactive-web components.
@@ -60,5 +28,16 @@ class Page extends Observing {
     type="net.liftweb.reactive.ReactionsComet"
     name={cometName}
   />
+}
+
+object Page {
+  /**
+   * Makes the Page corresponding the current request available implicitly.
+   * Must be called when S.request.isDefined
+   */
+  implicit def currentPage: Page = {
+    require(S.request.isDefined, "no current request, page undefined")
+    CurrentPage.is
+  }
 }
 

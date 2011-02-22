@@ -34,7 +34,7 @@ object Contact {
   def findAll = contacts.now
 }
 
-class ContactsPage extends ReactiveSnippet {
+class ContactsPage extends Observing {
   val curContact = Var(Contact("",Nil))
   
   val curContactNameField = TextInput(curContact.value.name){s =>

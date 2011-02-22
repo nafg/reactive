@@ -6,6 +6,7 @@ package web
  * Represents a text input field in the DOM
  * @param _value a Var used to update the value of the value property
  */
+//TODO should we be using Vars so much? Maybe in & out Signals?
 class TextInput(
   _value: Var[String] = Var("")
 ) extends RElem {
