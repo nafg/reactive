@@ -26,10 +26,7 @@ Currently it's a trait, so you have to add curly braces when you
 instantiate it. Perhaps it will be changed to a class in the future. You
 can then send events by calling <code>fire</code>.</p>
 
-<div class="lift:DemoPane?snippet=EventStream_EventSource"><input />
-<button />
-<div class="div" />
-</div>
+<button onclick="showdemo('EventStream_EventSource')">Live Example</button>
 
 <p>Of course, you also create a new <code>EventStream</code> every
 time you call one of the transforming methods (below). And there's <code>Timer</code>.</p>
@@ -40,13 +37,10 @@ It fires ticks at a given interval (no guarantee of course). Ticks'
 values are based on the time when they are fired, not when they were
 scheduled to fire.</p>
 
-<div class="lift:DemoPane?snippet=EventStream_Timer"><input />
-<button />
-<div class="div" />
-</div>
+<button onclick="showdemo('EventStream_Timer')">Live Example</button>
 
 
-<h3>Adding Listeners: <code>foreach</code></h3>
+<h3>Adding listeners: <code>foreach</code></h3>
 <p>Under the hood <code>EventStream</code> manages a collection of
 listeners, but that's not how you should think of it conceptually.
 Conceptually, by adding a listener what you really want is to execute a
@@ -91,7 +85,7 @@ resulting <code>EventStream</code> don't need to care about how it
 relates to the original <code>EventStream</code>.</p>
 
 
-<h3>Finer-grained Lifetime Control: <code>takeWhile</code></h3>
+<h3>Finer-grained lifetime control: <code>takeWhile</code></h3>
 <p>What if you need finer-grained control over your function's
 lifetime than that afforded by <code>Observing</code>?</p>
 <p>Well, recalling the collections analogy, what do you if you want
@@ -110,18 +104,7 @@ will be removed.</p>
 <p>Idiomatic code should not cause side effects in the predicate;
 however there's nothing stopping you from doing so if you so desire.</p>
 
-<pre class="brush: scala">
-def untilTooHigh(es: EventStream[Int]) =
-  es.takeWhile(_ &lt;= 100)
-
-var stop = false
-def notIdiomatic(es: EventStream[Int]) {
-  es.takeWhile(e =&gt;
-    println("Still receiving events! To stop me set 'stop' to true! Event: " + e)
-    !stop
-  )
-}
-</pre>
+<button onclick="showdemo('EventStream_takeWhile')">Live Example</button>
 
 <h3>What's the point?</h3>
 <p>At this point you may be wondering why go through all these
@@ -143,7 +126,7 @@ be transformed and composed. This will become more apparent as you read
 more about <code>EventStream</code> and about everything that interacts
 with it and is built on it.</p>
 
-<h3>A More Focused <code>EventStream</code>: <code>filter</code></h3>
+<h3>A more focused <code>EventStream</code>: <code>filter</code></h3>
 <p>What if you have an <code>EventStream</code> that fires a lot of
 events but you are only interested in some? You can use <code>filter</code>.</p>
 <p>As you have seen, given one <code>EventStream</code> it is
@@ -157,12 +140,9 @@ matches, so too can you <code>filter</code> an <code>EventStream</code>
 to obtain a new <code>EventStream</code> that fires only those events
 which the predicate matches.</p>
 
-<pre class="brush: scala">
-def nonnegative(es: EventStream[Int]): EventStream[Int] =
-  es.filter(_ &gt;= 0)
-</pre>
+<button onclick="showdemo('EventStream_filter')">Live Example</button>
 
-<h3>A Completely Transformed <code>EventStream</code>: <code>map</code></h3>
+<h3>A completely transformed <code>EventStream</code>: <code>map</code></h3>
 <p>Another fundamental collections method is <code>map</code>. It
 lets you transform a collection by applying any function to each
 element; in the returned collection, each element will have the value
@@ -173,10 +153,7 @@ pass <code>map</code> a function, and for every event that the parent <code>Even
 fires, the new <code>EventStream</code> will fire an event whose value
 is the result of applying the function to the parent's event.</p>
 
-<pre class="brush: scala">
-def absolute(es: EventStream[Int]) =
-  es map math.abs
-</pre>
+<button onclick="showdemo('EventStream_map')">Live Example</button>
 
 <h3>Switching <code>EventStream</code>s: <code>flatMap</code></h3>
 <p>Let's get a bit more advanced now, and apply <code>flatMap</code>
@@ -239,8 +216,9 @@ seconds.filter(_ % 10 == 1).flatMap{ t =&gt;
 }
 </pre>
 
+<button onclick="showdemo('EventStream_flatMap')">Live Example</button>
 
-<h3>Eliminating State: <code>foldLeft</code></h3>
+<h3>Eliminating state: <code>foldLeft</code></h3>
 <p>What if you need the way you handle events to depend on various
 factors, in a way that's more complex than what <code>flatMap</code>
 allows?</p>
@@ -267,13 +245,7 @@ that fires the returned value (the same value that will be passed to the
 next function invocation). we can create an <code>EventStream</code>
 that, whenever a number is fired, fires the average value:</p>
 
-<pre class="brush:scala">
-case class AvgState(total: Double, count: Int)
-numbers.foldLeft(AvgState(0,0)){
-  case (AvgState(total, count), n) =&gt; AvgState(total+n,count+1)
-}).map{case AvgState(total, count) =&gt; total.toDouble/count}
-</pre>
-
+<button onclick="showdemo('EventStream_foldLeft')">Live Example</button>
 
 <h3>Combining <code>EventStream</code>s: <code>|</code></h3>
 <p>You can also get the union of two <code>EventStreams</code>. The
