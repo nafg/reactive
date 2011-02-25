@@ -12,11 +12,16 @@ import net.liftweb.util._
 
 import net.liftweb.common._
 
+import net.liftweb.sitemap._
+  import Loc._
 
-class DemoPane {
+object DemoPane {
+  val menu = Menu.param[String]("ShowDemo","ShowDemo",Full(_),s=>s)  /"showdemo"  >>Hidden
+  lazy val loc = menu.toLoc
+  
   def render(template: NodeSeq) = (
     for {
-      snippetName <- S.attr("snippet")
+      snippetName <- S.attr("snippet") or loc.currentValue
       layout <- TemplateFinder.findAnyTemplate(List("templates-hidden", "demopanelayout"))
       scalaSource = scala.io.Source.fromInputStream(
         getClass.getResourceAsStream("/scala-sources/reactive/web/snippet/" + snippetName + ".scala")
@@ -25,10 +30,6 @@ class DemoPane {
         ".demo *" #> template &
         ".template *" #> <pre class="brush: xml">{template.toString}</pre> &
         ".snippet *" #> <pre class="brush: scala">{scalaSource.getLines().mkString("\n")}</pre>
-    } yield {
-      val ret = bind(layout)
-      println("Output: " + ret)
-      ret
-    }
+    } yield bind(layout)
   ) openOr NodeSeq.Empty
 }

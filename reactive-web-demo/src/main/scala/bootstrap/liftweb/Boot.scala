@@ -49,7 +49,8 @@ class Boot {
       Menu("Scaladocs")  /"3"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
         Menu("reactive-web")  /"reactive-web-api"/ **
-      )
+      ),
+      reactive.web.snippet.DemoPane.menu
     )
     LiftRules.setSiteMapFunc(sitemap)
     LiftRules.liftRequest.append {
