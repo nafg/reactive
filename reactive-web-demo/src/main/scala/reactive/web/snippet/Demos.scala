@@ -25,6 +25,12 @@ object Demos {
         RElem(<p>Fired: '{ event }'</p>)
   }.render
   
+  def varInput(v: Var[String]): NodeSeq = {
+    val textInput = TextInput(v)
+    textInput.value updateOn textInput.keyUp
+    textInput.render
+  }
+  
   def signalOutput(signal: Signal[String]): NodeSeq = Span {
     signal map Text
   }.render
