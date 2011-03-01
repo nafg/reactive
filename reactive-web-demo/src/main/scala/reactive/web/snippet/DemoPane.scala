@@ -26,9 +26,10 @@ object DemoPane {
       scalaSource = scala.io.Source.fromInputStream(
         getClass.getResourceAsStream("/scala-sources/reactive/web/snippet/" + snippetName + ".scala")
       )
+      templateContent = nodeSeqToElem(template).child
       bind = ".demo [class]" #> ("lift:" + snippetName) &
         ".demo *" #> template &
-        ".template *" #> <pre class="brush: xml">{template.toString}</pre> &
+        ".template *" #> <pre class="brush: xml">{templateContent.toString}</pre> &
         ".snippet *" #> <pre class="brush: scala">{scalaSource.getLines().mkString("\n")}</pre>
     } yield bind(layout)
   ) openOr NodeSeq.Empty
