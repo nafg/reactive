@@ -31,11 +31,19 @@ package object web {
         JsRaw("'"+funcId+"='+confirm(" + Str(message).toJsCmd + ")")
       ).toJsCmd
     }
-    Reactions.inAnyScope(page)(
-      Reactions.queue(
-        JsCmds.Run(js)
-      )
-    )
+    Reactions.inAnyScope(page){
+      Reactions queue JsCmds.Run(js)
+    }
+  }
+  /**
+   * Queues a JavaScript alert dialog in the current scope, or, if none
+   * exist, in the server scope of the implicit page parameter.
+   * @param message the text to display
+   */
+  def alert(message: String)(implicit page: Page) {
+    Reactions.inAnyScope(page){
+      Reactions queue JsCmds.Run("alert(" + Str(message).toJsCmd + ")")
+    }
   }
   
   //TODO logging
