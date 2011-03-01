@@ -50,7 +50,8 @@ So, just like when you want to execute a function for all values of a
 Scala Collection you call <code>foreach</code>, you do the same here.
 Unlike in the collections, though, <code>foreach</code> returns
 immediately, and your function is saved to be executed whenever an event
-fires.</p>
+fires. (Of course, you can use for-comprehension syntax instead of
+calling <code>foreach</code> explicitly.)</p>
 <p>This begs the question: How will the function, and any references
 it has, ever be garbage collected (before the <code>EventStream</code>
 is)? The answer is that <code>EventStream</code> keeps your function
@@ -62,24 +63,15 @@ in the implicits scope when calling <code>foreach</code> (and <code>forward</cod
 inside the <code>Observing</code> object. Then the responsibility of
 memory lifetime falls on the <code>Observing</code>. The easiest (and
 often most correct) way to implement this, is to have the enclosing
-class extend <code>Observing</code>.</p>
-<p>Of course, you can use for-comprehension syntax. For example:</p>
+class extend <code>Observing</code> (since it contains an implicit
+reference to itself).</p>
 
-<pre class="brush: scala">
-// all listeners added in here have the same gc lifetime as the class
-class MyClass extends Observing {
-  def traceEvents[T](es: EventStream[T]) {
-    //desugars to es.foreach(e =&gt; println(e))
-    for(e &lt;- es)
-      println(e)
-  }
-}
-</pre>
+<button onclick="showdemo('EventStream_foreach')">Live Example</button>
 
 <h3>Transformations</h3>
 <p>What makes <code>EventStream</code>s very versatile is their set
 of transformation methods, which return <code>EventStream</code>s whose
-set of events are based on the original <code>EventStream</code> plus
+events are based on the original <code>EventStream</code> with
 some modification. You can chain together various transformations to get
 a completely different <code>EventStream</code>. Consumers of the
 resulting <code>EventStream</code> don't need to care about how it
@@ -257,6 +249,8 @@ original <code>EventStream</code>s fire.</p>
 val allClicks = leftClicks | middleClicks | rightClicks
 </pre>
 
+<button onclick="showdemo('EventStream_union')">Live Example</button>
+
 
 <h3>Turning an <code>EventStream</code> into a <code>Signal</code>:
 <code>hold</code></h3>
@@ -264,6 +258,6 @@ val allClicks = leftClicks | middleClicks | rightClicks
 via the <code>hold</code> method. You have to pass it an initial value
 for the signal to hold until the next event fires.</p>
 
-<pre class="brush:scala">
-val currentTime = clockTicks.hold(0)
-</pre></div>
+<button onclick="showdemo('EventStream_hold')">Live Example</button>
+
+</div>
