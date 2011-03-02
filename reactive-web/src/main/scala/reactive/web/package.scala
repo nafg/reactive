@@ -47,14 +47,27 @@ package object web {
   }
   
   //TODO logging
-  private[web] def nodeSeqToElem(ns: NodeSeq): Elem = ns match {
-    case e: Elem => e
-    case Group(nodes) if nodes.length==1 => nodeSeqToElem(nodes(0))
-    case nodes: Seq[Node] if nodes.length==1 => nodeSeqToElem(nodes(0))
-    case other =>
-      println("Warning: NodeSeq is not an Elem; wrapping it in a span. "+other.getClass+": "+other.toString)
-      <span>{other}</span>
+  
+  private[web] def trimNodeSeq(ns: NodeSeq): NodeSeq = {
+    def emptyText: Node=>Boolean = {
+      case scala.xml.Text(s) if s.trim.isEmpty => true
+      case _ => false
+    }
+    ns.dropWhile(emptyText).reverse.dropWhile(emptyText).reverse
   }
+  
+  //TODO should we not be trimming?
+  private[web] def nodeSeqToElem(ns: NodeSeq): Elem = trimNodeSeq(ns) match {
+    case e: Elem => e
+    case Seq(e: Elem) => e
+    case scala.xml.Text(s) => <span>{s.trim}</span>
+    case Seq(node: Node) if node ne ns => nodeSeqToElem(node)
+    case xml =>
+      println("Warning: NodeSeq is not an Elem; wrapping it in a span. "+xml.getClass+": "+xml.toString)
+      println(xml.toList.map(_.getClass))
+      <span>{xml}</span>
+  }
+  
   private[web] def bindFunc2contentFunc[T](
     bindFunc: Signal[NodeSeq=>NodeSeq]
   )(
