@@ -19,14 +19,15 @@ object DemoPane {
   val menu = Menu.param[String]("ShowDemo","ShowDemo",Full(_),s=>s)  /"showdemo"  >>Hidden
   lazy val loc = menu.toLoc
   
-  def render(template: NodeSeq) = (
+  def render(xhtml: NodeSeq) = (
     for {
       snippetName <- S.attr("snippet") or loc.currentValue
       layout <- TemplateFinder.findAnyTemplate(List("templates-hidden", "demopanelayout"))
       scalaSource = scala.io.Source.fromInputStream(
         getClass.getResourceAsStream("/scala-sources/reactive/web/snippet/" + snippetName + ".scala")
       )
-      templateContent = nodeSeqToElem(template).child
+      template = TemplateFinder.findAnyTemplate(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
+      templateContent = nodeSeqToElem(template).flatMap(_.child)
       bind = ".demo [class]" #> ("lift:" + snippetName) &
         ".demo *" #> template &
         ".template *" #> <pre class="brush: xml">{templateContent.toString}</pre> &
