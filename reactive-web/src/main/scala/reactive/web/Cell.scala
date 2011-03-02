@@ -41,7 +41,7 @@ object Cell {
    * The Signal's value will be passed the children of the element used as the parent.
    * @param binding the binding-function-valued Signal
    */
-  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page) = {ns: NodeSeq =>
+  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
     new Cell {
       val events, properties = Nil
       val baseElem = nodeSeqToElem(ns)
