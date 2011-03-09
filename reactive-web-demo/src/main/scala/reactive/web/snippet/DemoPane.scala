@@ -27,10 +27,9 @@ object DemoPane {
         getClass.getResourceAsStream("/scala-sources/reactive/web/snippet/" + snippetName + ".scala")
       )
       template = TemplateFinder.findAnyTemplate(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
-      templateContent = nodeSeqToElem(template).flatMap(_.child)
       bind = ".demo [class]" #> ("lift:" + snippetName) &
         ".demo *" #> template &
-        ".template *" #> <pre class="brush: xml">{templateContent.toString}</pre> &
+        ".template *" #> <pre class="brush: xml">{template.toString}</pre> &
         ".snippet *" #> <pre class="brush: scala">{scalaSource.getLines().mkString("\n")}</pre>
     } yield bind(layout)
   ) openOr NodeSeq.Empty
