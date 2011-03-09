@@ -1,12 +1,11 @@
 package reactive
 package web
 
-import scala.xml.{Elem, NodeSeq}
+import scala.xml.{ Elem, NodeSeq }
 
-import net.liftweb.http.js.{JsCmd, JsCmds, HtmlFixer}
-  import JsCmds.{Run, JsTry, Replace}
+import net.liftweb.http.js.{ JsCmd, JsCmds, HtmlFixer }
+import JsCmds.{ Run, JsTry, Replace }
 import net.liftweb.util.Helpers.stringToSuper
-
 
 /**
  * This class is used internally by Repeater. It generates javascript to add and remove children from a DOM element.
@@ -20,41 +19,41 @@ class RepeaterManager(parentId: String, children: SeqSignal[RElem]) extends Html
    * @param ids the current ids of the child elements, in order
    * @return a JsCmd that when executed by the browser will cause update the DOM to reflect the change represented by the delta.
    */
-  def handleUpdate(m: SeqDelta[RElem,RElem], ids: scala.collection.mutable.Buffer[String])(implicit p: Page): JsCmd = m match {
+  def handleUpdate(m: SeqDelta[RElem, RElem], ids: scala.collection.mutable.Buffer[String])(implicit p: Page): JsCmd = m match {
     case Include(index, elem) =>
       val e = elem.render
       ids.insert(index, elem.id)
       Run(
         "try{var e=document.createElement('" + e.label + "');" + (
-          e.attributes.flatMap {attr => ("e.setAttribute('" + attr.key + "'," + attr.value.text.encJs + ");").toCharArray}
-        ).mkString + "e.innerHTML = " + fixHtml(elem.id,e.child) + ";" + (
-          if(index < ids.length - 1) {
-            "document.getElementById('"+parentId+"').insertBefore(e,document.getElementById('"+ids(index)+"'));"
+          e.attributes.flatMap { attr => ("e.setAttribute('" + attr.key + "'," + attr.value.text.encJs + ");").toCharArray }
+        ).mkString + "e.innerHTML = " + fixHtml(elem.id, e.child) + ";" + (
+          if (index < ids.length - 1) {
+            "document.getElementById('" + parentId + "').insertBefore(e,document.getElementById('" + ids(index) + "'));"
           } else {
-            "document.getElementById('"+parentId+"').appendChild(e);"
+            "document.getElementById('" + parentId + "').appendChild(e);"
           }
         ) + "}catch(e){}"
-      )      
-      
+      )
+
     case Update(index, oldElem, elem) =>
       val e = elem.render
       val oldId = ids(index)
       ids(index) = elem.id
-      JsTry(Replace(oldId, e),false)
-      
+      JsTry(Replace(oldId, e), false)
+
     case Remove(index, oldElem) =>
-      JsTry(Replace(ids.remove(index), NodeSeq.Empty),false)
-      
-    case Batch(ms @ _*) =>
+      JsTry(Replace(ids.remove(index), NodeSeq.Empty), false)
+
+    case Batch(ms@_*) =>
       ms.map(handleUpdate(_, ids)).foldLeft[JsCmd](JsCmds.Noop)(_ & _)
   }
-  
+
   /**
    * Returns an EventStream that will fire a JsCmd whenever children changes
    */
   def createPageStream(implicit p: Page): EventStream[JsCmd] = {
     val ids = children.now.map(_.id).toBuffer
-    children.deltas map {m => handleUpdate(m, ids)}
+    children.deltas map { m => handleUpdate(m, ids) }
   }
 }
 
@@ -68,13 +67,13 @@ trait Repeater extends RElem with HtmlFixer {
    * The SeqSignal[RElem] to render and keep up to date in the browser
    */
   def children: SeqSignal[RElem]
-  
+
   protected def renderChildren(implicit p: Page): NodeSeq = children.now.map(_.render)
-  
+
   override def render(implicit p: Page) = super.render.copy(child = renderChildren)
-  
+
   private lazy val manager = new RepeaterManager(this.id, children)
-  
+
   override protected def addPage(implicit page: Page) {
     super.addPage(page)
     manager.createPageStream foreach { js =>
@@ -84,7 +83,6 @@ trait Repeater extends RElem with HtmlFixer {
     }
   }
 }
-
 
 /**
  * Provides a factory for creating Repeaters

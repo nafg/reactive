@@ -33,6 +33,5 @@ object Person {
   val lastNames = List("Smith", "Stone", "Johnson", "Davidson", "Jones")
   def newPerson = Person(
     firstNames(math.random * firstNames.length toInt),
-    lastNames(math.random * lastNames.length toInt)
-  )
+    lastNames(math.random * lastNames.length toInt))
 }
