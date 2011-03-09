@@ -1,8 +1,10 @@
-package reactive
-package web
-package snippet
+package reactive.web.snippet
 
-import _root_.scala.xml._
+import reactive._
+  import web._
+    import html._
+
+import scala.xml._
 
 import net.liftweb.util.{Helpers, BindPlus}
   import Helpers._

@@ -1,5 +1,7 @@
 package reactive
 package web
+package html
+
 
 import scala.xml.NodeSeq
 
@@ -27,7 +29,7 @@ object Span {
   def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty)) = {
     def tmp = content
     new Span with Cell {
-      def content = tmp
+      val content = tmp
     }
   }
   /**

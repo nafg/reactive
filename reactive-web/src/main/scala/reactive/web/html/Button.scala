@@ -1,5 +1,7 @@
 package reactive
 package web
+package html
+
 
 import scala.xml.{NodeSeq, Text}
 import net.liftweb.http.js.JsCmds.SetHtml

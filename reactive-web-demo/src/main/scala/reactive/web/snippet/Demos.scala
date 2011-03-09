@@ -4,6 +4,7 @@ import scala.xml.{NodeSeq, Text}
 
 import reactive._
   import web._
+    import html._
 
 import net.liftweb.util._
   import Helpers._

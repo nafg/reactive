@@ -1,6 +1,8 @@
-package reactive
-package web
-package snippet
+package reactive.web.snippet
+
+import reactive._
+  import web._
+    import html._
 
 
 // Transient in-memory store with method names similar to Mapper, for the time being
