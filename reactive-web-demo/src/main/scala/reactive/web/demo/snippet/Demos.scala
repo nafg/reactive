@@ -1,4 +1,4 @@
-package reactive.web.snippet
+package reactive.web.demo.snippet
 
 import scala.xml.{NodeSeq, Text}
 

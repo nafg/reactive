@@ -1,4 +1,4 @@
-package reactive.web.snippet
+package reactive.web.demo.snippet
 
 import reactive._
 

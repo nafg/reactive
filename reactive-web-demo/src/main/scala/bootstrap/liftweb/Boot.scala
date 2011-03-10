@@ -20,7 +20,7 @@ class Boot {
     }
     
     // where to search snippet
-    LiftRules.addToPackages("reactive.web")
+    LiftRules.addToPackages("reactive.web.demo")
 
     reactive.web.Reactions.initComet
     
@@ -50,7 +50,7 @@ class Boot {
         Menu("reactive-core")  /"reactive-core-api"/ **,
         Menu("reactive-web")  /"reactive-web-api"/ **
       ),
-      reactive.web.snippet.DemoPane.menu
+      reactive.web.demo.snippet.DemoPane.menu
     )
     LiftRules.setSiteMapFunc(sitemap)
     LiftRules.liftRequest.append {

@@ -1,4 +1,4 @@
-package reactive.web.snippet
+package reactive.web.demo.snippet
 
 
 import net.liftweb.util.Helpers._
@@ -6,6 +6,8 @@ import net.liftweb.util.Helpers._
 import reactive._
   import web._
 import xml.NodeSeq
+
+
 
 class CellDemo extends Observing {
 // Display the number of elapsed seconds

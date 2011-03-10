@@ -1,6 +1,4 @@
-package reactive
-package web
-package snippet
+package reactive.web.demo.snippet
 
 
 import scala.xml.NodeSeq
@@ -15,6 +13,7 @@ import net.liftweb.common._
 import net.liftweb.sitemap._
   import Loc._
 
+
 object DemoPane {
   val menu = Menu.param[String]("ShowDemo","ShowDemo",Full(_),s=>s)  /"showdemo"  >>Hidden
   lazy val loc = menu.toLoc
@@ -24,7 +23,7 @@ object DemoPane {
       snippetName <- S.attr("snippet") or loc.currentValue
       layout <- TemplateFinder.findAnyTemplate(List("templates-hidden", "demopanelayout"))
       scalaSource = scala.io.Source.fromInputStream(
-        getClass.getResourceAsStream("/scala-sources/reactive/web/snippet/" + snippetName + ".scala")
+        getClass.getResourceAsStream("/scala-sources/reactive/web/demo/snippet/" + snippetName + ".scala")
       )
       template = TemplateFinder.findAnyTemplate(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
       bind = ".demo [class]" #> ("lift:" + snippetName) &
