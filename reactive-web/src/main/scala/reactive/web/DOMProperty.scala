@@ -33,6 +33,7 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
   
   private var owners = List[WeakReference[Owner]]()
   private var eventSources = List[DOMEventSource[_]]()
+  private var includedEvents = List[DOMEventSource[_<:DOMEvent]]()
   
   /**
    * The Page whose ajax event the current thread is responding to, if any
@@ -115,25 +116,46 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
   }
   
   /**
-   * Link an event with this property. The value
+   * Link events with this property. The value
    * will be updated on the server whenever an
    * event fires.
+   * Events can belong to any Elem.
+   * @return This DOMProperty
    */
-  def updateOn(es: DOMEventSource[_]) {
-//    println("updateOn: owners=" + owners)
-//    println("updateOn: es.rawEventData=" + es.rawEventData)
-    eventSources ::= es
+  def updateOn(es: DOMEventSource[_]*): this.type = {
+    eventSources :::= es.toList
+    this
+  }
+
+  /**
+   * Links events with this property. The value
+   * will be updated on the server whenever an
+   * event fires.
+   * Additionally, applying this DOMProperty to
+   * an Elem will apply the specified DOMEventSources
+   * too. Therefore events must belong to the same
+   * Elem as this property!
+   * @return This DOMProperty
+   */
+  def withEvents(es: DOMEventSource[_<:DOMEvent]*): this.type = {
+    updateOn(es: _*)
+    includedEvents :::= es.toList
+    this
   }
   
   /**
    * Returns an Elem with this property applied by adding
+   * its corresponding attribute, as well as that of any
+   * linked events
    * @param elem
    * @return
    */
   def apply(elem: Elem)(implicit p: Page): Elem = {
     val ret = RElem.withId(elem) % asAttribute
-    addOwner(elem attributes("id") text)
-    ret
+    addOwner(ret attributes("id") text)
+    includedEvents.foldLeft(ret){
+    	case (e, es) => es(e)
+    }
   }
   def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
 }

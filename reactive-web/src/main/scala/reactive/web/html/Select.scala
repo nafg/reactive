@@ -23,8 +23,8 @@ class Select[T](
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
    */
-  val selectedIndex = Select.selectedIndex(Var(None))
-  selectedIndex updateOn change
+  val selectedIndex = Select.selectedIndex(Var(None)) updateOn change
+  
   /**
    * A signal that represents the selected item as a T.
    */

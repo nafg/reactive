@@ -26,8 +26,7 @@ class CheckboxInput(
   /**
    * The checked property. Whether the checkbox is checked.
    */
-  val checked = CheckboxInput.checked(_value)
-  checked updateOn change
+  val checked = CheckboxInput.checked(_value) updateOn change
   
   def events = List(dblClick, keyUp, change)
   def properties = List(checked)
