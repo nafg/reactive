@@ -18,20 +18,18 @@ import scala.xml._
  * This singleton provides some useful things, including factories for creating RElems from standard Scala types.
  */
 object RElem {
+  def withId(elem: Elem): Elem = elem.attributes get "id" match {
+	  case Some(id) => elem
+	  case None => elem % new UnprefixedAttribute("id", randomString(20), Null)
+  }
   /**
    * An RElem based on a scala.xml.Elem.
    * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
    * @param children any addition RElems to append
    */
   class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
-    val (baseElem, _id) = parent.attributes.get("id") match {
-      case Some(id) =>
-        (parent, id.text)
-      case None =>
-        val id = randomString(20)
-        (parent % new UnprefixedAttribute("id", id, Null), id)
-    }
-    override lazy val id = _id
+    val baseElem = withId(parent)
+    override lazy val id = baseElem.attributes("id").text
     val properties, events = Nil
     override def render(implicit p: Page) = baseElem.copy(child = baseElem.child ++ children.map(_.render))
   }
