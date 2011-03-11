@@ -4,7 +4,7 @@ package web
 import net.liftweb.http.js.{JsCmds, JE, JsCmd, JsExp}
 	import JsCmds.SetExp
 	import JE.{JsRaw, Str}
-import scala.xml.{Elem, MetaData, Null, UnprefixedAttribute}
+import scala.xml.{Elem, MetaData, NodeSeq, Null, UnprefixedAttribute}
 
 import scala.ref.WeakReference
 
@@ -13,7 +13,7 @@ import scala.ref.WeakReference
  * and updateable on the client via the server
  * @tparam T the type of the value represented by the property
 */
-trait DOMProperty[T] {
+trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
   private case class Owner(page: Page, id: String)
   
   /**
@@ -135,6 +135,7 @@ trait DOMProperty[T] {
     addOwner(elem attributes("id") text)
     ret
   }
+  def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
 }
 
 /**

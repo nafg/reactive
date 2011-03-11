@@ -7,6 +7,9 @@ import net.liftweb.http.js.{JsExp, JE}
 	import JE.JsRaw
 import net.liftweb.util.Helpers.urlDecode
 
+import scala.xml.{Elem, NodeSeq}
+
+
 /**
  * Represents a DOM event type propagated to the server. 
  * Generates the javascript necessary for an event listener to
@@ -15,7 +18,7 @@ import net.liftweb.util.Helpers.urlDecode
 //TODO better name--it is not an EventSource; only wraps and EventStream
 //that happens to be implemented as an EventSource.
 
-class DOMEventSource[T <: DOMEvent : Manifest] {
+class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) {
   /**
    * The EventStream that represents the primary event data
    */
@@ -153,6 +156,9 @@ class DOMEventSource[T <: DOMEvent : Manifest] {
   } else {
     xml.Null
   }
+  
+  def apply(elem: Elem): Elem = elem % asAttribute
+  def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
 }
 
 
