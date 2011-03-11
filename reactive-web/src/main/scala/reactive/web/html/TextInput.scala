@@ -30,7 +30,6 @@ class TextInput(
    */
   val value = new DOMStringProperty {
     def name = "value"
-    def elemId = id
     val value = _value
     
     this updateOn change
@@ -40,7 +39,6 @@ class TextInput(
    */
   val size = new DOMIntProperty {
     def name = "size"
-    def elemId = id
     val value = Var(-1)
   }
   

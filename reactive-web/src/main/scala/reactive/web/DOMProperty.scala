@@ -4,8 +4,9 @@ package web
 import net.liftweb.http.js.{JsCmds, JE, JsCmd, JsExp}
 	import JsCmds.SetExp
 	import JE.{JsRaw, Str}
-import scala.xml.{MetaData, Null, UnprefixedAttribute}
+import scala.xml.{Elem, MetaData, Null, UnprefixedAttribute}
 
+import scala.ref.WeakReference
 
 /**
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
@@ -13,6 +14,8 @@ import scala.xml.{MetaData, Null, UnprefixedAttribute}
  * @tparam T the type of the value represented by the property
 */
 trait DOMProperty[T] {
+  private case class Owner(page: Page, id: String)
+  
   /**
    * The Var that represents the property's value
    */
@@ -23,32 +26,28 @@ trait DOMProperty[T] {
    */
   def name: String
   /**
-   * The id of the element this property belongs to
-   */
-  def elemId: String
-  /**
    * The value of the property is sent to the server with
    * events using this key in the set of key-value pairs
    */
   def eventDataKey = "jsprop" + name
   
-  private var pages = List[scala.ref.WeakReference[Page]]()
+  private var owners = List[WeakReference[Owner]]()
   private var eventSources = List[DOMEventSource[_]]()
   
   /**
-   * The Page whose ajax event the current thread is responding to
+   * The Page whose ajax event the current thread is responding to, if any
    */
-  private val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
+  private val ajaxOwner = new scala.util.DynamicVariable[Option[Owner]](None)
   
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS: JsExp = JsRaw("document.getElementById('" + elemId + "')." + name)
+  def readJS(id: String): JsExp = JsRaw("document.getElementById('" + id + "')." + name)
   /**
    * The javascript statement to mutate this property
    * @param v the value to mutate it to, as a String
    */
-  def writeJS(v: String): JsCmd = SetExp(readJS, Str(v))
+  def writeJS(id: String)(v: String): JsCmd = SetExp(readJS(id), Str(v))
   
   /**
    * How to get a T from the String sent via ajax with events
@@ -76,7 +75,10 @@ trait DOMProperty[T] {
    * @param page the Page to add. If it exists no action is taken.
    */
   //TODO should events be associated with a Page more directly/explicitly?
-  def addPage(implicit page: Page): Unit = if(!pages.exists(_.get==Some(page))) {
+  def addOwner(id: String)(implicit page: Page): Unit = {
+    val owner = Owner(page,id)
+    owners ::= new WeakReference(owner)
+    
     /**
      * Causes the value of this property to be updated by extracting its new value
      * from raw event data.
@@ -87,11 +89,15 @@ trait DOMProperty[T] {
      */
     def setFromAjax(evt: Map[String,String]) {
       evt.get(eventDataKey) foreach {v =>
-        ajaxPage.withValue(Some(page)) {
+        ajaxOwner.withValue(Some(owner)) {
           value.update(fromString(v))
         }
       }
     }
+    //apply linked DOM event sources
+    //TODO only pages that also own es
+    for(owner <- owners; Owner(page,id) <- owner.get; es <- eventSources)
+      es.rawEventData += (eventDataKey -> readJS(id))
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
     eventSources.foreach(_.rawEventStream.foreach(setFromAjax)(page))
@@ -100,9 +106,9 @@ trait DOMProperty[T] {
     // being added now, send to all other pages javascript to apply
     // the new value.
     value foreach {v =>
-      if(ajaxPage.value != Some(page)) {
-        for(page <- pages.flatMap(_.get)) Reactions.inAnyScope(page) {
-          Reactions.queue(writeJS(asString(v)))
+      if(ajaxOwner.value != Some(owner)) {
+        for(owner <- owners; Owner(page,id) <- owner.get)  Reactions.inAnyScope(page) {
+          Reactions.queue(writeJS(id)(asString(v)))
         }
       }
     }
@@ -114,8 +120,20 @@ trait DOMProperty[T] {
    * event fires.
    */
   def updateOn(es: DOMEventSource[_]) {
-    es.rawEventData += (eventDataKey -> readJS)
+//    println("updateOn: owners=" + owners)
+//    println("updateOn: es.rawEventData=" + es.rawEventData)
     eventSources ::= es
+  }
+  
+  /**
+   * Returns an Elem with this property applied by adding
+   * @param elem
+   * @return
+   */
+  def apply(elem: Elem)(implicit p: Page): Elem = {
+    val ret = RElem.withId(elem) % asAttribute
+    addOwner(elem attributes("id") text)
+    ret
   }
 }
 

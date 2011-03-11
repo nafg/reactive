@@ -36,7 +36,6 @@ class CheckboxInput(
     override def asAttribute = if(value.now) new scala.xml.UnprefixedAttribute(name, "checked", scala.xml.Null) else scala.xml.Null
     
     def name = "checked"
-    def elemId = id
     
     this updateOn change
   }

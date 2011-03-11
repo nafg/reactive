@@ -28,7 +28,6 @@ class Select[T](
     def fromString(s: String) = net.liftweb.util.Helpers.asInt(s).toOption.filter(_ != -1)
     def asString(v: Option[Int]) = v.map(_.toString) getOrElse "-1"
     def name = "selectedIndex"
-    def elemId = id
     this updateOn change
   }
   /**

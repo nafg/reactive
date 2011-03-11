@@ -117,10 +117,8 @@ trait RElem extends net.liftweb.util.Bindable {
    * multiple pages. 
    */
   protected def addPage(implicit page: Page) {
-    // println("In addPage, properties: " + properties)
     if(!_pages.exists(_.get==Some(page))) {
       _pages ::= new WeakReference(page)
-      properties.foreach{_ addPage page}
     }
   }
   /**
@@ -135,7 +133,7 @@ trait RElem extends net.liftweb.util.Bindable {
     addPage(page)
     val e = baseElem % new UnprefixedAttribute("id", id, Null)
     val withProps = properties.foldLeft(e){
-      case (e, prop) => e % prop.asAttribute
+      case (e, prop) => prop(e)
     }
     events.foldLeft[Elem](withProps){
       case (e, evt: DOMEventSource[_]) => e % evt.asAttribute
