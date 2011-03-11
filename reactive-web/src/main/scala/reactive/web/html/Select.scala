@@ -23,13 +23,8 @@ class Select[T](
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
    */
-  val selectedIndex = new DOMProperty[Option[Int]] {
-    val value = Var[Option[Int]](None)
-    def fromString(s: String) = net.liftweb.util.Helpers.asInt(s).toOption.filter(_ != -1)
-    def asString(v: Option[Int]) = v.map(_.toString) getOrElse "-1"
-    def name = "selectedIndex"
-    this updateOn change
-  }
+  val selectedIndex = Select.selectedIndex(Var(None))
+  selectedIndex updateOn change
   /**
    * A signal that represents the selected item as a T.
    */
@@ -64,6 +59,12 @@ class Select[T](
  * Provides several factories for creating Selects
  */
 object Select {
+  def selectedIndex(v: Var[Option[Int]]) = new DOMProperty[Option[Int]] {
+    val value = v
+    def fromString(s: String) = net.liftweb.util.Helpers.asInt(s).toOption.filter(_ != -1)
+    def asString(v: Option[Int]) = v.map(_.toString) getOrElse "-1"
+    def name = "selectedIndex"
+  }
   /**
    * @tparam T the type of the items
    * @param selected which item is initially selected?

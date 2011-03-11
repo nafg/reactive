@@ -26,19 +26,8 @@ class CheckboxInput(
   /**
    * The checked property. Whether the checkbox is checked.
    */
-  val checked = new DOMProperty[Boolean] {
-    val value = _value
-    def fromString(s: String) = s.toLowerCase match {
-      case "" | net.liftweb.util.Helpers.AsInt(0) | "false" => false
-      case _ => true
-    }
-    def asString(v: Boolean) = if(v) "true" else "false"
-    override def asAttribute = if(value.now) new scala.xml.UnprefixedAttribute(name, "checked", scala.xml.Null) else scala.xml.Null
-    
-    def name = "checked"
-    
-    this updateOn change
-  }
+  val checked = CheckboxInput.checked(_value)
+  checked updateOn change
   
   def events = List(dblClick, keyUp, change)
   def properties = List(checked)
@@ -49,6 +38,17 @@ class CheckboxInput(
  * Provides several factories for creating CheckboxInputs
  */
 object CheckboxInput {
+  def checked(v: Var[Boolean]) = new DOMProperty[Boolean] {
+    val value = v
+    def fromString(s: String) = s.toLowerCase match {
+      case "" | net.liftweb.util.Helpers.AsInt(0) | "false" => false
+      case _ => true
+    }
+    def asString(v: Boolean) = if(v) "true" else "false"
+    override def asAttribute = if(value.now) new scala.xml.UnprefixedAttribute(name, "checked", scala.xml.Null) else scala.xml.Null
+    
+    def name = "checked"
+  }
   /**
    * Creates a CheckboxInput whose checked state is kept in the provided Var
    * @param value the Var to maintain the checkbox's state
