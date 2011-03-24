@@ -14,7 +14,8 @@ trait Button extends RElem {
   /**
    * The click DOM event
    */
-  val click = new DOMEventSource[Click]
+  val click = DOMEventSource.click
+  
   def baseElem = <button type={buttonType.toString.toLowerCase} />
   def events = List(click)
   def properties = Nil
@@ -32,6 +33,12 @@ trait Button extends RElem {
  * Provides several factories for creating Buttons
  */
 object Button {
+  def disabled(v: Var[Boolean]) = new DOMBooleanProperty {
+    def name = "disabled"
+    val value = v
+  }
+
+  
   /**
    * Creates a Button Cell of the specified type and with the specified contents
    * @param buttonType the type of the button. Default is ButtonType.Button

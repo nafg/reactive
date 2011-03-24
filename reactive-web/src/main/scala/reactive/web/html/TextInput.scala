@@ -14,15 +14,15 @@ class TextInput(
   /**
    * The doubleclick DOM event
    */
-  val dblClick = new DOMEventSource[DblClick]
+  val dblClick = DOMEventSource.dblClick
   /**
    * The keyup DOM event
    */
-  val keyUp = new DOMEventSource[KeyUp]
+  val keyUp = DOMEventSource.keyUp
   /**
    * The change DOM event
    */
-  val change = new DOMEventSource[Change.type]
+  val change = DOMEventSource.change
   /**
    * The value DOM attribute/property. The contents of the input field.
    */
@@ -50,7 +50,7 @@ object TextInput {
     val value = v
   }
   /**
-   * The size attribute/property. The width, in characters, of the input.
+   * The size DOM attribute/property. The width, in characters, of the input.
    * @param v the Var[String] to synchronize with the property
    */
   def size(v: Var[Int]) = new DOMIntProperty {

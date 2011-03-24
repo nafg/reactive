@@ -163,3 +163,22 @@ class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) {
 
 
 
+object DOMEventSource {
+  /**
+   * Creates a new Click DOMEventSource
+   */
+  def click = new DOMEventSource[Click]
+  /**
+   * Creates a new DblClick DOMEventSource
+   */
+  def dblClick = new DOMEventSource[DblClick]
+  /**
+   * Creates a new KeyUp DOMEventSource
+   */
+  def keyUp = new DOMEventSource[KeyUp]
+  /**
+   * Creates a new Change DOMEventSource
+   */
+  def change = new DOMEventSource[Change.type]
+  
+}

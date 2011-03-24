@@ -13,16 +13,15 @@ class CheckboxInput(
   /**
    * The dblclick DOM event
    */
-  //TODO move common events into traits
-  val dblClick = new DOMEventSource[DblClick]
+  val dblClick = DOMEventSource.dblClick
   /**
    * The keyup DOM event
    */
-  val keyUp = new DOMEventSource[KeyUp]
+  val keyUp = DOMEventSource.keyUp
   /**
    * The change DOM event
    */
-  val change = new DOMEventSource[Change.type]
+  val change = DOMEventSource.change
   /**
    * The checked property. Whether the checkbox is checked.
    */
@@ -37,16 +36,9 @@ class CheckboxInput(
  * Provides several factories for creating CheckboxInputs
  */
 object CheckboxInput {
-  def checked(v: Var[Boolean]) = new DOMProperty[Boolean] {
-    val value = v
-    def fromString(s: String) = s.toLowerCase match {
-      case "" | net.liftweb.util.Helpers.AsInt(0) | "false" => false
-      case _ => true
-    }
-    def asString(v: Boolean) = if(v) "true" else "false"
-    override def asAttribute = if(value.now) new scala.xml.UnprefixedAttribute(name, "checked", scala.xml.Null) else scala.xml.Null
-    
+  def checked(v: Var[Boolean]) = new DOMBooleanProperty {
     def name = "checked"
+    val value = v
   }
   /**
    * Creates a CheckboxInput whose checked state is kept in the provided Var

@@ -10,11 +10,11 @@ trait Div extends RElem {
   /**
    * The dblclick event
    */
-  lazy val dblClick = new DOMEventSource[DblClick]
+  lazy val dblClick = DOMEventSource.dblClick
   /**
    * The keyUp event
    */
-  lazy val keyUp = new DOMEventSource[KeyUp]
+  lazy val keyUp = DOMEventSource.keyUp
   
   def events = List(dblClick, keyUp)
   def properties = Nil

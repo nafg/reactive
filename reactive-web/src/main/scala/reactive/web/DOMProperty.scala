@@ -3,7 +3,7 @@ package web
 
 import net.liftweb.http.js.{JsCmds, JE, JsCmd, JsExp}
 	import JsCmds.SetExp
-	import JE.{JsRaw, Str}
+	import JE.{JsRaw, Str, Num}
 import scala.xml.{Elem, MetaData, NodeSeq, Null, UnprefixedAttribute}
 
 import scala.ref.WeakReference
@@ -48,7 +48,7 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
    * The javascript statement to mutate this property
    * @param v the value to mutate it to, as a String
    */
-  def writeJS(id: String)(v: String): JsCmd = SetExp(readJS(id), Str(v))
+  def writeJS(id: String)(v: JsExp): JsCmd = SetExp(readJS(id), v)
   
   /**
    * How to get a T from the String sent via ajax with events
@@ -57,12 +57,20 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
   /**
    * How to get a String to put in the attribute or send to the browser via ajax or comet, given a T
    */
-  protected def asString(v: T): String
+  protected def asJS(v: T): JsExp
+  
+  /**
+   * The attribute's value, or None for no attribute
+   */
+  protected def asAttributeValue(v: T): Option[String]
   
   /**
    * Returns an attribute representing the value of this property, if applicable
    */
-  def asAttribute: MetaData = new UnprefixedAttribute(name, asString(value.now), Null)
+  def asAttribute: MetaData = asAttributeValue(value.now) match {
+    case Some(v) => new UnprefixedAttribute(name, v, Null)
+    case None => Null
+  }
   
   /**
    * Registers a Page with this JSProperty.
@@ -109,7 +117,7 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
     value foreach {v =>
       if(ajaxOwner.value != Some(owner)) {
         for(owner <- owners; Owner(page,id) <- owner.get)  Reactions.inAnyScope(page) {
-          Reactions.queue(writeJS(id)(asString(v)))
+          Reactions.queue(writeJS(id)(asJS(v)))
         }
       }
     }
@@ -166,7 +174,8 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
 //TODO use implicit objects
 trait DOMStringProperty extends DOMProperty[String] {
   def fromString(s: String) = s
-  def asString(v: String) = v
+  def asJS(v: String) = Str(v)
+  def asAttributeValue(v: String) = Some(v)
 }
 
 /**
@@ -175,5 +184,15 @@ trait DOMStringProperty extends DOMProperty[String] {
 trait DOMIntProperty extends DOMProperty[Int] {
   def default = 0
   def fromString(s: String) = try{s.toInt} catch {case _ => default}
-  def asString(v: Int) = v.toString
+  def asJS(v: Int) = Num(v)
+  def asAttributeValue(v: Int) = Some(v.toString)
+}
+
+trait DOMBooleanProperty extends DOMProperty[Boolean] {
+  def fromString(s: String) = s.toLowerCase match {
+    case "" | net.liftweb.util.Helpers.AsInt(0) | "false" => false
+    case _ => true
+  }
+  def asJS(v: Boolean) = v: JsExp
+  def asAttributeValue(v: Boolean) = if(v) Some(name) else None
 }

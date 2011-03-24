@@ -18,7 +18,7 @@ class Select[T](
   /**
    * The change DOM event
    */
-  val change = new DOMEventSource[Change.type]
+  val change = DOMEventSource.change
   /**
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
@@ -62,7 +62,8 @@ object Select {
   def selectedIndex(v: Var[Option[Int]]) = new DOMProperty[Option[Int]] {
     val value = v
     def fromString(s: String) = net.liftweb.util.Helpers.asInt(s).toOption.filter(_ != -1)
-    def asString(v: Option[Int]) = v.map(_.toString) getOrElse "-1"
+    def asJS(v: Option[Int]) = (v getOrElse -1): Int
+    def asAttributeValue(v: Option[Int]) = v.map(_.toString)
     def name = "selectedIndex"
   }
   /**
