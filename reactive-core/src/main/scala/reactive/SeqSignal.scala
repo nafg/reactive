@@ -91,7 +91,7 @@ class MappedSeqSignal[T, E](
       println(toString+": parent is not a SeqSignal")
   }
 
-  override def toString = "MappedSeqSignal("+parent+","+f.getClass+"@"+Integer.toHexString(System.identityHashCode(f))+")"
+  override def toString = "MappedSeqSignal("+parent+","+Util.debugString(f)+")"
 }
 
 protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
@@ -127,7 +127,7 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
 
 
 
-/**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.  Note that you must make sure ''observing'' is initialized  before this trait's body is executed.
+/**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.
  */
 trait ChangingSeqSignal[T] extends SeqSignal[T] {
   private lazy val change0 = new EventSource[TransformedSeq[T]] {}

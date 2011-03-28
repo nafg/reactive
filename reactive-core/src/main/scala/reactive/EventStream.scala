@@ -328,6 +328,8 @@ trait EventSource[T] extends EventStream[T] {
   }
   
   private[reactive] def addListener(f: (T) => Unit): Unit = {
+    if(debug)
+      println(Util.debugString(this)+": In addListener("+Util.debugString(f)+")")
     listeners = listeners.filter(_.get.isDefined) :+ new WeakReference(f)
   }
   private[reactive] def removeListener(f: (T) => Unit): Unit = {
