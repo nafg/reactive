@@ -143,4 +143,10 @@ filterSignal.flatMap{ filter =&gt;
 
 <button onclick="showdemo('Signal_flatMap')">Live Example</button>
 
+<h3><code>zip</code></h3>
+<p>A method that can be convenient sometimes is <code>zip</code>. A parallel to the collections' <code>zip</code> method,
+it allows you to create a <code>Tuple2</code>-valued <code>Signal</code> from two <code>Signal</code>s.</p>
+<pre class="brush:scala">
+def nameAndAge(name: Signal[String], age: Signal[Int]): Signal[(String,Int)] = name zip age
+</pre>
 </div>

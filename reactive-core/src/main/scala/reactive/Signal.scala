@@ -66,6 +66,12 @@ trait Signal[+T] {
    */
   //TODO perhaps allow for flatMap(T => EventStream[U]), i.e., S==EventStream?
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
+  
+  def zip[U](that: Signal[U]): Signal[(T,U)] = this flatMap {v1 =>
+    that map {v2 =>
+      (v1, v2)
+    }
+  }
 }
 
 
