@@ -20,6 +20,10 @@ class Select[T](
    */
   val change = DOMEventSource.change
   /**
+   * The click DOM event
+   */
+  val click = DOMEventSource.click
+  /**
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
    */
