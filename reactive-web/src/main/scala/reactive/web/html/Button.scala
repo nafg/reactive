@@ -33,10 +33,8 @@ trait Button extends RElem {
  * Provides several factories for creating Buttons
  */
 object Button {
-  def disabled(v: Var[Boolean]) = new DOMBooleanProperty {
-    def name = "disabled"
-    val value = v
-  }
+  def disabled = DOMProperty("disabled")
+  
 
   
   /**

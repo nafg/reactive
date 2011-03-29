@@ -50,24 +50,13 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
    */
   def writeJS(id: String)(v: JsExp): JsCmd = SetExp(readJS(id), v)
   
-  /**
-   * How to get a T from the String sent via ajax with events
-   */
-  protected def fromString(s: String): T
-  /**
-   * How to get a String to put in the attribute or send to the browser via ajax or comet, given a T
-   */
-  protected def asJS(v: T): JsExp
   
-  /**
-   * The attribute's value, or None for no attribute
-   */
-  protected def asAttributeValue(v: T): Option[String]
+  def codec: PropertyCodec[T]
   
   /**
    * Returns an attribute representing the value of this property, if applicable
    */
-  def asAttribute: MetaData = asAttributeValue(value.now) match {
+  def asAttribute: MetaData = codec.toAttributeValue(name, value.now) match {
     case Some(v) => new UnprefixedAttribute(name, v, Null)
     case None => Null
   }
@@ -99,7 +88,7 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
     def setFromAjax(evt: Map[String,String]) {
       evt.get(eventDataKey) foreach {v =>
         ajaxOwner.withValue(Some(owner)) {
-          value.update(fromString(v))
+          value.update(codec.fromString(v))
         }
       }
     }
@@ -117,7 +106,7 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
     value foreach {v =>
       if(ajaxOwner.value != Some(owner)) {
         for(owner <- owners; Owner(page,id) <- owner.get)  Reactions.inAnyScope(page) {
-          Reactions.queue(writeJS(id)(asJS(v)))
+          Reactions.queue(writeJS(id)(codec.toJS(v)))
         }
       }
     }
@@ -168,31 +157,66 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
   def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
 }
 
-/**
- * Provides identity conversions
- */
-//TODO use implicit objects
-trait DOMStringProperty extends DOMProperty[String] {
-  def fromString(s: String) = s
-  def asJS(v: String) = Str(v)
-  def asAttributeValue(v: String) = Some(v)
-}
-
-/**
- * Provides conversions between Int and String
- */
-trait DOMIntProperty extends DOMProperty[Int] {
-  def default = 0
-  def fromString(s: String) = try{s.toInt} catch {case _ => default}
-  def asJS(v: Int) = Num(v)
-  def asAttributeValue(v: Int) = Some(v.toString)
-}
-
-trait DOMBooleanProperty extends DOMProperty[Boolean] {
-  def fromString(s: String) = s.toLowerCase match {
-    case "" | net.liftweb.util.Helpers.AsInt(0) | "false" => false
-    case _ => true
+object DOMProperty {
+  class PropertyFactory(name: String) { factory =>
+    def apply[T](v: Var[T])(implicit codec0: PropertyCodec[T]) = new DOMProperty[T] {
+      val codec = codec0
+      val name = factory.name
+      val value = v
+    }
+    def apply[T](initial: T)(onChange: T=>Unit)(implicit codec0: PropertyCodec[T], observing: Observing) = new DOMProperty[T] {
+      val codec = codec0
+      val name = factory.name
+      val value = Var(initial)
+      value.change foreach onChange
+    }
   }
-  def asJS(v: Boolean) = v: JsExp
-  def asAttributeValue(v: Boolean) = if(v) Some(name) else None
+  def apply(name: String) = new PropertyFactory(name)
 }
+
+
+/**
+ * Instances of this trait specify how to transport element property values to and from the client.
+ */
+trait PropertyCodec[T] {
+  /**
+   * Get a T from the String representation sent via ajax with events (via DOMEventSource.rawEventData)
+   */
+  def fromString(s: String): T
+  /**
+   * How to send the value as JavaScript to the browser via ajax or comet
+   */
+  def toJS(v: T): JsExp
+  /**
+   * The attribute value to initialize the property's value, or None for no attribute
+   */
+  def toAttributeValue(propName: String, v: T): Option[String]
+}
+
+object PropertyCodec {
+  implicit val string: PropertyCodec[String] = new PropertyCodec[String] {
+    def fromString(s: String) = s
+    def toJS(s: String) = Str(s)
+    def toAttributeValue(propName: String, v: String) = Some(v)
+  }
+  implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
+    def fromString(s: String) = s.toInt
+    def toJS(i: Int) = Num(i)
+    def toAttributeValue(propName: String, v: Int) = Some(v.toString)
+  }
+  implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
+    def fromString(s: String) = s.toInt match {case -1 => None  case n => Some(n)}
+    def toJS(io: Option[Int]) = Num(io getOrElse -1)
+    def toAttributeValue(propName: String, v: Option[Int]) = v.map(_.toString)
+  }
+  implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {
+    def fromString(s: String) = s.toLowerCase match {
+      case ""| "false" | net.liftweb.util.Helpers.AsInt(0) => false
+      case _ => true
+    }
+    def toJS(b: Boolean) = if(b) JE.JsTrue else JE.JsFalse
+    def toAttributeValue(propName: String, v: Boolean) = if(v) Some(propName) else None
+  }
+}
+
+

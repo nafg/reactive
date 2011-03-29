@@ -36,10 +36,8 @@ class CheckboxInput(
  * Provides several factories for creating CheckboxInputs
  */
 object CheckboxInput {
-  def checked(v: Var[Boolean]) = new DOMBooleanProperty {
-    def name = "checked"
-    val value = v
-  }
+  def checked = DOMProperty("checked")
+  
   /**
    * Creates a CheckboxInput whose checked state is kept in the provided Var
    * @param value the Var to maintain the checkbox's state

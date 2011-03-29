@@ -45,18 +45,14 @@ object TextInput {
    * The value DOM attribute/property. The contents of the input field.
    * @param v the Var[String] to synchronize with the property
    */
-  def value(v: Var[String]) = new DOMStringProperty {
-    def name = "value"
-    val value = v
-  }
+  def value = DOMProperty("value")
+  
   /**
    * The size DOM attribute/property. The width, in characters, of the input.
    * @param v the Var[String] to synchronize with the property
    */
-  def size(v: Var[Int]) = new DOMIntProperty {
-    def name = "size"
-    val value = v
-  }
+  def size = DOMProperty("size")
+  
   
   /**
    * Create a TextInput whose value property is kept in a Var.
