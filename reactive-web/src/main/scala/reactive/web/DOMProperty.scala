@@ -1,10 +1,10 @@
 package reactive
 package web
 
-import net.liftweb.http.js.{JsCmds, JE, JsCmd, JsExp}
-	import JsCmds.SetExp
-	import JE.{JsRaw, Str, Num}
-import scala.xml.{Elem, MetaData, NodeSeq, Null, UnprefixedAttribute}
+import net.liftweb.http.js.{ JsCmds, JE, JsCmd, JsExp }
+import JsCmds.SetExp
+import JE.{ JsRaw, Str, Num }
+import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
 
 import scala.ref.WeakReference
 
@@ -12,15 +12,15 @@ import scala.ref.WeakReference
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
  * and updateable on the client via the server
  * @tparam T the type of the value represented by the property
-*/
-trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
+ */
+trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
   private case class Owner(page: Page, id: String)
-  
+
   /**
    * The Var that represents the property's value
    */
   val value: Var[T]
-  
+
   /**
    * The javascript name of the property
    */
@@ -29,30 +29,29 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
    * The value of the property is sent to the server with
    * events using this key in the set of key-value pairs
    */
-  def eventDataKey = "jsprop" + name
-  
+  def eventDataKey = "jsprop"+name
+
   private var owners = List[WeakReference[Owner]]()
   private var eventSources = List[DOMEventSource[_]]()
-  private var includedEvents = List[DOMEventSource[_<:DOMEvent]]()
-  
+  private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
+
   /**
    * The Page whose ajax event the current thread is responding to, if any
    */
   private val ajaxOwner = new scala.util.DynamicVariable[Option[Owner]](None)
-  
+
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS(id: String): JsExp = JsRaw("document.getElementById('" + id + "')." + name)
+  def readJS(id: String): JsExp = JsRaw("document.getElementById('"+id+"')."+name)
   /**
    * The javascript statement to mutate this property
    * @param v the value to mutate it to, as a String
    */
   def writeJS(id: String)(v: JsExp): JsCmd = SetExp(readJS(id), v)
-  
-  
+
   def codec: PropertyCodec[T]
-  
+
   /**
    * Returns an attribute representing the value of this property, if applicable
    */
@@ -60,7 +59,7 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
     case Some(v) => new UnprefixedAttribute(name, v, Null)
     case None => Null
   }
-  
+
   /**
    * Registers a Page with this JSProperty.
    * This means that any events linked to this property will
@@ -74,9 +73,9 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
    */
   //TODO should events be associated with a Page more directly/explicitly?
   def addOwner(id: String)(implicit page: Page): Unit = {
-    val owner = Owner(page,id)
+    val owner = Owner(page, id)
     owners ::= new WeakReference(owner)
-    
+
     /**
      * Causes the value of this property to be updated by extracting its new value
      * from raw event data.
@@ -85,8 +84,8 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
      * With the thread-local 'ajaxPage' set to the Page addPage was called with,
      * the value Var is updated.
      */
-    def setFromAjax(evt: Map[String,String]) {
-      evt.get(eventDataKey) foreach {v =>
+    def setFromAjax(evt: Map[String, String]) {
+      evt.get(eventDataKey) foreach { v =>
         ajaxOwner.withValue(Some(owner)) {
           value.update(codec.fromString(v))
         }
@@ -94,24 +93,24 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
     }
     //apply linked DOM event sources
     //TODO only pages that also own es
-    for(owner <- owners; Owner(page,id) <- owner.get; es <- eventSources)
+    for (owner <- owners; Owner(page, id) <- owner.get; es <- eventSources)
       es.rawEventData += (eventDataKey -> readJS(id))
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
     eventSources.foreach(_.rawEventStream.foreach(setFromAjax)(page))
-    
+
     // Whenever the property is updated from a page besides the one
     // being added now, send to all other pages javascript to apply
     // the new value.
-    value foreach {v =>
-      if(ajaxOwner.value != Some(owner)) {
-        for(owner <- owners; Owner(page,id) <- owner.get)  Reactions.inAnyScope(page) {
+    value foreach { v =>
+      if (ajaxOwner.value != Some(owner)) {
+        for (owner <- owners; Owner(page, id) <- owner.get) Reactions.inAnyScope(page) {
           Reactions.queue(writeJS(id)(codec.toJS(v)))
         }
       }
     }
   }
-  
+
   /**
    * Link events with this property. The value
    * will be updated on the server whenever an
@@ -134,12 +133,12 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
    * Elem as this property!
    * @return This DOMProperty
    */
-  def withEvents(es: DOMEventSource[_<:DOMEvent]*): this.type = {
+  def withEvents(es: DOMEventSource[_ <: DOMEvent]*): this.type = {
     updateOn(es: _*)
     includedEvents :::= es.toList
     this
   }
-  
+
   /**
    * Returns an Elem with this property applied by adding
    * its corresponding attribute, as well as that of any
@@ -149,9 +148,9 @@ trait DOMProperty[T] extends (NodeSeq=>NodeSeq) {
    */
   def apply(elem: Elem)(implicit p: Page): Elem = {
     val ret = RElem.withId(elem) % asAttribute
-    addOwner(ret attributes("id") text)
-    includedEvents.foldLeft(ret){
-    	case (e, es) => es(e)
+    addOwner(ret attributes ("id") text)
+    includedEvents.foldLeft(ret) {
+      case (e, es) => es(e)
     }
   }
   def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
@@ -164,7 +163,7 @@ object DOMProperty {
       val name = factory.name
       val value = v
     }
-    def apply[T](initial: T)(onChange: T=>Unit)(implicit codec0: PropertyCodec[T], observing: Observing) = new DOMProperty[T] {
+    def apply[T](initial: T)(onChange: T => Unit)(implicit codec0: PropertyCodec[T], observing: Observing) = new DOMProperty[T] {
       val codec = codec0
       val name = factory.name
       val value = Var(initial)
@@ -173,7 +172,6 @@ object DOMProperty {
   }
   def apply(name: String) = new PropertyFactory(name)
 }
-
 
 /**
  * Instances of this trait specify how to transport element property values to and from the client.
@@ -205,18 +203,17 @@ object PropertyCodec {
     def toAttributeValue(propName: String, v: Int) = Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
-    def fromString(s: String) = s.toInt match {case -1 => None  case n => Some(n)}
+    def fromString(s: String) = s.toInt match { case -1 => None case n => Some(n) }
     def toJS(io: Option[Int]) = Num(io getOrElse -1)
     def toAttributeValue(propName: String, v: Option[Int]) = v.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {
     def fromString(s: String) = s.toLowerCase match {
-      case ""| "false" | net.liftweb.util.Helpers.AsInt(0) => false
+      case "" | "false" | net.liftweb.util.Helpers.AsInt(0) => false
       case _ => true
     }
-    def toJS(b: Boolean) = if(b) JE.JsTrue else JE.JsFalse
-    def toAttributeValue(propName: String, v: Boolean) = if(v) Some(propName) else None
+    def toJS(b: Boolean) = if (b) JE.JsTrue else JE.JsFalse
+    def toAttributeValue(propName: String, v: Boolean) = if (v) Some(propName) else None
   }
 }
-
 
