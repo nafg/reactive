@@ -32,8 +32,13 @@ class Select[T](
   /**
    * A signal that represents the selected item as a T.
    */
-  //TODO flatMap items + selectedIndex
-  val selectedItem: Signal[Option[T]] = selectedIndex.value map {optN => optN map {n=>items.now(n)}}
+  val selectedItem: Signal[Option[T]] = for {
+    si <- selectedIndex.value
+    is <- items
+  } yield si.filter{i =>
+    if(i < is.length) true else {println("WARNING: selectedIndex %d is out of bounds (%d)".format(i,is.length));false}
+  } map is
+  
   /**
    * Call this to select another (or no) item.
    */
@@ -51,6 +56,14 @@ class Select[T](
         else
           <option>{renderer(item)}</option>
       }
+    }
+  }
+  
+  override protected def addPage(implicit page: Page) {
+    super.addPage(page)
+    items.change.foreach{is =>
+      val i = selectedIndex.value.now map {_.min(is.length-1)}
+      selectedIndex.value ()= i
     }
   }
   
