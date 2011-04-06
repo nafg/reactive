@@ -62,7 +62,7 @@ class Select[T](
   override protected def addPage(implicit page: Page) {
     super.addPage(page)
     items.change.foreach{is =>
-      val i = selectedIndex.value.now map {_.min(is.length-1)}
+      val i = selectedIndex.value.now map {_.min(is.length-1)} filter {_ >= 0}
       selectedIndex.value ()= i
     }
   }
