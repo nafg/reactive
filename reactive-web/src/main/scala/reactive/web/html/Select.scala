@@ -36,7 +36,7 @@ class Select[T](
     si <- selectedIndex.value
     is <- items
   } yield si.filter{i =>
-    if(i < is.length) true else {println("WARNING: selectedIndex %d is out of bounds (%d)".format(i,is.length));false}
+    if(i < is.length && i >= 0) true else {println("WARNING: selectedIndex %d is out of bounds (%d)".format(i,is.length));false}
   } map is
   
   /**
