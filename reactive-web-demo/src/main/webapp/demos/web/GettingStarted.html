@@ -11,7 +11,7 @@
   <pre>
   git clone git://github.com/nafg/reactive.git
   cd reactive
-  sbt publish-local
+  sbt update publish-local
   </pre></li>
   <li>
   <h3>Choose an existing Lift sbt project or <a
@@ -24,7 +24,7 @@
   file is called), for example:</p>
   <pre class="brush: scala">
   override def libraryDependencies = Set(
-    "reactive" %% "reactive-web" % "0.1",
+    "cc.co.reactive" %% "reactive-web" % "0.0.1-SNAPSHOT",
     //...
   ) ++ super.libraryDependencies
   </pre></li>
