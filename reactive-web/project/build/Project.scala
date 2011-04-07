@@ -1,7 +1,7 @@
 import sbt._
 
 class ReactiveWebProject(info: ProjectInfo)
-extends DefaultProject(info) with extract.BasicSelfExtractingProject {
+extends DefaultProject(info) {
   val mavenLocal = "Local Maven Repository" at
   "file://"+Path.userHome+"/.m2/repository"
 
@@ -25,6 +25,5 @@ extends DefaultProject(info) with extract.BasicSelfExtractingProject {
     "org.scala-tools.testing" %% "specs" % "1.6.6" % "test->default"
   ) ++ super.libraryDependencies
   
-  override def installActions = "update" :: "publish-local" :: Nil
 }
 
