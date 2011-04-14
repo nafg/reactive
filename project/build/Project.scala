@@ -15,7 +15,7 @@ trait Common {this: DefaultProject =>
   
   val publishTo = "Sonatype Nexus Repository Manager" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-  Credentials(Path fromString "/private/nafg/.credentials", log)
+  Credentials(Path fromFile "/private/nafg/.credentials", log)
 
 }
 
@@ -52,6 +52,7 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
       </xml:group>
       val liftVersion = "2.4-SNAPSHOT"
       val testkit = "net.liftweb" %% "lift-testkit" % liftVersion
+      val webkit = "net.liftweb" %% "lift-webkit" % liftVersion
       val jetty = "org.mortbay.jetty" % "jetty" % "6.1.22" % "test->default"
       val scalatest = "org.scalatest" % "scalatest" % "1.2" % "test->default" withSources
     },
