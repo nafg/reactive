@@ -10,7 +10,7 @@ class ReactiveWebDemoProject(info: ProjectInfo) extends DefaultWebProject(info) 
   val scalatools_release = "Scala Tools Release" at
   "http://scala-tools.org/repo-releases/"
 
-  val liftVersion = "2.3-SNAPSHOT"
+  val liftVersion = "2.4-SNAPSHOT"
 
   override def libraryDependencies = Set(
     "net.liftweb" %% "lift-webkit" % liftVersion % "compile->default" withSources,
