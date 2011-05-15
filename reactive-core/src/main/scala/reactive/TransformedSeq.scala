@@ -94,6 +94,7 @@ trait TransformedSeq[T]
   }
   trait FlatMapped[U] extends IndexTransformed[U] {
     def mapping: T => Traversable[U]
+    def mapping: T => scala.collection.GenTraversableOnce[U]
     protected def initIndex = {
       val index = new ArrayBuffer[Int] {
         override def toString = outer.toString+" -> "+underlying+" : "+toSeq.zipWithIndex.map { case (a, b) => b+"->"+a }.mkString("[", ",", "]")
@@ -227,7 +228,7 @@ trait TransformedSeq[T]
     val mapping = f
     def underlying = result
   }
-  protected def newFlatMapped[U](f: T => Traversable[U])(result: Seq[U]): TransformedSeq[U] = new FlatMapped[U] {
+  protected def newFlatMapped[U](f: T => scala.collection.GenTraversableOnce[U])(result: Seq[U]): TransformedSeq[U] = new FlatMapped[U] {
     def mapping = f
     def underlying = result
   }
@@ -263,7 +264,7 @@ trait TransformedSeq[T]
   }
   override def collect[U, That](pf: PartialFunction[T, U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That =
     filter(pf.isDefinedAt _).map(pf)(bf)
-  override def flatMap[U, That](f: T => Traversable[U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That =
+  override def flatMap[U, That](f: T => scala.collection.GenTraversableOnce[U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That =
     getThat(super.flatMap(f))(newFlatMapped(f))
   override def filter(p: T => Boolean): TransformedSeq[T] =
     newFiltered(p)(super.filter(p))
