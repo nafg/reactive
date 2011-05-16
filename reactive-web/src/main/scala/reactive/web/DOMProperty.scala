@@ -2,7 +2,7 @@ package reactive
 package web
 
 import net.liftweb.http.js.{ JsCmds, JE, JsCmd, JsExp }
-import JsCmds.SetExp
+import JsCmds.{ SetExp, JsTry }
 import JE.{ JsRaw, Str, Num }
 import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
 
@@ -31,14 +31,14 @@ trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
    */
   def eventDataKey = "jsprop"+name
 
-  private var owners = List[WeakReference[Owner]]()
+  private var owners = new scala.collection.mutable.WeakHashMap[Page, String]()
   private var eventSources = List[DOMEventSource[_]]()
   private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
 
   /**
    * The Page whose ajax event the current thread is responding to, if any
    */
-  private val ajaxOwner = new scala.util.DynamicVariable[Option[Owner]](None)
+  private val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
 
   /**
    * The javascript expression that evaluates to the value of this property
@@ -48,14 +48,14 @@ trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
    * The javascript statement to mutate this property
    * @param v the value to mutate it to, as a String
    */
-  def writeJS(id: String)(v: JsExp): JsCmd = SetExp(readJS(id), v)
+  def writeJS(id: String)(v: JsExp): JsCmd = JsTry(SetExp(readJS(id), v), false)
 
   def codec: PropertyCodec[T]
 
   /**
    * Returns an attribute representing the value of this property, if applicable
    */
-  def asAttribute: MetaData = codec.toAttributeValue(name, value.now) match {
+  def asAttribute: MetaData = codec.toAttributeValue(name)(value.now) match {
     case Some(v) => new UnprefixedAttribute(name, v, Null)
     case None => Null
   }
@@ -73,8 +73,7 @@ trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
    */
   //TODO should events be associated with a Page more directly/explicitly?
   def addOwner(id: String)(implicit page: Page): Unit = {
-    val owner = Owner(page, id)
-    owners ::= new WeakReference(owner)
+    owners(page) = id
 
     /**
      * Causes the value of this property to be updated by extracting its new value
@@ -86,15 +85,16 @@ trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
      */
     def setFromAjax(evt: Map[String, String]) {
       evt.get(eventDataKey) foreach { v =>
-        ajaxOwner.withValue(Some(owner)) {
-          value.update(codec.fromString(v))
+        ajaxPage.withValue(Some(page)) {
+          value update codec.fromString(v)
         }
       }
     }
     //apply linked DOM event sources
     //TODO only pages that also own es
-    for (owner <- owners; Owner(page, id) <- owner.get; es <- eventSources)
+    for ((page, id) <- owners; es <- eventSources) {
       es.rawEventData += (eventDataKey -> readJS(id))
+    }
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
     eventSources.foreach(_.rawEventStream.foreach(setFromAjax)(page))
@@ -103,8 +103,8 @@ trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
     // being added now, send to all other pages javascript to apply
     // the new value.
     value foreach { v =>
-      if (ajaxOwner.value != Some(owner)) {
-        for (owner <- owners; Owner(page, id) <- owner.get) Reactions.inAnyScope(page) {
+      if (ajaxPage.value != Some(page)) {
+        for ((page, id) <- owners) Reactions.inAnyScope(page) {
           Reactions.queue(writeJS(id)(codec.toJS(v)))
         }
       }
@@ -147,9 +147,14 @@ trait DOMProperty[T] extends (NodeSeq => NodeSeq) {
    * @return
    */
   def apply(elem: Elem)(implicit p: Page): Elem = {
-    val ret = RElem.withId(elem) % asAttribute
-    addOwner(ret attributes ("id") text)
-    includedEvents.foldLeft(ret) {
+    val e = owners.get(p) match {
+      case Some(id) => elem % new UnprefixedAttribute("id", id, asAttribute)
+      case None =>
+        val withId = RElem.withId(elem) % asAttribute
+        addOwner(withId attributes "id" text)
+        withId
+    }
+    includedEvents.foldLeft(e) {
       case (e, es) => es(e)
     }
   }
@@ -180,40 +185,40 @@ trait PropertyCodec[T] {
   /**
    * Get a T from the String representation sent via ajax with events (via DOMEventSource.rawEventData)
    */
-  def fromString(s: String): T
+  def fromString: String => T
   /**
    * How to send the value as JavaScript to the browser via ajax or comet
    */
-  def toJS(v: T): JsExp
+  def toJS: T => JsExp
   /**
    * The attribute value to initialize the property's value, or None for no attribute
    */
-  def toAttributeValue(propName: String, v: T): Option[String]
+  def toAttributeValue(propName: String): T => Option[String]
 }
 
 object PropertyCodec {
   implicit val string: PropertyCodec[String] = new PropertyCodec[String] {
-    def fromString(s: String) = s
-    def toJS(s: String) = Str(s)
-    def toAttributeValue(propName: String, v: String) = Some(v)
+    def fromString = s => s
+    val toJS = Str
+    def toAttributeValue(propName: String) = Some(_)
   }
   implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
-    def fromString(s: String) = s.toInt
-    def toJS(i: Int) = Num(i)
-    def toAttributeValue(propName: String, v: Int) = Some(v.toString)
+    def fromString = _.toInt
+    val toJS = Num(_: Int)
+    def toAttributeValue(propName: String) = (v: Int) => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
-    def fromString(s: String) = s.toInt match { case -1 => None case n => Some(n) }
-    def toJS(io: Option[Int]) = Num(io getOrElse -1)
-    def toAttributeValue(propName: String, v: Option[Int]) = v.map(_.toString)
+    def fromString = _.toInt match { case -1 => None case n => Some(n) }
+    val toJS = (io: Option[Int]) => Num(io getOrElse -1)
+    def toAttributeValue(propName: String) = _.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {
-    def fromString(s: String) = s.toLowerCase match {
+    def fromString = _.toLowerCase match {
       case "" | "false" | net.liftweb.util.Helpers.AsInt(0) => false
       case _ => true
     }
-    def toJS(b: Boolean) = if (b) JE.JsTrue else JE.JsFalse
-    def toAttributeValue(propName: String, v: Boolean) = if (v) Some(propName) else None
+    def toJS = (b: Boolean) => if (b) JE.JsTrue else JE.JsFalse
+    def toAttributeValue(propName: String) = (v: Boolean) => if (v) Some(propName) else None
   }
 }
 
