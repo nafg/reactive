@@ -8,4 +8,5 @@ lib_managed/
 reactive.wiki
 *~
 work/
-
+.git-bak/
+*.bak
