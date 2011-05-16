@@ -1,0 +1,80 @@
+<div class="lift:surround?with=default;at=content">
+
+<h2>Events</h2>
+<p>Reactive-web is to a large extent about browser events.
+By events we mean any event the browser can
+fire for a given element. For instance, mouse
+interactions and keyboard input. Sometimes
+you want to react to events directly. Additionally,
+element properties make use of events to stay
+up to date.</p>
+
+<h3><code>DOMEvent</code></h3>
+<p><code>DOMEvent</code>
+is a simple trait that represents the event object that is raised by the browser. It is extended
+by case classes and case objects that represent the various
+DOM events and their state. When the browser fires an event, <code>reactive-web</code>
+may fire a corresponding DOMEvent instance to your code.</p>
+
+<h3><code>DOMEventSource</code></h3>
+<p>Now that we know about that, let's move on to <code>DOMEventSource</code>.
+<code>DOMEventSource</code> wraps an <code>EventStream</code> that fires
+<code>DOMEvent</code> instances. It adds the
+ability to generate an element attribute that
+assigns an event handler which triggers the
+<code>EventStream</code> via ajax.</p>
+
+<p>You can create a <code>DOMEventSource</code> simply by
+instantiating it with the event type as a type parameter:</p>
+
+<pre class="brush: scala">
+new DOMEventSource[Focus]
+</pre>
+
+<p>For convenience, the <code>DOMEventSource</code>
+companion object contains convenience methods,
+so you can just write, e.g., <code>DOMEventSource.click</code>.</p>
+
+<p>If you have an <code>Elem</code> you can
+pass it to <code>EventStream</code>'s <code>apply</code>
+method and get back a new <code>Elem</code>
+with the event handler attribute. Also,
+<code>DOMEventSource</code> extends <code>NodeSeq=&gt;NodeSeq</code>, so
+you can use it with Lift's CSS Selectors or binding. For example:</p>
+
+
+<pre class="brush:xml">
+&lt;!-- in the template --&gt;
+&lt;button&gt;Delete!&lt;/button&gt;
+</pre>
+<pre class="brush:scala">
+// in the snippet class
+def render = {
+  val click = DOMEventSource.click
+  for(_ &lt;- click.eventStream)
+    confirm("Are you sure you want to delete it?"){
+      case true =&gt; //delete it
+    }
+  "button" #> click
+}
+</pre>
+
+<p>Here are a few of its members:</p>
+<dl>
+  <dt><code>rawEventData</code></dt>
+  <dd>A <code>Map[String,JsExp]</code> of extra data to send in the
+  ajax request when the browser fires the event. The <code>JsExp</code>
+  values are JavaScript expressions that will be evaluated when the event
+  fires and stored under the specified key.</dd>
+  <dt><code>rawEventStream</code></dt>
+  <dd>This <code>EventStream</code> fires the raw data from the ajax
+  request. Each event has the type <code>Map[String,String]</code>, where
+  keys are taken from <code>rawEventData</code>, and values are the
+  result of evaluating the corresponding <code>JsExp</code>.</dd>
+  <dt><code>eventStream</code></dt>
+  <dd>The <code>EventStream</code> that fires <code>DOMEvent</code>s.
+  The data also exists in raw form in <code>rawEventStream</code></dd>
+</dl>
+
+
+</div>
