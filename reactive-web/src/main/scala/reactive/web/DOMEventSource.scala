@@ -157,8 +157,15 @@ class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) with F
     xml.Null
   }
   
-  def apply(elem: Elem): Elem = elem % asAttribute
+  def apply(elem: Elem): Elem = {
+	  val a = asAttribute
+	  elem.attribute(a.key) match {
+	 	  case None => elem % asAttribute
+	 	  case Some(ns) => elem % new xml.UnprefixedAttribute(a.key, ns.text + ";" + a.value.text, xml.Null)
+	  }
+  }
   def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
+  
   def foreach(f: T=>Unit)(implicit o: Observing) = eventStream.foreach(f)(o)
   
   override def toString = "DOMEventSource["+manifest[T]+"]"
