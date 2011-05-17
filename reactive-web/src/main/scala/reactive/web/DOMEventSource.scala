@@ -15,10 +15,10 @@ import scala.xml.{Elem, NodeSeq}
  * Generates the javascript necessary for an event listener to
  * pass the event to the server.
  */
-//TODO better name--it is not an EventSource; only wraps and EventStream
-//that happens to be implemented as an EventSource.
+//TODO better name--it is not an EventSource; only wraps an EventStream
+//(that happens to be implemented as an EventSource).
 
-class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) {
+class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) with Forwardable[T] {
   /**
    * The EventStream that represents the primary event data
    */
@@ -159,6 +159,9 @@ class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) {
   
   def apply(elem: Elem): Elem = elem % asAttribute
   def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
+  def foreach(f: T=>Unit)(implicit o: Observing) = eventStream.foreach(f)(o)
+  
+  override def toString = "DOMEventSource["+manifest[T]+"]"
 }
 
 

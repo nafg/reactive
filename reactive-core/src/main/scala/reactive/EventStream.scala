@@ -96,7 +96,7 @@ object EventSource {
  * @tparam T the type of values fired as events
  * @see EventSource
  */
-trait EventStream[+T] {
+trait EventStream[+T] extends Forwardable[T]{
   /**
    * Registers a listener function to run whenever
    * an event is fired. The EventStream holds the
@@ -172,7 +172,7 @@ trait EventStream[+T] {
    * @param init the initial value of the signal
    */
   def hold[U>:T](init: =>U): Signal[U]
-  
+
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
 }
@@ -314,19 +314,10 @@ trait EventSource[T] extends EventStream[T] {
     val f = (v: T) => current = Some(v)
     val change = EventSource.this
     change addListener f
-    
+
     def now = current getOrElse initial
   }
-  
-  /**
-   * Causes all events fired by this EventStream to be sent to
-   * another EventStream as well.
-   * @param recipient the EventStream to forward events to
-   */
-  def forward(recipient: EventSource[T])(implicit observing: Observing) {
-    this foreach recipient.fire
-  }
-  
+
   private[reactive] def addListener(f: (T) => Unit): Unit = {
     if(debug)
       println(Util.debugString(this)+": In addListener("+Util.debugString(f)+")")
@@ -447,3 +438,4 @@ trait EventSourceProxy[T] extends EventSource[T] {
   override def foreach(f: T=>Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
   override def |[U>:T](that: EventStream[U]): EventStream[U] = underlying.|(that)
 }
+

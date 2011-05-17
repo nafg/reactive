@@ -1,0 +1,41 @@
+<div class="lift:surround?with=default;at=content">
+
+
+  <h2>Forwardable</h2>
+  <p>
+    Several types extend
+    <code>Forwardable</code>
+    . This gives you a convenient syntax,
+    <code>&gt;&gt;</code>
+    , to act on such objects' values in several common ways:
+  </p>
+  <ul>
+    <li>By running a parameterless block of code</li>
+    <li>By passing the value to a function</li>
+    <li>By assigning the value to a <code>Var</code></li>
+    <li>By firing the value from an <code>EventSource</code>.</li>
+  </ul>
+
+  <p>
+    Types that extend
+    <code>Forwardable</code>
+    include
+    <code>EventStream</code>
+    ,
+    <code>Signal</code>
+    , and reactive-web's
+    <code>DOMEventSource</code>
+    .
+  </p>
+
+  <pre class="brush:scala">
+click &gt;&gt; println("Mouse was clicked!")
+intEventStream &gt;&gt; {i: Int => println("Caught an event: "+i)}
+aVar &gt;&gt; anotherVar
+myVar &gt;&gt; myEventSource
+</pre>
+
+<p>It should be noted that forwarding can lead to more imperative code when often
+a functional solution is available and more desirable.</p>
+
+</div>

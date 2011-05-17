@@ -2,16 +2,16 @@ package reactive
 
 /**
  * A Signal in FRP represents a continuous value.
- * 
+ *
  * Here it is represented by the Signal trait, which is currently implemented in terms of a 'now' value
  * and a 'change' event stream. Transformations are implemented around those two members.
- * 
+ *
  * To obtain a signal, see Var, Val, Timer, and BufferSignal. In addition, new signals can be derived from
  * existing signals using the transformation methods defined in this trait.
  * @param T the type of value this signal contains
  */
 //TODO provide change veto (cancel) support
-trait Signal[+T] {
+trait Signal[+T] extends Forwardable[T] {
   /**
    * Represents the current value. Often, this value does not need to be
    * (or should not be) used explicitly from the outside; instead you can pass functions
@@ -24,6 +24,7 @@ trait Signal[+T] {
    * an event consisting of the new value.
    */
   def change: EventStream[T]
+
   def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
     f(now)
     change.foreach(f)(observing)
@@ -34,15 +35,15 @@ trait Signal[+T] {
    * of this Signal, transformed by f. It fires change events
    * whenever (and only when) the original Signal does, but the
    * event values are transformed by f.
-   * 
-   * For example:<pre> 
+   *
+   * For example:<pre>
    * val a: Signal[Int] = ...
    * val b = a.map(_ + 1)
    * </pre>
    * b represents a Signal whose value is always 1 greater than a.
    * Whenever a fires an event of x, b fires an event of x+1.
    */
-  def map[U, S](f: T=>U)(implicit canMapSignal: CanMapSignal[U,S]): S = canMapSignal.map(this, f)
+  def map[U, S](f: T => U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
 
   /**
    * Returns a new signal, that for every value of this parent signal,
@@ -58,7 +59,7 @@ trait Signal[+T] {
    * val sa: Signal[Int] = ...
    * def sb(a: Int): Signal[Int] = a.map(_ + 1)
    * val sc = sa.flatMap(a => sb(a))
-   * 
+   *
    * If the function is typed to return a SeqSignal, its deltas and changes correspond to
    * those of the SeqSignals returned by ''f'', after each invocation
    * of ''f''.

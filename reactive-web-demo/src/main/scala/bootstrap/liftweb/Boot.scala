@@ -1,11 +1,11 @@
 package bootstrap.liftweb
 
-import _root_.net.liftweb.common._
-import _root_.net.liftweb.util._
-import _root_.net.liftweb.http._
-import _root_.net.liftweb.sitemap._
-import _root_.net.liftweb.sitemap.Loc._
-import Helpers._
+import net.liftweb.common._
+import net.liftweb.util._
+  import Helpers._
+import net.liftweb.http._
+import net.liftweb.sitemap._
+  import Loc._
 
 /**
   * A class that's instantiated early and run.  It allows the application
@@ -30,7 +30,8 @@ class Boot {
       Menu("Core")  /"0"  >>PlaceHolder  submenus(
         Menu("EventStream")  /"demos"/"core"/"EventStream",
         Menu("Signal")  /"demos"/"core"/"Signal",
-        Menu("SeqSignal")  /"demos"/"core"/"SeqSignal"
+        Menu("SeqSignal")  /"demos"/"core"/"SeqSignal",
+        Menu("Forwardable")  /"demos"/"core"/"Forwardable"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Low Level API")  /"demos"/"web"/"LowLevel",
