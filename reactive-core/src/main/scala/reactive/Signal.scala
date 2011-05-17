@@ -24,9 +24,11 @@ trait Signal[+T] {
    * an event consisting of the new value.
    */
   def change: EventStream[T]
+  def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
+    f(now)
+    change.foreach(f)(observing)
+  }
   
-  //TODO perhaps foreach should run for current value too
-  def foreach(f: T=>Unit)(implicit observing: Observing): Unit = change.foreach(f)(observing)
   /**
    * Return a new Signal whose value is computed from the value
    * of this Signal, transformed by f. It fires change events

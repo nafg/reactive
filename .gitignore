@@ -10,3 +10,5 @@ reactive.wiki
 work/
 .git-bak/
 *.bak
+.directory
+

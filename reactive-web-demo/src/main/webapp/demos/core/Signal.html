@@ -53,6 +53,12 @@ by calling its <code>hold</code> method. And you can create a
 <code>Signal</code> by transforming another <code>Signal</code> via
 <code>map</code> and <code>flatMap</code>.</p>
 
+<h3><code>foreach</code></h3>
+<p>Just as you can react to events with <code>EventStream#foreach</code>, you can
+do something for all values of a <code>Signal</code> with <code>foreach</code>.
+Passing a function to <code>Signal#foreach</code> is equivalent to executing
+the function and then calling <code>foreach</code> on the <code>change</code>
+<code>EventStream</code> with the function.
 
 <h3><code>map</code></h3>
 <p>Just like you can <code>map</code> an <code>EventStream</code> to
@@ -149,4 +155,5 @@ it allows you to create a <code>Tuple2</code>-valued <code>Signal</code> from tw
 <pre class="brush:scala">
 def nameAndAge(name: Signal[String], age: Signal[Int]): Signal[(String,Int)] = name zip age
 </pre>
+
 </div>
