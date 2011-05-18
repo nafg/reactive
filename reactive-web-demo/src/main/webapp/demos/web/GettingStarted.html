@@ -2,34 +2,27 @@
 <h2>Getting Started with reactive-web</h2>
 <ol>
   <li>
-  <h3><a
-    href="http://code.google.com/p/simple-build-tool/wiki/Setup">
-  Install <code>sbt</code></a></h3>
-  </li>
-  <li>
-  <h3>Check out the sources and publish locally</h3>
-  <pre>
-  git clone git://github.com/nafg/reactive.git
-  cd reactive
-  sbt update publish-local
-  </pre></li>
-  <li>
-  <h3>Choose an existing Lift sbt project or <a
+  <h3>Choose an existing Lift project or <a
     href="http://www.assembla.com/wiki/show/liftweb/Using_SBT">create
   a new one</a></h3>
   </li>
   <li>
-  <h3>Add reactive-web to the dependencies</h3>
-  <p>In project/build/Project.scala (or whatever your sbt project
+  <h3>Make sure you have the Sonatype maven repository configured</h3>
+  <p>For instance, if you're using sbt 0.7.x, you should have in your project file, e.g., <code>project/build/Project.scala</code>:
+  <pre class="brush:scala">
+  val sonatype_snapshot = "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
+  </pre>
+  </li>
+  
+  <li>
+  <h3>Add reactive-web as a dependency</h3>
+  <p>For instance, if you're using sbt 0.7.x, in <code>project/build/Project.scala</code> (or whatever your project
   file is called), for example:</p>
   <pre class="brush: scala">
-  override def libraryDependencies = Set(
-    "cc.co.reactive" %% "reactive-web" % "0.0.1-SNAPSHOT",
-    //...
-  ) ++ super.libraryDependencies
+  val reactive_web = "cc.co.reactive" %% "reactive-web" % "0.0.1-SNAPSHOT"
   </pre></li>
   <li>
-  <h3>Optionally set up Comet support</h3>
+  <h3>Optionally enable Comet support</h3>
   <p>In Boot.scala:</p>
   <pre class="brush: scala">
   Reactions.initComet

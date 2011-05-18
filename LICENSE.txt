@@ -1,8 +1,7 @@
-Note: this is a draft and may be changed at any time.
-
+Note, this is a draft and may be changed at any time.
 
 You may use this software under the following conditions:
-A. You must not use it in any way that encourages transgression of the Seven Noahide Laws (according to traditional Judaism; http://en.wikipedia.org/wiki/Seven_Laws_of_Noah is pretty good). They are:
+A. You must not use it in any way that encourages transgression of the Seven Noahide Laws (as defined by traditional Judaism; http://en.wikipedia.org/wiki/Seven_Laws_of_Noah is pretty good). They are:
   1. Theft
   2. Murder
   3. Adultery
