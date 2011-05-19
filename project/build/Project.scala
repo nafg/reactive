@@ -31,7 +31,11 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
         <description>An FRP framework</description>
         <url>http://wwww.reactive-web.co.cc</url>
         <licenses></licenses>
-        <scm><url></url><connection></connection></scm>
+        <scm>
+          <connection>scm:git:git://github.com/nafg/reactive.git</connection>
+          <developerConnection>scm:git:git@github.com:nafg/reactive.git</developerConnection>
+          <url>git@github.com:nafg/reactive.git</url>
+        </scm>
         <developers></developers>
       </xml:group>
       val scalatest = "org.scalatest" % "scalatest" % "1.2" % "test->default" withSources
