@@ -19,6 +19,14 @@ class Boot {
         println("Classpath:" + rcl.getURLs.mkString("\n  ", "\n  ",""))
     }
     
+    def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".tk") &&
+      r.request.serverName != "localhost"
+    LiftRules.statelessDispatchTable.append {
+      case r if shouldRedirect(r) => () => Full(
+        PermRedirectResponse("http://reactive-web.tk"+r.uri, r, r.cookies: _*) 
+      )        
+    }
+    
     // where to search snippet
     LiftRules.addToPackages("reactive.web.demo")
 
