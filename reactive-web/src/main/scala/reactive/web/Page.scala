@@ -31,13 +31,31 @@ class Page extends Observing {
 }
 
 object Page {
+  private val dynamicScope = new scala.util.DynamicVariable[Option[Page]](None)
+
   /**
-   * Makes the Page corresponding the current request available implicitly.
-   * Must be called when S.request.isDefined
+   * Execute a block of code with a dynamically-scoped current Page
+   * @param p the Page
+   * @param b the block of code
+   */
+  def withPage[T](p: Page)(b: =>T): T = dynamicScope.withValue(Some(p))(b)
+
+  /**
+   * Makes the current Page available implicitly.
+   * Must be called when S.request.isDefined or there is
+   * a dynamically-scoped current Page.
    */
   implicit def currentPage: Page = {
-    require(S.request.isDefined, "no current request, page undefined")
-    CurrentPage.is
+    require(dynamicScope.value.isDefined || S.request.isDefined, "no current request, page undefined")
+    dynamicScope.value getOrElse CurrentPage.is
   }
+
+  /**
+   * If there is a dynamically-scoped current Page, returns it in a Some.
+   * Otherwise if there is a current request, returns the value of the CurrentPage RequestVar in a Some.
+   * Otherwise returns None
+   */
+  def currentPageOption: Option[Page] = dynamicScope.value orElse
+      S.request.map(_ => CurrentPage.is).toOption
 }
 
