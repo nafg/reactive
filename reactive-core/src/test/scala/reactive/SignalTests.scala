@@ -130,6 +130,20 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
   
 }
 
+class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {
+  test("<-->") {
+    val a = Var(10)
+    val b = Var(20) <--> a
+    a.now should equal (20)
+    
+    b ()= 3
+    a.now should equal (3)
+    
+    a ()= 16
+    b.now should equal (16)
+  }
+}
+
 object Run {
   def main(args: Array[String]) = new SignalTests().execute()
 }

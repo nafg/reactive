@@ -228,5 +228,11 @@ class Var[T](initial: T) extends Signal[T] {
 
   override def toString = "Var("+now+")"
   
+  def <-->(other: Var[T])(implicit observing: Observing): this.type = {
+    this.distinct >> other
+    other.distinct >> this
+    this
+  }
+
 }
 
