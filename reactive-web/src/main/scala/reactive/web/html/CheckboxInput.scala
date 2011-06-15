@@ -7,9 +7,7 @@ package html
  * Represents a checkbox input in the DOM
  * @param _value a Var that represents the value of the checkbox
  */
-class CheckboxInput(
-  _value: Var[Boolean] = Var(false)
-) extends RElem {
+class CheckboxInput(_value: Var[Boolean] = Var(false))(implicit observing: Observing) extends RElem {
   /**
    * The dblclick DOM event
    */
@@ -25,7 +23,7 @@ class CheckboxInput(
   /**
    * The checked property. Whether the checkbox is checked.
    */
-  val checked = CheckboxInput.checked(_value) updateOn change
+  val checked = CheckboxInput.checked(_value.now) <--> _value updateOn change
   
   def events = List(dblClick, keyUp, change)
   def properties = List(checked)
@@ -36,22 +34,22 @@ class CheckboxInput(
  * Provides several factories for creating CheckboxInputs
  */
 object CheckboxInput {
-  def checked = DOMProperty("checked")
+  def checked(init: Boolean = false)(implicit observing: Observing): PropertyVar[Boolean] = PropertyVar("checked")(init)
   
   /**
    * Creates a CheckboxInput whose checked state is kept in the provided Var
    * @param value the Var to maintain the checkbox's state
    */
-  def apply(value: Var[Boolean] = Var(false)) = new CheckboxInput(value)
+  def apply(value: Var[Boolean] = Var(false))(implicit observing: Observing) = new CheckboxInput(value)
   /**
    * Creates a CheckboxInput with the initial value default. When the value changes it is passes to setter
    * @param default the initial state of the checkbox
    * @param setter the callback to notify of changes
    */
-  def apply(default: Boolean)(setter: Boolean=>Unit)(implicit observing: Observing) = {
+/*  def apply(default: Boolean)(setter: Boolean=>Unit)(implicit observing: Observing) = {
     val v = Var(default)
     v.change foreach setter
     new CheckboxInput(v)
   }
-}
+*/}
 

@@ -14,7 +14,7 @@ class Select[T](
   items: SeqSignal[T],
   renderer: T=>String = {t:T => t.toString},
   val size: Int = 1
-) extends Repeater {
+)(implicit observing: Observing) extends Repeater {
   /**
    * The change DOM event
    */
@@ -27,13 +27,13 @@ class Select[T](
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
    */
-  val selectedIndex = Select.selectedIndex(Var(None: Option[Int])) updateOn change
+  val selectedIndex = Select.selectedIndex(None) updateOn change
   
   /**
    * A signal that represents the selected item as a T.
    */
   val selectedItem: Signal[Option[T]] = for {
-    si <- selectedIndex.value
+    si <- selectedIndex
     is <- items
   } yield si.filter{i =>
     if(i < is.length && i >= 0) true else {println("WARNING: selectedIndex %d is out of bounds (%d)".format(i,is.length));false}
@@ -45,7 +45,7 @@ class Select[T](
   //TODO perhaps just use a Var?
   //TODO what about multiple selections? Use another class?
   def selectItem(item: Option[T]) {
-    selectedIndex.value ()= item map {e=>items.now.indexOf(e)} filter(_ != -1)
+    selectedIndex ()= item.map(items.now.indexOf(_)).filter(_ != -1)
   }
 
   lazy val children = items.map {
@@ -62,8 +62,8 @@ class Select[T](
   override protected def addPage(implicit page: Page) {
     super.addPage(page)
     items.change.foreach{is =>
-      val i = selectedIndex.value.now map {_.min(is.length-1)} filter {_ >= 0}
-      selectedIndex.value ()= i
+      val i = selectedIndex.now map {_.min(is.length-1)} filter {_ >= 0}
+      selectedIndex ()= i
     }
   }
   
@@ -76,7 +76,7 @@ class Select[T](
  * Provides several factories for creating Selects
  */
 object Select {
-  def selectedIndex = DOMProperty("selectedIndex")
+  def selectedIndex(init: Option[Int] = None)(implicit observing: Observing): PropertyVar[Option[Int]] = PropertyVar("selectedIndex")(init)
   
   /**
    * @tparam T the type of the items
@@ -86,7 +86,7 @@ object Select {
    * @param size the height of the select, 1 for drop-downs
    * @param handleChange a function to call whenever the selection changes
    */
-  def apply[T](selected: Option[T], items: Seq[T], renderer: T=>String, size: Int)(handleChange: Option[T]=>Unit): Select[T] =
+  def apply[T](selected: Option[T], items: Seq[T], renderer: T=>String, size: Int)(handleChange: Option[T]=>Unit)(implicit observing: Observing): Select[T] =
     apply(selected, SeqSignal(Val(items)), renderer, size)(handleChange)
   
   /**
@@ -97,7 +97,7 @@ object Select {
    * @param size the height of the select, 1 for drop-downs. Defaults to 1.
    * @param handleChange a function to call whenever the selection changes
    */
-  def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T=>String, size: Int = 1)(handleChange: Option[T]=>Unit): Select[T] = {
+  def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T=>String, size: Int = 1)(handleChange: Option[T]=>Unit)(implicit observing: Observing): Select[T] = {
     def _size = size
     new Select[T](items, renderer) {
       override val size = _size
@@ -114,14 +114,14 @@ object Select {
    * @param items a SeqSignal representing the dynamic list of items
    * @param renderer how to display items
    */
-  def apply[T](items: SeqSignal[T], renderer: T=>String): Select[T] =
+  def apply[T](items: SeqSignal[T], renderer: T=>String)(implicit observing: Observing): Select[T] =
     new Select[T](items, renderer)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them
    * @tparam T the type of the items
    * @param items a SeqSignal representing the dynamic list of items
    */
-  def apply[T](items: SeqSignal[T]): Select[T] =
+  def apply[T](items: SeqSignal[T])(implicit observing: Observing): Select[T] =
     new Select[T](items)
   /**
    * Creates a drop-down Select.
@@ -129,13 +129,13 @@ object Select {
    * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    * @param renderer how to display items
    */
-  def apply[T](items: Signal[Seq[T]], renderer: T=>String): Select[T] =
+  def apply[T](items: Signal[Seq[T]], renderer: T=>String)(implicit observing: Observing): Select[T] =
     new Select[T](SeqSignal(items), renderer)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them
    * @tparam T the type of the items
    * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    */
-  def apply[T](items: Signal[Seq[T]]): Select[T] =
+  def apply[T](items: Signal[Seq[T]])(implicit observing: Observing): Select[T] =
     new Select[T](SeqSignal(items))
 }

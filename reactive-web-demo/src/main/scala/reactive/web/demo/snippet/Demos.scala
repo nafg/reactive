@@ -13,10 +13,10 @@ import net.liftweb.util._
 object Demos {
   def eventSourceInput(eventSource: EventSource[String])(implicit o: Observing): NodeSeq = {
     val text = TextInput()
-    val button = Button("Fire")(eventSource fire text.value.value.now)
+    val button = Button("Fire")(eventSource fire text.value.now)
     <xml:group>{text.render} {button.render}</xml:group>
   }
-  
+
   def eventStreamOutput(eventStream: EventStream[String]): NodeSeq = Div {
     lazy val events = SeqSignal(
       eventStream.foldLeft(List[String]())((list, event) => event :: list).hold(Nil)
@@ -25,8 +25,8 @@ object Demos {
       for (event <- elements) yield
         RElem(<p>Fired: '{ event }'</p>)
   }.render
-  
-  def varInput(v: Var[String]): NodeSeq = {
+
+  def varInput(v: Var[String])(implicit o: Observing): NodeSeq = {
     val textInput = TextInput(v)
     textInput.value updateOn textInput.keyUp
     textInput.render

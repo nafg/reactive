@@ -1,0 +1,81 @@
+<div class="lift:surround?with=default;at=content">
+
+<h2>Properties/Attributes</h2>
+<p>Events are the mechanism by which events get from
+the browser to your code running on the server.
+There is another mechanism that builds on events,
+and that is properties or attributes. This
+allows you to access and modify the browser's
+state. The property's state is sent to
+your code on the server with events.
+Modifications to properties are sent to the
+browser with
+the JavaScript queuing mechanism.</p>
+
+<h3><code>DOMProperty</code></h3>
+<p><code>DOMProperty</code> acts a proxy to a property or attribute of a DOM element.
+It has an <code>EventStream[String]</code> that fires updates to the property's value.
+And it has an <code>update</code> method that sets the property's value with a <code>JsExp</code>.</p>
+<p>Like <code>DOMEventSource</code>, you can apply it to an Elem and get a new Elem, or use it
+as a NodeSeq=&gt;NodeSeq function for CSS Selectors and legacy binding. Unlike <code>DOMEventSource</code> however, you need to either
+call render or rely on the implicit conversion to do so. In the case of <code>DOMProperty</code>, it
+returns an element with an added attribute
+corresponding the property and its value.
+In addition, any events it was linked to by
+calling <code>withEvents</code> will also
+be applied to the element. Also, if the element
+does not have an <code>id</code> attribute
+one will be added. <code>render</code> (and the implicit conversion) take an
+implicit <code>Page</code> (which defaults to
+the current Lift request). The element's id will be
+stored in the <code>DOMProperty</code>, for that
+<code>Page</code>, so that update commands can be sent to the browser.</p>
+
+<h3>PropertyVar</h3>
+<p>Usually you will not use <code>DOMProperty</code> directly. It fires raw values as <code>String</code>s,
+accepts new values as <code>JsExp</code>s, and does not maintain a current value. Instead,
+most of the time you will use the type-safe <code>PropertyVar</code>. <code>PropertyVar</code> extends <code>Var</code>
+and wraps a <code>DOMProperty</code>. Setting its value will will result in the corresponding
+  property being changed in the browser on whichever <code>Page</code>s
+  are registered with this <code>DOMProperty</code> (whether via Ajax or
+  Comet) except for the <code>Page</code> that is currently firing an
+  Ajax event that is setting its value, if any.</p>
+
+<p>The simplest way to instantiate a <code>PropertyVar</code>
+is by writing <code>PropertyVar("name")(initialValue)</code>.</p>
+
+<pre class="brush:scala">
+  class Snippet {
+    val value = PropertyVar("value")("")
+    def render =
+      "input" #&gt; value
+  }
+</pre>
+
+<p>That factory takes an implicit <code>PropertyCodec</code> parameter, which specifies how to
+represent the type in the browser. There are default implicit instances
+for <code>String</code>, <code>Int</code>, <code>Option[Int]</code> (<code>None</code> is represented as <code>-1</code>),
+and <code>Boolean</code> (<code>false</code> generates no attribute, <code>true</code> generates an attribute with the value set to its name,
+as in <code>checked="checked"</code>).</p>
+
+
+<p>Here are some members of <code>DOMProperty</code> and <code>PropertyVar</code>:</p>
+
+<dl>
+  <dt><code>updateOn</code></dt>
+  <dd>Calling this method with one or more <code>DOMEventSource</code>s will
+  add an element to its <code>rawEventData</code> with a JavaScript
+  expression that reads the value of this property. When <code>Page</code>s
+  are added subsequently, the value of the property will be updated via
+  the <code>rawEventStream</code>. Returns the <code>DOMProperty</code> or <code>PropertyVar</code>.</dd>
+  <dt><code>withEvents</code></dt>
+  <dd>Like <code>updateOn</code>, plus
+  the <code>DOMProperty</code> will automatically
+  add the events to the element. Returns the <code>DOMProperty</code> or <code>PropertyVar</code>.</dd>
+  <dt><code>render</code></dt>
+  <dd>Returns a <code>NodeSeq=&gt;NodeSeq</code> binding function. Requires an implicit Page.</dd>
+  <dt><code>render(Elem)</code></dt>
+  <dd>Applies the property to the Elem and returns a new Elem. Requires an implicit Page.</dd>
+</dl>
+
+</div>

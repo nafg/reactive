@@ -8,30 +8,32 @@ package html
  * @param _value a Var used to update the value of the value property
  */
 //TODO should we be using Vars so much? Maybe in & out Signals?
-class TextInput(
-  _value: Var[String] = Var("")
-) extends RElem {
+class TextInput(val initialValue: String = "")(implicit observing: Observing) extends RElem {
   /**
    * The doubleclick DOM event
    */
   val dblClick = DOMEventSource.dblClick
+
   /**
    * The keyup DOM event
    */
   val keyUp = DOMEventSource.keyUp
+
   /**
    * The change DOM event
    */
   val change = DOMEventSource.change
+
   /**
    * The value DOM attribute/property. The contents of the input field.
    */
-  val value = TextInput.value(_value)
+  val value = TextInput.value(initialValue)
+
   /**
    * The size attribute/property. The width, in characters, of the input.
    */
-  val size = TextInput.size(Var(-1))
-  
+  val size = TextInput.size(None)
+
   def events = List(dblClick, keyUp, change)
   def properties = List(value, size)
   def baseElem = <input type="text" />
@@ -45,26 +47,27 @@ object TextInput {
    * The value DOM attribute/property. The contents of the input field.
    * @param v the Var[String] to synchronize with the property
    */
-  def value = DOMProperty("value")
-  
+  def value(init: String = "")(implicit observing: Observing) = PropertyVar("value")(init)(PropertyCodec.string, observing)
+
   /**
    * The size DOM attribute/property. The width, in characters, of the input.
    * @param v the Var[String] to synchronize with the property
    */
-  def size = DOMProperty("size")
-  
-  
+  def size(init: Option[Int] = None)(implicit observing: Observing) = PropertyVar("size")(init)(PropertyCodec.intOption, observing)
+
   /**
    * Create a TextInput whose value property is kept in a Var.
    * By default, its value is updated only on change events. To receive
    * updates even on keyup events, write field.value.updateOn(field.keyUp).
    * @param value the Var to keep the TextInput's value in
    */
-  def apply(value: Var[String] = Var("")): TextInput = {
-    var ret = new TextInput(value)
+  def apply(value: Var[String] = Var(""))(implicit o: Observing): TextInput = {
+    var ret = new TextInput
     ret.value updateOn ret.change
+    value <--> ret.value
     ret
   }
+
   /**
    * Create a TextInput with the initial value, and a function that is called whenever the value changes.
    * Requires an Observing to be in the implicit scope, or to be passed in manually.
@@ -72,9 +75,9 @@ object TextInput {
    * @param setter the function to call whenever the value changes.
    */
   def apply(default: String)(setter: String=>Unit)(implicit observing: Observing): TextInput = {
-    val v = Var(default)
-    v.change foreach setter
-    apply(v)
+    val ret = new TextInput(default)
+    ret.value =>> setter
+    ret
   }
 }
 

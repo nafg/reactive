@@ -95,11 +95,12 @@ trait RElem extends net.liftweb.util.Bindable {
    * The events that contribute to rendering
    */
   def events: Seq[DOMEventSource[_<:DOMEvent]]
+
   /**
    * The properties that contribute to rendering
    */
-  def properties: Seq[DOMProperty[_]]
-  
+  def properties: Seq[PropertyVar[_]]
+
   /**
    * The Elem used as the basis to render this RElem.
    * The final rendering is contributed to by events
@@ -133,7 +134,7 @@ trait RElem extends net.liftweb.util.Bindable {
     addPage(page)
     val e = baseElem % new UnprefixedAttribute("id", id, Null)
     val withProps = properties.foldLeft(e){
-      case (e, prop) => prop(e)
+      case (e, prop) => prop.render(e)(page)
     }
     events.foldLeft[Elem](withProps){
       case (e, evt: DOMEventSource[_]) => e % evt.asAttribute

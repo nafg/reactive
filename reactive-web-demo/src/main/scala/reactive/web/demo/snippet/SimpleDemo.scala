@@ -23,21 +23,20 @@ class SimpleDemo extends Observing {
   // Create a reactive text input. By default its value is updated
   // when the browser fires a change event
   val field = TextInput()
-  
+
   // Link the value property with the keyUp event
   // so that it's updated on every keyUp event
   field.value updateOn field.keyUp
-  
-  // Set its width
-  field.size.value ()= 80
 
-  
+  // Set its width
+  field.size ()= Some(18)
+
   // Create a Signal that binds the field's value
   // Its value will be kept up to date automatically
-  val fieldValue = field.value.value map {v =>
+  val fieldValue = field.value map {v =>
     {_: NodeSeq => (Text(v): NodeSeq)}
   }
-  
+
   // Create a NodeSeq=>NodeSeq that renders fieldValue
   // reactively in whatever element Cell is binded to.
   val cell = Cell(fieldValue)
@@ -84,7 +83,6 @@ class SimpleDemo extends Observing {
 
   // On each clock tick do an insert or remove
   for(tick <- clockES) {
-    println("Clock firing: " + tick)
     // If items is empty then always do an append
     // Otherwise do either an append or a remove,
     // depending on the value of math.random
@@ -118,7 +116,7 @@ class SimpleDemo2 extends SimpleDemo {
   override def render =
     "#field" #> field &
     "#span" #> Cell {
-      field.value.value map {v => "*" #> Text(v) }
+      field.value map {v => "*" #> Text(v) }
     } &
     "#clock" #> Span {
       clockSig map {t => Text(t/1000 toString)}

@@ -44,7 +44,7 @@ class Boot {
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Low Level API")  /"demos"/"web"/"LowLevel",
         Menu("Events")  /"demos"/"web"/"DOMEventSource",
-        Menu("Properties")  /"demos"/"web"/"DOMProperty",
+        Menu("Properties")  /"demos"/"web"/"Properties",
         Menu("Elements")  /"demos"/"web"/"Elements",
         Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
         Menu("Simple demo")  /"demos"/"demos"/"SimpleDemo"

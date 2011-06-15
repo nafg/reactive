@@ -33,10 +33,8 @@ trait Button extends RElem {
  * Provides several factories for creating Buttons
  */
 object Button {
-  def disabled = DOMProperty("disabled")
-  
+  def disabled(init: Boolean = false)(implicit observing: Observing) = PropertyVar("disabled")(init)
 
-  
   /**
    * Creates a Button Cell of the specified type and with the specified contents
    * @param buttonType the type of the button. Default is ButtonType.Button
