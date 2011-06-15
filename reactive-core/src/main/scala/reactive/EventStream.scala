@@ -236,9 +236,9 @@ trait EventSource[T] extends EventStream[T] {
    */
   def fire(event: T) {
     if(debug) {
-      val notCollected = listeners.count(_.get ne None)
+      val collected = listeners.length - listeners.count(_.get ne None)
       println("EventStream " + (this) + " firing " + event +
-          " to " + listeners.size + " listeners (of which " + notCollected + " are not gc'd)")
+          " to " + listeners.size + " listeners (of which " + collected + " are gc'd)")
       dumpListeners
     }
     listeners.foreach{_.get.foreach(_(event))}
