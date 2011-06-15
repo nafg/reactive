@@ -6,9 +6,9 @@ import org.scalatest.matchers.ShouldMatchers
 class ForwardableTests extends FunSuite with ShouldMatchers with CollectEvents {
   implicit val observing = new Observing {}
 
-  test("thunkToSink") {
+  test("thunk") {
     var counter = 0
-    val source = new EventSource[Int] {} >> { i: Int => counter += i }
+    val source = new EventSource[Int] {} =>> { i: Int => counter += i }
     counter should equal(0)
     source.fire(1)
     source.fire(2)
@@ -16,16 +16,16 @@ class ForwardableTests extends FunSuite with ShouldMatchers with CollectEvents {
     counter should equal(6)
   }
 
-  test("blockToSink") {
+  test("block") {
     var counter = 0
-    val source = new EventSource[Unit] {} >> { counter += 1 }
+    val source = new EventSource[Unit] {} ->> { counter += 1 }
     counter should equal(0)
     source.fire()
     source.fire()
     source.fire()
     counter should equal(3)
   }
-  test("varToSink") {
+  test("Var") {
     val dest = Var(0)
     val source = new EventSource[Int] {} >> dest
     dest.now should equal(0)
@@ -36,7 +36,7 @@ class ForwardableTests extends FunSuite with ShouldMatchers with CollectEvents {
     source.fire(3)
     dest.now should equal(3)
   }
-  test("eventSourceToSink") {
+  test("EventSource") {
     val dest = new EventSource[Int] {}
     val source = new EventSource[Int] {} >> dest
     CollectEvents.collecting(dest) {

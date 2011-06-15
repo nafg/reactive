@@ -1,41 +1,47 @@
 <div class="lift:surround?with=default;at=content">
 
-
   <h2>Forwardable</h2>
   <p>
-    Several types extend
+    Several types, such as
+    <code>Signal</code>,
+    <code>EventStream</code>, and
+    <code>DOMEventSource</code>, extend
     <code>Forwardable</code>
-    . This gives you a convenient syntax,
-    <code>&gt;&gt;</code>
-    , to act on such objects' values in several common ways:
+    . This gives you a convenient syntax to respond such objects' values
+    in several common ways.
   </p>
   <ul>
-    <li>By running a parameterless block of code</li>
-    <li>By passing the value to a function</li>
-    <li>By assigning the value to a <code>Var</code></li>
-    <li>By firing the value from an <code>EventSource</code>.</li>
+    <li>Run a block of code: <pre class="brush: scala">eventStream -&gt;&gt; println("An event was fired")</pre>
+    </li>
+    <li>Call a function: <pre class="brush: scala">eventStream =&gt;&gt; {v => println(v + " was fired")</pre>
+    </li>
+    <li>Assign the value to a <code>Var</code>: <pre
+        class="brush: scala">eventStream >> myVar</pre>
+    </li>
+    <li>Fire the value from an <code>EventSource</code>: <pre
+        class="brush: scala">eventStream &gt;&gt; eventSource</pre>
+    </li>
   </ul>
 
+
+  <p>These operators return the original object, so you can chain
+    them etc.</p>
   <p>
-    Types that extend
-    <code>Forwardable</code>
-    include
-    <code>EventStream</code>
-    ,
-    <code>Signal</code>
-    , and reactive-web's
-    <code>DOMEventSource</code>
-    .
+    There is also the right-associative
+    <code>&lt;&lt;:</code>
+    operator, which lets you write forwarding expressions in reverse
+    direction. It returns the <em>target</em> object.
   </p>
 
   <pre class="brush:scala">
-click &gt;&gt; println("Mouse was clicked!")
-intEventStream &gt;&gt; {i: Int => println("Caught an event: "+i)}
-aVar &gt;&gt; anotherVar
-myVar &gt;&gt; myEventSource
-</pre>
+// Add a click handler to a button html element
+"button" #&gt; (click -&gt;&gt; alert("Mouse was clicked!"))
 
-<p>It should be noted that forwarding can lead to more imperative code when often
-a functional solution is available and more desirable.</p>
+intEventStream =&gt;&gt; {i => println("Caught an event: "+i)}
+
+// Update aVar with events from myEventSource,
+// and propagate aVar's updates to anotherVar
+(aVar &lt;&lt;: myEventSource) &gt;&gt; anotherVar
+</pre>
 
 </div>
