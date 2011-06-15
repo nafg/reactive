@@ -116,6 +116,18 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
       )
     ))
   }
+  
+  test("distinct") {
+    val v = Var(2)
+    val vd = v.distinct
+    collecting(vd.change) {
+      v ()= 2
+      v ()= 4
+      v ()= 4
+      v ()= 2
+    } should equal (List(4,2))
+  }
+  
 }
 
 object Run {

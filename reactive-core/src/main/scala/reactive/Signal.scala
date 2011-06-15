@@ -80,6 +80,11 @@ trait Signal[+T] extends Forwardable[T] {
       (v1, v2)
     }
   }
+  /**
+   * Returns a Signal that only fires change events that are not equal to the
+   * previous value.
+   */
+  def distinct: Signal[T] = new DistinctSignal[T](this)
 }
 
 protected class MappedSignal[T, U](private val parent: Signal[T], f: T => U) extends Signal[U] {
@@ -159,6 +164,24 @@ protected class FlatMappedSignal[T, U](private val parent: Signal[T], f: T => Si
 }
 
 
+protected class DistinctSignal[T](private val parent: Signal[T]) extends Signal[T] {ds =>
+  def now = parent.now
+  
+  var last = now
+  
+  val change = new EventSource[T] {
+    override def fire(x: T) = synchronized {
+      println("In DistinctSignal, x=%s and last=%s".format(x,last))
+      if(x != last) {
+        last = x  // Important to set before calling fire because fire may cause recursion
+        super.fire(x)
+      }
+    }
+  }
+
+  private val parentListener = { x: T => change.fire(x) }
+  parent.change addListener parentListener
+}
 
 /**
  * A signal representing a value that never changes

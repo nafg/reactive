@@ -156,4 +156,8 @@ it allows you to create a <code>Tuple2</code>-valued <code>Signal</code> from tw
 def nameAndAge(name: Signal[String], age: Signal[Int]): Signal[(String,Int)] = name zip age
 </pre>
 
+<h3><code>distinct</code></h3>
+<code>distinct</code> returns a new <code>Signal</code> that filters out change events that are equal
+to the signal's previous value.
+
 </div>
