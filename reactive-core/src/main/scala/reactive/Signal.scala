@@ -82,14 +82,11 @@ trait Signal[+T] extends Forwardable[T] {
   }
 }
 
-
-
-
-protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extends Signal[U] {
+protected class MappedSignal[T, U](private val parent: Signal[T], f: T => U) extends Signal[U] {
   import scala.ref.WeakReference
   private val emptyCache = new WeakReference[Option[U]](None)
   protected var cached = emptyCache
-  protected val cache = {v: U =>
+  protected val cache = { v: U =>
     cached = new WeakReference(Some(v))
   }
   def now = cached.get match {
@@ -100,7 +97,7 @@ protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extend
     case Some(Some(v)) =>
       v
   }
-  
+
   /**
    * Fire change events whenever (the outer) Signal.this changes,
    * but the events should be transformed by f
@@ -112,17 +109,17 @@ protected class MappedSignal[T,U](private val parent: Signal[T], f: T=>U) extend
 }
 
 trait CanMapSignal[U, S] {
-  def map[T](parent: Signal[T], f: T=>U): S
+  def map[T](parent: Signal[T], f: T => U): S
 }
 
 trait LowPriorityCanMapSignalImplicits {
   implicit def canMapSignal[U]: CanMapSignal[U, Signal[U]] = new CanMapSignal[U, Signal[U]] {
-    def map[T](parent: Signal[T], f: T=>U): Signal[U] = new MappedSignal[T,U](parent,f)
+    def map[T](parent: Signal[T], f: T => U): Signal[U] = new MappedSignal[T, U](parent, f)
   }
 }
 object CanMapSignal extends LowPriorityCanMapSignalImplicits {
   implicit def canMapSeqSignal[E]: CanMapSignal[TransformedSeq[E], SeqSignal[E]] = new CanMapSignal[TransformedSeq[E], SeqSignal[E]] {
-    def map[T](parent: Signal[T], f: T=>TransformedSeq[E]): SeqSignal[E] = new MappedSeqSignal[T,E](parent,f)
+    def map[T](parent: Signal[T], f: T => TransformedSeq[E]): SeqSignal[E] = new MappedSeqSignal[T, E](parent, f)
   }
 }
 
@@ -132,17 +129,17 @@ trait CanFlatMapSignal[S1[T], S2[T]] {
 
 trait LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSignal: CanFlatMapSignal[Signal, Signal] = new CanFlatMapSignal[Signal, Signal] {
-    def flatMap[T, U](parent: Signal[T], f: T=>Signal[U]): Signal[U] = new FlatMappedSignal[T,U](parent,f)
+    def flatMap[T, U](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
   }
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
-    def flatMap[T, U](parent: Signal[T], f: T=>SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T,U](parent,f)
+    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, f)
   }
 }
 
 
-protected class FlatMappedSignal[T,U](private val parent: Signal[T], f: T=>Signal[U]) extends Signal[U] {
+protected class FlatMappedSignal[T, U](private val parent: Signal[T], f: T => Signal[U]) extends Signal[U] {
   def now = currentMappedSignal.now
   // We send out own change events as we are an aggregate signal
   val change = new EventSource[U] {}
@@ -182,7 +179,7 @@ object Var {
  */
 class Var[T](initial: T) extends Signal[T] {
   private var _value = initial
-  
+
   def now = value
   //TODO do we need value? why not just now and now_= ? Or just now and update?
   //Advantage of setter other than update is to allow for += type assignments
@@ -199,13 +196,14 @@ class Var[T](initial: T) extends Signal[T] {
    * Usage: var()=x
    */
   final def update(v: T) = value = v
-  
+
   /**
    * Fires an event after every mutation, consisting of the new value
    */
   lazy val change: EventStream[T] = change0
   private lazy val change0 = new EventSource[T] {}
 
-  override def toString = "Var("+now+")"  
+  override def toString = "Var("+now+")"
+  
 }
 
