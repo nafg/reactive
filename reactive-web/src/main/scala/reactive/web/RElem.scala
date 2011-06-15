@@ -19,8 +19,8 @@ import scala.xml._
  */
 object RElem {
   def withId(elem: Elem): Elem = elem.attributes get "id" match {
-	  case Some(id) => elem
-	  case None => elem % new UnprefixedAttribute("id", randomString(20), Null)
+    case Some(id) => elem
+    case None => elem % new UnprefixedAttribute("id", Page.newId, Null)
   }
   /**
    * An RElem based on a scala.xml.Elem.
@@ -89,7 +89,7 @@ trait RElem extends net.liftweb.util.Bindable {
   /**
    * The value of the id attribute 
    */
-  lazy val id = randomString(20)
+  lazy val id = Page.newId
   
   /**
    * The events that contribute to rendering

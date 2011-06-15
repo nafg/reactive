@@ -28,6 +28,14 @@ class Page extends Observing {
     type="net.liftweb.reactive.ReactionsComet"
     name={cometName}
   />
+  
+  private var counter = 0
+  
+  def nextId = synchronized {
+    val c = counter
+    counter += 1
+    "reactiveWebId_%06d" format c
+  }
 }
 
 object Page {
@@ -57,5 +65,7 @@ object Page {
    */
   def currentPageOption: Option[Page] = dynamicScope.value orElse
       S.request.map(_ => CurrentPage.is).toOption
+
+  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_" + randomString(7)
 }
 
