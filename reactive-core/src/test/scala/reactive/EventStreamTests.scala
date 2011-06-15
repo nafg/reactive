@@ -84,7 +84,19 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
       es fire 5
     } should equal (List(3,4,5) filter f)
   }
-  
+
+  test("collect") {
+    val es = new EventSource[Int] {}
+    val pf: PartialFunction[Int,Int] = { case n if n > 10 => -n }
+    val collected = es collect pf
+    
+    val values = List(5,10,11,298)
+    
+    collecting(collected) {
+      values foreach es.fire
+    } should equal (values collect pf)
+  }
+
   test("takeWhile") {
     val es = new EventSource[Int] {}
     val f = (_:Int) < 3

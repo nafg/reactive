@@ -134,6 +134,16 @@ trait EventStream[+T] extends Forwardable[T]{
    * be fired by the new EventStream.
    */
   def filter(f: T=>Boolean): EventStream[T]
+  
+  /**
+   * Filter and map in one step. Takes a PartialFunction.
+   * Whenever an event is received, if the PartialFunction
+   * is defined at that event, the value returned by applying
+   * it will be fired.
+   * @param f the PartialFunction
+   */
+  def collect[U](pf: PartialFunction[T,U]): EventStream[U]
+  
   /**
    * Returns a new EventStream that propagates this EventStream's events
    * until the predicate returns false.
@@ -242,6 +252,19 @@ trait EventSource[T] extends EventStream[T] {
   def flatMap[U](initial: T)(f: T=>EventStream[U]): EventStream[U] =
     new FlatMapped(Some(initial))(f)
   
+
+  def collect[U](pf: PartialFunction[T,U]): EventStream[U] = {
+    new EventSource[U] {
+      val parent = EventSource.this
+      val f0 = pf
+      private val handler: T=>Unit = {event =>
+        if(pf.isDefinedAt(event))
+          fire(pf apply event)
+      }
+      parent addListener handler
+    }
+  }
+
   def map[U](f: T=>U): EventStream[U] = {
     new EventSource[U] {
       val parent = EventSource.this
