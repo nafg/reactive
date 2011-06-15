@@ -148,6 +148,13 @@ is the result of applying the function to the parent's event.</p>
 
 <button onclick="showdemo('EventStream_map')">Live Example</button>
 
+<h3>Combined <code>filter</code> and <code>map</code>: <code>collect</code></h3>
+<p>For convenience, <code>EventStream</code> has a <code>collect</code>
+method, just like Scala's collections. Just as you'd expect, it takes a
+<code>PartialFunction</code> that specifies which events to respond
+to and what event to fire in response.</p>
+
+
 <h3>Switching <code>EventStream</code>s: <code>flatMap</code></h3>
 <p>Let's get a bit more advanced now, and apply <code>flatMap</code>
 to <code>EventStream</code>s.</p>
