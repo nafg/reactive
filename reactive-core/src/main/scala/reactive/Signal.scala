@@ -87,30 +87,29 @@ trait Signal[+T] extends Forwardable[T] {
   def distinct: Signal[T] = new DistinctSignal[T](this)
 }
 
-protected class MappedSignal[T, U](private val parent: Signal[T], f: T => U) extends Signal[U] {
-  import scala.ref.WeakReference
-  private val emptyCache = new WeakReference[Option[U]](None)
-  protected var cached = emptyCache
-  protected val cache = { v: U =>
-    cached = new WeakReference(Some(v))
+protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S=>U) extends Signal[U] {
+  val change = new EventSource[U] {
+    val ref = ph
   }
-  def now = cached.get match {
-    case None | Some(None) =>
-      val ret = f(parent.now)
-      cache(ret)
-      ret
-    case Some(Some(v)) =>
-      v
+  protected var current = initial(state)
+  def now = current
+  
+  protected def parentHandler: (T,U,S)=>(U,S)
+  private lazy val ph = parentHandler
+  private val parentListener: T=>Unit = x => synchronized {
+    val cs = ph(x, current, state)
+    current = cs._1
+    state = cs._2
   }
+  parent.change addListener parentListener
+}
 
-  /**
-   * Fire change events whenever (the outer) Signal.this changes,
-   * but the events should be transformed by f
-   */
-  lazy val change = parent.change.map(f)
-
-  //TODO we need a way to be able to do this only if there are no real listeners
-  change addListener cache
+protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T,U,Unit](parent, (), _ => f(parent.now)) {
+  def parentHandler = (x, _, _) => {
+    val u = f(x)
+    change.fire(u)
+    (u, ())
+  }
 }
 
 trait CanMapSignal[U, S] {
@@ -143,44 +142,31 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   }
 }
 
-
-protected class FlatMappedSignal[T, U](private val parent: Signal[T], f: T => Signal[U]) extends Signal[U] {
-  def now = currentMappedSignal.now
-  // We send out own change events as we are an aggregate signal
-  val change = new EventSource[U] {}
-  private val listener: U => Unit = { x => change fire x}
-  // Currently mapped value
-  private var currentMappedSignal = f(parent.now)
-  // Register our first listener
-  currentMappedSignal.change addListener listener
-  // When the parent changes, we need to update our forwarding listeners and send the new state of this aggregate signal.
-  private val parentListener = { x: T =>
-    currentMappedSignal.change removeListener listener
-    currentMappedSignal = f(x)
-    currentMappedSignal.change addListener listener
-    listener(now)
+protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) extends ChildSignal[T,U, Signal[U]](parent, f(parent.now), _.now) {
+  private val thunk: U => Unit = x => synchronized {
+    current = x
+    change fire x
   }
-  parent.change addListener parentListener
+  state.change addListener thunk
+  def parentHandler = (x, _, curSig) => {
+    curSig.change removeListener thunk
+    val newSig = f(x)
+    newSig.change addListener thunk
+    change fire newSig.now
+    (newSig.now, newSig)
+  }
 }
 
 
-protected class DistinctSignal[T](private val parent: Signal[T]) extends Signal[T] {ds =>
-  def now = parent.now
-  
+protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
   var last = now
-  
-  val change = new EventSource[T] {
-    override def fire(x: T) = synchronized {
-      println("In DistinctSignal, x=%s and last=%s".format(x,last))
-      if(x != last) {
-        last = x  // Important to set before calling fire because fire may cause recursion
-        super.fire(x)
-      }
+  def parentHandler = (x, _, _) => {
+    if (x != last) {
+      last = x
+      change fire x
     }
+    (x, ())
   }
-
-  private val parentListener = { x: T => change.fire(x) }
-  parent.change addListener parentListener
 }
 
 /**
