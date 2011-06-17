@@ -30,8 +30,8 @@ trait Observing {
    */
   implicit val observing: Observing = this
   private var refs = List[AnyRef]()
-  private[reactive] def addRef(ref: AnyRef) { refs ::= ref }
-  private[reactive] def removeRef(ref: AnyRef) {
+  private[reactive] def addRef(ref: AnyRef): Unit = synchronized { refs ::= ref }
+  private[reactive] def removeRef(ref: AnyRef): Unit = synchronized {
     refs = refs.span(ref.ne) match {
       case (nes, firstEqs) => nes ++ firstEqs.drop(1)
     }
@@ -201,7 +201,7 @@ trait EventSource[T] extends EventStream[T] {
     // thread-unsafe implementation for now
     val thunk: U=>Unit = fire _ // = (u: U) => fire(u)
 //    val thunkA: Any=>Unit = {case u: U => fire(u)}
-    var curES: Option[EventStream[U]] = initial.map(f)
+    private var curES: Option[EventStream[U]] = initial.map(f)
     private val handleParentEvent: T=>Unit = {parentEvent =>
       curES.foreach{es =>
         es.removeListener(thunk)
@@ -307,7 +307,7 @@ trait EventSource[T] extends EventStream[T] {
   }
   
   def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U] = new EventSource[U] {
-    var last = initial
+    private var last = initial
 //    println("last: " + last)
     val f0 = f
     val parent = EventSource.this
@@ -341,28 +341,20 @@ trait EventSource[T] extends EventStream[T] {
     def now = current getOrElse initial
   }
 
-  private[reactive] def addListener(f: (T) => Unit): Unit = {
+  private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
     if(debug)
       println(Util.debugString(this)+": In addListener("+Util.debugString(f)+")")
     listeners = listeners.filter(_.get.isDefined) :+ new WeakReference(f)
   }
-  private[reactive] def removeListener(f: (T) => Unit): Unit = {
-    //remove the last listener that is identical to f.
-    //do this with a foldRight, passing around the
-    //part of the list already processed, and a boolean
-    //indicating whether to remove the next occurrence of f.
-    listeners.foldRight((List[WeakReference[T=>Unit]](), true)){
-      case (wr,(list, true)) => wr.get match {
-        case Some(l) if l eq f => (list, false)
-        case _ => (list :+ wr, true)
-      }
-      case (wr,(list, false)) =>
-        (if(wr.get.isDefined) list :+ wr else list, false)
-    } match {
-      case (l, _) => listeners = l
+  private[reactive] def removeListener(f: (T) => Unit): Unit = synchronized {
+    //remove the last listener that is identical to f
+    listeners.lastIndexWhere(_.get.map(f.eq) getOrElse false) match {
+      case -1 =>
+      case n =>
+        val (before, after) = listeners.splitAt(n)
+        listeners = before ::: after.drop(1)
     }
   }
-  
 }
 
 /**
