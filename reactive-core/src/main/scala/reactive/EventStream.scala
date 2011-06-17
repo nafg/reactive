@@ -4,11 +4,6 @@ import scala.ref.WeakReference
 import scala.util.DynamicVariable
 
 
-
-
-
-
-
 object EventSource {
   var debug = false
 }
@@ -81,7 +76,6 @@ trait EventStream[+T] extends Forwardable[T]{
    * be fired by the new EventStream.
    */
   def filter(f: T=>Boolean): EventStream[T]
-  
   /**
    * Filter and map in one step. Takes a PartialFunction.
    * Whenever an event is received, if the PartialFunction
@@ -90,7 +84,6 @@ trait EventStream[+T] extends Forwardable[T]{
    * @param f the PartialFunction
    */
   def collect[U](pf: PartialFunction[T,U]): EventStream[U]
-  
   /**
    * Returns a new EventStream that propagates this EventStream's events
    * until the predicate returns false.
@@ -128,7 +121,7 @@ trait EventStream[+T] extends Forwardable[T]{
    * that event.
    * @param init the initial value of the signal
    */
-  def hold[U>:T](init: =>U): Signal[U]
+  def hold[U>:T](init: U): Signal[U]
 
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
@@ -143,40 +136,39 @@ trait EventStream[+T] extends Forwardable[T]{
 //TODO perhaps EventSource = SimpleEventStream + fire
 trait EventSource[T] extends EventStream[T] {
   var debug = EventSource.debug
-  
-  class FlatMapped[U](initial: Option[T])(val f: T=>EventStream[U]) extends EventSource[U] {
-    // thread-unsafe implementation for now
-    val thunk: U=>Unit = fire _ // = (u: U) => fire(u)
-//    val thunkA: Any=>Unit = {case u: U => fire(u)}
-    private var curES: Option[EventStream[U]] = initial.map(f)
-    private val handleParentEvent: T=>Unit = {parentEvent =>
-      curES.foreach{es =>
-        es.removeListener(thunk)
-      }
-      curES = Some(f(parentEvent))
-      curES.foreach{es =>
-        es.addListener(thunk)
-      }
+
+  abstract class ChildEventSource[U,S](private var state: S) extends EventSource[U] {
+    private val parent = EventSource.this
+    protected def handler: (T,S)=>S
+    private val h = handler
+    protected val listener: T=>Unit = v => synchronized {
+      state = h(v, state)
     }
-    curES.foreach{es =>
-      es.addListener(thunk)
-    }
-    val parent = EventSource.this
-    parent addListener handleParentEvent
+    parent addListener listener
   }
-  
+
+  class FlatMapped[U](initial: Option[T])(val f: T=>EventStream[U]) extends ChildEventSource[U,Option[EventStream[U]]](initial map f){
+    val thunk: U=>Unit = fire _
+    def handler = (parentEvent, lastES) => {
+      lastES foreach {_ removeListener thunk}
+      val newES = Some(f(parentEvent))
+      newES foreach {_ addListener thunk}
+      newES
+    }
+  }
+
   private var listeners: List[WeakReference[T => Unit]] = Nil
-  
+
   /**
    * Whether this EventStream has any listeners depending on it
    */
   //TODO should it return false if it has listeners that have been gc'ed?
   def hasListeners = listeners.nonEmpty //&& listeners.forall(_.get.isDefined)
-  
+
   protected[reactive] def dumpListeners {
     println(listeners.map(_.get.map(x => x.getClass + "@" + System.identityHashCode(x) + ": " + x.toString)).mkString("[",",","]"))
   }
-  
+
   /**
    * Sends an event to all listeners.
    * @param event the event to send
@@ -191,101 +183,80 @@ trait EventSource[T] extends EventStream[T] {
     listeners.foreach{_.get.foreach(_(event))}
     if(debug) println
   }
-  
+
   def flatMap[U](f: T=>EventStream[U]): EventStream[U] =
     new FlatMapped(None)(f)
-    
+
   //TODO should this become Signal#flatMap (which can of course be accessed from an EventStream via EventStream#Hold) or be renamed?
   def flatMap[U](initial: T)(f: T=>EventStream[U]): EventStream[U] =
     new FlatMapped(Some(initial))(f)
-  
+
 
   def collect[U](pf: PartialFunction[T,U]): EventStream[U] = {
-    new EventSource[U] {
-      val parent = EventSource.this
-      val f0 = pf
-      private val handler: T=>Unit = {event =>
+    new ChildEventSource[U,Unit] {
+      private val pf0 = pf
+      def handler = (event,_) => {
         if(pf.isDefinedAt(event))
           fire(pf apply event)
       }
-      parent addListener handler
     }
   }
 
   def map[U](f: T=>U): EventStream[U] = {
-    new EventSource[U] {
-      val parent = EventSource.this
+    new ChildEventSource[U,Unit] {
       val f0 = f
-      private val handler: T=>Unit = {event => this fire f(event)}
-      parent addListener handler
+      def handler = (event,_) => this fire f(event)
     }
   }
-  
+
   def foreach(f: T=>Unit)(implicit observing: Observing): Unit = {
+    observing.addRef(f)
+    observing.addRef(this)
     addListener(f)
     if(debug) {
       println("Added a listener to " + this)
       dumpListeners
     }
-    
-    observing.addRef(f)
-    observing.addRef(this)
   }
-  
-  def filter(f: T=>Boolean): EventStream[T] = new EventSource[T] {
-    val parent = EventSource.this
-    val f0 = f
-    private val listener = {event: T =>
-      if(f(event)) fire(event)
-    }
-    parent addListener listener
-  }
-  
-  def takeWhile(p: T=>Boolean): EventStream[T] = new EventSource[T] {
-    val parent = EventSource.this
-    val f: T=>Unit = (event: T)=> {
-      if(p(event)) {
-        fire(event)
-      } else {
-        EventSource.this.removeListener(f)
-      }
-    }
-    parent.addListener(f)
-  }
-  
-  def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U] = new EventSource[U] {
-    private var last = initial
-//    println("last: " + last)
-    val f0 = f
-    val parent = EventSource.this
-    private val listener = {event: T =>
-//      println("last: " + last)
-      last = f(last, event)
-      fire(last)
-    }
-    parent addListener listener
-  }
-  
-  def |[U>:T](that: EventStream[U]): EventStream[U] = {
-    val ret = new EventSource[U] {
-      val parent = EventSource.this
-      val f0: U=>Unit = fire _
-    }
-    val f = ret.f0
-    this.addListener(f)
-    that.addListener(f)
-    ret
-  }
-  
-  def hold[U>:T](init: =>U): Signal[U] = new Signal[U] {
-    private lazy val initial: U = init
-    private var current: Option[T] = None
-    
-    val f = (v: T) => current = Some(v)
-    val change = EventSource.this
-    change addListener f
 
-    def now = current getOrElse initial
+  def filter(f: T=>Boolean): EventStream[T] = new ChildEventSource[T,Unit] {
+    val f0 = f
+    def handler = (event, _) => if(f(event)) fire(event)
+  }
+
+  def takeWhile(p: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
+    def handler = (event, _) =>
+      if (p(event))
+        fire(event)
+      else
+        EventSource.this.removeListener(listener)
+  }
+
+  def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U] = new ChildEventSource[U, U](initial) {
+    def handler = (event, last) => {
+      val next = f(last, event)
+      fire(next)
+      next
+    }
+  }
+
+  def |[U>:T](that: EventStream[U]): EventStream[U] = new EventSource[U] {
+    val parent = EventSource.this
+    val f: U => Unit = fire _
+
+    EventSource.this addListener f
+    that addListener f
+  }
+
+  def hold[U>:T](init: U): Signal[U] = new Signal[U] {
+    private lazy val initial: U = init
+    private var current: U = init
+    def now = current
+
+    val change = EventSource.this
+
+    val f = (v: T) => current = v
+    change addListener f
   }
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
@@ -400,4 +371,3 @@ trait EventSourceProxy[T] extends EventSource[T] {
   override def foreach(f: T=>Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
   override def |[U>:T](that: EventStream[U]): EventStream[U] = underlying.|(that)
 }
-
