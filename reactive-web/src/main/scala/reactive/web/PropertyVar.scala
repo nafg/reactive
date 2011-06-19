@@ -22,32 +22,24 @@ trait PropertyCodec[T] {
   /**
    * The attribute value to initialize the property's value, or None for no attribute
    */
-  def toAttributeValue(propName: String): T => Option[String]
-
-  /**
-   * Returns an attribute representing the value of this property, if applicable
-   */
-  def toAttribute(name: String, value: T): MetaData = toAttributeValue(name)(value) match {
-    case Some(v: String) => new UnprefixedAttribute(name, v, Null)
-    case None => Null
-  }
+  def toAttributeValue: T => String => Option[String]
 }
 
 object PropertyCodec {
   implicit val string: PropertyCodec[String] = new PropertyCodec[String] {
     def fromString = s => s
     val toJS = Str
-    def toAttributeValue(propName: String) = Some(_)
+    def toAttributeValue = v => _ => Some(v)
   }
   implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
     def fromString = _.toInt
     val toJS = Num(_: Int)
-    def toAttributeValue(propName: String) = (v: Int) => Some(v.toString)
+    def toAttributeValue = (v: Int) => _ => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
     def fromString = _.toInt match { case -1 => None case n => Some(n) }
     val toJS = (io: Option[Int]) => Num(io getOrElse -1)
-    def toAttributeValue(propName: String) = _.map(_.toString)
+    def toAttributeValue = v => _ => v.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {
     def fromString = _.toLowerCase match {
@@ -55,7 +47,7 @@ object PropertyCodec {
       case _ => true
     }
     def toJS = (b: Boolean) => if (b) JE.JsTrue else JE.JsFalse
-    def toAttributeValue(propName: String) = (v: Boolean) => if (v) Some(propName) else None
+    def toAttributeValue = (v: Boolean) => name => if (v) Some(name) else None
   }
 }
 
@@ -74,6 +66,14 @@ object PropertyVar {
    * @param init the initial value (rendered in the attribute)
    */
   def apply[T](name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](name)(init)(codec,observing)
+  /**
+   * Wraps a new DOMProperty as a type-safe Var.
+   * @param name the name of the DOMProperty to create and wrap
+   * @param attributeName the name of the attribute rendered by the DOMProperty
+   * @param init the initial value (rendered in the attribute)
+   */
+  def apply[T](name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] =
+    new PropertyVar[T](name, attributeName)(init)(codec,observing)
 
   /**
    * An implicit conversion from PropertyVar to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
@@ -95,6 +95,14 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * @param init the initial value (rendered in the attribute)
    */
   def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) = this(DOMProperty(name))(init)(codec,observing)
+  /**
+   * Wraps a new DOMProperty as a type-safe Var.
+   * @param name the name of the DOMProperty to create and wrap
+   * @param attributeName the name of the attribute rendered by the DOMProperty
+   * @param init the initial value (rendered in the attribute)
+   */
+  def this(name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) =
+    this(DOMProperty(name, attributeName))(init)(codec,observing)
 
 
   /**
@@ -105,7 +113,7 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * and return the updated Elem.
    */
   def render(implicit page: Page) =
-    new dom.PropertyRenderer(page, codec.toAttribute(dom.name, now))
+    new dom.PropertyRenderer(page, codec.toAttributeValue(now))
   
   /**
    * Attaches this property to an Elem, by adding
@@ -114,7 +122,7 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * @return the updated Elem.
    */
   def render(e: Elem)(implicit page: Page): Elem =
-      new dom.PropertyRenderer(page, codec.toAttribute(dom.name, now)) apply e
+      new dom.PropertyRenderer(page, codec.toAttributeValue(now)) apply e
   
   /**
    * Link events with this property. The value

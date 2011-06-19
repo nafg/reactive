@@ -16,7 +16,7 @@ import scala.ref.WeakReference
  * @param name The javascript name of the property
  */
 class DOMProperty(val name: String) {
-  class PropertyRenderer(page: Page, attr: MetaData = Null) extends (NodeSeq=>NodeSeq) {
+  class PropertyRenderer(page: Page, attributeValue: String=>Option[String] = _ => None) extends (NodeSeq=>NodeSeq) {
     def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
     def apply(elem: Elem): Elem = {
       val id = owners.get(page) getOrElse {
@@ -25,13 +25,22 @@ class DOMProperty(val name: String) {
         ret
       }
       includedEvents.foldLeft(
-        elem % new UnprefixedAttribute("id", id, attr)
+        elem % new UnprefixedAttribute("id", id,
+          attributeValue(attributeName).map(
+            new UnprefixedAttribute(name, _, Null)
+          ).getOrElse(Null)
+        )
       ){
         case (e,es) => es(e)
       }
     }
   }
-
+  
+  /**
+   * The name when this property is rendered as an attribute.
+   * Defaults to name
+   */
+  def attributeName: String = name
 
   private val valuesES = new EventSource[String] {}
   def values: EventStream[String] = valuesES
@@ -179,8 +188,16 @@ object DOMProperty {
     }
   }
   /**
-   * DOMProperty factory. Equivalent to using the constructor.
+   * DOMProperty factory. Just calls the constructor.
    */
   def apply(name: String) = new DOMProperty(name)
+  /**
+   * DOMProperty factory. Calls the constructor and overrides attributeName.
+   */
+  def apply(name: String, attributeName: String) = {
+    def tmp = attributeName
+    new DOMProperty(name) {
+      override def attributeName = tmp
+    }
+  }
 }
-
