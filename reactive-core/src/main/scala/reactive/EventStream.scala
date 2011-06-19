@@ -137,7 +137,7 @@ trait EventStream[+T] extends Forwardable[T]{
 trait EventSource[T] extends EventStream[T] {
   var debug = EventSource.debug
 
-  abstract class ChildEventSource[U,S](private var state: S) extends EventSource[U] {
+  abstract class ChildEventSource[U,S](protected var state: S) extends EventSource[U] {
     private val parent = EventSource.this
     protected def handler: (T,S)=>S
     private val h = handler
@@ -149,6 +149,7 @@ trait EventSource[T] extends EventStream[T] {
 
   class FlatMapped[U](initial: Option[T])(val f: T=>EventStream[U]) extends ChildEventSource[U,Option[EventStream[U]]](initial map f){
     val thunk: U=>Unit = fire _
+    state foreach {_ addListener thunk}
     def handler = (parentEvent, lastES) => {
       lastES foreach {_ removeListener thunk}
       val newES = Some(f(parentEvent))
