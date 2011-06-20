@@ -24,7 +24,6 @@ trait TransformedSeq[T]
   with GenericTraversableTemplate[T, TransformedSeq]
   with SeqLike[T, TransformedSeq[T]] { outer =>
   protected def uid = getClass.getName+"@"+System.identityHashCode(this)
-  //println("instantiated TransformedSeq " + getClass + "@" + System.identityHashCode(this) + ": " + this)
 
   trait Transformed[U] extends TransformedSeq[U] {
     protected def xform(index: Int, elem: T): List[(Int, U)]
@@ -70,15 +69,12 @@ trait TransformedSeq[T]
         index.insert(n, index(n))
         for (j <- n + 1 until index.size)
           index(j) += ret.size
-        //        println(uid + " index after " + m + ": " + index)
         fixIndexes(ret)
       case Remove(n, _) =>
         val ret = super.xform(m)
-        //        println(uid + " index: " + index)
         index.remove(n)
         for (j <- n until index.size)
           index(j) -= ret.size
-        //        println(uid + " index after " + m + ": " + index)
         fixIndexes(ret)
       case Update(n, _, _) =>
         val ret = super.xform(m)
@@ -97,7 +93,6 @@ trait TransformedSeq[T]
     protected def xform(index: Int, elem: T) = List((index, mapping(elem)))
   }
   trait FlatMapped[U] extends IndexTransformed[U] {
-//    println("Instantiating FlatMapped " + uid)
     def mapping: T => Traversable[U]
     protected def initIndex = {
       val index = new ArrayBuffer[Int] {
@@ -106,19 +101,13 @@ trait TransformedSeq[T]
       //index += 0
       var ptr = 0
       for (i <- 0 until outer.size) {
-        //print(i + ": " + outer(i) + " -> ")
-        //println(mapping(outer(i)))
         index append ptr
         ptr += mapping(outer(i)).size
-        //index += ptr //index(i) + mapping(outer(i)).size
-        //println("index: " + index)
       }
       index append ptr
-      //      println(uid + " index: " + index)
       index
     }
     protected def xform(n: Int, elem: T) = {
-      //      println(uid + " in xform, index: " + index)
       val i = index(n)
       mapping(elem).toList.zipWithIndex map {
         case (e, m) => (i + m, e)
@@ -139,16 +128,17 @@ trait TransformedSeq[T]
       if (pred(elem)) List((index(n), elem)) else Nil
 
     override def baseDeltas = {
-//      println("Calculating filtered baseDeltas with pred " + pred)
       var off = 0
-      outer.zipWithIndex.flatMap {case (e,i) =>
-        if(pred(e))
-          None
-        else {
-          off += 1
-          Some(Remove(i - off + 1, e))
-        }
+      def filt: ((T, Int)) => List[SeqDelta[T, T]] = {
+        case (e, i) =>
+          if (pred(e))
+            Nil
+          else {
+            off += 1
+            List(Remove(i - off + 1, e))
+          }
       }
+      outer.zipWithIndex flatMap filt
     }
   }
   trait Sliced extends Transformed[T] {
@@ -179,7 +169,6 @@ trait TransformedSeq[T]
     protected def calcLastValid = valid.prefixLength(identity) - 1
     protected var lastValid = calcLastValid
     override protected[reactive] def xform(m: SeqDelta[T, T]) = {
-      //      println("In xform("+m+"), valid = " + valid)
       val ret = super.xform(m)
       m match {
         case Include(n, elem) =>
@@ -201,7 +190,6 @@ trait TransformedSeq[T]
           else if (n == lastValid + 1) {
             lastValid = calcLastValid
           }
-        //          println(lastValid)
         case Update(n, _, elem) =>
           val (prev, v) = (valid(n), pred(elem))
           valid(n) = v
@@ -271,7 +259,6 @@ trait TransformedSeq[T]
     getThat(super.++(xs))(newAppended(xs.toTraversable))
   }
   override def map[U, That](f: T => U)(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That = {
-    //println("in map")
     getThat(super.map(f)(bf))(newMapped(f))
   }
   override def collect[U, That](pf: PartialFunction[T, U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That =

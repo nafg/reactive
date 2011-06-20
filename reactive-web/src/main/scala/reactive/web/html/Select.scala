@@ -14,7 +14,11 @@ class Select[T](
   items: SeqSignal[T],
   renderer: T=>String = {t:T => t.toString},
   val size: Int = 1
-)(implicit observing: Observing) extends Repeater {
+)(implicit observing: Observing) extends Repeater with Logger {
+  case class SelectedIndexOutOfBounds(index: Int, length: Int) extends LogEventPredicate {
+    override def toString = "selectedIndex %d is out of bounds (%d)".format(index,length)
+  }
+  
   /**
    * The change DOM event
    */
@@ -28,7 +32,7 @@ class Select[T](
    * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
    */
   val selectedIndex = Select.selectedIndex(None) updateOn change
-  
+
   /**
    * A signal that represents the selected item as a T.
    */
@@ -36,9 +40,9 @@ class Select[T](
     si <- selectedIndex
     is <- items
   } yield si.filter{i =>
-    if(i < is.length && i >= 0) true else {println("WARNING: selectedIndex %d is out of bounds (%d)".format(i,is.length));false}
+    if(i < is.length && i >= 0) true else {warn(SelectedIndexOutOfBounds(i,is.length)); false}
   } map is
-  
+
   /**
    * Call this to select another (or no) item.
    */

@@ -96,7 +96,9 @@ class DiffSignal[T](
   comparator: (T, T) => Boolean = { (_: T) == (_: T) }
 )(
   implicit _observing: Observing
-) extends SeqSignal[T] {
+) extends SeqSignal[T] with Logger {
+  case class CalculatedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T,T]]) extends LogEventPredicate
+  
   protected var _now = signal.now
   def observing = _observing
   def now = _now
@@ -104,7 +106,7 @@ class DiffSignal[T](
     case (prev, cur) =>
       _now = cur
       val diff = LCS.lcsdiff(prev, cur, comparator)
-      println(prev + " DIFF " + cur + " = " + diff)
+      trace(CalculatedDiff(prev,cur,diff))
       transform.deltas.fire(Batch(diff: _*))
       cur
   }

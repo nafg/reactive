@@ -11,6 +11,10 @@ import net.liftweb.http.{js, SHtml, S}
  * reactive-web package
  */
 package object web {
+  object packageLogger extends Logger {
+    case class WrappedNonElemInSpan(xml: NodeSeq) extends LogEventPredicate
+  }
+
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
    * provided PartialFunction.
@@ -45,9 +49,7 @@ package object web {
       Reactions queue JsCmds.Run("alert(" + Str(message).toJsCmd + ")")
     }
   }
-  
-  //TODO logging
-  
+
   private[web] def trimNodeSeq(ns: NodeSeq): NodeSeq = {
     def emptyText: Node=>Boolean = {
       case scala.xml.Text(s) if s.trim.isEmpty => true
@@ -55,19 +57,19 @@ package object web {
     }
     ns.dropWhile(emptyText).reverse.dropWhile(emptyText).reverse
   }
-  
+
   //TODO should we not be trimming?
-  private[web] def nodeSeqToElem(ns: NodeSeq): Elem = trimNodeSeq(ns) match {
+  def nodeSeqToElem(ns: NodeSeq): Elem = trimNodeSeq(ns) match {
     case e: Elem => e
     case Seq(e: Elem) => e
     case scala.xml.Text(s) => <span>{s.trim}</span>
     case Seq(node: Node) if node ne ns => nodeSeqToElem(node)
     case xml =>
-      println("Warning: NodeSeq is not an Elem; wrapping it in a span. "+xml.getClass+": "+xml.toString)
-      println(xml.toList.map(_.getClass))
+      //TODO should we just throw an exception?
+      packageLogger warn packageLogger.WrappedNonElemInSpan(xml)
       <span>{xml}</span>
   }
-  
+
   private[web] def bindFunc2contentFunc[T](
     bindFunc: Signal[NodeSeq=>NodeSeq]
   )(
@@ -75,7 +77,10 @@ package object web {
   ): NodeSeq=>T = {ns =>
     andThen(bindFunc map (_(ns)))
   }
-  
+
+  /**
+   * [T](SeqSignal[NodeSeq=>NodeSeq])(SeqSignal[NodeSeq]=>T)(NodeSeq=>T)
+   */
   private[web] def bindFunc2seqContentFunc[T](
     bindFunc: SeqSignal[NodeSeq=>NodeSeq]
   )(

@@ -17,7 +17,12 @@ import net.liftweb.util.{Helpers, ThreadGlobal}
 /**
  * This singleton keeps track of pages and queued javascript
  */
-object Reactions {
+object Reactions extends Logger {
+  case class PendingJS(pageId: String, js: JsCmd) extends LogEventPredicate
+  case class QueueingJS(pageId: String, js: JsCmd) extends LogEventPredicate
+  case class FinishedServerScope(pageId: String, comet: Option[ReactionsComet]) extends LogEventPredicate
+  case class ReusingScope(scope: Either[JsCmd, Page]) extends LogEventPredicate
+  
   private val pending = new HashMap[String, (JsCmd, Long)]
   //TODO is WeakHashMap the correct structure to use?
   private val pages = new WeakHashMap[Page, WeakReference[ReactionsComet]]
@@ -42,7 +47,7 @@ object Reactions {
       ) =>
         val ca = new ReactionsComet(
           session,
-          name openOr error("Name required for ReactionsComet"),
+          name openOr (throw new IllegalArgumentException("Name required for ReactionsComet")),
           defaultXml,
           attributes
         )
@@ -79,7 +84,7 @@ object Reactions {
    */
   def register(page: Page, comet: ReactionsComet) = synchronized {
     val pend = pending.remove(page.id) map { case (js,_) => js } getOrElse JsCmds.Noop
-    
+
     pages.get(page).flatMap(_.get) foreach { oldComet =>
       oldComet.flush
       //TODO what's that point of take? Won't it always be Noop at this point?
@@ -111,14 +116,14 @@ object Reactions {
         
         pages.get(page).flatMap(_.get) match {
           case None =>
-            println(page.id + ": No page, so pending " + js)
+            trace(PendingJS(page.id, js))
             pending(page.id) = (js, System.currentTimeMillis)
           case Some(comet) =>
-            println(page.id + ": Queueing " + js)
+            trace(QueueingJS(page.id, js))
             comet queue js
         }
       case _ =>
-        error("No Reactions scope")
+        throw new RuntimeException("No Reactions scope")
     }
   }
   /**
@@ -154,8 +159,9 @@ object Reactions {
     val ret = currentScope.doWith(Right(page)) {
       p
     }
-    println(page.id + ": Finished server scope " + page + ": " + pages.get(page))
-    pages.get(page).flatMap(_.get) foreach {_.flush}
+    val comet = pages.get(page).flatMap(_.get)
+    trace(FinishedServerScope(page.id, comet))
+    comet foreach (_.flush)
     ret
   }
   /**
@@ -170,7 +176,7 @@ object Reactions {
   def inAnyScope[T](page: Page)(p: =>T): T = {
     currentScope.box match {
       case Full(scope) =>  // if there is an existing scope do it there
-        println(page.id + ": Already in scope: " + (if(scope.isLeft) "client" else "server"))
+        trace(ReusingScope(scope))
         p
       case _ =>        // otherwise do it in server scope
         inServerScope(page)(p)
@@ -214,7 +220,6 @@ class ReactionsComet(
       queued &= js
     case Flush =>
       val q = queued
-//      println(page.id + ": partialUpdating: " + q.toJsCmd)
       partialUpdate(q)
       queued = JsCmds.Noop
     case Take =>

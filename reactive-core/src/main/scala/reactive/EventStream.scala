@@ -134,7 +134,12 @@ trait EventStream[+T] extends Forwardable[T]{
  * Adds fire and forward methods
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
-trait EventSource[T] extends EventStream[T] {
+trait EventSource[T] extends EventStream[T] with Logger {
+  case class HasListeners(listeners: List[WeakReference[T=>Unit]]) extends LogEventPredicate
+  case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int) extends LogEventPredicate
+  case class AddingListener(listener: T=>Unit) extends LogEventPredicate
+  case class AddedForeachListener(listener: T=>Unit) extends LogEventPredicate
+  
   var debug = EventSource.debug
 
   abstract class ChildEventSource[U,S](protected var state: S) extends EventSource[U] {
@@ -167,7 +172,7 @@ trait EventSource[T] extends EventStream[T] {
   def hasListeners = listeners.nonEmpty //&& listeners.forall(_.get.isDefined)
 
   protected[reactive] def dumpListeners {
-    println(listeners.map(_.get.map(x => x.getClass + "@" + System.identityHashCode(x) + ": " + x.toString)).mkString("[",",","]"))
+    trace(HasListeners(listeners))
   }
 
   /**
@@ -175,14 +180,15 @@ trait EventSource[T] extends EventStream[T] {
    * @param event the event to send
    */
   def fire(event: T) {
-    if(debug) {
-      val collected = listeners.length - listeners.count(_.get ne None)
-      println("EventStream " + (this) + " firing " + event +
-          " to " + listeners.size + " listeners (of which " + collected + " are gc'd)")
-      dumpListeners
-    }
+    trace(
+      FiringEvent(
+        event,
+        listeners.size,
+        listeners.length - listeners.count(_.get ne None)
+      )
+    )
+    dumpListeners
     listeners.foreach{_.get.foreach(_(event))}
-    if(debug) println
   }
 
   def flatMap[U](f: T=>EventStream[U]): EventStream[U] =
@@ -214,10 +220,8 @@ trait EventSource[T] extends EventStream[T] {
     observing.addRef(f)
     observing.addRef(this)
     addListener(f)
-    if(debug) {
-      println("Added a listener to " + this)
-      dumpListeners
-    }
+    trace(AddedForeachListener(f))
+    dumpListeners
   }
 
   def filter(f: T=>Boolean): EventStream[T] = new ChildEventSource[T,Unit] {
@@ -261,8 +265,7 @@ trait EventSource[T] extends EventStream[T] {
   }
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
-    if(debug)
-      println(Util.debugString(this)+": In addListener("+Util.debugString(f)+")")
+    trace(AddingListener(f))
     listeners = listeners.filter(_.get.isDefined) :+ new WeakReference(f)
   }
   private[reactive] def removeListener(f: (T) => Unit): Unit = synchronized {

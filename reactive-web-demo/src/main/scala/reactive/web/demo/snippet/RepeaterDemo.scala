@@ -20,7 +20,6 @@ class RepeaterDemo extends Observing {
               ".last *" #> person.last &
               ".delete *" #> Button("Delete") {
                 signal.value -= person
-                println(signal.value)
               }
           }
         }

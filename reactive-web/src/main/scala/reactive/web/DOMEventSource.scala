@@ -18,7 +18,10 @@ import scala.xml.{Elem, NodeSeq}
 //TODO better name--it is not an EventSource; only wraps an EventStream
 //(that happens to be implemented as an EventSource).
 
-class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) with Forwardable[T] {
+class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) with Forwardable[T] with Logger {
+  case class ReceivedEncodedEvent(event: Map[String,String]) extends LogEventPredicate
+  case class CaughtExceptionDecodingEvent(event: Map[String,String], exception: Exception) extends LogEventPredicate
+  
   /**
    * The EventStream that represents the primary event data
    */
@@ -127,13 +130,12 @@ class DOMEventSource[T <: DOMEvent : Manifest] extends (NodeSeq=>NodeSeq) with F
           }
         }: _*
       )
-      println(eventName + ": Received encoding event: " + evt)
+      trace(ReceivedEncodedEvent(evt))
       if(eventStream.hasListeners) try {
         eventStream.fire(decodeEvent(evt))
       } catch {
         case e: java.util.NoSuchElementException =>
-          System.err.println(eventName + " has listeners but caught exception while decoding event:")
-          e.printStackTrace()
+          error(CaughtExceptionDecodingEvent(evt, e))
       }
       rawEventStream.fire(evt)
     }

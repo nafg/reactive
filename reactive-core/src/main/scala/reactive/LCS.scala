@@ -115,15 +115,6 @@ object LCS {
         }
       }
     }
-    
-    /* println("  " + a.mkString)
-    for(jj <- 0 to m) {
-      if(jj>0) print(b(jj-1)) else print(" ")
-      for(ii <- 0 to n) {
-        print(S(ii)(jj))
-      }
-      println
-    } */
 
     // The length of the longest substring is S[n][m]
     var pos = S(n)(m) - 1

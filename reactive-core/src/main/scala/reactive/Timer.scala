@@ -25,11 +25,13 @@ class Timer(
   interval: Long = 1000,
   until: Long=>Boolean = _ =>false
 ) extends EventSource[Long] {
+  case class Canceling(tick: Long) extends LogEventPredicate
+  
   private val origMillis = System.currentTimeMillis
   private val tt: TimerTask = _timer.scheduleAtFixedRate(interval, interval) {
-	val tick = System.currentTimeMillis - origMillis + startValue
+    val tick = System.currentTimeMillis - origMillis + startValue
     if(until(tick)) {
-      println("Timer canceling at " + tick)
+      trace(Canceling(tick))
       tt.cancel
     } else {
       fire(tick)

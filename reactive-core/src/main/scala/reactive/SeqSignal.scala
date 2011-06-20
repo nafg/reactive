@@ -63,7 +63,10 @@ object SeqSignal {
 class MappedSeqSignal[T, E](
   private val parent: Signal[T],
   f: T => TransformedSeq[E]
-) extends ChangingSeqSignal[E] {
+) extends ChangingSeqSignal[E] with Logger {
+  case class NotPropagatingDelta(delta: SeqDelta[T,T]) extends LogEventPredicate
+  case object DoesntHaveSeqSignalParent extends LogEventPredicate
+  
   def now = underlying
   override def transform = underlying
   def underlying: TransformedSeq[E] = _underlying
@@ -80,15 +83,14 @@ class MappedSeqSignal[T, E](
       case t: TransformedSeq[T]#Transformed[E] =>
         SeqDelta.single(t.xform(m)) foreach deltas.fire
       case _ =>
-        println("not propagating delta "+m+": underlying is not a TransformedSeq#Transformed")
+        trace(NotPropagatingDelta(m))
     }
   }
   parent match {
     case ss: SeqSignal[T] =>
-      println(toString+": parent is a SeqSignal")
       ss.deltas addListener deltasListener
     case _ =>
-      println(toString+": parent is not a SeqSignal")
+      trace(DoesntHaveSeqSignalParent)
   }
 
   override def toString = "MappedSeqSignal("+parent+","+Util.debugString(f)+")"
