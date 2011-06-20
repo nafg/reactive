@@ -107,7 +107,7 @@ trait RElem extends net.liftweb.util.Bindable {
    * and properties as well.
    */
   def baseElem: Elem
-  
+
   /**
    * Called (from render) to register a Page with this
    * RElem.
@@ -115,9 +115,9 @@ trait RElem extends net.liftweb.util.Bindable {
    * references; (b) to link server-context updates
    * with the right comet actor; and (c) to allow
    * the same element state to be maintained on
-   * multiple pages. 
+   * multiple pages.
    */
-  protected def addPage(implicit page: Page) {
+  protected def addPage(implicit page: Page): Unit = synchronized {
     if(!_pages.exists(_.get==Some(page))) {
       _pages ::= new WeakReference(page)
     }
