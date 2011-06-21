@@ -47,6 +47,20 @@ trait Forwardable[+T] {
     this
   }
   /**
+   * Apply a function for every value. Same as =>>.
+   */
+  def +=(thunk: T=>Unit)(implicit observing: Observing): this.type = {
+    this foreach thunk
+    this
+  }
+  /**
+   * Apply a PartialFunction for every applicable value
+   */
+  def ?>>(pf: PartialFunction[T,Unit])(implicit observing: Observing): this.type = {
+    this foreach (pf orElse {case _ =>})
+    this
+  }
+  /**
    * Run a block of code for every value
    */
   def ->>(block: =>Unit)(implicit observing: Observing): this.type = {
