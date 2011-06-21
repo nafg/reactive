@@ -134,7 +134,7 @@ trait EventStream[+T] extends Forwardable[T]{
  * adds fire method.
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
-trait EventSource[T] extends EventStream[T] with Logger {
+class EventSource[T] extends EventStream[T] with Logger {
   case class HasListeners(listeners: List[WeakReference[T=>Unit]]) extends LogEventPredicate
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int) extends LogEventPredicate
   case class AddingListener(listener: T=>Unit) extends LogEventPredicate
