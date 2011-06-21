@@ -5,6 +5,7 @@ import scala.util.DynamicVariable
 
 
 object EventSource {
+  @deprecated("Use Logger.defaultLevel, this does nothing anymore")
   var debug = false
 }
 
@@ -139,7 +140,8 @@ trait EventSource[T] extends EventStream[T] with Logger {
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int) extends LogEventPredicate
   case class AddingListener(listener: T=>Unit) extends LogEventPredicate
   case class AddedForeachListener(listener: T=>Unit) extends LogEventPredicate
-  
+
+  @deprecated("Use logLevel or setLogLevel, this does nothing anymore")
   var debug = EventSource.debug
 
   abstract class ChildEventSource[U,S](protected var state: S) extends EventSource[U] {
