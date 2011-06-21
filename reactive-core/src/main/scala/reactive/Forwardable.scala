@@ -49,7 +49,7 @@ trait Forwardable[+T] {
   /**
    * Run a block of code for every value
    */
-  def ->>(block: =>Any)(implicit observing: Observing): this.type = {
+  def ->>(block: =>Unit)(implicit observing: Observing): this.type = {
     this foreach {_ => block}
     this
   }
