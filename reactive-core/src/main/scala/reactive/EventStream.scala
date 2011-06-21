@@ -130,9 +130,8 @@ trait EventStream[+T] extends Forwardable[T]{
 
 
 /**
- * A basic implementation of EventStream.
- * 
- * Adds fire and forward methods
+ * A basic implementation of EventStream,
+ * adds fire method.
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
 trait EventSource[T] extends EventStream[T] with Logger {
