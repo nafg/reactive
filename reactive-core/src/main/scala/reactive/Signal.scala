@@ -81,8 +81,19 @@ trait Signal[+T] extends Forwardable[T] {
     }
   }
   /**
-   * Returns a Signal that only fires change events that are not equal to the
-   * previous value.
+   * Returns a derived Signal that does not fire change events
+   * during a prior call to fire on the same thread, thus
+   * preventing infinite recursion between multiple signals
+   * that are mutually dependent in an inconsistent manner.
+   * For instance, if two Vars have a bidirectionally-enforced
+   * mathematical relationship that can produce rounding errors.
+   */
+  def nonrecursive: Signal[T] = new NonrecursiveSignal[T](this)
+
+  /**
+   * Returns a derived Signal that only fires change events that are not equal to the
+   * previous value, thus preventing infinite recursion between multiple signals
+   * that are mutually dependent in a consistent manner.
    */
   def distinct: Signal[T] = new DistinctSignal[T](this)
 }
@@ -157,6 +168,15 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
   }
 }
 
+protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T,T,Unit](parent, (), _ => parent.now) {
+  protected val changing = new scala.util.DynamicVariable(false)
+  def parentHandler = (x, _, _) => {
+    if(!changing.value) changing.withValue(true) {
+      change fire x
+    }
+    (x, ())
+  }
+}
 
 protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
   var last = now

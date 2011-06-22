@@ -124,6 +124,14 @@ trait EventStream[+T] extends Forwardable[T]{
    */
   def hold[U>:T](init: U): Signal[U]
 
+  /**
+   * Returns a derived EventStream that does not fire events
+   * during a prior call to fire on the same thread, thus
+   * preventing infinite recursion between multiple event streams
+   * that are mutually dependent.
+   */
+  def nonrecursive: EventStream[T]
+
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
 }
@@ -243,6 +251,13 @@ class EventSource[T] extends EventStream[T] with Logger {
       val next = f(last, event)
       fire(next)
       next
+    }
+  }
+
+  def nonrecursive: EventStream[T] = new ChildEventSource[T,Unit] {
+    protected val firing = new scala.util.DynamicVariable(false)
+    def handler = (event, _) => if(!firing.value) firing.withValue(true) {
+      fire(event)
     }
   }
 
