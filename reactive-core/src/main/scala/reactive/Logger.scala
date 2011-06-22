@@ -59,7 +59,7 @@ trait Logger {
    */
   trait LogEventPredicate
   case class LogEvent(subject: AnyRef, predicate: LogEventPredicate)
-  
+
   var logLevel: Logger.Levels.Value = Logger.defaultLevel
   /**
    * Sets the log level and returns the original instance. So for instance:
@@ -80,9 +80,9 @@ trait Logger {
    * Log a semantic event at the specified level
    */
   def log(level: Logger.Levels.Value, pred: =>LogEventPredicate): Unit =
-    if(logLevel.id <= level.id)
+    if(logLevel != null && logLevel.id <= level.id)
       Logger.allES fire level -> LogEvent(subject, pred)
-  
+
   /**
    * Log a semantic event at the trace level
    */
