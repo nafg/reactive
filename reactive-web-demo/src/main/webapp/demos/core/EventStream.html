@@ -23,9 +23,7 @@ methods in reactive-core are named with it in mind.</p>
 obtained from a library. However, often you to need to create one
 yourself. To do this just instantiate <code>EventSource</code>
 (it extends <code>EventStream</code>).
-Currently it's a trait, so you have to add curly braces when you
-instantiate it. Perhaps it will be changed to a class in the future. You
-can then send events by calling <code>fire</code>.</p>
+You can then send events by calling <code>fire</code>.</p>
 
 <button onclick="showdemo('EventStream_EventSource')">Live Example</button>
 
@@ -267,4 +265,10 @@ for the signal to hold until the next event fires.</p>
 
 <button onclick="showdemo('EventStream_hold')">Live Example</button>
 
+<h3>Preventing infinite loops: <code>nonrecursive</code></h3>
+<p>If an <code>EventStream</code> firing can result in that <code>EventStream</code>
+firing again, you may end up with infinite recursion (in other words, a <code>StackOverflowError</code>).
+If that is the case, call <code>nonrecursive</code>, which returns
+a derived <code>EventStream</code> that uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>)
+to prevent it from firing recursively.</p>
 </div>

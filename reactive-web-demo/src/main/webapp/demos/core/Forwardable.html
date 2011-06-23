@@ -13,8 +13,18 @@
   <ul>
     <li>Run a block of code: <pre class="brush: scala">eventStream -&gt;&gt; println("An event was fired")</pre>
     </li>
-    <li>Call a function: <pre class="brush: scala">eventStream =&gt;&gt; {v => println(v + " was fired")</pre>
+    <li>Call a function:
+     <pre class="brush: scala">
+eventStream =&gt;&gt; {v => println(v + " was fired")
+eventStream += {v => println(v + " was fired")
+</pre>
     </li>
+    <li>Call a partial function, when applicable: 
+    <pre class="brush:scala">
+eventStream ?>> {
+  case n if n % 2 == 1 =&gt; println("An odd event")
+}
+</pre>
     <li>Assign the value to a <code>Var</code>: <pre
         class="brush: scala">eventStream >> myVar</pre>
     </li>

@@ -42,7 +42,9 @@ and wraps a <code>DOMProperty</code>. Setting its value will will result in the 
   Ajax event that is setting its value, if any.</p>
 
 <p>The simplest way to instantiate a <code>PropertyVar</code>
-is by writing <code>PropertyVar("name")(initialValue)</code>.</p>
+is by writing <code>PropertyVar("name")(initialValue)</code>. If the
+attribute has a different name than the javascript property, you can
+specify it as a second parameter after the name.</p>
 
 <pre class="brush:scala">
   class Snippet {

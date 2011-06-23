@@ -39,7 +39,8 @@ class Boot {
         Menu("EventStream")  /"demos"/"core"/"EventStream",
         Menu("Signal")  /"demos"/"core"/"Signal",
         Menu("SeqSignal")  /"demos"/"core"/"SeqSignal",
-        Menu("Forwardable")  /"demos"/"core"/"Forwardable"
+        Menu("Forwardable")  /"demos"/"core"/"Forwardable",
+        Menu("Logger")  /"demos"/"core"/"Logger"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Low Level API")  /"demos"/"web"/"LowLevel",

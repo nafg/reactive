@@ -1,0 +1,34 @@
+<div class="lift:surround?with=default;at=content">
+
+  <h2>Logger: Semantic logging</h2>
+  <p>In order to allow for fine-grained configurable logging without making any assumptions about the logging backend,
+  <code>reactive</code> takes the following approach. Rather than logging directly, any information that can be logged
+  has a case class defined, containing the relevant details. When logging for that object is at a high enough level,
+  this information will be put in a LogEvent and fired from a global EventStream. LogEvent is a case class with two
+  arguments: a subject, i.e. the object "logging" the information, and a predicate, the first case class we mentioned.</p>
+  <p>The <code>Logger</code> trait supplies the ability to log. It's used by <code>reactive</code> classes, and you
+  can use it in your own classes. Either mix it in, or instantiate it, optionally overriding <code>subject</code>
+  (presumably to point to the containing object). It has the following members:</p>
+  <dl>
+  <dt><code>logLevel</code></dt><dd>A <code>var</code> specifying the logging level.</dd>
+  <dt><code>setLogLevel</code></dt><dd>Sets the log level and returns the <code>Logger</code>. Useful for chaining
+  <code>reactive</code> operations. For instance:
+  <pre class="brush:scala">val es2 = es.setLogLevel(Logger.Levels.Trace).map(_ + 2)</pre></dd>
+  <dt><code>log</code></dt><dd>Logs a <code>LogEvent</code> based on the specified level and <code>LogEventPredicate</code>.</dd>
+  <dt><code>trace</code>, <code>warn</code>, <code>error</code></dt><dd>Logs a <code>LogEvent</code> based on the specified
+  <code>LogEventPredicate</code>, at the relevant level.</dd>
+  </dl>
+  
+  <p>The <code>Logger</code> singleton contains the <code>EventStream</code>(s)
+  that fire the log events. Here are some of its members:</p>
+  <dl><dt><code>Levels</code></dt><dd>A Scala <code>Enumeration</code>
+  of the supported levels.</dd>
+  <dt><code>defaultLevel</code></dt><dd>A <code>var</code>
+  specifying the level of subsequently created <code>Logger</code>s.</dd>
+  <dt><code>all</code></dt>
+  <dd>An <code>EventStream[(Levels.Value,Logger#LogEvent)]</code> that
+  fires all events.</dd>
+  <dt><code>traces</code>, <code>warnings</code>, <code>errors</code></dt>
+  <dd><code>EventStream[Logger#LogEvent]</code>s firing only the
+  relevant events from <code>all</code>.</dd></dl>
+</div>

@@ -56,6 +56,19 @@
       enabled or supported</li>
     <li>JavaScript events and signals so components can update each
       other without an Ajax call.</li>
+    <li>Intermediate, semantic representation of DOM mutations, with the
+    following benefits:
+    <ol><li>Extreme testability. Mutations can apply themselves
+    to xml in memory, so you can GUI test without GUI testing, meaning
+    you can easily simulate browser interactions and their analyze their
+    consequences.</li>
+    <li>Pluggability. Javascript can be generated in various forms, for
+    example jQuery vs. YUI vs. plain javascript; minified vs. debuggable;
+    plain vs. with transition effects.</li>
+    <li>Prevent memory leaks from javascript event streams.</li>
+    <li>Perhaps, a provide a simpler way for pages to work without
+    javascript.</li>
+    </ol></li>
     <li>Widgets, from scratch and/or ExtJS etc.</li>
   </ul>
 </div>

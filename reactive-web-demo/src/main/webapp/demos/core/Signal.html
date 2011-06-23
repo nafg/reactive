@@ -156,8 +156,14 @@ it allows you to create a <code>Tuple2</code>-valued <code>Signal</code> from tw
 def nameAndAge(name: Signal[String], age: Signal[Int]): Signal[(String,Int)] = name zip age
 </pre>
 
-<h3><code>distinct</code></h3>
-<code>distinct</code> returns a new <code>Signal</code> that filters out change events that are equal
-to the signal's previous value.
-
+<h3>Preventing infinite loops</h3>
+<p>When you have two interdependent signals, you need a way to prevent infinite loops
+(signal A caused signal B to change which causes signal A to change). <code>Signal</code>
+has two methods that return a new <code>Signal</code> identical to the parent <code>Signal</code>
+but with an added safety filter. <code>distinct</code> returns a new <code>Signal</code> that filters out change events that are equal
+to the signal's previous value. This suffices in most cases. But what if when signal A causes signal B
+to change signal A, it sets to another value, infinitely? A silly illustration:</p>
+<pre class="brush:scala">myVar.map(_ + 1) >> myVar</pre>
+<p>Another example is where rounding errors are not symmetric. For such scenarios, call<code>nonrecursive</code>, which
+uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>) to prevent recursion.</p>
 </div>
