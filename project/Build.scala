@@ -39,6 +39,7 @@ object ReactiveBuild extends Build {
   val liftVersion = "2.4-SNAPSHOT"
 
   lazy val reactive_core = Project("reactive-core", file("reactive-core")) settings(
+    version := "0.0.1-SNAPSHOT",
     pomExtra := pom("reactive-core", "An FRP framework"),
     libraryDependencies <+= scalaVersion { scalaVersion =>
       val scalatestVersions = Map("2.8.1"->"1.5", "2.9.0"->"1.6.1")
@@ -47,12 +48,14 @@ object ReactiveBuild extends Build {
   )
   lazy val reactive_web = Project("reactive-web", file("reactive-web")) settings(
     pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet"),
+    version := "0.0.1-SNAPSHOT",
     libraryDependencies ++= Seq(
       "net.liftweb" %% "lift-testkit" % liftVersion,
       "net.liftweb" %% "lift-webkit" % liftVersion
     )
   ) dependsOn(reactive_core)
   lazy val reactive_web_demo = Project("reactive-web-demo", file("reactive-web-demo")) settings(webSettings: _*) settings(
+    version := "0.0.1-SNAPSHOT",
     jettyScanDirs := Nil,
     libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "jetty,test")
   ) dependsOn(reactive_web)
