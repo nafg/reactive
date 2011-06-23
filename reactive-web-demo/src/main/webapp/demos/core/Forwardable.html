@@ -24,7 +24,7 @@ eventStream += {v => println(v + " was fired")
 eventStream ?>> {
   case n if n % 2 == 1 =&gt; println("An odd event")
 }
-</pre>
+</pre></li>
     <li>Assign the value to a <code>Var</code>: <pre
         class="brush: scala">eventStream >> myVar</pre>
     </li>
