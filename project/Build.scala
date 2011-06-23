@@ -1,6 +1,6 @@
 import sbt._
 import Keys._
-import com.github.siasia.WebPlugin._
+import /*com.github.siasia.*/WebPlugin._
 
 object ReactiveBuild extends Build {
   val pomCommon = <xml:group>
@@ -52,7 +52,9 @@ object ReactiveBuild extends Build {
     libraryDependencies ++= Seq(
       "net.liftweb" %% "lift-testkit" % liftVersion,
       "net.liftweb" %% "lift-webkit" % liftVersion
-    )
+    ),
+    resolvers += ScalaToolsSnapshots,
+    resolvers += "Sonatype snapshots" at sonatypeSnapshots
   ) dependsOn(reactive_core)
   lazy val reactive_web_demo = Project("reactive-web-demo", file("reactive-web-demo")) settings(webSettings: _*) settings(
     version := "0.0.1-SNAPSHOT",
