@@ -12,6 +12,10 @@
   <pre class="brush:scala">
   val sonatype_snapshot = "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
   </pre>
+  <p>For sbt 0.10, that would be:</p>
+  <pre class="brush: scala">
+  resolvers += "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
+  </pre>
   </li>
   
   <li>
@@ -20,7 +24,16 @@
   file is called), for example:</p>
   <pre class="brush: scala">
   val reactive_web = "cc.co.scala-reactive" %% "reactive-web" % "0.0.1-SNAPSHOT"
-  </pre></li>
+  </pre>
+  <p>For sbt 0.10, that would be:</p>
+  <pre>
+  libraryDependencies += "cc.co.scala-reactive" %% "reactive-web" % "0.0.1-SNAPSHOT"
+  </pre>
+  <p>Sbt 0.10 verifies checksums by default. However, the repository's checksums may not be up to date. To disable the check, add this:</p>
+  <pre>
+  checksums := Nil
+  </pre>
+  </li>
   <li>
   <h3>Optionally enable Comet support</h3>
   <p>In Boot.scala:</p>
