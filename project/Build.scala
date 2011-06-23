@@ -38,8 +38,6 @@ object ReactiveBuild extends Build {
   )
 
 
-
-
   val liftVersion = "2.4-SNAPSHOT"
 
   lazy val reactive_core = Project(
