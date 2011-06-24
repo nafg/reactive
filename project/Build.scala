@@ -57,6 +57,7 @@ object ReactiveBuild extends Build {
     settings = defaults ++ Seq(
       pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet"),
       libraryDependencies ++= Seq(
+        "javax.servlet" % "servlet-api" % "2.5" % "test",
         "net.liftweb" %% "lift-testkit" % liftVersion,
         "net.liftweb" %% "lift-webkit" % liftVersion
       )
