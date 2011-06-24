@@ -11,14 +11,15 @@ import Helpers._
 class JsEventStreamDemo extends Observing {
   val jses = new JsEventStream[JsString]
 
-  val alert = JsIdent[JsFunction1[JsString,JsVoid]]('alert)
-  
+  val window = $[JsObj]('window)
+  val alert = $[JsString =|> JsVoid]('alert)
+
   def render = {
     Reactions.inServerScope(Page.currentPage) {
-      jses.foreach { v: JsExp[JsString] =>
-        alert.apply(v)
-      }
+      jses.foreach { v: $[JsString] =>
+        window->alert("Fired: ".$ + v)
+      } 
     }
-    "button" #> (DOMEventSource.click ->> jses.fire("Button clicked".j))
+    "button" #> (DOMEventSource.click ->> jses.fire("Button clicked"$))
   }
 }
