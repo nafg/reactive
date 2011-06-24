@@ -1,0 +1,41 @@
+package reactive.web.demo.snippet
+
+import reactive._
+import reactive.web._
+import reactive.web.html._
+
+import net.liftweb.util.Helpers
+import Helpers._
+
+import scala.xml.NodeSeq
+
+class SelectDemo extends Observing {
+
+  val OSvariants = Map(
+    "Windows" -> List("XP", "Vista", "Windows 7"),
+    "Linux" -> List("Ubuntu", "Kubuntu", "Fedora"),
+    "---" -> List[String]()
+  )
+  val vowels: Set[Char] = "AEIOU".toSet
+  def consonantsInName(s: String) = s.toUpperCase.filter(!vowels.contains(_)).toList.distinct
+  def vowelsInName(s: String) = s.toUpperCase.filter(vowels).toList.distinct
+
+  val OSSelect = Select(Val(OSvariants.keys.toList))
+
+  val variantSelect = Select(OSSelect.selectedItem.map(_.getOrElse("---")).map(OSvariants))
+
+  val consonantSelect = Select(variantSelect.selectedItem.map(_.getOrElse("---")).map(consonantsInName))
+  val vowelSelect = Select(variantSelect.selectedItem.map(_.getOrElse("---")).map(vowelsInName))
+
+  def render =
+    "#os" #> OSSelect &
+      "#variant" #> variantSelect &
+      "#consonant" #> consonantSelect &
+      "#vowel" #> vowelSelect &
+      "#feedback" #> Cell {
+        for {
+          c <- consonantSelect.selectedItem
+          v <- vowelSelect.selectedItem
+        } yield "*" #> ("You selected "+(c.toList ::: v.toList).mkString(" and "))
+      }
+}
