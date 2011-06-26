@@ -90,7 +90,9 @@ trait RElem extends PageIds {
   /**
    * The value of the id attribute for the Page
    */
-  def id(implicit page: Page): String = pageIds.getOrElseUpdate(page, Page.newId)
+  def id(implicit page: Page): String = synchronized {
+    pageIds.getOrElseUpdate(page, Page.newId)
+  }
 
   /**
    * The events that contribute to rendering
