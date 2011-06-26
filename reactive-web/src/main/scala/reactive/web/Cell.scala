@@ -14,19 +14,19 @@ trait Cell extends RElem {
    * The Signal that determines the contents of the element.
    */
   def content: Signal[NodeSeq]
-  
+
   override def render(implicit p: Page) = super.render.copy(child = content.now)
-  
-  override def addPage(implicit page: Page) {
-    super.addPage(page)
-    content foreach {s =>
+
+  override def addPage(elem: Elem)(implicit page: Page): Elem = {
+    val ret = super.addPage(elem)(page)
+    content foreach { s =>
       Reactions.inAnyScope(page) {
         Reactions.queue(SetHtml(id, s))
       }
     }
+    ret
   }
 }
-
 
 /**
  * Provides a factory for creating Cells.

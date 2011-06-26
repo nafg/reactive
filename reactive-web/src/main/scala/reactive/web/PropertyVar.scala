@@ -111,8 +111,8 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * and return the updated Elem.
    */
   def render(implicit page: Page) =
-    new dom.PropertyRenderer(page, codec.toAttributeValue(now))
-  
+    new dom.PropertyRenderer(codec.toAttributeValue(now))(page)
+
   /**
    * Attaches this property to an Elem, by adding
    * its corresponding attribute, as well as that of any
@@ -120,8 +120,8 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * @return the updated Elem.
    */
   def render(e: Elem)(implicit page: Page): Elem =
-      new dom.PropertyRenderer(page, codec.toAttributeValue(now)) apply e
-  
+    new dom.PropertyRenderer(codec.toAttributeValue(now))(page) apply e
+
   /**
    * Link events with this property. The value
    * will be updated on the server whenever an

@@ -8,6 +8,7 @@ import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
 
 import scala.ref.WeakReference
 
+
 /**
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
  * and updateable on the client via the server.
@@ -15,27 +16,18 @@ import scala.ref.WeakReference
  * and an update method that sends updates to the browser as a JsExp.
  * @param name The javascript name of the property
  */
-class DOMProperty(val name: String) {
-  class PropertyRenderer(page: Page, attributeValue: String=>Option[String] = _ => None) extends (NodeSeq=>NodeSeq) {
-    def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
-    def apply(elem: Elem): Elem = {
-      val id = owners.get(page) getOrElse {
-        val ret = elem.attributes.get("id").map(_.text) getOrElse Page.newId
-        addOwner(ret)
-        ret
+class DOMProperty(val name: String) extends PageIds {
+  class PropertyRenderer(attributeValue: String => Option[String] = _ => None)(implicit page: Page)
+    extends Renderer(this)(elem => includedEvents.foldLeft(
+      elem %
+        attributeValue(attributeName).map(
+          new UnprefixedAttribute(name, _, Null)
+        ).getOrElse(Null)
+    ) { (e, es) =>
+        es(e)
       }
-      includedEvents.foldLeft(
-        elem % new UnprefixedAttribute("id", id,
-          attributeValue(attributeName).map(
-            new UnprefixedAttribute(name, _, Null)
-          ).getOrElse(Null)
-        )
-      ){
-        case (e,es) => es(e)
-      }
-    }
-  }
-  
+    )(page)
+
   /**
    * The name when this property is rendered as an attribute.
    * Defaults to name
@@ -51,7 +43,6 @@ class DOMProperty(val name: String) {
    */
   def eventDataKey = "jsprop"+name
 
-  private var owners = new scala.collection.mutable.WeakHashMap[Page, String]()
   private var eventSources = List[DOMEventSource[_]]()
   private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
 
@@ -82,8 +73,8 @@ class DOMProperty(val name: String) {
    * @param page the Page to add. If it exists no action is taken.
    */
   //TODO should events be associated with a Page more directly/explicitly?
-  def addOwner(id: String)(implicit page: Page): Unit = {
-    owners(page) = id
+  override def addPage(elem: Elem)(implicit page: Page): Elem = {
+    val ret = super.addPage(elem)(page)
 
     /**
      * Causes the value of this property to be updated by extracting its new value
@@ -102,13 +93,14 @@ class DOMProperty(val name: String) {
     }
     //apply linked DOM event sources
     //TODO only pages that also own es
-    for ((page, id) <- owners; es <- eventSources) {
+    for ((page, id) <- pageIds; es <- eventSources) {
       es.rawEventData += (eventDataKey -> readJS(id))
     }
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
     eventSources.foreach(_.rawEventStream.foreach(setFromAjax)(page))
 
+    ret
   }
 
   /**
@@ -146,7 +138,7 @@ class DOMProperty(val name: String) {
    * any linked events, and recording its id (adding one if necessary),
    * and return the updated Elem.
    */
-  def render(implicit page: Page) = new PropertyRenderer(page)
+  def render(implicit page: Page) = new PropertyRenderer()(page)
 
   /**
    * Attaches this property to an Elem, by adding
@@ -155,8 +147,8 @@ class DOMProperty(val name: String) {
    * @return the updated Elem.
    */
   def render(e: Elem)(implicit page: Page): Elem =
-      new PropertyRenderer(page) apply e
-  
+    new PropertyRenderer()(page) apply e
+
   /**
    * Change the value of this property in the browser DOM
    */
@@ -165,7 +157,7 @@ class DOMProperty(val name: String) {
     // being added now, send to all other pages javascript to apply
     // the new value.
     if (ajaxPage.value != Some(page)) {
-      for ((page, id) <- owners) Reactions.inAnyScope(page) {
+      for ((page, id) <- pageIds) Reactions.inAnyScope(page) {
         Reactions.queue(writeJS(id)(value))
       }
     }

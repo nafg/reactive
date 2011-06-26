@@ -7,6 +7,13 @@ import org.scalatest.matchers.ShouldMatchers
 import net.liftweb.mockweb._
 
 class RElemTests extends FunSuite with ShouldMatchers {
+  test("Rendering an RElem to an Elem with an id should retain that id") {
+    Page.withPage(new Page) {
+      val elem = <anElem id="anId"/>
+      val rElem = RElem(<span>A span</span>)
+      rElem(elem).asInstanceOf[scala.xml.Elem].attribute("id").map(_.text) should equal (Some("anId"))
+    }
+  }
 }
 
 class DOMPropertyTests extends FunSuite with ShouldMatchers {

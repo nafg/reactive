@@ -10,8 +10,6 @@ import net.liftweb.common._
 import net.liftweb.actor._
 import scala.xml._
 
-
-
 /**
  * This singleton provides some useful things, including factories for creating RElems from standard Scala types.
  */
@@ -27,12 +25,12 @@ object RElem {
    */
   class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
     val baseElem = withId(parent)
-    override lazy val id = baseElem.attributes("id").text
     val properties, events = Nil
     override def render(implicit p: Page) = baseElem.copy(child = baseElem.child ++ children.map(_.render))
   }
-  private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String,RElem]
-  
+
+  private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String, RElem] //TODO
+
   /**
    * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
    * runs the provided function in the client scope. Exceptions are intercepted.
@@ -49,7 +47,7 @@ object RElem {
       }
     }
   }
-  
+
   /**
    * Creates an RElem from the given scala.xml.Elem. One may provide 0 or more RElems to append.
    * @param parent the Elem to use. If it has an id you must ensure it is unique
@@ -61,6 +59,7 @@ object RElem {
    */
   def apply(text: String): RElem = new ElemWrapper(<span>{ text }</span>)
 
+  implicit def rElemToNsFunc(rElem: RElem)(implicit page: Page): NodeSeq => NodeSeq = rElem.toNSFunc(page)
 }
 
 /**
@@ -75,20 +74,24 @@ object RElem {
  * response to events, and mutating them causes the DOM to be updated
  * in the browser.
  */
-trait RElem extends net.liftweb.util.Bindable {
-  import scala.ref.WeakReference
-  protected var _pages = List[WeakReference[Page]]()
+trait RElem extends PageIds {
   /**
    * Which Pages this RElem has been rendered to.
    * It will be kept in sync on all of them.
+   *
+   * Pages are used (a) as an Observing to manage listener
+   * references; (b) to link server-context updates
+   * with the right comet actor; and (c) to allow
+   * the same element state to be maintained on
+   * multiple pages.
    */
-  protected def pages = _pages.flatMap(_.get)
-  
+  protected def pages = pageIds.keys.toSeq
+
   /**
-   * The value of the id attribute 
+   * The value of the id attribute for the Page
    */
-  lazy val id = Page.newId
-  
+  def id(implicit page: Page): String = pageIds.getOrElseUpdate(page, Page.newId)
+
   /**
    * The events that contribute to rendering
    */
@@ -107,20 +110,6 @@ trait RElem extends net.liftweb.util.Bindable {
   def baseElem: Elem
 
   /**
-   * Called (from render) to register a Page with this
-   * RElem.
-   * Pages are used (a) as an Observing to manage listener
-   * references; (b) to link server-context updates
-   * with the right comet actor; and (c) to allow
-   * the same element state to be maintained on
-   * multiple pages.
-   */
-  protected def addPage(implicit page: Page): Unit = synchronized {
-    if(!_pages.exists(_.get==Some(page))) {
-      _pages ::= new WeakReference(page)
-    }
-  }
-  /**
    * Returns an Elem that can be used to initially place this
    * RElem in the page, with attributes defined to set the properties
    * and add the event handlers.
@@ -128,20 +117,34 @@ trait RElem extends net.liftweb.util.Bindable {
    * with this RElem before generating the Elem.
    * @return an Elem consisting of baseElem plus attributes contributed by events and properties, not to mention the id.
    */
-  def render(implicit page: Page): Elem = {
-    addPage(page)
-    val e = baseElem % new UnprefixedAttribute("id", id, Null)
-    val withProps = properties.foldLeft(e){
+  def render(implicit page: Page): Elem =
+    toNSFunc(page)(baseElem.copy(child = Nil))
+
+  /**
+   * Returns a (subclass of) NodeSeq=>NodeSeq that takes
+   * an Elem and applies this RElem's state to it, and returns
+   * a new Elem that has the label specified in the RElem's baseElem,
+   * baseElem's children and attributes appended to the Elem's
+   * children and attributes, as well as attributes for the
+   * properties and events.
+   */
+  def toNSFunc(implicit page: Page) = new Renderer(this)(e => {
+    val elem = addPage(baseElem.copy(
+      child = e.child ++ baseElem.child,
+      attributes = e.attributes append baseElem.attributes
+    ))
+    val withProps = properties.foldLeft(e) {
       case (e, prop) => prop.render(e)(page)
     }
-    events.foldLeft[Elem](withProps){
+    events.foldLeft[Elem](withProps) {
       case (e, evt: DOMEventSource[_]) => e % evt.asAttribute
       case (e, _) => e
     }
-  }
-  
+  })
+
   /**
    * Calls render with the value of the CurrentPage RequestVar
    */
+  @deprecated
   def asHtml: Elem = render(CurrentPage.is)
 }

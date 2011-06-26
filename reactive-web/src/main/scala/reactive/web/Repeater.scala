@@ -74,13 +74,14 @@ trait Repeater extends RElem with HtmlFixer {
 
   private lazy val manager = new RepeaterManager(this.id, children)
 
-  override protected def addPage(implicit page: Page) {
-    super.addPage(page)
+  override protected def addPage(elem: Elem)(implicit page: Page): Elem = {
+    val ret = super.addPage(elem)(page)
     manager.createPageStream foreach { js =>
       Reactions.inAnyScope(page) {
         Reactions.queue(js)
       }
     }
+    ret
   }
 }
 

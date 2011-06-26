@@ -2,6 +2,8 @@ package reactive
 package web
 package html
 
+import scala.xml.Elem
+
 
 /**
  * Represents a select element in the DOM.
@@ -62,15 +64,15 @@ class Select[T](
       }
     }
   }
-  
-  override protected def addPage(implicit page: Page) {
-    super.addPage(page)
+
+  override protected def addPage(elem: Elem)(implicit page: Page): Elem = {
     items.change.foreach{is =>
       val i = selectedIndex.now map {_.min(is.length-1)} filter {_ >= 0}
       selectedIndex ()= i
     }
+    super.addPage(elem)(page)
   }
-  
+
   def baseElem = <select size={size.toString}/>
   def properties = List(selectedIndex)
   def events = List(change)
@@ -106,9 +108,10 @@ object Select {
     new Select[T](items, renderer) {
       override val size = _size
       selectItem(selected)
-      override protected def addPage(implicit page: Page) {
-        super.addPage(page)
+      override protected def addPage(elem: Elem)(implicit page: Page) = {
+        val ret = super.addPage(elem)(page)
         selectedItem.change foreach handleChange
+        ret
       }
     }
   }

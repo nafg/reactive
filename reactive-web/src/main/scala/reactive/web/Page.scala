@@ -4,6 +4,9 @@ package web
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.http.{ RequestVar, S }
 
+import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
+
+
 /**
  * A RequestVar to generate a maximum of one Page instance
  * per request.
@@ -64,3 +67,19 @@ object Page {
   def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_"+randomString(7)
 }
 
+trait PageIds {
+  protected var pageIds = new scala.collection.mutable.WeakHashMap[Page, String]()
+
+  protected def addPage(elem: Elem)(implicit page: Page): Elem = synchronized {
+    lazy val elemId = elem.attributes.get("id").map(_.text)
+    val id = pageIds.getOrElseUpdate(page, elemId getOrElse Page.newId)
+    elem % new UnprefixedAttribute("id", id, Null)
+  }
+
+  class Renderer(pageIds: PageIds)(renderer: Elem => Elem)(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq): NodeSeq = apply(nodeSeqToElem(ns))
+    def apply(elem: Elem): Elem = {
+      renderer(pageIds.addPage(elem)(page))
+    }
+  }
+}
