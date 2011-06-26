@@ -9,6 +9,10 @@ object EventSource {
   var debug = false
 }
 
+object EventStream {
+  object empty extends EventSource[Nothing]
+}
+
 /**
  * An EventStream is a source of events (arbitrary values sent to listener functions).
  * You can fire events from it, you can react to events with any behavior, and you can
