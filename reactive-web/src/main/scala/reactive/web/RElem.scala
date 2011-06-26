@@ -1,12 +1,10 @@
 package reactive
 package web
 
-
-
 import net.liftweb.http._
-  import js._
-    import JsCmds._
-    import JE._
+import js._
+import JsCmds._
+import JE._
 import net.liftweb.util.Helpers._
 import net.liftweb.common._
 import net.liftweb.actor._
@@ -39,7 +37,7 @@ object RElem {
    * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
    * runs the provided function in the client scope. Exceptions are intercepted.
    */
-  def ajaxFunc(f: String=>Unit): S.AFuncHolder = S.LFuncHolder{
+  def ajaxFunc(f: String => Unit): S.AFuncHolder = S.LFuncHolder {
     case Nil => JsCmds.Noop
     case s :: _ => Reactions.inClientScope {
       try {
@@ -61,7 +59,7 @@ object RElem {
   /**
    * Creates an RElem from a text String, wrapping it in a span
    */
-  def apply(text: String): RElem = new ElemWrapper(<span>{text}</span>)
+  def apply(text: String): RElem = new ElemWrapper(<span>{ text }</span>)
 
 }
 
@@ -94,7 +92,7 @@ trait RElem extends net.liftweb.util.Bindable {
   /**
    * The events that contribute to rendering
    */
-  def events: Seq[DOMEventSource[_<:DOMEvent]]
+  def events: Seq[DOMEventSource[_ <: DOMEvent]]
 
   /**
    * The properties that contribute to rendering

@@ -1,11 +1,8 @@
 package reactive
 package web
 
-
 import net.liftweb.util.Helpers.randomString
-import net.liftweb.http.{RequestVar, S}
-
-
+import net.liftweb.http.{ RequestVar, S }
 
 /**
  * A RequestVar to generate a maximum of one Page instance
@@ -24,13 +21,11 @@ object CurrentPage extends RequestVar(new Page)
 class Page extends Observing {
   val id = randomString(20)
   def cometName = id
-  def render = xml.Comment("comet " + id) ++ <lift:comet
-    type="net.liftweb.reactive.ReactionsComet"
-    name={cometName}
-  />
-  
+  def render = xml.Comment("comet "+id) ++
+    <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ cometName }/>
+
   private var counter = 0
-  
+
   def nextId = synchronized {
     val c = counter
     counter += 1
@@ -46,7 +41,7 @@ object Page {
    * @param p the Page
    * @param b the block of code
    */
-  def withPage[T](p: Page)(b: =>T): T = dynamicScope.withValue(Some(p))(b)
+  def withPage[T](p: Page)(b: => T): T = dynamicScope.withValue(Some(p))(b)
 
   /**
    * Makes the current Page available implicitly.
@@ -64,8 +59,8 @@ object Page {
    * Otherwise returns None
    */
   def currentPageOption: Option[Page] = dynamicScope.value orElse
-      S.request.map(_ => CurrentPage.is).toOption
+    S.request.map(_ => CurrentPage.is).toOption
 
-  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_" + randomString(7)
+  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_"+randomString(7)
 }
 

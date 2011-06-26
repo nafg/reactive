@@ -1,11 +1,9 @@
 package reactive
 package web
 
-
-import scala.xml.{Elem, NodeSeq}
+import scala.xml.{ Elem, NodeSeq }
 
 import net.liftweb.http.js.JsCmds.SetHtml
-
 
 /**
  * A Cell is an RElem whose contents are determined by a simple Signal.
@@ -41,11 +39,11 @@ object Cell {
    * The Signal's value will be passed the children of the element used as the parent.
    * @param binding the binding-function-valued Signal
    */
-  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = {ns: NodeSeq =>
+  def apply(binding: Signal[NodeSeq => NodeSeq])(implicit p: Page): NodeSeq => NodeSeq = { ns: NodeSeq =>
     new Cell {
       val events, properties = Nil
       val baseElem = nodeSeqToElem(ns)
-      lazy val content = binding map {_(baseElem.child)}
+      lazy val content = binding map { _(baseElem.child) }
     }.render
   }
 }

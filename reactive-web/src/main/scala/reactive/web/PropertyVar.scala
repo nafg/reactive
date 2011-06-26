@@ -51,21 +51,20 @@ object PropertyCodec {
   }
 }
 
-
 object PropertyVar {
-/**
- * Wrap a DOMProperty as a type-safe Var.
- * @param dom the DOMProperty to wrap
- * @param init the initial value (rendered in the attribute)
- */
-  def apply[T](dom: DOMProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](dom)(init)(codec,observing)
+  /**
+   * Wrap a DOMProperty as a type-safe Var.
+   * @param dom the DOMProperty to wrap
+   * @param init the initial value (rendered in the attribute)
+   */
+  def apply[T](dom: DOMProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](dom)(init)(codec, observing)
 
   /**
    * Wrap a new DOMProperty as a type-safe Var.
    * @param name the name of the DOMProperty to create and wrap
    * @param init the initial value (rendered in the attribute)
    */
-  def apply[T](name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](name)(init)(codec,observing)
+  def apply[T](name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](name)(init)(codec, observing)
   /**
    * Wraps a new DOMProperty as a type-safe Var.
    * @param name the name of the DOMProperty to create and wrap
@@ -73,12 +72,12 @@ object PropertyVar {
    * @param init the initial value (rendered in the attribute)
    */
   def apply[T](name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] =
-    new PropertyVar[T](name, attributeName)(init)(codec,observing)
+    new PropertyVar[T](name, attributeName)(init)(codec, observing)
 
   /**
    * An implicit conversion from PropertyVar to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(dp: PropertyVar[_])(implicit page: Page): NodeSeq=>NodeSeq = dp.render(page)
+  implicit def toNodeSeqFunc(dp: PropertyVar[_])(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
 }
 
 /**
@@ -94,7 +93,7 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * @param name the name of the DOMProperty to create and wrap
    * @param init the initial value (rendered in the attribute)
    */
-  def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) = this(DOMProperty(name))(init)(codec,observing)
+  def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) = this(DOMProperty(name))(init)(codec, observing)
   /**
    * Wraps a new DOMProperty as a type-safe Var.
    * @param name the name of the DOMProperty to create and wrap
@@ -102,8 +101,7 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * @param init the initial value (rendered in the attribute)
    */
   def this(name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) =
-    this(DOMProperty(name, attributeName))(init)(codec,observing)
-
+    this(DOMProperty(name, attributeName))(init)(codec, observing)
 
   /**
    * Returns a NodeSeq=>NodeSeq that will attach this property
@@ -132,8 +130,8 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * that this property applies to.
    * @return This PropertyVar
    */
-  def updateOn(es: DOMEventSource[_]*) = {dom.updateOn(es: _*); this}
-  
+  def updateOn(es: DOMEventSource[_]*) = { dom.updateOn(es: _*); this }
+
   /**
    * Links events with this property. The value
    * will be updated on the server whenever an
@@ -144,5 +142,5 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * Elem as this property!
    * @return This PropertyVar
    */
-  def withEvents(es: DOMEventSource[_ <: DOMEvent]*) = {dom.withEvents(es: _*); this}
+  def withEvents(es: DOMEventSource[_ <: DOMEvent]*) = { dom.withEvents(es: _*); this }
 }
