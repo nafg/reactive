@@ -131,10 +131,10 @@ trait RElem extends PageIds {
    * properties and events.
    */
   def toNSFunc(implicit page: Page) = new Renderer(this)(e => {
-    val elem = addPage(baseElem.copy(
+    val elem = baseElem.copy(
       child = e.child ++ baseElem.child,
       attributes = e.attributes append baseElem.attributes
-    ))
+    )
     val withProps = properties.foldLeft(e) {
       case (e, prop) => prop.render(e)(page)
     }
