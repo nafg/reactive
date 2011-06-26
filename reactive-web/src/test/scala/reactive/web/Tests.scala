@@ -11,7 +11,7 @@ class RElemTests extends FunSuite with ShouldMatchers {
 
 class DOMPropertyTests extends FunSuite with ShouldMatchers {
   test("DOMProperty has one id per page") {
-    MockWeb.testS("/") {
+    Page.withPage(new Page) {
       val property = DOMProperty("someName")
       val e1 = property.render apply <elem1/>
       val e2 = property.render apply <elem2/>
