@@ -130,7 +130,9 @@ trait RElem extends PageIds {
    * children and attributes, as well as attributes for the
    * properties and events.
    */
-  def toNSFunc(implicit page: Page) = new Renderer(this)(e => {
+  def toNSFunc(implicit page: Page) = new Renderer(this)(renderer)(page)
+  
+  protected def renderer(implicit page: Page): Elem=>Elem = e => {
     val elem = baseElem.copy(
       child = e.child ++ baseElem.child,
       attributes = e.attributes append baseElem.attributes
@@ -142,7 +144,7 @@ trait RElem extends PageIds {
       case (e, evt: DOMEventSource[_]) => e % evt.asAttribute
       case (e, _) => e
     }
-  })
+  }
 
   /**
    * Calls render with the value of the CurrentPage RequestVar

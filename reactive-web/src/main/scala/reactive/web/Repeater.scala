@@ -70,7 +70,7 @@ trait Repeater extends RElem with HtmlFixer {
 
   protected def renderChildren(implicit p: Page): NodeSeq = children.now.map(_.render)
 
-  override def render(implicit p: Page) = super.render.copy(child = renderChildren)
+  override def renderer(implicit p: Page) = e=>super.renderer(p)(e).copy(child = renderChildren)
 
   private lazy val manager = new RepeaterManager(this.id, children)
 

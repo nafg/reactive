@@ -6,12 +6,24 @@ import org.scalatest.matchers.ShouldMatchers
 
 import net.liftweb.mockweb._
 
+import scala.xml.Elem
+
+
 class RElemTests extends FunSuite with ShouldMatchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
     Page.withPage(new Page) {
       val elem = <anElem id="anId"/>
       val rElem = RElem(<span>A span</span>)
-      rElem(elem).asInstanceOf[scala.xml.Elem].attribute("id").map(_.text) should equal (Some("anId"))
+      rElem(elem).asInstanceOf[Elem].attribute("id").map(_.text) should equal(Some("anId"))
+    }
+  }
+}
+class RepeaterTests extends FunSuite with ShouldMatchers {
+  test("Repeater should have children with toNSFunc") {
+    MockWeb.testS("/") {
+      implicit val o = new Observing{}
+      val select = html.Select(Val(List(1, 2, 3)))
+      select(<select/>).asInstanceOf[Elem].child.length should equal (3)
     }
   }
 }
