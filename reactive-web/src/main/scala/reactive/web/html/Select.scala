@@ -4,6 +4,8 @@ package html
 
 import scala.xml.Elem
 
+import scala.annotation.tailrec
+
 
 /**
  * Represents a select element in the DOM.
@@ -14,13 +16,12 @@ import scala.xml.Elem
  */
 class Select[T](
   items: SeqSignal[T],
-  renderer: T=>String = {t:T => t.toString},
-  val size: Int = 1
-)(implicit observing: Observing) extends Repeater with Logger {
-  case class SelectedIndexOutOfBounds(index: Int, length: Int) extends LogEventPredicate {
-    override def toString = "selectedIndex %d is out of bounds (%d)".format(index,length)
-  }
-  
+  renderer: T => String = { t: T => t.toString },
+  val size: Int = 1)(implicit observing: Observing) extends Repeater with Logger {
+
+  case class UpdatedItemFromIndex(item: Option[T]) extends LogEventPredicate
+  case class UpdatedIndexFromItem(item: Option[Int]) extends LogEventPredicate
+
   /**
    * The change DOM event
    */
@@ -29,38 +30,66 @@ class Select[T](
    * The click DOM event
    */
   val click = DOMEventSource.click
-  /**
-   * The selectedIndex DOM property
-   * Also when the select is rendered, this affects which option has the selected="selected" attribute. 
-   */
-  val selectedIndex = Select.selectedIndex(None) updateOn change
 
   /**
-   * A signal that represents the selected item as a T.
+   * The selectedIndex DOM property
+   * Also when the select is rendered, this affects which option has the selected="selected" attribute.
    */
-  val selectedItem: Signal[Option[T]] = for {
-    si <- selectedIndex
-    is <- items
-  } yield si.filter{i =>
-    if(i < is.length && i >= 0) true else {warn(SelectedIndexOutOfBounds(i,is.length)); false}
-  } map is
+  val selectedIndex = Select.selectedIndex(Some(0) filter (_ <= items.now.length)) updateOn change
+
+  /**
+   * A Var[Option[T]] that represents and sets the selected item.
+   */
+  val selectedItem: Var[Option[T]] = Var(None)
+
+  @tailrec
+  private def adjustIndexFromDeltas(si: Int)(deltas: List[SeqDelta[_, _]]): Int = {
+    deltas match {
+      case Nil =>
+        si
+      case Include(i, _) :: rest if i <= si =>
+        adjustIndexFromDeltas(si + 1)(rest)
+      case Remove(i, _) :: rest if i < si =>
+        adjustIndexFromDeltas(si - 1)(rest)
+      case Remove(i, _) :: rest if i == si =>
+        0
+      case Batch(ms @ _*) :: rest =>
+        adjustIndexFromDeltas(adjustIndexFromDeltas(si)(ms.toList))(rest)
+      case other :: rest =>
+        adjustIndexFromDeltas(si)(rest)
+    }
+  }
+
+  selectedIndex <<: items.deltas.map { d =>
+    Some(adjustIndexFromDeltas(selectedIndex.now getOrElse -1)(d :: Nil)) filter (_ > -1)
+  }
+
+  selectedIndex <<: selectedItem.change.map { i =>
+    i map items.now.indexOf[T] filter (_ > -1)
+  }.nonrecursive =>> { x: Option[Int] => trace(UpdatedIndexFromItem(x)) }
+
+  selectedItem <<: (selectedIndex.map { siOpt =>
+    val is = items.now
+    siOpt.filter(_ => is.nonEmpty).
+      map(si => is(si min is.length - 1 max 0))
+  }.nonrecursive =>> { x: Option[T] => trace(UpdatedItemFromIndex(x)) })
 
   /**
    * Call this to select another (or no) item.
    */
-  //TODO perhaps just use a Var?
   //TODO what about multiple selections? Use another class?
+  @deprecated("Use selectedItem ()= value instead")
   def selectItem(item: Option[T]) {
-    selectedIndex ()= item.map(items.now.indexOf(_)).filter(_ != -1)
+    selectedIndex() = item.map(items.now.indexOf(_)).filter(_ != -1)
   }
 
   lazy val children = items.map {
-    _ map {item: T =>
+    _ map { item: T =>
       RElem {
-        if(selectedItem.now == Some(item))
-          <option selected="selected">{renderer(item)}</option>
+        if (selectedItem.now == Some(item))
+          <option selected="selected">{ renderer(item) }</option>
         else
-          <option>{renderer(item)}</option>
+          <option>{ renderer(item) }</option>
       }
     }
   }
@@ -73,7 +102,7 @@ class Select[T](
     super.addPage(elem)(page)
   }
 
-  def baseElem = <select size={size.toString}/>
+  def baseElem = <select size={ size.toString }/>
   def properties = List(selectedIndex)
   def events = List(change)
 }
@@ -83,7 +112,7 @@ class Select[T](
  */
 object Select {
   def selectedIndex(init: Option[Int] = None)(implicit observing: Observing): PropertyVar[Option[Int]] = PropertyVar("selectedIndex")(init)
-  
+
   /**
    * @tparam T the type of the items
    * @param selected which item is initially selected?
@@ -92,9 +121,9 @@ object Select {
    * @param size the height of the select, 1 for drop-downs
    * @param handleChange a function to call whenever the selection changes
    */
-  def apply[T](selected: Option[T], items: Seq[T], renderer: T=>String, size: Int)(handleChange: Option[T]=>Unit)(implicit observing: Observing): Select[T] =
+  def apply[T](selected: Option[T], items: Seq[T], renderer: T => String, size: Int)(handleChange: Option[T] => Unit)(implicit observing: Observing): Select[T] =
     apply(selected, SeqSignal(Val(items)), renderer, size)(handleChange)
-  
+
   /**
    * @tparam T the type of the items
    * @param selected which item is initially selected?
@@ -103,7 +132,7 @@ object Select {
    * @param size the height of the select, 1 for drop-downs. Defaults to 1.
    * @param handleChange a function to call whenever the selection changes
    */
-  def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T=>String, size: Int = 1)(handleChange: Option[T]=>Unit)(implicit observing: Observing): Select[T] = {
+  def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T => String, size: Int = 1)(handleChange: Option[T] => Unit)(implicit observing: Observing): Select[T] = {
     def _size = size
     new Select[T](items, renderer) {
       override val size = _size
@@ -121,7 +150,7 @@ object Select {
    * @param items a SeqSignal representing the dynamic list of items
    * @param renderer how to display items
    */
-  def apply[T](items: SeqSignal[T], renderer: T=>String)(implicit observing: Observing): Select[T] =
+  def apply[T](items: SeqSignal[T], renderer: T => String)(implicit observing: Observing): Select[T] =
     new Select[T](items, renderer)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them
@@ -136,7 +165,7 @@ object Select {
    * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    * @param renderer how to display items
    */
-  def apply[T](items: Signal[Seq[T]], renderer: T=>String)(implicit observing: Observing): Select[T] =
+  def apply[T](items: Signal[Seq[T]], renderer: T => String)(implicit observing: Observing): Select[T] =
     new Select[T](SeqSignal(items), renderer)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them

@@ -13,8 +13,7 @@ class SelectDemo extends Observing {
 
   val OSvariants = Map(
     "Windows" -> List("XP", "Vista", "Windows 7"),
-    "Linux" -> List("Ubuntu", "Kubuntu", "Fedora"),
-    "---" -> List[String]()
+    "Linux" -> List("Ubuntu", "Kubuntu", "Fedora")
   )
   val vowels: Set[Char] = "AEIOU".toSet
   def consonantsInName(s: String) = s.toUpperCase.filter(!vowels.contains(_)).toList.distinct
@@ -22,7 +21,7 @@ class SelectDemo extends Observing {
 
   val OSSelect = Select(Val(OSvariants.keys.toList))
 
-  val variantSelect = Select(OSSelect.selectedItem.map(_.getOrElse("---")).map(OSvariants))
+  val variantSelect = Select(OSSelect.selectedItem.map(_.toList.flatMap(OSvariants)))
 
   val consonantSelect = Select(variantSelect.selectedItem.map(_.getOrElse("---")).map(consonantsInName))
   val vowelSelect = Select(variantSelect.selectedItem.map(_.getOrElse("---")).map(vowelsInName))
