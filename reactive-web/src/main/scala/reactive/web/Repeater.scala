@@ -12,48 +12,60 @@ import net.liftweb.util.Helpers.stringToSuper
  * @param parentId the id to insert and remove children from
  * @param children the RElems to be contained by the element with id parentId
  */
-class RepeaterManager(parentId: String, children: SeqSignal[RElem]) extends HtmlFixer {
+class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
   /**
    * Given an incremental update and the current set of children's ids, returns a JsCmd to apply the delta.
    * @param m the delta
    * @param ids the current ids of the child elements, in order
    * @return a JsCmd that when executed by the browser will cause update the DOM to reflect the change represented by the delta.
    */
-  def handleUpdate(m: SeqDelta[RElem, RElem], ids: scala.collection.mutable.Buffer[String])(implicit p: Page): JsCmd = m match {
+  def handleUpdate(
+    parentId: String,
+    m: SeqDelta[RElem, RElem],
+    ids: Seq[String])(implicit p: Page): (Seq[String], JsCmd) = m match {
     case Include(index, elem) =>
       val e = elem.render
-      ids.insert(index, elem.id)
-      Run(
-        "try{var e=document.createElement('" + e.label + "');" + (
-          e.attributes.flatMap { attr => ("e.setAttribute('" + attr.key + "'," + attr.value.text.encJs + ");").toCharArray }
-        ).mkString + "e.innerHTML = " + fixHtml(elem.id, e.child) + ";" + (
-          if (index < ids.length - 1) {
-            "document.getElementById('" + parentId + "').insertBefore(e,document.getElementById('" + ids(index) + "'));"
-          } else {
-            "document.getElementById('" + parentId + "').appendChild(e);"
-          }
-        ) + "}catch(e){}"
-      )
+      ids.patch(index, Seq(elem.id), 0) ->
+        Run(
+          "try{var e=document.createElement('"+e.label+"');"+
+            (e.attributes.flatMap { attr =>
+              ("e.setAttribute('"+attr.key+"',"+attr.value.text.encJs+");").toCharArray
+            }).mkString+"e.innerHTML = "+fixHtml(elem.id, e.child)+";"+
+            (if (index < ids.length) {
+              "document.getElementById('"+parentId+"').insertBefore(e,document.getElementById('"+elem.id+"'));"
+            } else {
+              "document.getElementById('"+parentId+"').appendChild(e);"
+            })+"}catch(e){}"
+        )
 
     case Update(index, oldElem, elem) =>
       val e = elem.render
       val oldId = ids(index)
-      ids(index) = elem.id
-      JsTry(Replace(oldId, e), false)
+      ids.patch(index, Seq(elem.id), 1) ->
+        JsTry(Replace(oldId, e), false)
 
-    case Remove(index, oldElem) =>
-      JsTry(Replace(ids.remove(index), NodeSeq.Empty), false)
+    case Remove(index, _) =>
+      ids.patch(index, Nil, 1) ->
+        Run(
+          "try{document.getElementById('"+parentId+"').removeChild(document.getElementById('"+ids(index)+
+            "'))}catch(e){}"
+        )
 
-    case Batch(ms@_*) =>
-      ms.map(handleUpdate(_, ids)).foldLeft[JsCmd](JsCmds.Noop)(_ & _)
+    case Batch(ms @ _*) =>
+      ms.foldLeft[(Seq[String],JsCmd)]((ids,JsCmds.Noop)){case ((ids,cmds),delta) =>
+        handleUpdate(parentId,delta,ids) match {
+          case (ids, cmd) => (ids, cmds & cmd)
+        }
+      }
   }
 
   /**
    * Returns an EventStream that will fire a JsCmd whenever children changes
    */
-  def createPageStream(implicit p: Page): EventStream[JsCmd] = {
-    val ids = children.now.map(_.id).toBuffer
-    children.deltas map { m => handleUpdate(m, ids) }
+  def createPageStream(parentId: String)(implicit p: Page): EventStream[JsCmd] = {
+    children.deltas.foldLeft((children.now.map(_.id(p)): Seq[String],JsCmds.Noop: JsCmd)){case ((ids,cmds),deltas) =>
+      handleUpdate(parentId, deltas, ids)
+    }.map(_._2)
   }
 }
 
@@ -72,11 +84,11 @@ trait Repeater extends RElem with HtmlFixer {
 
   override def renderer(implicit p: Page) = e => super.renderer(p)(e).copy(child = renderChildren)
 
-  private lazy val manager = new RepeaterManager(this.id, children)
+  private lazy val manager = new RepeaterManager(children)
 
   override protected def addPage(elem: Elem)(implicit page: Page): Elem = {
     val ret = super.addPage(elem)(page)
-    manager.createPageStream foreach { js =>
+    manager.createPageStream(id(page)) foreach { js =>
       Reactions.inAnyScope(page) {
         Reactions.queue(js)
       }
