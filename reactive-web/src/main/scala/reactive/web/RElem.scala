@@ -23,10 +23,17 @@ object RElem {
    * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
    * @param children any addition RElems to append
    */
-  class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
-    val baseElem = withId(parent)
+  case class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
+    val baseElem = parent
     val properties, events = Nil
-    override def render(implicit p: Page) = baseElem.copy(child = baseElem.child ++ children.map(_.render))
+    override def renderer(implicit p: Page) = e => {
+      val sup = super.renderer(p)(e)
+      sup.copy(child = {
+        sup.child ++ children.map(_.render(p))
+      })
+    }
+    
+    override def toString = "ElemWrapper("+ (baseElem :: children.toList).mkString(",")+"): "+render
   }
 
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String, RElem] //TODO
