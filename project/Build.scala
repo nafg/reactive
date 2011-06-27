@@ -62,7 +62,7 @@ object ReactiveBuild extends Build {
         "net.liftweb" %% "lift-webkit" % liftVersion
       )
     )
-  ) dependsOn(reactive_core)
+  ) dependsOn(reactive_core) aggregate(reactive_core)
   lazy val reactive_web_demo = Project(
     "reactive-web-demo",
     file("reactive-web-demo"),
@@ -70,5 +70,5 @@ object ReactiveBuild extends Build {
       libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "jetty,test"),
       jettyScanDirs := Nil
     )
-  ) dependsOn(reactive_web)
+  ) dependsOn(reactive_web) aggregate(reactive_web)
 }
