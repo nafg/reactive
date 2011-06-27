@@ -88,13 +88,6 @@ trait RElem extends PageIds {
   protected def pages = pageIds.keys.toSeq
 
   /**
-   * The value of the id attribute for the Page
-   */
-  def id(implicit page: Page): String = synchronized {
-    pageIds.getOrElseUpdate(page, Page.newId)
-  }
-
-  /**
    * The events that contribute to rendering
    */
   def events: Seq[DOMEventSource[_ <: DOMEvent]]

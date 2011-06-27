@@ -6,7 +6,6 @@ import net.liftweb.http.{ RequestVar, S }
 
 import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
 
-
 /**
  * A RequestVar to generate a maximum of one Page instance
  * per request.
@@ -67,19 +66,34 @@ object Page {
   def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_"+randomString(7)
 }
 
-trait PageIds {
-  protected var pageIds = new scala.collection.mutable.WeakHashMap[Page, String]()
-
-  protected def addPage(elem: Elem)(implicit page: Page): Elem = synchronized {
-    lazy val elemId = elem.attributes.get("id").map(_.text)
-    val id = pageIds.getOrElseUpdate(page, elemId getOrElse Page.newId)
-    elem % new UnprefixedAttribute("id", id, Null)
-  }
+trait PageIds extends Logger {
+  case class AssignedNewId(pageId: String, id: String) extends LogEventPredicate
 
   class Renderer(pageIds: PageIds)(renderer: Elem => Elem)(implicit page: Page) extends (NodeSeq => NodeSeq) {
     def apply(ns: NodeSeq): NodeSeq = apply(nodeSeqToElem(ns))
     def apply(elem: Elem): Elem = {
       renderer(pageIds.addPage(elem)(page))
     }
+  }
+
+  protected var pageIds = new scala.collection.mutable.WeakHashMap[Page, String]()
+
+  private def nextId(implicit page: Page) = {
+    val ret = page.nextId
+    trace(AssignedNewId(page.id, ret))
+    ret
+  }
+
+  protected def addPage(elem: Elem)(implicit page: Page): Elem = synchronized {
+    lazy val elemId = elem.attributes.get("id").map(_.text)
+    val id = pageIds.getOrElseUpdate(page, elemId getOrElse nextId)
+    elem % new UnprefixedAttribute("id", id, Null)
+  }
+
+  /**
+   * The value of the id attribute for the Page
+   */
+  def id(implicit page: Page): String = synchronized {
+    pageIds.getOrElseUpdate(page, nextId)
   }
 }
