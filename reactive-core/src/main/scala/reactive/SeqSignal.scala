@@ -35,7 +35,9 @@ object SeqSignal {
   //TODO this should be built on a public method that just creates an
   //EventStream of the diffs
   def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
-    new SeqSignal[T] {
+    new SeqSignal[T] with Logger {
+      case class ComputedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T,T]]) extends LogEventPredicate
+      
       def now = transform
       //TODO cache?
       override lazy val transform = new TransformedSeq[T] {
@@ -49,7 +51,8 @@ object SeqSignal {
       private var _prev: List[T] = now.toList
       private lazy val changeListener = { _cur: Seq[T] =>
         val c = _cur.toList
-        val diff = LCS.lcsdiff(_prev, c, (_: T) == (_: T))
+        val diff = LCS.lcsdiff[T,T](_prev, c, _ == _)
+        trace(ComputedDiff(_prev,c,diff))
         transform.deltas.fire(Batch(diff: _*))
         _prev = c
       }
