@@ -60,20 +60,6 @@ class Select[T](
     }
   }
 
-  selectedIndex <<: items.deltas.map { d =>
-    Some(adjustIndexFromDeltas(selectedIndex.now getOrElse -1)(d :: Nil)) filter (_ > -1)
-  }
-
-  selectedIndex <<: selectedItem.change.map { i =>
-    i map items.now.indexOf[T] filter (_ > -1)
-  }.nonrecursive =>> { x: Option[Int] => trace(UpdatedIndexFromItem(x)) }
-
-  selectedItem <<: (selectedIndex.map { siOpt =>
-    val is = items.now
-    siOpt.filter(_ => is.nonEmpty).
-      map(si => is(si min is.length - 1 max 0))
-  }.nonrecursive =>> { x: Option[T] => trace(UpdatedItemFromIndex(x)) })
-
   /**
    * Call this to select another (or no) item.
    */
@@ -95,11 +81,26 @@ class Select[T](
   }
 
   override protected def addPage(elem: Elem)(implicit page: Page): Elem = {
-    items.change.foreach{is =>
-      val i = selectedIndex.now map {_.min(is.length-1)} filter {_ >= 0}
-      selectedIndex ()= i
+    implicit val observing: Observing = page
+    val ret = super.addPage(elem)(page)
+    items.change.foreach { is =>
+      val i = selectedIndex.now map { _.min(is.length - 1) } filter { _ >= 0 }
+      selectedIndex() = i
     }
-    super.addPage(elem)(page)
+    selectedIndex <<: items.deltas.map { d =>
+      Some(adjustIndexFromDeltas(selectedIndex.now getOrElse -1)(d :: Nil)) filter (_ > -1)
+    }
+
+    selectedIndex <<: selectedItem.change.map { i =>
+      i map items.now.indexOf[T] filter (_ > -1)
+    }.nonrecursive =>> { x: Option[Int] => trace(UpdatedIndexFromItem(x)) }
+
+    selectedItem <<: (selectedIndex.map { siOpt =>
+      val is = items.now
+      siOpt.filter(_ => is.nonEmpty).
+        map(si => is(si min is.length - 1 max 0))
+    }.nonrecursive =>> { x: Option[T] => trace(UpdatedItemFromIndex(x)) })
+    ret
   }
 
   def baseElem = <select size={ size.toString }/>
