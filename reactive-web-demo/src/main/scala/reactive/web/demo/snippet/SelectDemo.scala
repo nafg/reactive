@@ -12,11 +12,11 @@ import scala.xml.NodeSeq
 class SelectDemo extends Observing {
 
   val OSvariants = Map(
-    "Windows" -> List("XP", "Vista", "Windows 7"),
+    "Windows" -> List("Windows XP", "Windows Vista", "Windows 7"),
     "Linux" -> List("Ubuntu", "Kubuntu", "Fedora")
   )
   val vowels: Set[Char] = "AEIOU".toSet
-  def consonantsInName(s: String) = s.toUpperCase.filter(!vowels.contains(_)).toList.distinct
+  def consonantsInName(s: String) = s.toUpperCase.filter(c => c.isLetter && !vowels.contains(c)).toList.distinct
   def vowelsInName(s: String) = s.toUpperCase.filter(vowels).toList.distinct
 
   val OSSelect = Select(Val(OSvariants.keys.toList))
