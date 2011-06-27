@@ -130,7 +130,7 @@ trait RElem extends PageIds {
       child = e.child ++ baseElem.child,
       attributes = e.attributes append baseElem.attributes
     )
-    val withProps = properties.foldLeft(e) {
+    val withProps = properties.foldLeft(elem) {
       case (e, prop) => prop.render(e)(page)
     }
     events.foldLeft[Elem](withProps) {
