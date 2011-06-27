@@ -15,7 +15,7 @@ import scala.annotation.tailrec
  * @param size the height of the select. Defaults to 1, i.e., a drop-down.
  */
 class Select[T](
-  items: SeqSignal[T],
+  val items: SeqSignal[T],
   renderer: T => String = { t: T => t.toString },
   val size: Int = 1)(implicit observing: Observing) extends Repeater with Logger {
 
