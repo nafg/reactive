@@ -1,6 +1,5 @@
 package reactive
 
-
 /**
  * This trait provides special behavior implementations for signals of sequences,
  * preserving the transformation relationship of derived signals by propagating
@@ -11,7 +10,7 @@ trait SeqSignal[T] extends Signal[TransformedSeq[T]] {
   private lazy val underlying: TransformedSeq[T] = new TransformedSeq[T] {
     def underlying = SeqSignal.this.now
   }
-  
+
   /**
    * Returns the TransformedSeq, the actual delta-propagating Seq.
    */
@@ -36,8 +35,8 @@ object SeqSignal {
   //EventStream of the diffs
   def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
     new SeqSignal[T] with Logger {
-      case class ComputedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T,T]]) extends LogEventPredicate
-      
+      case class ComputedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T, T]]) extends LogEventPredicate
+
       def now = transform
       //TODO cache?
       override lazy val transform = new TransformedSeq[T] {
@@ -59,29 +58,28 @@ object SeqSignal {
       
       override def toString = "SeqSignal("+now+")"
     }
-  
+
   //TODO optimized shortcut for apply(Val(seq))
 }
 
 class MappedSeqSignal[T, E](
   private val parent: Signal[T],
-  f: T => TransformedSeq[E]
-) extends ChangingSeqSignal[E] with Logger {
-  case class NotPropagatingDelta(delta: SeqDelta[T,T]) extends LogEventPredicate
+  f: T => TransformedSeq[E]) extends ChangingSeqSignal[E] with Logger {
+  case class NotPropagatingDelta(delta: SeqDelta[T, T]) extends LogEventPredicate
   case object DoesntHaveSeqSignalParent extends LogEventPredicate
-  
+
   def now = underlying
   override def transform = underlying
   def underlying: TransformedSeq[E] = _underlying
   private var _underlying: TransformedSeq[E] = f(parent.now)
 
-  private val parentChangeListener = {x: T =>
+  private val parentChangeListener = { x: T =>
     _underlying = f(x)
   }
   parent.change addListener parentChangeListener
 
   override lazy val deltas = new EventSource[SeqDelta[E, E]] {}
-  private val deltasListener: SeqDelta[T,T]=>Unit = { m =>
+  private val deltasListener: SeqDelta[T, T] => Unit = { m =>
     underlying match {
       case t: TransformedSeq[T]#Transformed[E] =>
         SeqDelta.single(t.xform(m)) foreach deltas.fire
@@ -99,18 +97,18 @@ class MappedSeqSignal[T, E](
   override def toString = "MappedSeqSignal("+parent+","+Util.debugString(f)+")"
 }
 
-protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>SeqSignal[U]) extends SeqSignal[U] {
+protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T => SeqSignal[U]) extends SeqSignal[U] {
   def now = currentMappedSignal.now
   override lazy val change = new EventSource[TransformedSeq[U]] {}
-  private val changeListener: TransformedSeq[U]=>Unit = change.fire _
-  private val deltasListener: SeqDelta[U,U]=>Unit = deltas.fire _
+  private val changeListener: TransformedSeq[U] => Unit = change.fire _
+  private val deltasListener: SeqDelta[U, U] => Unit = deltas.fire _
   private var currentMappedSignal = f(parent.now)
-//  private var lastDeltas: Seq[SeqDelta[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  //  private var lastDeltas: Seq[SeqDelta[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
   private var lastSeq: Seq[U] = now
   currentMappedSignal.change addListener changeListener
   currentMappedSignal.deltas addListener deltasListener
-  
-  private val parentChangeListener: T=>Unit = { x =>
+
+  private val parentChangeListener: T => Unit = { x =>
     currentMappedSignal.change removeListener changeListener
     currentMappedSignal.deltas removeListener deltasListener
     currentMappedSignal = f(x)
@@ -121,23 +119,22 @@ protected class FlatMappedSeqSignal[T,U](private val parent: Signal[T], f: T=>Se
     currentMappedSignal.deltas addListener deltasListener
   }
   parent.change addListener parentChangeListener
-  
+
   private def fireDeltaDiff(lastSeq: Seq[U], newSeq: Seq[U]): Seq[U] = {
-    deltas fire Batch(LCS.lcsdiff(lastSeq, newSeq, (_:U) == (_:U)): _*)
+    deltas fire Batch(LCS.lcsdiff(lastSeq, newSeq, (_: U) == (_: U)): _*)
     newSeq
   }
-  
+
   override def toString = "FlatMappedSeqSignal("+parent+","+System.identityHashCode(f)+")"
 }
 
-
-
-/**  Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.
+/**
+ * Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.
  */
 trait ChangingSeqSignal[T] extends SeqSignal[T] {
   private lazy val change0 = new EventSource[TransformedSeq[T]] {}
   override lazy val change: EventStream[TransformedSeq[T]] = change0
-  private val fireTransform: SeqDelta[T,T]=>Unit = _ => change0 fire transform //TODO transform? underlying? now?
+  private val fireTransform: SeqDelta[T, T] => Unit = _ => change0 fire transform //TODO transform? underlying? now?
   deltas addListener fireTransform
 }
 
