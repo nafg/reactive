@@ -118,6 +118,7 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
 protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T,U,Unit](parent, (), _ => f(parent.now)) {
   def parentHandler = (x, _, _) => {
     val u = f(x)
+    current = u
     change.fire(u)
     (u, ())
   }

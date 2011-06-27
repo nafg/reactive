@@ -42,20 +42,19 @@ object SeqSignal {
       override lazy val transform = new TransformedSeq[T] {
         def underlying = orig.now
       }
-      override lazy val change = orig.change map {s =>
-        new TransformedSeq[T] { def underlying = s }
-      }
+      override lazy val change = new EventSource[TransformedSeq[T]]
 
-      change addListener changeListener
       private var _prev: List[T] = now.toList
-      private lazy val changeListener = { _cur: Seq[T] =>
+      lazy val parentChangeListener = { _cur: Seq[T] =>
         val c = _cur.toList
-        val diff = LCS.lcsdiff[T,T](_prev, c, _ == _)
-        trace(ComputedDiff(_prev,c,diff))
+        val diff = LCS.lcsdiff[T, T](_prev, c, _ == _)
+        trace(ComputedDiff(_prev, c, diff))
+        change fire new TransformedSeq[T] { def underlying = transform }
         transform.deltas.fire(Batch(diff: _*))
         _prev = c
       }
-      
+      orig.change addListener parentChangeListener
+
       override def toString = "SeqSignal("+now+")"
     }
 
