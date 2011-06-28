@@ -20,7 +20,7 @@ object JsTypes {
 import JsTypes._
 
 object JsExp {
-  implicit def any2JsExp[T, J <: JsAny](x: T)(implicit conv: ToJs[T, J]): JsExp[J] = conv(x)
+  implicit def any2JsExp[T, J <: JsAny,Exp[J<:JsAny]<:JsExp[J]](x: T)(implicit conv: ToJs[T, J, Exp]): Exp[J] = conv(x)
 }
 
 trait JsExp[+T <: JsAny] {
@@ -44,10 +44,10 @@ object JsIdent {
 }
 trait JsLiteral[+T <: JsAny] extends JsExp[T]
 object JsLiteral {
-  def apply[T, J <: JsAny](x: T)(implicit conv: ToJs[T, J]): JsLiteral[J] = conv(x)
+  def apply[T, J <: JsAny](x: T)(implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
 }
 case class JsLiterable[T](x: T) {
-  def $[J <: JsAny](implicit conv: ToJs[T, J]): JsLiteral[J] = conv(x)
+  def $[J <: JsAny](implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
 }
 
 trait JsRaw[T <: JsAny] extends JsExp[T]
@@ -57,31 +57,38 @@ object JsRaw {
   }
 }
 
-class ToJs[-S, +J <: JsAny](renderer: S => String) extends (S => JsLiteral[J]) {
-  def apply(s: S): JsLiteral[J] = new JsLiteral[J] {
+trait ToJs[-S, J <: JsAny, +E[J<:JsAny]<:JsExp[J]] extends (S => E[J])
+class ToJsExp[-S, J<:JsAny](renderer: S=>String) extends ToJs[S,J,JsExp] {
+  def apply(s: S) = new JsRaw[J] {
     def render = renderer(s)
   }
 }
-object ToJs {
-  class From[S] {
-    type To[J <: JsAny] = ToJs[S, J]
-  }
-  class To[J <: JsAny] {
-    type From[S] = ToJs[S, J]
-  }
-
-  implicit val number: From[Double]#To[JsNumber] = new ToJs[Double, JsNumber](_.toString)
-  implicit val bool = new ToJs[Boolean, JsBoolean](_.toString)
-  implicit val string: ToJs[String, JsString] = new ToJs[String, JsString]("\""+_+"\"")
-  implicit val date = new ToJs[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
-  implicit val regex = new ToJs[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
-  implicit val obj = new ToJs[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
-  implicit val array = new ToJs[List[JsExp[_]], JsArray](_.map(_.render).mkString("[", ",", "]"))
-  implicit def func1[P <: JsAny, R <: JsAny]: ToJs[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
-    new ToJs[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){"+_(JsIdent('arg)).render+"}")
+class ToJsLit[-S,J<:JsAny](renderer: S=>String) extends ToJs[S,J,JsLiteral] {
+  def apply(s: S) = new JsLiteral[J] {def render = renderer(s)}
 }
 
-class JsDef[T <: JsAny, S: ToJs.To[T]#From](init: S) extends JsExp[T] {
+object ToJs {
+  class From[S] {
+    type To[J <: JsAny, E[J<:JsAny]<:JsExp[J]] = ToJs[S, J, E]
+  }
+  class To[J <: JsAny, E[J<:JsAny]<:JsExp[J]] {
+    type From[S] = ToJs[S, J, E]
+  }
+
+  implicit val number: From[Double]#To[JsNumber,JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
+  implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
+  implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString]("\""+_+"\"")
+  implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
+  implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
+  implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
+  implicit val array = new ToJsLit[List[JsExp[_]], JsArray](_.map(_.render).mkString("[", ",", "]"))
+  implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
+    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){"+_(JsIdent('arg)).render+"}")
+    
+//  implicit def alreadyJs[T<:JsAny] = new ToJs[T,T](_.render)
+}
+
+class JsDef[T <: JsAny, S: ToJs.To[T,JsExp]#From](init: S) extends JsExp[T] {
   def name: Symbol = Symbol(getClass.getName.toList.reverse.dropWhile('$'==).takeWhile('$'!=).reverse.mkString)
   def render = "var "+name.name+"="+init.render+";"
 }
