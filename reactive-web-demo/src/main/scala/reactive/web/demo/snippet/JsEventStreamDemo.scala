@@ -11,7 +11,7 @@ import Helpers._
 class JsEventStreamDemo extends Observing {
   val jses = new JsEventStream[JsString]
 
-  val window = $[JsObj]('window)
+  val window = $[JsObj]('window) //'
   val alert = $[JsString =|> JsVoid]('alert)
 
   def render = {
