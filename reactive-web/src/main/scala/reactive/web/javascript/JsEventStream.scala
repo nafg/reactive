@@ -58,29 +58,32 @@ object JsEventStream extends net.liftweb.http.RequestVar(false) {
   def render = if(!is) {
     set(true)
     Reactions.queue(Run(
-"""window.EventStream = function() {
+"""function EventStream() {
   this.listeners = []
-  this.foreach = function(f){this.listeners.push(f)}
   this.addListener = this.foreach
-  this.removeListener = function(f){
+  return this
+}
+EventStream.prototype = {
+  foreach: function(f){this.listeners.push(f)},
+  removeListener: function(f){
     for(l in this.listeners) {
       if(this.listeners[l] === f) {
         delete this.listeners[l]
         break
       }
     }
-  }
-  this.fire = function(v) {
+  },
+  fire: function(v) {
     for(l in this.listeners) {
       this.listeners[l](v)
     }
-  }
-  this.map = function(f) {
+  },
+  map: function(f) {
     var mapped = new EventStream()
     this.addListener(function(v){mapped.fire(f(v))})
     return mapped
-  }
-  this.flatMap = function(f) {
+  },
+  flatMap: function(f) {
     var flatMapped = new EventStream()
     var lastES = null
     this.addListener(function(v){
@@ -89,15 +92,14 @@ object JsEventStream extends net.liftweb.http.RequestVar(false) {
       lastES.addListener(flatMapped.fire)
     })
     return flatMapped
-  }
-  this.filter = function(f) {
+  },
+  filter: function(f) {
     var filtered = new EventStream()
     this.addListener(function(v){
       if(f(v)) filtered.fire(v)
     })
     return filtered
   }
-  return this
 }
 """
     ))
