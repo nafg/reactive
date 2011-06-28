@@ -3,8 +3,11 @@ package web
 
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.http.{ RequestVar, S }
+import net.liftweb.http.js.JsCmds
 
 import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
+
+import net.liftweb.json._
 
 /**
  * A RequestVar to generate a maximum of one Page instance
@@ -23,8 +26,33 @@ object CurrentPage extends RequestVar(new Page)
 class Page extends Observing {
   val id = randomString(20)
   def cometName = id
-  def render = xml.Comment("comet "+id) ++
+
+  def render =
+    <head>
+      <script type="text/javascript" src="/classpath/reactive-web.js"/>
+    </head>
+  def renderComet = render ++ xml.Comment("comet "+id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ cometName }/>
+
+  Page.withPage(this) {
+    Reactions.inAnyScope(this) {
+      val handler = S.SFuncHolder { s =>
+        Reactions.inClientScope {
+          try {
+            implicit val formats = DefaultFormats
+            Serialization.read[List[Map[String, JValue]]](s) foreach { _ foreach ajaxEvents.fire}
+          } catch {
+            case e: Exception =>
+              e.printStackTrace
+          }
+        }
+      }
+      Reactions.queue(
+        S.fmapFunc(S.contextFuncBuilder(handler)) { funcId =>
+          JsCmds.Run("reactive.funcId='"+funcId+"'")
+        })
+    }
+  }
 
   private var counter = 0
 
@@ -33,6 +61,8 @@ class Page extends Observing {
     counter += 1
     "reactiveWebId_%06d" format c
   }
+
+  private[web] val ajaxEvents = new EventSource[(String, JValue)]
 }
 
 object Page {
