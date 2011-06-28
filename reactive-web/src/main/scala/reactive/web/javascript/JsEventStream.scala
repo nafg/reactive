@@ -53,55 +53,6 @@ class JsEventStream[T<:JsAny]()(implicit page: Page) {parent =>
   
 }
 
-
-object JsEventStream extends net.liftweb.http.RequestVar(false) {
-  def render = if(!is) {
-    set(true)
-    Reactions.queue(Run(
-"""function EventStream() {
-  this.listeners = []
-  this.addListener = this.foreach
-  return this
-}
-EventStream.prototype = {
-  foreach: function(f){this.listeners.push(f)},
-  removeListener: function(f){
-    for(l in this.listeners) {
-      if(this.listeners[l] === f) {
-        delete this.listeners[l]
-        break
-      }
-    }
-  },
-  fire: function(v) {
-    for(l in this.listeners) {
-      this.listeners[l](v)
-    }
-  },
-  map: function(f) {
-    var mapped = new EventStream()
-    this.addListener(function(v){mapped.fire(f(v))})
-    return mapped
-  },
-  flatMap: function(f) {
-    var flatMapped = new EventStream()
-    var lastES = null
-    this.addListener(function(v){
-      if(lastES) lastES.removeListener(flatMapped.fire)
-      lastES = f(v)
-      lastES.addListener(flatMapped.fire)
-    })
-    return flatMapped
-  },
-  filter: function(f) {
-    var filtered = new EventStream()
-    this.addListener(function(v){
-      if(f(v)) filtered.fire(v)
-    })
-    return filtered
   }
-}
-"""
-    ))
   }
 }
