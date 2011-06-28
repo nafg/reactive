@@ -7,7 +7,7 @@ import scala.ref.WeakReference
 import scala.xml.NodeSeq
 
 import net.liftweb.actor.LiftActor
-import net.liftweb.http.{js, CometActor, CometCreationInfo, LiftSession, LiftRules}
+import net.liftweb.http.{js, S, CometActor, CometCreationInfo, LiftSession, LiftRules}
   import js.{JsCmd, JsCmds}
     import JsCmds._
 import net.liftweb.common.{Box, Full}
@@ -21,42 +21,80 @@ object Reactions extends Logger {
   case class PendingJS(pageId: String, js: JsCmd) extends LogEventPredicate
   case class QueueingJS(pageId: String, js: JsCmd) extends LogEventPredicate
   case class FinishedServerScope(pageId: String, comet: Option[ReactionsComet]) extends LogEventPredicate
-  case class ReusingScope(scope: Either[JsCmd, Page]) extends LogEventPredicate
-  
+  case class ReusingScope(scope: Scope) extends LogEventPredicate
+
   private val pending = new HashMap[String, (JsCmd, Long)]
   //TODO is WeakHashMap the correct structure to use?
   private val pages = new WeakHashMap[Page, WeakReference[ReactionsComet]]
-  
-  private val currentScope = new ThreadGlobal[Either[JsCmd, Page]]
-  
-  /**
-   * Call this method in Boot.boot if you want server-initiated reactions.
-   * It adds a comet creation handler, and a special snippet handler.
-   * The latter allows you to write &lt;lift:reactive/&gt; / &lt;span class="lift:reactive"/&gt;
-   * in a page to automatically render a comet for the current page.
-   * Currently for some things to work this snippet should appear before ReactiveSnippets.
-   */
-  def initComet {
-    LiftRules.cometCreation.append {
-      case CometCreationInfo(
-        "net.liftweb.reactive.ReactionsComet",
-        name,
-        defaultXml,
-        attributes,
-        session
-      ) =>
-        val ca = new ReactionsComet(
-          session,
-          name openOr (throw new IllegalArgumentException("Name required for ReactionsComet")),
-          defaultXml,
-          attributes
-        )
-        assert(ca.name == Full(CurrentPage.is.id))
-        register(CurrentPage.is, ca)
-        ca
+
+  sealed trait Scope {
+    def queue(cmd: JsCmd)
+  }
+  case class CometScope(page: Page) extends Scope {
+    def queue(cmd: JsCmd) {
+      val js =
+        pending.remove(page.id).map { case (js, _) => js }.getOrElse(JsCmds.Noop) &
+          cmd
+      pages.get(page).flatMap(_.get) match {
+        case None =>
+          trace(PendingJS(page.id, js))
+          pending(page.id) = (js, System.currentTimeMillis)
+        case Some(comet) =>
+          trace(QueueingJS(page.id, js))
+          comet queue js
+      }
     }
-    LiftRules.snippets.append {
-      case "reactive"::Nil => _ => CurrentPage.is.render
+  }
+  class AjaxScope extends Scope {
+    var js: JsCmd = JsCmds.Noop
+    def queue(cmd: JsCmd) = js &= cmd
+  }
+  case object DefaultScope extends Scope {
+    def queue(cmd: JsCmd) = S.appendJs(cmd)
+  }
+  private val currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
+  
+  net.liftweb.http.ResourceServer.allow {
+    case "reactive-web.js"::Nil => true
+  }
+
+  @deprecated("Use init(comet=true) instead")
+  def initComet = init(true)
+  /**
+   * Call this method in Boot.boot.
+   * If you want server-initiated reactions, specify true for the comet parameter,
+   * to add a comet creation handler.
+   * In either case, you should add something like &lt;span class="lift:reactive"/&gt;
+   * in your template (or in whichever pages use reactive-web),
+   * to include the required javascript, and possibly the comet actor, in your page.
+   */
+  def init(comet: Boolean = false) {
+    if (comet) {
+      LiftRules.cometCreation.append {
+        case CometCreationInfo(
+          "net.liftweb.reactive.ReactionsComet",
+          name,
+          defaultXml,
+          attributes,
+          session
+          ) =>
+          val ca = new ReactionsComet(
+            session,
+            name openOr (throw new IllegalArgumentException("Name required for ReactionsComet")),
+            defaultXml,
+            attributes
+          )
+          assert(ca.name == Full(CurrentPage.is.id))
+          register(CurrentPage.is, ca)
+          ca
+      }
+      LiftRules.snippets.append {
+        case "reactive" :: Nil => _ => CurrentPage.is.renderComet
+      }
+    } else {
+      LiftRules.snippets.append {
+        case "reactive" :: Nil => _ => CurrentPage.is.render
+      }
     }
   }
 
@@ -94,7 +132,7 @@ object Reactions extends Logger {
     comet.flush
     pages(page) = new WeakReference(comet)
   }
-  
+ 
   /**
    * Queues javascript to be rendered.
    * The current thread must be in a valid context scope.
@@ -105,27 +143,9 @@ object Reactions extends Logger {
    * is queued to the comet registered for the Page, if there
    * is one, or if there is not then it is stored pending.
    */
-  def queue(cmd: JsCmd) {
-    currentScope.box match {
-      case Full(Left(js)) =>
-        currentScope.set(Left(js & cmd))
-      case Full(Right(page)) =>
-        val js =
-          pending.remove(page.id).map{case (js,_)=>js}.getOrElse(JsCmds.Noop) &
-          cmd
-        
-        pages.get(page).flatMap(_.get) match {
-          case None =>
-            trace(PendingJS(page.id, js))
-            pending(page.id) = (js, System.currentTimeMillis)
-          case Some(comet) =>
-            trace(QueueingJS(page.id, js))
-            comet queue js
-        }
-      case _ =>
-        throw new RuntimeException("No Reactions scope")
-    }
-  }
+  def queue(cmd: JsCmd) =
+    currentScope.value queue cmd
+  
   /**
    * Unregister a Page. Removes it from the WeakHashMap.
    */
@@ -138,9 +158,10 @@ object Reactions extends Logger {
    * @return the accumulated javascript
    */
   def inClientScope(p: => Unit): JsCmd = {
-    currentScope.doWith(Left(JsCmds.Noop)) {
+    val scope = new AjaxScope
+    currentScope.withValue(scope) {
       p
-      currentScope.value.left.get
+      scope.js
     }
   }
   /**
@@ -156,7 +177,7 @@ object Reactions extends Logger {
   def inServerScope[T](page: Page)(p: => T): T = {
     //TODO should we do anything different if page doesn't exist in pages?
     //is it possible the page will still be registered?
-    val ret = currentScope.doWith(Right(page)) {
+    val ret = currentScope.withValue(CometScope(page)) {
       p
     }
     val comet = pages.get(page).flatMap(_.get)
@@ -173,13 +194,16 @@ object Reactions extends Logger {
    * @param p the code block to execute
    * @return the result of the code block
    */
-  def inAnyScope[T](page: Page)(p: =>T): T = {
-    currentScope.box match {
-      case Full(scope) =>  // if there is an existing scope do it there
-        trace(ReusingScope(scope))
-        p
-      case _ =>        // otherwise do it in server scope
-        inServerScope(page)(p)
+  def inAnyScope[T](page: Page)(block: =>T): T = {
+    currentScope.value match {
+      case s@CometScope(p) if p == Page =>
+        trace(ReusingScope(s))
+        block
+      case s if Page.currentPageOption==Some(page)=>
+        trace(ReusingScope(s))
+        block
+      case _ =>
+        inServerScope(page)(block)
     }
   }
 }
