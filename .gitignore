@@ -11,4 +11,4 @@ work/
 .git-bak/
 *.bak
 .directory
-
+hs_err*.log
