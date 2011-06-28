@@ -11,6 +11,9 @@ import Helpers._
 class JsEventStreamDemo extends Observing {
   val jses = new JsEventStream[JsString]
 
+  //alert from the server too!
+  jses.toServer(identity) foreach {v => reactive.web.alert("Server says: " + v.toString)}
+
   val window = $[JsObj]('window) //'
   val alert = $[JsString =|> JsVoid]('alert)
 
