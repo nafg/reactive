@@ -6,7 +6,6 @@ import scala.xml.Elem
 
 import scala.annotation.tailrec
 
-
 /**
  * Represents a select element in the DOM.
  * @tparam T the type of item rendered by this select

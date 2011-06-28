@@ -45,7 +45,11 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
       select.items.now should equal(items.now)
       select.selectedItem.now should equal(Some("E"))
       select.selectedIndex.now should equal(Some(0))
+
+      items() = List("E", "F")
+      select.items.now should equal(items.now)
+      select.selectedItem.now should equal(Some("E"))
+      select.selectedIndex.now should equal(Some(0))
     }
   }
-
 }
