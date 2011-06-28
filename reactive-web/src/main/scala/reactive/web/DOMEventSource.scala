@@ -133,12 +133,10 @@ class DOMEventSource[T <: DOMEvent: Manifest] extends (NodeSeq => NodeSeq) with 
       }
       rawEventStream.fire(evt)
     }
-    S.oneShot {
-      S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(handler))) { funcId =>
-        SHtml.makeAjaxCall(
-          JsRaw("'"+funcId+"=' + encodeURIComponent("+encodeEvent+")")
-        ).toJsCmd
-      }
+    S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(handler))) {funcId =>
+      SHtml.makeAjaxCall(
+        JsRaw("'"+funcId+"=' + encodeURIComponent("+encodeEvent+")")
+      ).toJsCmd
     }
   }
 
