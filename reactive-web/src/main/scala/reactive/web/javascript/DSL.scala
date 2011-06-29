@@ -67,7 +67,11 @@ class ToJsLit[-S,J<:JsAny](renderer: S=>String) extends ToJs[S,J,JsLiteral] {
   def apply(s: S) = new JsLiteral[J] {def render = renderer(s)}
 }
 
-object ToJs {
+trait ToJsLow { // make sure Map has a higher priority than a regular function
+  implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
+    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){"+_(JsIdent('arg)).render+"}")
+}
+object ToJs extends ToJsLow{
   class From[S] {
     type To[J <: JsAny, E[J<:JsAny]<:JsExp[J]] = ToJs[S, J, E]
   }
@@ -82,10 +86,6 @@ object ToJs {
   implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
   implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
   implicit val array = new ToJsLit[List[JsExp[_]], JsArray](_.map(_.render).mkString("[", ",", "]"))
-  implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
-    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){"+_(JsIdent('arg)).render+"}")
-    
-//  implicit def alreadyJs[T<:JsAny] = new ToJs[T,T](_.render)
 }
 
 class JsDef[T <: JsAny, S: ToJs.To[T,JsExp]#From](init: S) extends JsExp[T] {
