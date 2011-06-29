@@ -25,9 +25,12 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) { parent =>
       override def renderExp: String = renderer
     }
   }
-  def fire(v: JsExp[_]) {
+  def fireExp(v: $[_]): $[JsVoid] = JsRaw{
     render
-    Reactions queue Run(accessExp+".fire("+v.render+")")
+    accessExp+".fire("+v.render+");"
+  }
+  def fire(v: JsExp[_]) {
+    Reactions queue Run(fireExp(v).render)
     Reactions queue Run("window.setTimeout('reactive.doAjax()',500)")
   }
 

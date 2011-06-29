@@ -34,12 +34,12 @@ object PropertyCodec {
   }
   implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
     def fromString = _.toInt
-    val toJS = ToJs.number(_:Int)
+    val toJS = ToJs.int(_:Int)
     def toAttributeValue = (v: Int) => _ => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
     def fromString = _.toInt match { case -1 => None case n => Some(n) }
-    val toJS = (io: Option[Int]) => ToJs.number(io getOrElse -1: Int)
+    val toJS = (io: Option[Int]) => ToJs.int(io getOrElse -1: Int)
     def toAttributeValue = v => _ => v.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {

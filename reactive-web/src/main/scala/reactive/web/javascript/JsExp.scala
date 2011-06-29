@@ -2,7 +2,6 @@ package reactive
 package web
 package javascript
 
-import net.liftweb.common.HLists._
 
 object JsTypes {
   class JsAny protected ;
@@ -26,11 +25,15 @@ object JsExp {
 trait JsExp[+T <: JsAny] {
   def render: String
 
-  def +[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canPlus: CanPlus[T, T2, R]): JsExp[R] = canPlus(this, that)
-
   def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] = canApply(this, p)
-  
+
   def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T,T2]): JsExp[T2] = canSelect(this, exp)
+
+  def +[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canPlus: CanPlus[T, T2, R]): JsExp[R] = canPlus(this, that)
+  def &[T2<:JsAny,R<:JsAny](that: $[T2])(implicit can_& : Can_&[T,T2,R]): $[R] = can_&(this, that)
+  def ||[T2 <: JsAny, R <: JsAny](that: $[T2]): $[R] = JsOp(this,that,"||")
+  def !=[T2<:JsAny](that: $[T2]): $[JsBoolean] = JsOp(this,that,"!=")
+  def ==[T2<:JsAny](that: $[T2]): $[JsBoolean] = JsOp(this,that,"==")
 }
 
 case class JsIdent[T <: JsAny](ident: Symbol) extends JsExp[T] {
@@ -41,6 +44,9 @@ object JsIdent {
     def next = {set(is+1); is-1}
   }
   def fresh[T<:JsAny] = JsIdent[T](Symbol("x$"+counter.next))
+}
+case class JsIdentable(symbol: Symbol) {
+  def $[J<:JsAny] = JsIdent[J](symbol)
 }
 trait JsLiteral[+T <: JsAny] extends JsExp[T]
 object JsLiteral {
@@ -79,7 +85,8 @@ object ToJs extends ToJsLow{
     type From[S] = ToJs[S, J, E]
   }
 
-  implicit val number: From[Double]#To[JsNumber,JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
+  implicit val double: From[Double]#To[JsNumber,JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
+  implicit val int: ToJsLit[Int,JsNumber] = new ToJsLit[Int, JsNumber](_.toString)
   implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
   implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString]("\""+_+"\"")
   implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
@@ -93,14 +100,31 @@ class JsDef[T <: JsAny, S: ToJs.To[T,JsExp]#From](init: S) extends JsExp[T] {
   def render = "var "+name.name+"="+init.render+";"
 }
 
+object JsOp {
+  def apply[L<:JsAny,R<:JsAny,T<:JsAny](l:$[L],r:$[R],op:String) = new JsOp[L,R,T](l,r,op)
+}
+class JsOp[-L<:JsAny,-R<:JsAny,+T<:JsAny](left: $[L], right: $[R], op: String) extends $[T] {
+  def render = left.render + op + right.render
+}
+
 trait CanPlusLow {
-  implicit def stringadd[L <: JsAny, R <: JsAny]: CanPlus[L, R, JsString] = new CanPlus((l: JsExp[L], r: JsExp[R]) => JsRaw(l.render+"+"+r.render))
+  implicit def stringadd[L <: JsAny, R <: JsAny]: CanPlus[L, R, JsString] = new CanPlus((l: JsExp[L], r: JsExp[R]) => JsOp(l,r,"+"))
 }
 object CanPlus extends CanPlusLow {
-  implicit val numNum: CanPlus[JsNumber, JsNumber, JsNumber] = new CanPlus((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsRaw(l.render+"+"+r.render))
+  implicit val numNum: CanPlus[JsNumber, JsNumber, JsNumber] = new CanPlus((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsOp(l,r,"+"))
 }
-class CanPlus[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) {
-  def apply(left: JsExp[L], right: JsExp[R]): JsExp[T] = f(left, right)
+class CanPlus[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L,R,T](f)
+
+trait CanAmpLow {
+  implicit def boolean[L<:JsAny,R<:JsAny] = new Can_&[L,R,JsBoolean](JsOp(_,_,"&"))
+}
+object Can_& extends CanAmpLow {
+  implicit val numNum: Can_&[JsNumber,JsNumber,JsNumber] = new Can_&[JsNumber,JsNumber,JsNumber]((l,r)=>JsOp(l,r,"&"))
+}
+class Can_&[-L<:JsAny,-R<:JsAny,+T<:JsAny](f: ($[L],$[R])=>$[T]) extends CanOp[L,R,T](f)
+
+class CanOp[-L<:JsAny,-R<:JsAny,+T<:JsAny](f: ($[L],$[R])=>$[T]) extends (($[L],$[R])=>$[T]){
+  def apply(left: $[L], right: $[R]) = f(left,right)
 }
 
 object CanApply1 {

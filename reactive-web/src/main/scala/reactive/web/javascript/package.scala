@@ -6,6 +6,7 @@ package object javascript {
 
   implicit def toJsLiterable[T](x: T)(implicit c: ToJsLit[T, _]): JsLiterable[T] =
     new JsLiterable[T](x)
+  implicit def toJsIdentable(s: Symbol): JsIdentable = JsIdentable(s)
 
   type $[+T <: JsAny] = JsExp[T]
 

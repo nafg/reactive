@@ -21,8 +21,10 @@ class JsEventStreamDemo extends Observing {
     Reactions.inServerScope(Page.currentPage) {
       jses.foreach { v: $[JsString] =>
         window->alert("Fired: ".$ + v)
-      } 
+      }
     }
-    "button" #> (DOMEventSource.click ->> jses.fire("Button clicked"$))
+    val click = DOMEventSource.click
+    click.addEventData("Button clicked"$, jses)
+    "button" #> click
   }
 }
