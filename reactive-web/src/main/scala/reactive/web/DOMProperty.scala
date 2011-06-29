@@ -35,12 +35,6 @@ class DOMProperty(val name: String) extends PageIds {
   private val valuesES = new EventSource[String] {}
   def values: EventStream[String] = valuesES
 
-  /**
-   * The value of the property is sent to the server with
-   * events using this key in the set of key-value pairs
-   */
-  def eventDataKey = "jsprop"+name
-
   private var eventSources = List[DOMEventSource[_]]()
   private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
 
@@ -58,7 +52,7 @@ class DOMProperty(val name: String) extends PageIds {
    * @param v the value to mutate it to, as a String
    */
   def writeJS(id: String)(v: $[JsTypes.JsAny]): String =
-    "try{"+readJS(id)+"="+v.render+"}catch(e){}"
+    "try{"+readJS(id).render+"="+v.render+"}catch(e){}"
 
   /**
    * Registers a Page with this JSProperty.
@@ -83,21 +77,20 @@ class DOMProperty(val name: String) extends PageIds {
      * With the thread-local 'ajaxPage' set to the Page addPage was called with,
      * the value Var is updated.
      */
-    def setFromAjax(evt: Map[String, String]) {
-      evt.get(eventDataKey) foreach { v =>
-        ajaxPage.withValue(Some(page)) {
-          valuesES fire v
-        }
+    def setFromAjax(v: String) {
+      ajaxPage.withValue(Some(page)) {
+        valuesES fire v
       }
     }
+    val jses = new JsEventStream[JsTypes.JsAny]
     //apply linked DOM event sources
     //TODO only pages that also own es
     for ((page, id) <- pageIds; es <- eventSources) {
-      es.rawEventData += (eventDataKey -> readJS(id))
+      es.addEventData(readJS(id), jses)
     }
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
-    eventSources.foreach(_.rawEventStream.foreach(setFromAjax)(page))
+    jses.toServer(_.values.toString).foreach(setFromAjax)(page)
 
     ret
   }
