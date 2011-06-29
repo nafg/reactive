@@ -48,9 +48,14 @@ class Page extends Observing {
         }
       }
       Reactions.queue(
-        S.fmapFunc(S.contextFuncBuilder(handler)) { funcId =>
-          JsCmds.Run("reactive.funcId='"+funcId+"'")
-        })
+        if (S.inStatefulScope_?)
+          S.fmapFunc(S.contextFuncBuilder(handler)) { funcId =>
+            JsCmds.Run("reactive.funcId='"+funcId+"'")
+          }
+        else
+          JsCmds.Run("reactive.funcId='noStatefulScope'")
+      )
+      
     }
   }
 
