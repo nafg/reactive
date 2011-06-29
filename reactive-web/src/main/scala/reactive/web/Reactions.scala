@@ -143,8 +143,10 @@ object Reactions extends Logger {
    * is queued to the comet registered for the Page, if there
    * is one, or if there is not then it is stored pending.
    */
-  def queue(cmd: JsCmd) =
+  def queue(cmd: JsCmd): Unit =
     currentScope.value queue cmd
+  
+  def queue(cmd: String): Unit = queue(Run(cmd))
   
   /**
    * Unregister a Page. Removes it from the WeakHashMap.
