@@ -71,4 +71,5 @@ object ReactiveBuild extends Build {
       jettyScanDirs := Nil
     )
   ) dependsOn(reactive_web) aggregate(reactive_web)
+  lazy val root = Project("root",file(".")) dependsOn(reactive_web_demo) aggregate(reactive_web_demo)
 }
