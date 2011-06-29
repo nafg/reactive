@@ -2,9 +2,8 @@ package reactive
 package web
 
 import net.liftweb.http.{ S, SHtml }
-import net.liftweb.http.js.{ JsExp, JE }
-import JE.JsRaw
 import net.liftweb.util.Helpers.urlDecode
+import javascript._
 
 import scala.xml.{ Elem, NodeSeq }
 
@@ -40,7 +39,7 @@ class DOMEventSource[T <: DOMEvent: Manifest] extends (NodeSeq => NodeSeq) with 
    * Addition data can be sent with every event by putting a name and
    * a javascript expression in this Map
    */
-  var rawEventData = Map[String, JsExp]()
+  var rawEventData = Map[String, $[JsTypes.JsAny]]()
   /**
    * The EventStram that contains all the data sent with the event
    */
@@ -78,7 +77,7 @@ class DOMEventSource[T <: DOMEvent: Manifest] extends (NodeSeq => NodeSeq) with 
       else rawEventData.foldLeft(eventEncoding) {
         case (encoding, (key, expr)) =>
           //  xxx + ';key=' + encodeURIComponent(expr)
-          encoding+"+';"+key+"='+encodeURIComponent("+expr.toJsCmd+")"
+          encoding+"+';"+key+"='+encodeURIComponent("+expr.render+")"
       }
     }
 
@@ -135,9 +134,9 @@ class DOMEventSource[T <: DOMEvent: Manifest] extends (NodeSeq => NodeSeq) with 
     }
     S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(handler))) {funcId =>
       SHtml.makeAjaxCall(
-        JsRaw("'"+funcId+"=' + encodeURIComponent("+encodeEvent+")")
+        net.liftweb.http.js.JE.JsRaw("'"+funcId+"=' + encodeURIComponent("+encodeEvent+")")
       ).toJsCmd
-    }
+    }    
   }
 
   /**
