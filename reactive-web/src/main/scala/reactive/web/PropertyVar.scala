@@ -1,9 +1,10 @@
 package reactive
 package web
 
-import net.liftweb.http.js.{ JE, JsExp }
-import JE.{ Str, Num }
 import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
+
+import javascript._
+
 
 /**
  * Instances of this trait specify how to transport element property values to and from the client.
@@ -18,7 +19,7 @@ trait PropertyCodec[T] {
   /**
    * How to send the value as JavaScript to the browser via ajax or comet
    */
-  def toJS: T => JsExp
+  def toJS: T => $[JsTypes.JsAny]
   /**
    * The attribute value to initialize the property's value, or None for no attribute
    */
@@ -28,17 +29,17 @@ trait PropertyCodec[T] {
 object PropertyCodec {
   implicit val string: PropertyCodec[String] = new PropertyCodec[String] {
     def fromString = s => s
-    val toJS = Str
+    val toJS = ToJs.string
     def toAttributeValue = v => _ => Some(v)
   }
   implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
     def fromString = _.toInt
-    val toJS = Num(_: Int)
+    val toJS = ToJs.number(_:Int)
     def toAttributeValue = (v: Int) => _ => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
     def fromString = _.toInt match { case -1 => None case n => Some(n) }
-    val toJS = (io: Option[Int]) => Num(io getOrElse -1)
+    val toJS = (io: Option[Int]) => ToJs.number(io getOrElse -1: Int)
     def toAttributeValue = v => _ => v.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {
@@ -46,7 +47,7 @@ object PropertyCodec {
       case "" | "false" | net.liftweb.util.Helpers.AsInt(0) => false
       case _ => true
     }
-    def toJS = (b: Boolean) => if (b) JE.JsTrue else JE.JsFalse
+    def toJS = (b: Boolean) => if (b) true.$ else false.$
     def toAttributeValue = (v: Boolean) => name => if (v) Some(name) else None
   }
 }

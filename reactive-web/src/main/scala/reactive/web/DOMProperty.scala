@@ -1,10 +1,8 @@
 package reactive
 package web
 
-import net.liftweb.http.js.{ JsCmds, JE, JsCmd, JsExp }
-import JsCmds.{ SetExp, JsTry }
-import JE.JsRaw
 import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
+import javascript._
 
 import scala.ref.WeakReference
 
@@ -54,12 +52,13 @@ class DOMProperty(val name: String) extends PageIds {
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS(id: String): JsExp = JsRaw("document.getElementById('"+id+"')."+name)
+  def readJS(id: String): $[JsTypes.JsAny] = JsRaw("document.getElementById('"+id+"')."+name)
   /**
    * The javascript statement to mutate this property
    * @param v the value to mutate it to, as a String
    */
-  def writeJS(id: String)(v: JsExp): JsCmd = JsTry(SetExp(readJS(id), v), false)
+  def writeJS(id: String)(v: $[JsTypes.JsAny]): String =
+    "try{"+readJS(id)+"="+v.render+"}catch(e){}"
 
   /**
    * Registers a Page with this JSProperty.
@@ -152,7 +151,7 @@ class DOMProperty(val name: String) extends PageIds {
   /**
    * Change the value of this property in the browser DOM
    */
-  def update(value: JsExp)(implicit page: Page) {
+  def update(value: $[JsTypes.JsAny])(implicit page: Page) {
     // Whenever the property is updated from a page besides the one
     // being added now, send to all other pages javascript to apply
     // the new value.
