@@ -20,14 +20,14 @@ class ValidXmlTest extends FunSuite with ShouldMatchers {
       else if(!file.isFile)
         failures
       else file.getName.split("\\.").last match {
-        case "xml" =>
-          try {
-            XML loadFile file
-            failures
-          } catch {
-            case e =>
-              ParamFailure(e.getMessage,Full(e),Empty,file) :: failures
-          }
+//        case "xml" =>
+//          try {
+//            XML loadFile file
+//            failures
+//          } catch {
+//            case e =>
+//              ParamFailure(e.getMessage,Full(e),Empty,file) :: failures
+//          }
         case "xml"|"xhtml"|"html"|"htm" =>
           PCDataXmlParser(new FileInputStream(file)) match {
             case Full(_) => failures
