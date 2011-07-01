@@ -6,8 +6,14 @@ import net.liftweb.json.{ Formats, DefaultFormats }
 
 import JsTypes._
 
+object JsEventStream {
+  implicit def canForward[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]): CanForward[JsEventStream[J], T] = new CanForward[JsEventStream[J], T] {
+    def forward(source: Forwardable[T], target: => JsEventStream[J])(implicit o: Observing) =
+      source foreach { v => target.fire(conv(v)) }
+  }
+}
 //TODO use PageIds
-class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] { parent =>
+class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with JsForwardable[T] { parent =>
   lazy val id = JsIdent.counter.next
   private var initialized = false
   def initExp = "new EventStream()"
@@ -63,4 +69,20 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] { pa
   //  def nonrecursive: EventStream[T]
 
 }
-
+trait CanForwardJs[-T, V<:JsAny] {
+  def forward(s: JsForwardable[V],t: T)
+}
+object CanForwardJs {
+  implicit def jes[V<:JsAny] = new CanForwardJs[JsEventStream[V],V] {
+    def forward(s: JsForwardable[V],t: JsEventStream[V]) =
+      s.foreach((x:$[V]) => t.fireExp(x))(ToJs.func1)
+  }
+}
+trait JsForwardable[T <: JsAny] {
+  def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F)
+  def foreach(f: $[T =|> JsVoid])
+  def ~>>[S](target: => S)(implicit canForward: CanForwardJs[S, T]): this.type = {
+    canForward.forward(this, target)
+    this
+  }
+}
