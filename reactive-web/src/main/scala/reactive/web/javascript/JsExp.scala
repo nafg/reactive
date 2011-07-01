@@ -27,7 +27,7 @@ trait JsExp[+T <: JsAny] {
 
   def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] = canApply(this, p)
 
-  def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T,T2]): JsExp[T2] = canSelect(this, exp)
+  def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T, T2]): JsExp[T2] = canSelect(this, exp)
 
   def +[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canPlus: CanPlus[T, T2, R]): JsExp[R] = canPlus(this, that)
   def &[T2<:JsAny,R<:JsAny](that: $[T2])(implicit can_& : Can_&[T,T2,R]): $[R] = can_&(this, that)
@@ -36,7 +36,8 @@ trait JsExp[+T <: JsAny] {
   def ==[T2<:JsAny](that: $[T2]): $[JsBoolean] = JsOp(this,that,"==")
 }
 
-case class JsIdent[T <: JsAny](ident: Symbol) extends JsExp[T] {
+trait JsIdent[T <: JsAny] extends JsExp[T] {
+  def ident: Symbol
   def render = ident.name
 }
 object JsIdent {
@@ -44,6 +45,7 @@ object JsIdent {
     def next = {set(is+1); is-1}
   }
   def fresh[T<:JsAny] = JsIdent[T](Symbol("x$"+counter.next))
+  def apply[T <: JsAny](id: Symbol) = new JsIdent[T] { def ident = id }
 }
 case class JsIdentable(symbol: Symbol) {
   def $[J<:JsAny] = JsIdent[J](symbol)
@@ -75,7 +77,7 @@ class ToJsLit[-S,J<:JsAny](renderer: S=>String) extends ToJs[S,J,JsLiteral] {
 
 trait ToJsLow { // make sure Map has a higher priority than a regular function
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
-    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){"+_(JsIdent('arg)).render+"}")
+    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){return "+_($('arg)).render+"}")
 }
 object ToJs extends ToJsLow{
   class From[S] {
@@ -95,10 +97,10 @@ object ToJs extends ToJsLow{
   implicit val array = new ToJsLit[List[JsExp[_]], JsArray](_.map(_.render).mkString("[", ",", "]"))
 }
 
-class JsDef[T <: JsAny, S: ToJs.To[T,JsExp]#From](init: S) extends JsExp[T] {
-  def name: Symbol = Symbol(getClass.getName.toList.reverse.dropWhile('$'==).takeWhile('$'!=).reverse.mkString)
-  def render = "var "+name.name+"="+init.render+";"
+trait NamedIdent[T <: JsAny] extends JsIdent[T] {
+  def ident = Symbol(classToIdent(getClass))
 }
+class JsVar[T <: JsAny, S: ToJs.To[T, JsExp]#From](init: S) extends NamedIdent[T]
 
 object JsOp {
   def apply[L<:JsAny,R<:JsAny,T<:JsAny](l:$[L],r:$[R],op:String) = new JsOp[L,R,T](l,r,op)
@@ -144,3 +146,5 @@ object CanSelect {
 class CanSelect[-T <: JsAny, T2 <: JsAny](f: JsExp[T]=>JsExp[T2]=>JsExp[T2]) {
   def apply(o: JsExp[T], m: JsExp[T2]): JsExp[T2] = f(o)(m)
 }
+trait JsStub extends NamedIdent[JsObj]
+
