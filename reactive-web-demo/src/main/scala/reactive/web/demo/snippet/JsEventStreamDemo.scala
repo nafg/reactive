@@ -9,22 +9,20 @@ import net.liftweb.util._
 import Helpers._
 
 class JsEventStreamDemo extends Observing {
-  val jses = new JsEventStream[JsString]
+  trait window extends JsStub {
+    def alert(s: $[JsString]): $[JsVoid]
+  }
+  val window = $$[window]
+
+  val clicks = DOMEventSource.click
+  val jses = clicks.jsEventStream.map{ (_: $[JsObj]) => "Button clicked"$ }
+
+  //this function will be executed in plain javascript, with no ajax involved!
+  jses.foreach { v: $[JsString] => window.alert("Fired: ".$ + v) }
 
   //alert from the server too!
-  jses.toServer(identity) foreach {v => reactive.web.alert("Server says: " + v.toString)}
+  jses.toServer[String] foreach { v => reactive.web.alert("Server says: '"+v.toString+"'") }
 
-  val window = $[JsObj]('window) //'
-  val alert = $[JsString =|> JsVoid]('alert)
-
-  def render = {
-    Reactions.inServerScope(Page.currentPage) {
-      jses.foreach { v: $[JsString] =>
-        window->alert("Fired: ".$ + v)
-      }
-    }
-    val click = DOMEventSource.click
-    click.addEventData("Button clicked"$, jses)
-    "button" #> click
-  }
+  def render =
+    "button" #> clicks
 }
