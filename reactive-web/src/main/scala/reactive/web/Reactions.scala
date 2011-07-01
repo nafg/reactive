@@ -1,18 +1,16 @@
 package reactive
 package web
 
-
-import scala.collection.mutable.{WeakHashMap, HashMap}
+import scala.collection.mutable.{ WeakHashMap, HashMap }
 import scala.ref.WeakReference
 import scala.xml.NodeSeq
 
 import net.liftweb.actor.LiftActor
-import net.liftweb.http.{js, S, CometActor, CometCreationInfo, LiftSession, LiftRules}
-  import js.{JsCmd, JsCmds}
-    import JsCmds._
-import net.liftweb.common.{Box, Full}
-import net.liftweb.util.{Helpers, ThreadGlobal}
-
+import net.liftweb.http.{ js, S, CometActor, CometCreationInfo, LiftSession, LiftRules }
+import js.{ JsCmd, JsCmds }
+import JsCmds._
+import net.liftweb.common.{ Box, Full }
+import net.liftweb.util.{ Helpers, ThreadGlobal }
 
 /**
  * This singleton keeps track of pages and queued javascript
@@ -53,9 +51,9 @@ object Reactions extends Logger {
     def queue(cmd: JsCmd) = S.appendJs(cmd)
   }
   private val currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
-  
+
   net.liftweb.http.ResourceServer.allow {
-    case "reactive-web.js"::Nil => true
+    case "reactive-web.js" :: Nil => true
   }
 
   @deprecated("Use init(comet=true) instead")
@@ -103,13 +101,13 @@ object Reactions extends Logger {
    * @param id the id of the Page to look for
    * @return the Page, if any is found
    */
-  def findPage(id: String): Option[Page] = pages.collect{case (p,_) if p.id==id => p}.headOption
+  def findPage(id: String): Option[Page] = pages.collect{ case (p, _) if p.id == id => p }.headOption
   /**
-   * Queries whether a page with the given id exists and its comet has not been garbage collected 
+   * Queries whether a page with the given id exists and its comet has not been garbage collected
    */
   def isPageAlive(id: String): Boolean = pages.nonEmpty && pages.exists {
-    case (p,c) if p.id==id && c.get.isDefined => true
-    case _ => false
+    case (p, c) if p.id == id && c.get.isDefined => true
+    case _                                       => false
   }
 
   /**
@@ -118,10 +116,10 @@ object Reactions extends Logger {
    * is queued in the new comet actor. Any javascript that was pending for the page
    * (e.g., was queued before a comet actor was registered) is queued in the new comet
    * actor and it is flushed.
-   * A WeakReference to the comet actor is stored in a WeakHashMap with the Page as the key.   
+   * A WeakReference to the comet actor is stored in a WeakHashMap with the Page as the key.
    */
   def register(page: Page, comet: ReactionsComet) = synchronized {
-    val pend = pending.remove(page.id) map { case (js,_) => js } getOrElse JsCmds.Noop
+    val pend = pending.remove(page.id) map { case (js, _) => js } getOrElse JsCmds.Noop
 
     pages.get(page).flatMap(_.get) foreach { oldComet =>
       oldComet.flush
@@ -132,7 +130,7 @@ object Reactions extends Logger {
     comet.flush
     pages(page) = new WeakReference(comet)
   }
- 
+
   /**
    * Queues javascript to be rendered.
    * The current thread must be in a valid context scope.
@@ -153,7 +151,7 @@ object Reactions extends Logger {
    * Unregister a Page. Removes it from the WeakHashMap.
    */
   def removePage(page: Page) = pages.remove(page)
-  
+
   /**
    * Executes code within a client scope. All javascript
    * queued within the scope will be accumulated and returned.
@@ -197,12 +195,12 @@ object Reactions extends Logger {
    * @param p the code block to execute
    * @return the result of the code block
    */
-  def inAnyScope[T](page: Page)(block: =>T): T = {
+  def inAnyScope[T](page: Page)(block: => T): T = {
     currentScope.value match {
       case s@CometScope(p) if p == Page =>
         trace(ReusingScope(s))
         block
-      case s if Page.currentPageOption==Some(page)=>
+      case s if Page.currentPageOption == Some(page) =>
         trace(ReusingScope(s))
         block
       case _ =>
@@ -210,7 +208,6 @@ object Reactions extends Logger {
     }
   }
 }
-
 
 /**
  * The comet actor that powers server-initiated updates to the browser.
@@ -220,21 +217,20 @@ class ReactionsComet(
   theSession: LiftSession,
   name: String,
   defaultXml: NodeSeq,
-  attributes: Map[String, String]
-) extends CometActor {
-  
+  attributes: Map[String, String]) extends CometActor {
+
   super.initCometActor(theSession, Full("net.liftweb.reactive.ReactionsComet"), Full(name), defaultXml, attributes)
-  
+
   private[reactive] val page: Page = CurrentPage.is
-  
-  private[reactive] var queued: JsCmd = JsCmds.Noop 
-  
+
+  private[reactive] var queued: JsCmd = JsCmds.Noop
+
   override def lifespan = Full(new Helpers.TimeSpan(60000))
-  
-  override def toString = "net.liftweb.reactive.ReactionsComet " + name
-  
+
+  override def toString = "net.liftweb.reactive.ReactionsComet "+name
+
   def render = <span/>
-  
+
   override protected def localShutdown {
     Reactions.removePage(page)
   }
@@ -258,6 +254,6 @@ class ReactionsComet(
   private[reactive] def flush = this ! Flush
   private[reactive] def take: JsCmd = this !! Take match {
     case Full(js: JsCmd) => js
-    case _ => JsCmds.Noop
-  }  
+    case _               => JsCmds.Noop
+  }
 }
