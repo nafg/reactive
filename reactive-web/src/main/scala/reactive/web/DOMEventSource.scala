@@ -4,6 +4,7 @@ package web
 import net.liftweb.http.{ S, SHtml }
 import net.liftweb.util.Helpers.urlDecode
 import javascript._
+import JsTypes._
 
 import scala.xml.{ Elem, NodeSeq }
 
@@ -15,19 +16,19 @@ import scala.xml.{ Elem, NodeSeq }
 //TODO better name--it is not an EventSource; only wraps a JsEventStream
 
 class DOMEventSource[T <: DOMEvent:Manifest:EventEncoder]
-extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger {
+extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[JsObj] {
   case class ReceivedEncodedEvent(event: Map[String, String]) extends LogEventPredicate
   case class CaughtExceptionDecodingEvent(event: Map[String, String], exception: Exception) extends LogEventPredicate
 
   /**
    * The JsEventStream that fires the primary event data
    */
-  val jsEventStream = new JsEventStream[JsTypes.JsObj]
+  val jsEventStream = new JsEventStream[JsObj]
   /**
    * An EventStream that fires events of type T on the server
    */
   lazy val eventStream: EventStream[T] =
-    jsEventStream.toServer(_.extract(net.liftweb.json.DefaultFormats, manifest[T]))
+    jsEventStream.toServer
 
   /**
    * The name of the event
@@ -39,12 +40,12 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger {
    */
   def attributeName = "on"+eventName
 
-  case class EventData[T<:JsTypes.JsAny](encode: $[T], es: JsEventStream[T])
+  case class EventData[T<:JsAny](encode: $[T], es: JsEventStream[T])
   private var eventData: List[EventData[_]] = List(
     EventData(implicitly[EventEncoder[T]].encodeExp, jsEventStream)
   )
   
-  def addEventData[T<:JsTypes.JsAny](jsExp: $[T], es: JsEventStream[T]) = synchronized {
+  def addEventData[T<:JsAny](jsExp: $[T], es: JsEventStream[T]) = synchronized {
     eventData ::= EventData(jsExp, es)
   }
   
@@ -78,6 +79,8 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger {
   def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
 
   def foreach(f: T => Unit)(implicit o: Observing) = eventStream.foreach(f)(o)
+  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj=|>JsVoid, E]#From](f: F) = jsEventStream.foreach(f)
+  def foreach(f: $[JsObj =|> JsVoid]) = jsEventStream.foreach(f)
 
   override def toString = "DOMEventSource["+manifest[T]+"]"
 }
