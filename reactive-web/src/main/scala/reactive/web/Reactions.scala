@@ -145,9 +145,10 @@ object Reactions extends Logger {
    */
   def queue(cmd: JsCmd): Unit =
     currentScope.value queue cmd
-  
+
   def queue(cmd: String): Unit = queue(Run(cmd))
-  
+  def queue(js: javascript.JsExp[javascript.JsTypes.JsVoid]): Unit = queue(js.render)
+
   /**
    * Unregister a Page. Removes it from the WeakHashMap.
    */
