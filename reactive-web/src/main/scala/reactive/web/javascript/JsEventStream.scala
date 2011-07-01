@@ -2,41 +2,41 @@ package reactive
 package web
 package javascript
 
-import net.liftweb.http.js.JsCmds.Run
+import net.liftweb.json.{ Formats, DefaultFormats }
 
 import JsTypes._
 
 //TODO use PageIds
-class JsEventStream[T <: JsAny]()(implicit page: Page) { parent =>
-  lazy val id = page.nextId
-  var rendered = false
-  def renderExp = "new EventStream()"
-  def accessExp = "reactive.eventStreams['"+id+"']"
-  def render = synchronized {
-    if (!rendered) {
-      rendered = true
-      Reactions.queue(Run(accessExp+"="+renderExp))
+class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] { parent =>
+  lazy val id = JsIdent.counter.next
+  private var initialized = false
+  def initExp = "new EventStream()"
+  def render = "reactive.eventStreams["+id+"]"
+  def init: Unit = synchronized {
+    if (!initialized) {
+      initialized = true
+      Reactions queue render+"="+initExp
     }
   }
 
   protected def child[U <: JsAny](renderer: => String) = {
-    render
+    init
     new JsEventStream[U]()(page) {
-      override def renderExp: String = renderer
+      override def initExp: String = renderer
     }
   }
-  def fireExp(v: $[_]): $[JsVoid] = JsRaw{
-    render
-    accessExp+".fire("+v.render+");"
+  def fireExp: $[T=|>JsVoid] = {
+    init
+    JsRaw(render+".fire")
   }
-  def fire(v: JsExp[_]) {
-    Reactions queue Run(fireExp(v).render)
-    Reactions queue Run("window.setTimeout('reactive.doAjax()',500)")
+  def fire(v: JsExp[T]) {
+    Reactions queue fireExp(v).render
+    Reactions queue "window.setTimeout('reactive.doAjax()',500)"
   }
 
-  private def foreachImpl(f: $[T =|> JsVoid]) {
-    render
-    Reactions queue Run(accessExp+".foreach("+f.render+")")
+  protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
+    init
+    Reactions queue render+".foreach("+f.render+")"
   }
   def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F) {
     foreachImpl(f)
@@ -44,14 +44,17 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) { parent =>
   def foreach(f: $[T =|> JsVoid]) {
     foreachImpl(f)
   }
-  //TODO encoder
   def toServer[U](extract: net.liftweb.json.JValue => U): EventStream[U] = {
-    foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax('"+id+"')"))
-    page.ajaxEvents.collect { case (`id`, json) => extract(json) }
+    foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax("+id+")"))
+    page.ajaxEvents.collect { case (_id, json) if _id == id.toString => extract(json) }
   }
-  def map[U <: JsAny, F <% JsExp[JsFunction1[T, U]]](f: F): JsEventStream[U] = child("parent.map("+f.render+")")
-  def flatMap[U <: JsAny, F <% JsExp[JsFunction1[T, U]]](f: F): JsEventStream[U] = child("parent.flatMap("+f.render+")")
-  def filter[F <% JsExp[JsFunction1[T, JsBoolean]]](f: F): JsEventStream[T] = child("parent.filter("+f.render+")")
+  def toServer[U](implicit formats: Formats = DefaultFormats, manifest: Manifest[U]): EventStream[U] =
+    toServer(_.extract(formats, manifest))
+
+  def map[U <: JsAny, F : ToJs.To[JsFunction1[T, U],JsExp]#From](f: F): JsEventStream[U] = child(parent.render+".map("+f.render+")")
+//  def map[U<:JsAny](f: $[T=|>U]): JsEventStream[U] = child(parent.render+".map("+f.render+")")
+  def flatMap[U <: JsAny, F <% JsExp[JsFunction1[T, U]]](f: F): JsEventStream[U] = child(parent.render+".flatMap("+f.render+")")
+  def filter[F <% JsExp[JsFunction1[T, JsBoolean]]](f: F): JsEventStream[T] = child(parent.render+".filter("+f.render+")")
   //  def takeWhile(p: T=>Boolean): EventStream[T]
   //  def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U]
   //  def |[U>:T](that: EventStream[U]): EventStream[U]
