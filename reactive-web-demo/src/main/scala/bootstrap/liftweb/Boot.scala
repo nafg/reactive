@@ -30,7 +30,7 @@ class Boot {
     // where to search snippet
     LiftRules.addToPackages("reactive.web.demo")
 
-    reactive.web.Reactions.initComet
+    reactive.web.Reactions.init(comet = true)
     
     // Build SiteMap
     def sitemap = () => SiteMap(
