@@ -39,26 +39,27 @@ class Page extends Observing {
       val handler = S.SFuncHolder { s =>
         Reactions.inClientScope {
           val stmts = javascript.JsStatement.inScope {
-          try {
-            implicit val formats = DefaultFormats
-            Serialization.read[List[Map[String, JValue]]](s) foreach { _ foreach ajaxEvents.fire}
-          } catch {
-            case e: Exception =>
-              e.printStackTrace
+            try {
+              for {
+                maps <- Serialization.read(s)(DefaultFormats, manifest[List[Map[String, JValue]]])
+                map <- maps
+              } ajaxEvents fire map
+            } catch {
+              case e: Exception =>
+                e.printStackTrace
+            }
           }
-        }
           stmts.map(_.render) foreach Reactions.queue
         }
       }
       Reactions.queue(
-        if (S.inStatefulScope_?)
-          S.fmapFunc(S.contextFuncBuilder(handler)) { funcId =>
+        if (S.inStatefulScope_?) {
+          S.fmapFunc(S.contextFuncBuilder(handler)){ funcId =>
             JsCmds.Run("reactive.funcId='"+funcId+"'")
           }
-        else
+        } else
           JsCmds.Run("reactive.funcId='noStatefulScope'")
       )
-      
     }
   }
 
