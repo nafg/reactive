@@ -62,18 +62,16 @@ case class JsLiterable[T](x: T) {
   def $[J <: JsAny](implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
 }
 
-trait JsRaw[T <: JsAny] extends JsExp[T]
+class JsRaw[T <: JsAny](rendering: => String) extends JsExp[T] {
+  def render = rendering
+}
 object JsRaw {
-  def apply[T <: JsAny](rendering: => String) = new JsRaw[T] {
-    def render = rendering
-  }
+  def apply[T <: JsAny](rendering: => String) = new JsRaw[T](rendering)
 }
 
 trait ToJs[-S, J <: JsAny, +E[J <: JsAny] <: JsExp[J]] extends (S => E[J])
 class ToJsExp[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsExp] {
-  def apply(s: S) = new JsRaw[J] {
-    def render = renderer(s)
-  }
+  def apply(s: S) = JsRaw[J](renderer(s))
 }
 class ToJsLit[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsLiteral] {
   def apply(s: S) = new JsLiteral[J] { def render = renderer(s) }
@@ -135,7 +133,11 @@ class CanOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) exte
 
 object CanApply1 {
   implicit def canApply1[P <: JsAny, R <: JsAny]: CanApply1[P =|> R, P, R] = new CanApply1[P =|> R, P, R](
-    f => p => JsRaw[R](f.render+"("+p.render+")")
+    f => p => {
+      new JsRaw[R](f.render+"("+p.render+")") with JsStatement {
+        def toReplace = List(p)
+      }
+    }
   )
 }
 class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] => JsExp[R]) {
@@ -153,3 +155,32 @@ class CanSelect[-T <: JsAny, T2 <: JsAny](f: JsExp[T] => JsExp[T2] => JsExp[T2])
 
 trait JsStub extends NamedIdent[JsObj]
 
+trait JsStatement {
+  def render: String
+  def toReplace: List[$[_]]
+
+  for (e <- toReplace if e.isInstanceOf[JsStatement] && (e eq JsStatement.peek)) JsStatement.pop
+  JsStatement.push(this)
+}
+object JsStatement {
+  val stack = new scala.util.DynamicVariable[List[List[JsStatement]]](List(Nil))
+  def currentScope: List[JsStatement] = stack.value.head
+  def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
+  def topScope = stack.value.tail.isEmpty
+  def inScope(p: => Unit): List[JsStatement] = stack.withValue(Nil :: stack.value){
+    p
+    currentScope
+  }
+
+  def push(s: JsStatement) = {
+    currentScope ::= s
+  }
+  def pop: JsStatement = {
+    val ret = currentScope.head
+    currentScope = currentScope.tail
+    ret
+  }
+  def peek = currentScope.head
+  def replace(pf: PartialFunction[JsStatement, JsStatement]) =
+    if (pf.isDefinedAt(peek)) push(pf(pop))
+}

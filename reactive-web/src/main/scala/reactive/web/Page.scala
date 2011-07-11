@@ -38,6 +38,7 @@ class Page extends Observing {
     Reactions.inAnyScope(this) {
       val handler = S.SFuncHolder { s =>
         Reactions.inClientScope {
+          val stmts = javascript.JsStatement.inScope {
           try {
             implicit val formats = DefaultFormats
             Serialization.read[List[Map[String, JValue]]](s) foreach { _ foreach ajaxEvents.fire}
@@ -45,6 +46,8 @@ class Page extends Observing {
             case e: Exception =>
               e.printStackTrace
           }
+        }
+          stmts.map(_.render) foreach Reactions.queue
         }
       }
       Reactions.queue(
