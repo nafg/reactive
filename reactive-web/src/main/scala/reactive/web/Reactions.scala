@@ -25,7 +25,7 @@ object Reactions extends Logger {
   //TODO is WeakHashMap the correct structure to use?
   private val pages = new WeakHashMap[Page, WeakReference[ReactionsComet]]
 
-  sealed trait Scope {
+  trait Scope {
     def queue(cmd: JsCmd)
   }
   case class CometScope(page: Page) extends Scope {
@@ -43,14 +43,22 @@ object Reactions extends Logger {
       }
     }
   }
-  class AjaxScope extends Scope {
-    var js: JsCmd = JsCmds.Noop
-    def queue(cmd: JsCmd) = js &= cmd
+  class LocalScope extends Scope {
+    var js: List[JsCmd] = Nil
+    def queue(cmd: JsCmd): Unit = js ::= cmd
+    def dequeue: JsCmd = {
+      val ret = js.head
+      js = js.tail
+      ret
+    }
+    def replace(f: JsCmd=>JsCmd): Unit = queue(f(dequeue))
   }
   case object DefaultScope extends Scope {
     def queue(cmd: JsCmd) = S.appendJs(cmd)
   }
-  private val currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
+  private val _currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
+
+  def currentScope: Scope = _currentScope.value
 
   net.liftweb.http.ResourceServer.allow {
     case "reactive-web.js" :: Nil => true
@@ -142,7 +150,7 @@ object Reactions extends Logger {
    * is one, or if there is not then it is stored pending.
    */
   def queue(cmd: JsCmd): Unit =
-    currentScope.value queue cmd
+    _currentScope.value queue cmd
 
   def queue(cmd: String): Unit = queue(Run(cmd))
   def queue(js: javascript.JsExp[javascript.JsTypes.JsVoid]): Unit = queue(js.render)
@@ -158,13 +166,22 @@ object Reactions extends Logger {
    * @param p the code block to execute
    * @return the accumulated javascript
    */
-  def inClientScope(p: => Unit): JsCmd = {
-    val scope = new AjaxScope
-    currentScope.withValue(scope) {
-      p
-      scope.js
-    }
+  def inLocalScope(p: => Unit): JsCmd = {
+    inScope(new LocalScope)(p).js
   }
+
+  @deprecated("Use inLocalScope")
+  def inClientScope(p: => Unit): JsCmd = inLocalScope(p)
+
+  /**
+   * Executes code in the specified Scope, and
+   * returns the scope.
+   */
+  def inScope[T<:Scope](scope: T)(p: => Unit): T = {
+    _currentScope.withValue(scope){ p }
+    scope
+  }
+
   /**
    * Executes code within a server scope. All javascript queued
    * withing the scope will be sent to the comet actor registered
@@ -178,7 +195,7 @@ object Reactions extends Logger {
   def inServerScope[T](page: Page)(p: => T): T = {
     //TODO should we do anything different if page doesn't exist in pages?
     //is it possible the page will still be registered?
-    val ret = currentScope.withValue(CometScope(page)) {
+    val ret = _currentScope.withValue(CometScope(page)) {
       p
     }
     val comet = pages.get(page).flatMap(_.get)
@@ -196,7 +213,7 @@ object Reactions extends Logger {
    * @return the result of the code block
    */
   def inAnyScope[T](page: Page)(block: => T): T = {
-    currentScope.value match {
+    _currentScope.value match {
       case s@CometScope(p) if p == Page =>
         trace(ReusingScope(s))
         block
