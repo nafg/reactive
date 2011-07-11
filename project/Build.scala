@@ -21,7 +21,7 @@ object ReactiveBuild extends Build {
 
   val defaults = Defaults.defaultSettings ++ Seq(
     organization := "cc.co.scala-reactive",
-    version := "0.0.1-SNAPSHOT",
+    version := "0.1",
     checksums := Nil,
     resolvers += ScalaToolsSnapshots,
     resolvers += "Sonatype snapshots" at sonatypeSnapshots,
