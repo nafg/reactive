@@ -69,7 +69,7 @@ object Button {
    */
   def apply(content: Signal[NodeSeq])(action: =>Unit)(implicit observing: Observing): Button with Cell = {
     val ret = apply(ButtonType.Button, content)
-    ret.click ->> action
+    ret.click.eventStream foreach {_=>action}
     ret
   }
   
