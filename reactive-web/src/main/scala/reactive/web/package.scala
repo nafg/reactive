@@ -6,7 +6,7 @@ import net.liftweb.http.{js, SHtml, S}
   import js.JE.{JsRaw, Str}
   import js.JsCmds
 
-  
+
 /**
  * reactive-web package
  */
@@ -87,5 +87,16 @@ package object web {
     andThen: SeqSignal[NodeSeq] => T
   ): NodeSeq=>T = {ns =>
     andThen(bindFunc map {_ map {_(ns)}})
+  }
+
+  /**
+   * Given a Class instance, extract the original scala identifier name.
+   * Class names can be of the form [[abc] $] name [$ [nnn]]
+   */
+  private[web] def scalaClassName(c: Class[_]) = {
+    val name = c.getSimpleName
+    val lastDollar = name.lastIndexOf('$')
+    val dropEnd = if (name.substring(lastDollar + 1) forall (_.isDigit)) name.length - lastDollar else 0
+    name.toList.reverse.drop(dropEnd).takeWhile('$'!=).reverse.mkString
   }
 }

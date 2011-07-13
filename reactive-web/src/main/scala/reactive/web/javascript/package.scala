@@ -17,13 +17,6 @@ package object javascript {
   def $[T <: JsAny] = JsIdent.fresh[T]
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-  private[javascript] def classToIdent(c: Class[_]) = {
-    val name = c.getSimpleName
-    val lastDollar = name.lastIndexOf('$')
-    val dropEnd = if (name.substring(lastDollar + 1) forall (_.isDigit)) name.length - lastDollar else 0
-    name.toList.reverse.drop(dropEnd).takeWhile('$'!=).reverse.mkString
-  }
-
   private class StubInvocationHandler[T <: JsStub: Manifest](ident: String) extends InvocationHandler {
     def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef = {
       val clazz: Class[_] = manifest[T].erasure
@@ -55,7 +48,7 @@ package object javascript {
     }
   }
   def $$[T <: JsStub: Manifest]: T =
-    JsStub[T](classToIdent(manifest[T].erasure))
+    jsProxy[T](scalaClassName(manifest[T].erasure))
 
   def JsStub[T <: JsStub: Manifest](ident: String): T = {
     val ih = new StubInvocationHandler(ident)

@@ -33,7 +33,7 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[
   /**
    * The name of the event
    */
-  def eventName = DOMEvent.eventName[T]
+  def eventName = scalaClassName(manifest[T].erasure).toLowerCase
   
   /**
    * The name of the attribute to add the handler to

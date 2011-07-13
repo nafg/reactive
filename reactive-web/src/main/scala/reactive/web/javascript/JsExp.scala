@@ -100,7 +100,7 @@ object ToJs extends ToJsLow {
 }
 
 trait NamedIdent[T <: JsAny] extends JsIdent[T] {
-  def ident = Symbol(classToIdent(getClass))
+  def ident = Symbol(scalaClassName(getClass))
 }
 class JsVar[T <: JsAny, S: ToJs.To[T, JsExp]#From](init: S) extends NamedIdent[T]
 
