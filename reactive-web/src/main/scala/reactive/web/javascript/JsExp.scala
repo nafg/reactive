@@ -2,6 +2,11 @@ package reactive
 package web
 package javascript
 
+/**
+ * Contains types that model javascript types.
+ * These classes cannot be instantiated.
+ * They are used as type parameters for JsExp etc.
+ */
 object JsTypes {
   class JsAny protected ;
   final class JsBoolean private extends JsAny
@@ -13,8 +18,8 @@ object JsTypes {
   final class JsArray private extends JsAny
   final class JsFunction1[-P <: JsAny, +R <: JsAny] private extends JsAny
   final class JsVoid private extends JsAny
-
 }
+
 import JsTypes._
 
 object JsExp {
@@ -26,20 +31,52 @@ object JsExp {
   }
 }
 
+/**
+ * A Scala representation of a javscript expression.
+ * @tparam T the javascript type of the expression.
+ */
 trait JsExp[+T <: JsAny] {
+  /**
+   * Returns the javascript representation of the expression in a String
+   */
   def render: String
 
+  /**
+   * Returns a JsExp that represents function application of this JsExp
+   */
   def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] = canApply(this, p)
 
+  /**
+   * Returns a JsExp that represents member selection (the period) of this JsExp.
+   * A better solution is to use JsStub 
+   */
   def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T, T2]): JsExp[T2] = canSelect(this, exp)
 
+  /**
+   * Returns a JsExp that represents this + that
+   */
   def +[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canPlus: CanPlus[T, T2, R]): JsExp[R] = canPlus(this, that)
+  /**
+   * Returns a JsExp that represents this & that
+   */
   def &[T2 <: JsAny, R <: JsAny](that: $[T2])(implicit can_& : Can_&[T, T2, R]): $[R] = can_&(this, that)
+  /**
+   * Returns a JsExp that represents this || that
+   */
   def ||[T2 <: JsAny, R <: JsAny](that: $[T2]): $[R] = JsOp(this, that, "||")
+  /**
+   * Returns a JsExp that represents this != that
+   */
   def !=[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "!=")
+  /**
+   * Returns a JsExp that represents this == that
+   */
   def ==[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "==")
 }
 
+/**
+ * A JsExp that represents a reference to an existing, named identifier
+ */
 trait JsIdent[T <: JsAny] extends JsExp[T] {
   def ident: Symbol
   def render = ident.name
@@ -48,12 +85,21 @@ object JsIdent {
   object counter extends net.liftweb.http.RequestVar(0) {
     def next = { set(is + 1); is - 1 }
   }
+  /**
+   * Returns a JsIdent with a fresh name
+   */
   def fresh[T <: JsAny] = JsIdent[T](Symbol("x$"+counter.next))
+  /**
+   * Returns a JsIdent with the specified name
+   */
   def apply[T <: JsAny](id: Symbol) = new JsIdent[T] { def ident = id }
 }
 case class JsIdentable(symbol: Symbol) {
   def $[J <: JsAny] = JsIdent[J](symbol)
 }
+/**
+ * A JsExp that represents a literal value
+ */
 trait JsLiteral[+T <: JsAny] extends JsExp[T]
 object JsLiteral {
   def apply[T, J <: JsAny](x: T)(implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
@@ -62,6 +108,9 @@ case class JsLiterable[T](x: T) {
   def $[J <: JsAny](implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
 }
 
+/**
+ * A JsExp whose javascript representation is specified directly
+ */
 class JsRaw[T <: JsAny](rendering: => String) extends JsExp[T] {
   def render = rendering
 }
@@ -81,6 +130,9 @@ trait ToJsLow { // make sure Map has a higher priority than a regular function
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){return "+_($('arg)).render+"}")
 }
+/**
+ * Contains implicit conversions from scala values to javascript literals
+ */
 object ToJs extends ToJsLow {
   class From[S] {
     type To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] = ToJs[S, J, E]
@@ -99,6 +151,9 @@ object ToJs extends ToJsLow {
   implicit val array = new ToJsLit[List[JsExp[_]], JsArray](_.map(_.render).mkString("[", ",", "]"))
 }
 
+/**
+ * A JsIdent whose javascript name is the scala type
+ */
 trait NamedIdent[T <: JsAny] extends JsIdent[T] {
   def ident = Symbol(scalaClassName(getClass))
 }
@@ -153,20 +208,55 @@ class CanSelect[-T <: JsAny, T2 <: JsAny](f: JsExp[T] => JsExp[T2] => JsExp[T2])
   def apply(o: JsExp[T], m: JsExp[T2]): JsExp[T2] = f(o)(m)
 }
 
+/**
+ * Traits that extends JsStub can have proxy instances vended
+ * whose methods result in calls to javascript methods
+ */
 trait JsStub extends NamedIdent[JsObj]
 
+/**
+ * A scala representation of a javascript statement.
+ * On instantiation, puts itself on the JsStatement stack. 
+ */
 trait JsStatement {
+  /**
+   * Returns the javascript representation in a String
+   */
   def render: String
+  /**
+   * A list of javascript expressions, that if they are a JsStatement
+   * and on the top of the JsStatement stack, should be replaced.
+   */
   def toReplace: List[$[_]]
 
   for (e <- toReplace if e.isInstanceOf[JsStatement] && (e eq JsStatement.peek)) JsStatement.pop
+
   JsStatement.push(this)
 }
+/**
+ * Maintains a thread-local stack of statement blocks
+ */
 object JsStatement {
+  /**
+   * A dynamically-scoped stack of blocks of JsStatements
+   */
   val stack = new scala.util.DynamicVariable[List[List[JsStatement]]](List(Nil))
+  /**
+   * The top JsStatement block
+   */
   def currentScope: List[JsStatement] = stack.value.head
+  /**
+   * Sets the top JsStatement block
+   */
   def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
-  def topScope = stack.value.tail.isEmpty
+  /**
+   * Returns true if there is no other statement block on the stack 
+   */
+  def bottomScope = stack.value.tail.isEmpty
+  /**
+   * Evaluates p in a new scope, and returns the top of the stack
+   * (JsStatements pushed during evaluation of p)
+   */
   def inScope(p: => Unit): List[JsStatement] = stack.withValue(Nil :: stack.value){
     p
     currentScope

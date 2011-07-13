@@ -27,10 +27,19 @@ class Page extends Observing {
   val id = randomString(20)
   def cometName = id
 
+  /**
+   * Rendered by lift:reactive snippet invocations when Reactions.init was
+   * called with comet=false (the default).
+   */
   def render =
     <head>
       <script type="text/javascript" src="/classpath/reactive-web.js"/>
     </head>
+
+  /**
+   * Rendered by lift:reactive snippet invocations when Reactions.init was
+   * called with comet=true
+   */
   def renderComet = render ++ xml.Comment("comet "+id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ cometName }/>
 

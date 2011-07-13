@@ -25,9 +25,16 @@ object Reactions extends Logger {
   //TODO is WeakHashMap the correct structure to use?
   private val pages = new WeakHashMap[Page, WeakReference[ReactionsComet]]
 
+  /**
+   * A Scope represents a dynamic scope in which javascript is queued and collected.
+   * It is up to the Scope what to do with queued javascript
+   */
   trait Scope {
     def queue(cmd: JsCmd)
   }
+  /**
+   * A Scope that sends queued javascript to a Page's ReactionsComet.
+   */
   case class CometScope(page: Page) extends Scope {
     def queue(cmd: JsCmd) {
       val js =
@@ -43,6 +50,11 @@ object Reactions extends Logger {
       }
     }
   }
+  /**
+   * A scope that stores queued javascript
+   * (used during ajax calls, to return the
+   * queued javascript as the ajax response)
+   */
   class LocalScope extends Scope {
     var js: List[JsCmd] = Nil
     def queue(cmd: JsCmd): Unit = js ::= cmd
@@ -53,6 +65,11 @@ object Reactions extends Logger {
     }
     def replace(f: JsCmd=>JsCmd): Unit = queue(f(dequeue))
   }
+  /**
+   * A scope that calls S.appendJs with
+   * queued javascript. Allows one to queue javascript
+   * even during initial page render.
+   */
   case object DefaultScope extends Scope {
     def queue(cmd: JsCmd) = S.appendJs(cmd)
   }
@@ -228,7 +245,7 @@ object Reactions extends Logger {
 
 /**
  * The comet actor that powers server-initiated updates to the browser.
- * Not used by application code
+ * Not used directly by application code.
  */
 class ReactionsComet(
   theSession: LiftSession,

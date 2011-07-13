@@ -58,6 +58,10 @@ package object web {
     ns.dropWhile(emptyText).reverse.dropWhile(emptyText).reverse
   }
 
+  /**
+   * Force a NodeSeq to an Elem. If necessary adds
+   * a surrounding &lt;span&gt; tag.
+   */
   //TODO should we not be trimming?
   def nodeSeqToElem(ns: NodeSeq): Elem = trimNodeSeq(ns) match {
     case e: Elem => e

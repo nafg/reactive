@@ -5,7 +5,9 @@ import javascript._
 import net.liftweb.http.S
 
 /**
- * Provides a utility method to get a javascript event name from a Manifest of a DOMEvent
+ * Implicit instances of EventEncoder are associated with DOMEvents
+ * to provide a javascript object initializer expression
+ * that consists of the relevant data in the browser's Event object.
  */
 class EventEncoder[T<:DOMEvent](val encodeExp: $[JsTypes.JsObj])
 

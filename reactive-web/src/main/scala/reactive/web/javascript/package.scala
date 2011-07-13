@@ -10,11 +10,23 @@ package object javascript {
     new JsLiterable[T](x)
   implicit def toJsIdentable(s: Symbol): JsIdentable = JsIdentable(s)
 
+  /**
+   * A type alias for JsExp
+   */
   type $[+T <: JsAny] = JsExp[T]
 
+  /**
+   * A type alias for JsFunction1
+   */
   type =|>[-P <: JsAny, +R <: JsAny] = JsTypes.JsFunction1[P, R]
 
+  /**
+   * Returns a JsIdent with a fresh name
+   */
   def $[T <: JsAny] = JsIdent.fresh[T]
+  /**
+   * Returns a JsIdent with the specified name
+   */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
   private class StubInvocationHandler[T <: JsStub: Manifest](ident: String) extends InvocationHandler {
@@ -47,9 +59,19 @@ package object javascript {
       }
     }
   }
+
+  /**
+   * Returns a JsStub proxy for the specified
+   * type. Assumes T's type is the also
+   * the name of the instance in the browser.
+   */
   def $$[T <: JsStub: Manifest]: T =
     jsProxy[T](scalaClassName(manifest[T].erasure))
 
+  /**
+   * Returns a JsStub proxy for the specified type,
+   * with the specified identifier for the instance. 
+   */
   def jsProxy[T <: JsStub: Manifest](ident: Symbol): T = jsProxy[T](ident.name)
   def jsProxy[T <: JsStub: Manifest](ident: String): T = {
     val ih = new StubInvocationHandler(ident)
@@ -60,5 +82,8 @@ package object javascript {
     ).asInstanceOf[T]
   }
 
+  /**
+   * A proxy to the browser's window object
+   */
   val window = jsProxy[Window]('window)
 }
