@@ -50,7 +50,8 @@ package object javascript {
   def $$[T <: JsStub: Manifest]: T =
     jsProxy[T](scalaClassName(manifest[T].erasure))
 
-  def JsStub[T <: JsStub: Manifest](ident: String): T = {
+  def jsProxy[T <: JsStub: Manifest](ident: Symbol): T = jsProxy[T](ident.name)
+  def jsProxy[T <: JsStub: Manifest](ident: String): T = {
     val ih = new StubInvocationHandler(ident)
     java.lang.reflect.Proxy.newProxyInstance(
       getClass.getClassLoader,
@@ -59,5 +60,5 @@ package object javascript {
     ).asInstanceOf[T]
   }
 
-  val window = JsStub[Window]("window")
+  val window = jsProxy[Window]('window)
 }
