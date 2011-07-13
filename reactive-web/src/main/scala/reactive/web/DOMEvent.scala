@@ -7,12 +7,6 @@ import net.liftweb.http.S
 /**
  * Provides a utility method to get a javascript event name from a Manifest of a DOMEvent
  */
-object DOMEvent {
-  def eventName[T <: DOMEvent : Manifest] = manifest[T].erasure.getSimpleName.toLowerCase match {
-    case s if s endsWith "$" => s.substring(0, s.length-1)
-    case s => s
-  }
-}
 class EventEncoder[T<:DOMEvent](val encodeExp: $[JsTypes.JsObj])
 
 object EventEncoder {
