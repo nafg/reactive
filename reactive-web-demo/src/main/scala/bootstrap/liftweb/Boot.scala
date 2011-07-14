@@ -36,27 +36,27 @@ class Boot {
     def sitemap = () => SiteMap(
       Menu("About")  /"index",
       Menu("Core")  /"0"  >>PlaceHolder  submenus(
-        Menu("EventStream")  /"demos"/"core"/"EventStream",
-        Menu("Signal")  /"demos"/"core"/"Signal",
-        Menu("SeqSignal")  /"demos"/"core"/"SeqSignal",
-        Menu("Forwardable")  /"demos"/"core"/"Forwardable",
-        Menu("Logger")  /"demos"/"core"/"Logger"
+        Menu("EventStream")  /"core"/"EventStream",
+        Menu("Signal")  /"core"/"Signal",
+        Menu("SeqSignal")  /"core"/"SeqSignal",
+        Menu("Forwardable")  /"core"/"Forwardable",
+        Menu("Logger")  /"core"/"Logger"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
-        Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
-        Menu("Low Level API")  /"demos"/"web"/"LowLevel",
-        Menu("Events")  /"demos"/"web"/"Events",
-        Menu("Properties")  /"demos"/"web"/"Properties",
-        Menu("Elements")  /"demos"/"web"/"Elements",
-        Menu("Simple demo")  /"demos"/"demos"/"SimpleDemo"
+        Menu("Getting Started")  /"web"/"GettingStarted",
+        Menu("Low Level API")  /"web"/"LowLevel",
+        Menu("Events")  /"web"/"Events",
+        Menu("Properties")  /"web"/"Properties",
+        Menu("Elements")  /"web"/"Elements",
+        Menu("Simple demo")  /"demos"/"SimpleDemo"
       ),
       Menu("HTML")  /"2"  >>PlaceHolder  submenus(
-        Menu("Span")  /"demos"/"html"/"Span",
-        Menu("Div")  /"demos"/"html"/"Div",
-        Menu("Button")  /"demos"/"html"/"Button",
-        Menu("TextInput")  /"demos"/"html"/"TextInput",
-        Menu("CheckboxInput")  /"demos"/"html"/"CheckboxInput",
-        Menu("Select")  /"demos"/"html"/"Select"
+        Menu("Span")  /"html"/"Span",
+        Menu("Div")  /"html"/"Div",
+        Menu("Button")  /"html"/"Button",
+        Menu("TextInput")  /"html"/"TextInput",
+        Menu("CheckboxInput")  /"html"/"CheckboxInput",
+        Menu("Select")  /"html"/"Select"
       ),
       Menu("Scaladocs")  /"3"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
