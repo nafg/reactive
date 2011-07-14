@@ -35,24 +35,29 @@
   </pre>
   </li>
   <li>
-  <h3>Optionally enable Comet support</h3>
+  <h3>Enable it</h3>
+  <ol><li>
   <p>In Boot.scala:</p>
   <pre class="brush: scala">
-  Reactions.initComet
+  Reactions.init()
   </pre>
-  <p>Once on each page, before a snippet that uses Comet support
-  (may be in individual templates or in your surround template, it
-  doesn't matter):</p>
+  <p>To enable comet support, use</p>
+  <pre class="brush: scala">
+  Reactions.init(true)
+  </pre></li>
+  <li>
+  <p>Once on each page, in individual templates or in your surround template
+  (e.g., templates-hidden/default.html), add:</p>
   <pre class="brush: xml">
   &lt;div class="lift:reactive"&gt;&lt;/div&gt;
-  </pre></li>
+  </pre></li></ol></li>
   <li>
   <h3>Start coding!</h3>
   <ul>
     <li>You will probably want to import <code>reactive._</code>
     and <code>reactive.web._</code></li>
     <li>Snippets may need to extend <code>Observing</code></li>
-    <li>See the rest of this site for more information</li>
+    <li>Read on!</li>
   </ul>
   </li>
 </ol>

@@ -7,137 +7,35 @@ internals. However, to reason about more complex situations, it may be
 helpful to understand what's happening behind the scenes. That said, the
 following is not meant to paint a picture about typical usage of the
 library.</p>
-<p>At its heart, deep down, <code>reactive-web</code> is just a
-simple abstraction over Lift's superb Ajax and Comet support. It allows
-you to demarcate a dynamic scope (think <code>scala.util.DynamicVariable</code>'s
-<code>withValue</code> / <code>net.liftweb.util.ThreadGlobal</code>'s <code>doWith</code>)
-in which code can queue JavaScript to be executed in the browser. How
-the JavaScript is sent to the browser depends on the dynamic scope:
-either the current thread is responding to an Ajax call, and the queued
-JavaScript will be accumulated and returned as the Ajax response; or the
-current thread has a scope associated with a particular <code>Page</code>,
-and when the thread exits the scope, the JavaScript will be sent to the
-Comet actor associated with that <code>Page</code>. It is a runtime
-error to queue JavaScript when not inside any scope.</p>
-<p>Note that if in your application nothing happens after page load
-that is not in response to a browser event, you do not need to put
-enable Comet support. However, if you do need Comet support, you need
-to:</p>
-<ol>
-	<li>Add to Boot.boot: <pre class="brush:scala">
-Reactions.initComet
-</pre></li>
-	<li>Add to each page (this could be via the surrounding template)
-	<em>before</em> any snippet invocation that uses <code>reactive-web</code>:
-	<pre class="brush: xml">
-&lt;div class="lift:reactive"&gt;&lt;/div&gt;
-</pre></li>
-</ol>
-<p><code>reactive-web</code> builds on this, and on <code>reactive-core</code>,
-to provide concise, composable abstractions for rendering highly
+<p>At its heart, deep down, <code>reactive-web</code> is a
+simple abstraction over Lift's excellent Ajax and Comet support. It allows
+one to designate a dynamic (thread-local) scope for executing javascript.
+Some scopes execute javascript by sending it to a comet actor, while others
+render it as an ajax response, or as part of the page's initial rendering.
+Within such a scope, <code>reactive-web</code> allows one to queue javascript
+to be run in the browser, without caring what scope the code is in or how
+the javascript will get to the browser.</p>
+<p><code>reactive-web</code> builds on this, using <code>reactive-core</code>'s FRP features,
+plus its own <code>JsEventStream</code>, to provide concise, composable abstractions for rendering highly
 interactive and dynamic browser content.</p>
-<p>So what is a <code>Page</code>? Well, really all it does is hold
-a unique id. But Comet actors are named based on this id, keeping a
-separate flow of updates to separate pages. And, as mentioned above,
-it's used to associate a scope with a Comet actor. Similarly, browser
-content is associated with one or more <code>Page</code>s, which they
-keep themselves updated on. In addition, <code>Page</code> extends <code>Observing</code>,
-so by having one in the implicits scope (as is the case if your snippet
-extends <code>ReactiveSnippet</code>), you can <code>foreach</code> over
-events.</p>
-
-<p>The simplest way to experience how <code>reactive-web</code>
-interacts with the browser at the low level is perhaps the <code>confirm</code>
-method (a member of the package object), which triggers its JavaScript
-namesake.</p>
-
-<pre class="brush:scala">
-confirm("Are you sure you want to delete XXX?"){
-  case true =&gt; xxx.delete
-}
-</pre>
-
-<p>What happens is that when you call confirm, <code>reactive-web</code>
-queues JavaScript that calls confirm in the browser, and sends the
-return value back to your application via Ajax.</p>
-
-<p>Here's the implementation:</p>
-<pre class="brush:scala">
-def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page): Unit = {
-  val funcWrapper: String=&gt;Unit = {
-    case "true" =&gt; if(response.isDefinedAt(true)) response(true)
-    case "false" =&gt; if(response.isDefinedAt(false)) response(false)
-  }
-  val js = S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(funcWrapper))) {funcId =&gt;
-    SHtml.makeAjaxCall(
-      JsRaw("'"+funcId+"='+confirm(" + Str(message).toJsCmd + ")")
-    ).toJsCmd
-  }
-  Reactions.inAnyScope(page)(
-    Reactions.queue(
-      JsCmds.Run(js)
-    )
-  )
-}
-</pre>
-<p>Let's break that up:</p>
-<pre class="brush:scala">
-def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page): Unit = {
-</pre>
-<p>Okay, so we take in a message to display, and a <code>PartialFunction</code>
-to handler the result (it can handle neither, one, or both Boolean
-values). And we require a <code>Page</code>, normally passed in
-implicitly.</p>
-
-<pre class="brush:scala">
-  val funcWrapper: String=&gt;Unit = {
-    case "true" =&gt; if(response.isDefinedAt(true)) response(true)
-    case "false" =&gt; if(response.isDefinedAt(false)) response(false)
-  }
-</pre>
-<p>The above simply wraps the <code>PartialFunction</code> in a
-regular function, to be called via Ajax.</p>
-<pre class="brush:scala">
-  val js = S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(funcWrapper))) {funcId =&gt;
-    SHtml.makeAjaxCall(
-      JsRaw("'"+funcId+"='+confirm(" + Str(message).toJsCmd + ")")
-    ).toJsCmd
-  }
-</pre>
-<p>This is regular Lift code: we're generating JavaScript to call
-our Ajax function with whatever <code>confirm</code> returns.</p>
-<p>Now for the <code>reactive-web</code> part:</p>
-<pre class="brush:scala">
-  Reactions.inAnyScope(page)(
-    Reactions.queue(
-      JsCmds.Run(js)
-    )
-  )
-</pre>
-<p>In order to understand the above code, it is helpful to be aware
-of two other methods on the <code>Reactions</code> singleton: <code>inClientScope</code>
-and <code>inServerScope</code>. <code>inClientScope</code> takes a block
-of code and executes it with a dynamic scope that is client-side,
-meaning that the code is executing in response to an Ajax call triggered
-by the client (browser). <code>inClientScope</code> runs the code block
-and stores up all JavaScript it queues -- and the accumulated JavaScript
-becomes its return value. (Browser events are wired up by adding event
-handlers in the browser that call an Ajax function which fires the
-server events inside of a call to <code>inClientScope</code>, then
-returning its return value back to the browser.) Then there's <code>inServerScope</code>,
-which takes a <code>Page</code> and a code block, and all JavaScript
-queued by the code block is sent to the Comet actor associated with the
-<code>Page</code>.</p>
-<p>Both of the above methods temporarily overwrite whatever the
-current scope was before (of course it's restored after the code block
-is run). What if you have code that needs to run in some <code>Reactions</code>
-scope, but it should be agnostic as to which one? That's what <code>Reactions.inAnyScope</code>
-is for. It needs a <code>Page</code>, in case it's going to run in
-server scope, but what it does is that if there already is a <code>Reactions</code>
-scope, the code is just executed in the existing scope. If there is no
-current <code>Reactions</code> scope, then it enters a new server scope
-to run the code.</p>
-<p>So we call <code>Reactions.inAnyScope</code>, and pass it a code
-block that calls <code>Reactions.queue</code>, with <code>js</code> (a <code>String</code>)
-wrapped in a <code>JsCmd</code>.</p>
+<p>More specifically, the default scope that collects queued javascript
+is called DefaultScope, and passes all javascript to <code>S.appendJs</code>,
+which allows the javascript to be rendered to the current page, or as
+part of an ajax or comet request.</p>
+<p>When a <code>reactive-web</code> ajax call comes in, it is handled within
+a <code>LocalScope</code>, which stores up queued javascript. <code>Reactive-web</code>'s
+ajax handler then returns that javascript to the browser as the ajax response.</p>
+<p>Generally, <code>reactive-web</code> objects require an implicit <code>Page</code> object,
+which uniquely identifies a page. This is so that they can wrap updates in a <code>Reactions.inAnyScope</code> block,
+so that they can work via comet when called outside of an ajax request (and after the page has been rendered).
+The way this works is that there is a <code>RequestVar[Page]</code> that generates
+a new <code>Page</code> at most once per page (counting the page render together
+with ajax calls that Lift associates with it), whose value is available implicitly.
+When, for instance, you render a <code>PropertyVar</code>, it saves a (weak) reference to
+the <code>Page</code>. If that <code>PropertyVar</code> is later mutated, <code>reactive-web</code>
+will generate the appropriate javascript and queue it. If this occurs during an ajax request that
+is associated with the <code>Page</code>, then when the request completes its response will
+include that javascript. If, on the other hand, the <code>PropertyVar</code> is updated
+in response to an event that originates on the server &mdash; or on another page, for that matter &mdash;
+then the javascript will be sent to the page's comet actor.</p> 
 </div>
