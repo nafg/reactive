@@ -18,20 +18,20 @@ class Boot {
       case rcl: java.net.URLClassLoader =>
         println("Classpath:" + rcl.getURLs.mkString("\n  ", "\n  ",""))
     }
-    
+
     def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".tk") &&
       r.request.serverName != "localhost"
     LiftRules.statelessDispatchTable.append {
       case r if shouldRedirect(r) => () => Full(
         PermRedirectResponse("http://reactive-web.tk"+r.uri, r, r.cookies: _*) 
-      )        
+      )
     }
-    
+
     // where to search snippet
     LiftRules.addToPackages("reactive.web.demo")
 
     reactive.web.Reactions.init(comet = true)
-    
+
     // Build SiteMap
     def sitemap = () => SiteMap(
       Menu("About")  /"index",
@@ -43,11 +43,11 @@ class Boot {
         Menu("Logger")  /"demos"/"core"/"Logger"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
+        Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
         Menu("Low Level API")  /"demos"/"web"/"LowLevel",
-        Menu("Events")  /"demos"/"web"/"DOMEventSource",
+        Menu("Events")  /"demos"/"web"/"Events",
         Menu("Properties")  /"demos"/"web"/"Properties",
         Menu("Elements")  /"demos"/"web"/"Elements",
-        Menu("Getting Started")  /"demos"/"web"/"GettingStarted",
         Menu("Simple demo")  /"demos"/"demos"/"SimpleDemo"
       ),
       Menu("HTML")  /"2"  >>PlaceHolder  submenus(

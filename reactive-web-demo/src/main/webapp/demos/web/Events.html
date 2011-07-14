@@ -3,11 +3,11 @@
 <h2>Events</h2>
 <p>Reactive-web is to a large extent about browser events.
 By events we mean any event the browser can
-fire for a given element. For instance, mouse
-interactions and keyboard input. Sometimes
-you want to react to events directly. Additionally,
-element properties make use of events to stay
-up to date.</p>
+fire for a given element, such as mouse
+interactions and keyboard input. Often
+you want to react to events directly. In addition,
+element properties are propagated to the server via events.</p>
+
 
 <h3><code>DOMEvent</code></h3>
 <p><code>DOMEvent</code>
@@ -17,12 +17,16 @@ DOM events and their state. When the browser fires an event, <code>reactive-web<
 may fire a corresponding DOMEvent instance to your code.</p>
 
 <h3><code>DOMEventSource</code></h3>
-<p>Now that we know about that, let's move on to <code>DOMEventSource</code>.
-<code>DOMEventSource</code> wraps an <code>EventStream</code> that fires
-<code>DOMEvent</code> instances. It adds the
-ability to generate an element attribute that
-assigns an event handler which triggers the
-<code>EventStream</code> via ajax.</p>
+<p>Let's move on to <code>DOMEventSource</code>.
+<code>DOMEventSource</code> wraps an <code>JsEventStream</code> that fires
+values that encode the event data. This lets you
+handle the event on the client side, without requiring an
+ajax call to the server. In addition, <code>DOMEventSource</code>
+has an <code>EventStream</code> instance (a <code>lazy val</code>,
+implemented by calling <code>toServer</code> on the <code>JsEventStream</code>)
+that fires <code>DOMEvent</code> instances. It provides the
+ability to generate an event handler attribute that fires the
+<code>JsEventStream</code>.</p>
 
 <p>You can create a <code>DOMEventSource</code> simply by
 instantiating it with the event type as a type parameter:</p>
@@ -31,7 +35,7 @@ instantiating it with the event type as a type parameter:</p>
 new DOMEventSource[Focus]
 </pre>
 
-<p>For convenience, the <code>DOMEventSource</code>
+<p>Additionally, the <code>DOMEventSource</code>
 companion object contains convenience methods,
 so you can just write, e.g., <code>DOMEventSource.click</code>.</p>
 
@@ -61,20 +65,19 @@ def render = {
 
 <p>Here are a few of its members:</p>
 <dl>
-  <dt><code>rawEventData</code></dt>
-  <dd>A <code>Map[String,JsExp]</code> of extra data to send in the
-  ajax request when the browser fires the event. The <code>JsExp</code>
-  values are JavaScript expressions that will be evaluated when the event
-  fires and stored under the specified key.</dd>
-  <dt><code>rawEventStream</code></dt>
-  <dd>This <code>EventStream</code> fires the raw data from the ajax
-  request. Each event has the type <code>Map[String,String]</code>, where
-  keys are taken from <code>rawEventData</code>, and values are the
-  result of evaluating the corresponding <code>JsExp</code>.</dd>
+  <dt><code>jsEventStream</code></dt>
+  <dd>The <code>JsEventStream</code> that proxies the javascript event stream
+  in the browser.</dd>
   <dt><code>eventStream</code></dt>
-  <dd>The <code>EventStream</code> that fires <code>DOMEvent</code>s.
-  The data also exists in raw form in <code>rawEventStream</code></dd>
+  <dd>The lazily instantiated <code>EventStream</code> that propagates <code>jsEventStreams</code>'s 
+  values to the server as <code>DOMEvent</code>s.</dd>
+  <dt><code>addEventData</code></dt>
+  <dd>Supplies an additional <code>JsEventStream</code> to be fired in response to this event,
+  and a <code>JsExp</code> to calculate the value to be fired.</dd> 
 </dl>
 
+<p>In addition, <code>DOMEventSource</code> extends <code>Forwardable</code> and
+<code>JsForwardable</code>, so you can use their convenience operators to link
+together various reactive objects.</p>
 
 </div>
