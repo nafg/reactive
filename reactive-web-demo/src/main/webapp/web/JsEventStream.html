@@ -1,0 +1,43 @@
+<div class="lift:surround?with=default;at=content">
+<h2>Javascript Event Streams</h2>
+<h3><code>JsEventStream</code></h3>
+<p><code>reactive-web</code> contains a facility to set up FRP reactions that are contained completely
+within the client side. You control this with the <code>JsEventStream</code> class. <code>JsEventStream</code>
+proxies a corresponding javascript object, and you can call familiar event stream methods such as
+<code>fire</code>, <code>foreach</code>, <code>map</code>, <code>flatMap</code>, and <code>filter</code>.
+Calling these methods in scala triggers a call to the corresponding javascript method in the browser.
+Of course, mostly you only call these methods to initialize the event streams &mdash; once they are wired
+properly they work on their own &mdash; so from then on they do not need to communicate between the browser and
+the server. The exception is <code>fire</code>, which does make sense to call later, allowing you to
+control what happens in the browser by inserting a value into an event stream.</p>
+<p>On the other hand, if the server needs to respond to a <code>JsEventStream</code>, call its <code>toServer</code>
+method, which returns a regular <code>EventStream</code>. The values will be encoded in JSON format
+when they are sent to the browser. You can pass <code>toServer</code> a <code>JValue=&gt;U</code> function, where <code>U</code>
+is the type of the new <code>EventStream</code> (<code>JValue</code> being <code>lift-json</code>&rsquo;s AST representation).
+Alternatively, you can implicitly provide <code>toServer</code> with a <code>net.liftweb.json.Formats</code> and a <code>Manifest[U]</code>,
+and <code>lift-json</code> will do the extracting.</p>
+
+<h3>Javscript DSL</h3>
+<p>Since <code>fire</code>, <code>foreach</code>, <code>map</code>, <code>flatMap</code>, and <code>filter</code> are proxy methods
+that really execute in javascript, you need to call them with values that can readily be rendered as javascript. To facilitate
+this, <code>reactive-web</code> contains a DSL (not yet fully complete) for writing typesafe javascript expressions in Scala. Here are some of the basics:</p>
+<ul>
+<li>Javascript expressions have type <code>JsExp[T&lt;:JsTypes.JsAny]</code>. Subclasses of <code>JsExp</code> include
+    <code>JsLiteral</code>, <code>JsIdent</code>, <code>JsRaw</code> (there are others as well). All take a type parameter
+    that indicates what the javascript type of the expression will be after it's evaluated. <code>JsExp</code> defines
+    a <code>render</code> method that returns the javascript it represents as a <code>String</code>.</li>
+<li><code>$[T]</code>, the type, is a type alias for <code>JsExp[T]</code>.
+<li>Many scala values can be converted into javascript with the <code>$</code> postfix operator. For instance, <code>"A string".$</code>
+    yields a <code>JsLiteral[JsString]</code>. <code>'symbol.$[JsString]</code> yields a <code>JsIdent[JsString]</code> named <code>symbol</code>.</li>
+<li>A scala function of type <code>JsExp[P] =&gt; JsExp[R]</code> (a.k.a. <code>$[P] =&gt; $[R]</code>) can represent a javascript function literal.
+    For instance, <code>(i: $[JsInt]) =&gt; i + 1.$</code> can automatically be converted into <code>function(arg){return arg+1}</code>.
+    (The way this works is simple: <code>reactive-web</code> invokes the function with a <code>JsIdent[JsInt]</code> named <code>arg</code>. <code>JsExp</code> has a +
+    method that returns a new <code>JsExp</code> that represents the addition of itself and its argument. This <code>JsExp</code>
+    is then returned from your function to <code>reactive-web</code>, which inserts that into the template of a javascript function literal.)</li>
+<li>You can represent entire javascript APIs in scala by defining a trait that extends <code>JsStub</code>, and getting an instance of it by writing
+    <code>$$[myStubTrait]</code>. <code>$$</code> creates a dynamic proxy class that intercepts calls to abstract methods whose
+    parameter types are all <code>JsExp</code> (or a subtype), and invokes the method of the same name in the browser.
+    Note that the name of the trait is assumed to be the name of the identifier on which to call the method. If you need to distinguish,
+    call <code>jsProxy</code>.</li>
+</ul>
+</div>
