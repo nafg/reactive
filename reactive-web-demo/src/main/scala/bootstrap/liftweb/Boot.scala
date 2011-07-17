@@ -45,6 +45,7 @@ class Boot {
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Getting Started")  /"web"/"GettingStarted",
         Menu("Low Level API")  /"web"/"LowLevel",
+        Menu("Javascript")  /"web"/"JsEventStream",
         Menu("Events")  /"web"/"Events",
         Menu("Properties")  /"web"/"Properties",
         Menu("Elements")  /"web"/"Elements",
