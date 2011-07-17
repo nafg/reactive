@@ -1,28 +1,28 @@
 import sbt._
 import Keys._
-import /*com.github.siasia.*/WebPlugin._
+import com.github.siasia.WebPlugin._
 
 object ReactiveBuild extends Build {
   val pomCommon = <xml:group>
     <url>http://reactive-web.tk</url>
-    <licenses></licenses>
+    <licenses><license><name>Modified Apache</name></license></licenses>
     <scm>
       <connection>scm:git:git://github.com/nafg/reactive.git</connection>
       <developerConnection>scm:git:git@github.com:nafg/reactive.git</developerConnection>
       <url>git@github.com:nafg/reactive.git</url>
     </scm>
-    <developers></developers>
+    <developers><developer><id>nafg</id></developer></developers>
   </xml:group>
   def pom(name: String, desc: String) =
     <name>{name}</name> ++ <description>{desc}</description> ++ pomCommon
 
-  val sonatype = "http://oss.sonatype.org/content/repositories/"
-  val sonatypeSnapshots = sonatype+"snapshots/"
+  val sonatypeSnapshots = "http://oss.sonatype.org/content/repositories/snapshots/"
+  val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
   val defaults = Defaults.defaultSettings ++ Seq(
     organization := "cc.co.scala-reactive",
     version := "0.1",
-    checksums := Nil,
+    checksums := List("md5","sha1"),
     resolvers += ScalaToolsSnapshots,
     resolvers += "Sonatype snapshots" at sonatypeSnapshots,
     scalaVersion := "2.8.1",
@@ -31,7 +31,7 @@ object ReactiveBuild extends Build {
       if (version.trim.endsWith("SNAPSHOT"))
         Some("snapshots" at sonatypeSnapshots)
       else
-        Some("releases" at sonatype+"releases/")
+        Some("staging" at sonatypeStaging)
     },
     publishMavenStyle := true,
     credentials += Credentials(file("/private/nafg/.credentials"))
@@ -68,8 +68,15 @@ object ReactiveBuild extends Build {
     file("reactive-web-demo"),
     settings = defaults ++ webSettings ++ Seq(
       libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "jetty,test"),
-      jettyScanDirs := Nil
+      jettyScanDirs := Nil,
+      publishArtifact := false
     )
   ) dependsOn(reactive_web) aggregate(reactive_web)
-  lazy val root = Project("root",file(".")) dependsOn(reactive_web_demo) aggregate(reactive_web_demo)
+  lazy val root = Project(
+    "root",
+    file("."),
+    settings = Defaults.defaultSettings ++ Seq(
+      publishArtifact := false
+    )
+  ) dependsOn(reactive_web_demo) aggregate(reactive_web_demo)
 }
