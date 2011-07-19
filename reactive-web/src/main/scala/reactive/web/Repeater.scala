@@ -32,7 +32,7 @@ class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
               ("e.setAttribute('"+attr.key+"',"+attr.value.text.encJs+");").toCharArray
             }).mkString+"e.innerHTML = "+fixHtml(elem.id, e.child)+";"+
             (if (index < ids.length) {
-              "document.getElementById('"+parentId+"').insertBefore(e,document.getElementById('"+elem.id+"'));"
+              "document.getElementById('"+parentId+"').insertBefore(e,document.getElementById('"+ids(index)+"'));"
             } else {
               "document.getElementById('"+parentId+"').appendChild(e);"
             })+"}catch(e){}"
