@@ -15,11 +15,11 @@ trait Cell extends RElem {
    */
   def content: Signal[NodeSeq]
 
-  override def render(implicit p: Page) = super.render.copy(child = content.now)
+  override def renderer(implicit p: Page): Elem=>Elem = e => super.renderer(p)(e).copy(child = content.now)
 
   override def addPage(elem: Elem)(implicit page: Page): Elem = {
     val ret = super.addPage(elem)(page)
-    content foreach { s =>
+    content.change foreach { s =>
       Reactions.inAnyScope(page) {
         Reactions.queue(SetHtml(id, s))
       }
