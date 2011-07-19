@@ -52,4 +52,16 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
       select.selectedIndex.now should equal(Some(0))
     }
   }
+
+  test("Replacing items maintains the correct selection") {
+    withNewPage{
+      val itemsA = List("N", "B", "T")
+      val itemsB = List("N", "B", "T", "K")
+      val v = Var(itemsA)
+      val select = Select(v)
+      select.selectedItem () = Some("N")
+      v () = itemsB
+      select.selectedItem.now should equal (Some("N"))
+    }
+  }
 }
