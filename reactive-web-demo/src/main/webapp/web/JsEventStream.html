@@ -26,7 +26,7 @@ this, <code>reactive-web</code> contains a DSL (not yet fully complete) for writ
     <code>JsLiteral</code>, <code>JsIdent</code>, <code>JsRaw</code> (there are others as well). All take a type parameter
     that indicates what the javascript type of the expression will be after it's evaluated. <code>JsExp</code> defines
     a <code>render</code> method that returns the javascript it represents as a <code>String</code>.</li>
-<li><code>$[T]</code>, the type, is a type alias for <code>JsExp[T]</code>.
+<li><code>$[T]</code>, the type, is a type alias for <code>JsExp[T]</code>.</li>
 <li>Many scala values can be converted into javascript with the <code>$</code> postfix operator. For instance, <code>"A string".$</code>
     yields a <code>JsLiteral[JsString]</code>. <code>'symbol.$[JsString]</code> yields a <code>JsIdent[JsString]</code> named <code>symbol</code>.</li>
 <li>A scala function of type <code>JsExp[P] =&gt; JsExp[R]</code> (a.k.a. <code>$[P] =&gt; $[R]</code>) can represent a javascript function literal.
