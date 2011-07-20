@@ -22,49 +22,41 @@ class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
   def handleUpdate(
     parentId: String,
     m: SeqDelta[RElem, RElem],
-    ids: Seq[String])(implicit p: Page): (Seq[String], JsCmd) = m match {
+    ids: Seq[String])(implicit p: Page): (Seq[String], List[DomMutation]) = m match {
     case Include(index, elem) =>
       val e = elem.render
-      ids.patch(index, Seq(elem.id), 0) ->
-        Run(
-          "try{var e=document.createElement('"+e.label+"');"+
-            (e.attributes.flatMap { attr =>
-              ("e.setAttribute('"+attr.key+"',"+attr.value.text.encJs+");").toCharArray
-            }).mkString+"e.innerHTML = "+fixHtml(elem.id, e.child)+";"+
-            (if (index < ids.length) {
-              "document.getElementById('"+parentId+"').insertBefore(e,document.getElementById('"+ids(index)+"'));"
-            } else {
-              "document.getElementById('"+parentId+"').appendChild(e);"
-            })+"}catch(e){}"
-        )
+      val mutation = if (index < ids.length)
+        DomMutation.InsertChildBefore(parentId, e, ids(index))
+      else
+        DomMutation.AppendChild(parentId, e)
+      ids.patch(index, Seq(elem.id), 0) -> List(mutation)
 
     case Update(index, oldElem, elem) =>
       val e = elem.render
       val oldId = ids(index)
       ids.patch(index, Seq(elem.id), 1) ->
-        JsTry(Replace(oldId, e), false)
+        List(DomMutation.ReplaceChild(parentId, e, oldId))
 
     case Remove(index, _) =>
       ids.patch(index, Nil, 1) ->
-        Run(
-          "try{document.getElementById('"+parentId+"').removeChild(document.getElementById('"+ids(index)+
-            "'))}catch(e){}"
-        )
+        List(DomMutation.RemoveChild(parentId, ids(index)))
 
-    case Batch(ms @ _*) =>
-      ms.foldLeft[(Seq[String],JsCmd)]((ids,JsCmds.Noop)){case ((ids,cmds),delta) =>
-        handleUpdate(parentId,delta,ids) match {
-          case (ids, cmd) => (ids, cmds & cmd)
-        }
+    case Batch(ms@_*) =>
+      ms.foldLeft[(Seq[String], List[DomMutation])]((ids, Nil)){
+        case ((ids, cmds), delta) =>
+          handleUpdate(parentId, delta, ids) match {
+            case (ids, cmd) => (ids, cmds ++ cmd)
+          }
       }
   }
 
   /**
    * Returns an EventStream that will fire a JsCmd whenever children changes
    */
-  def createPageStream(parentId: String)(implicit p: Page): EventStream[JsCmd] = {
-    children.deltas.foldLeft((children.now.map(_.id(p)): Seq[String],JsCmds.Noop: JsCmd)){case ((ids,cmds),deltas) =>
-      handleUpdate(parentId, deltas, ids)
+  def createPageStream(parentId: String)(implicit p: Page): EventStream[List[DomMutation]] = {
+    children.deltas.foldLeft((children.now.map(_.id(p)): Seq[String], Nil: List[DomMutation])){
+      case ((ids, cmds), deltas) =>
+        handleUpdate(parentId, deltas, ids)
     }.map(_._2)
   }
 }
@@ -88,9 +80,9 @@ trait Repeater extends RElem {
 
   override protected def addPage(elem: Elem)(implicit page: Page): Elem = {
     val ret = super.addPage(elem)(page)
-    manager.createPageStream(id(page)) foreach { js =>
+    manager.createPageStream(id(page)) foreach { dms =>
       Reactions.inAnyScope(page) {
-        Reactions.queue(js)
+        dms foreach { dm => Reactions.queue(dm) }
       }
     }
     ret
