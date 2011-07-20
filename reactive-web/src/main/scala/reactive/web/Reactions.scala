@@ -12,6 +12,24 @@ import JsCmds._
 import net.liftweb.common.{ Box, Full }
 import net.liftweb.util.{ Helpers, ThreadGlobal }
 
+
+/**
+ * Typeclass for types that can be rendered as javascript and sent to the browser
+ */
+trait CanRender[-T] {
+  def apply(renderable: T): String
+}
+
+object CanRender {
+  def apply[T](f: T => String) = new CanRender[T] {
+    def apply(renderable: T) = f(renderable)
+  }
+
+  implicit val jsCmd: CanRender[net.liftweb.http.js.JsCmd] = CanRender(_.toJsCmd)
+  implicit val string: CanRender[String] = CanRender(identity)
+  implicit val jsStatement: CanRender[javascript.JsStatement] = CanRender(_.render)
+}
+
 /**
  * This singleton keeps track of pages and queued javascript
  */
@@ -30,13 +48,14 @@ object Reactions extends Logger {
    * It is up to the Scope what to do with queued javascript
    */
   trait Scope {
-    def queue(cmd: JsCmd)
+    def queue[T: CanRender](renderable: T)
   }
   /**
    * A Scope that sends queued javascript to a Page's ReactionsComet.
    */
   case class CometScope(page: Page) extends Scope {
-    def queue(cmd: JsCmd) {
+    def queue[T](renderable: T)(implicit canRender: CanRender[T]) {
+      val cmd = Run(canRender(renderable))
       val js =
         pending.remove(page.id).map { case (js, _) => js }.getOrElse(JsCmds.Noop) &
           cmd
@@ -57,7 +76,10 @@ object Reactions extends Logger {
    */
   class LocalScope extends Scope {
     var js: List[JsCmd] = Nil
-    def queue(cmd: JsCmd): Unit = js ::= cmd
+    def queue[T](renderable: T)(implicit canRender: CanRender[T]) = {
+      val s = canRender(renderable)
+      js :+= Run(s)
+    }
     def dequeue: JsCmd = {
       val ret = js.head
       js = js.tail
@@ -71,7 +93,7 @@ object Reactions extends Logger {
    * even during initial page render.
    */
   case object DefaultScope extends Scope {
-    def queue(cmd: JsCmd) = S.appendJs(cmd)
+    def queue[T](renderable: T)(implicit canRender: CanRender[T]) = S.appendJs(Run(canRender(renderable)))
   }
   private val _currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
 
@@ -157,20 +179,9 @@ object Reactions extends Logger {
   }
 
   /**
-   * Queues javascript to be rendered.
-   * The current thread must be in a valid context scope.
-   * If the current thread is in a client context, the
-   * javascript is added to the queue for the current scope.
-   * If the thread is in a server-context scope, then the
-   * javascript, plus any pending for the Page of the context,
-   * is queued to the comet registered for the Page, if there
-   * is one, or if there is not then it is stored pending.
+   * Queues javascript to be rendered in the current Scope.
    */
-  def queue(cmd: JsCmd): Unit =
-    _currentScope.value queue cmd
-
-  def queue(cmd: String): Unit = queue(Run(cmd))
-  def queue(js: javascript.JsExp[javascript.JsTypes.JsVoid]): Unit = queue(js.render)
+  def queue[T: CanRender](renderable: T): Unit = _currentScope.value queue renderable
 
   /**
    * Unregister a Page. Removes it from the WeakHashMap.
@@ -194,7 +205,7 @@ object Reactions extends Logger {
    * Executes code in the specified Scope, and
    * returns the scope.
    */
-  def inScope[T<:Scope](scope: T)(p: => Unit): T = {
+  def inScope[T <: Scope](scope: T)(p: => Unit): T = {
     _currentScope.withValue(scope){ p }
     scope
   }
