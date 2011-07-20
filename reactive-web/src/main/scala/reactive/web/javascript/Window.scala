@@ -13,6 +13,6 @@ sealed trait Window extends JsStub {
   def alert(s: $[JsString]): $[JsVoid]
   def alert(s: String): Unit = JsStatement.inScope {
     alert(s.$)
-  } map (_.render) foreach Reactions.queue
+  } map (_.render) foreach {s => Reactions.queue(s)}
   def encodeURIComponent(in: $[JsString]): $[JsString]
 }
