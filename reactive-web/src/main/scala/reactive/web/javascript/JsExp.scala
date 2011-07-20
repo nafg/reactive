@@ -44,11 +44,11 @@ trait JsExp[+T <: JsAny] {
   /**
    * Returns a JsExp that represents function application of this JsExp
    */
-  def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] = canApply(this, p)
+  def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] with JsStatement = canApply(this, p)
 
   /**
    * Returns a JsExp that represents member selection (the period) of this JsExp.
-   * A better solution is to use JsStub 
+   * A better solution is to use JsStub
    */
   def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T, T2]): JsExp[T2] = canSelect(this, exp)
 
@@ -195,8 +195,8 @@ object CanApply1 {
     }
   )
 }
-class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] => JsExp[R]) {
-  def apply(f: JsExp[T], p: JsExp[P]): JsExp[R] = r(f)(p)
+class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] => (JsExp[R] with JsStatement)) {
+  def apply(f: JsExp[T], p: JsExp[P]): JsExp[R] with JsStatement = r(f)(p)
 }
 
 object CanSelect {
@@ -216,7 +216,7 @@ trait JsStub extends NamedIdent[JsObj]
 
 /**
  * A scala representation of a javascript statement.
- * On instantiation, puts itself on the JsStatement stack. 
+ * On instantiation, puts itself on the JsStatement stack.
  */
 trait JsStatement {
   /**
@@ -250,7 +250,7 @@ object JsStatement {
    */
   def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
   /**
-   * Returns true if there is no other statement block on the stack 
+   * Returns true if there is no other statement block on the stack
    */
   def bottomScope = stack.value.tail.isEmpty
   /**
