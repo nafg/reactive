@@ -74,7 +74,7 @@ class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
  * When items are added or removed from the SeqSignal, they are added and removed from the browser DOM.
  * The multiple-child counterpart of Cell.
  */
-trait Repeater extends RElem with HtmlFixer {
+trait Repeater extends RElem {
   /**
    * The SeqSignal[RElem] to render and keep up to date in the browser
    */
