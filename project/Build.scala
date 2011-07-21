@@ -22,7 +22,7 @@ object ReactiveBuild extends Build {
   val defaults = Defaults.defaultSettings ++ Seq(
     organization := "cc.co.scala-reactive",
     version := "0.1",
-    checksums := List("md5","sha1"),
+//    checksums := List("md5","sha1"),
     resolvers += ScalaToolsSnapshots,
     resolvers += "Sonatype snapshots" at sonatypeSnapshots,
     scalaVersion := "2.8.1",
