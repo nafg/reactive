@@ -56,6 +56,7 @@ object ReactiveBuild extends Build {
     file("reactive-web"),
     settings = defaults ++ Seq(
       pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet"),
+      resolvers +=  "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
       libraryDependencies ++= Seq(
         "javax.servlet" % "servlet-api" % "2.5" % "test",
         "net.liftweb" %% "lift-testkit" % liftVersion,
