@@ -93,7 +93,6 @@ trait TransformedSeq[T]
     protected def xform(index: Int, elem: T) = List((index, mapping(elem)))
   }
   trait FlatMapped[U] extends IndexTransformed[U] {
-    def mapping: T => Traversable[U]
     def mapping: T => scala.collection.GenTraversableOnce[U]
     protected def initIndex = {
       val index = new ArrayBuffer[Int] {
