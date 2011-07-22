@@ -27,8 +27,8 @@ object ReactiveBuild extends Build {
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
-    scalaVersion := "2.8.1",
-    scalacOptions += "-deprecation"
+    scalacOptions += "-deprecation",
+    scalaVersion := "2.9.0-1"
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
@@ -49,7 +49,7 @@ object ReactiveBuild extends Build {
     file("reactive-core"),
     settings = publishingDefaults ++ Seq(
       pomExtra := pom("reactive-core", "An FRP framework"),
-      libraryDependencies += "org.scalatest" %% "scalatest" % "1.5"
+      libraryDependencies += "org.scalatest" % "scalatest_2.9.0" % "1.6.1"
     )
   )
   lazy val reactive_web = Project(
