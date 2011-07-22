@@ -22,14 +22,14 @@ object ReactiveBuild extends Build {
   val defaults = Defaults.defaultSettings ++ Seq(
     organization := "cc.co.scala-reactive",
     version := "0.2-SNAPSHOT",
-//    checksums := List("md5","sha1"),
     resolvers ++= List(
       ScalaToolsSnapshots,
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
-    scalaVersion := "2.8.1",
-
+    scalaVersion := "2.8.1"
+  )
+  val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
       if (version.trim.endsWith("SNAPSHOT"))
         Some("snapshots" at sonatypeSnapshots)
@@ -46,18 +46,15 @@ object ReactiveBuild extends Build {
   lazy val reactive_core = Project(
     "reactive-core",
     file("reactive-core"),
-    settings = defaults ++ Seq(
+    settings = publishingDefaults ++ Seq(
       pomExtra := pom("reactive-core", "An FRP framework"),
-      libraryDependencies <+= scalaVersion { scalaVersion =>
-        val scalatestVersions = Map("2.8.1"->"1.5", "2.9.0"->"1.6.1")
-        "org.scalatest" %% "scalatest" % scalatestVersions(scalaVersion)
-      }
+      libraryDependencies += "org.scalatest" %% "scalatest" % "1.5"
     )
   )
   lazy val reactive_web = Project(
     "reactive-web",
     file("reactive-web"),
-    settings = defaults ++ Seq(
+    settings = publishingDefaults ++ Seq(
       pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet"),
       libraryDependencies ++= Seq(
         "javax.servlet" % "servlet-api" % "2.5" % "test",
@@ -78,7 +75,7 @@ object ReactiveBuild extends Build {
   lazy val root = Project(
     "root",
     file("."),
-    settings = Defaults.defaultSettings ++ Seq(
+    settings = defaults ++ Seq(
       publishArtifact := false
     )
   ) dependsOn(reactive_web_demo) aggregate(reactive_web_demo)
