@@ -23,8 +23,11 @@ object ReactiveBuild extends Build {
     organization := "cc.co.scala-reactive",
     version := "0.1",
 //    checksums := List("md5","sha1"),
-    resolvers += ScalaToolsSnapshots,
-    resolvers += "Sonatype snapshots" at sonatypeSnapshots,
+    resolvers ++= List(
+      ScalaToolsSnapshots,
+      "Sonatype snapshots" at sonatypeSnapshots,
+      "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
+    ),
     scalaVersion := "2.8.1",
 
     publishTo <<= (version) { version: String =>
@@ -56,7 +59,6 @@ object ReactiveBuild extends Build {
     file("reactive-web"),
     settings = defaults ++ Seq(
       pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet"),
-      resolvers +=  "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
       libraryDependencies ++= Seq(
         "javax.servlet" % "servlet-api" % "2.5" % "test",
         "net.liftweb" %% "lift-testkit" % liftVersion,
