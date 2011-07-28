@@ -25,7 +25,10 @@ object CurrentPage extends RequestVar(new Page)
  */
 class Page extends Observing {
   val id = randomString(20)
+  @deprecated("Use id")
   def cometName = id
+
+  lazy val comet = new ReactionsComet
 
   /**
    * Rendered by lift:reactive snippet invocations when Reactions.init was
@@ -41,7 +44,7 @@ class Page extends Observing {
    * called with comet=true
    */
   def renderComet = render ++ xml.Comment("comet "+id) ++
-    <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ cometName }/>
+    <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ id }/>
 
   Page.withPage(this) {
     Reactions.inAnyScope(this) {
