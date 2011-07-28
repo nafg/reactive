@@ -12,7 +12,6 @@ import JsCmds._
 import net.liftweb.common.{ Box, Full }
 import net.liftweb.util.{ Helpers, ThreadGlobal }
 
-
 /**
  * Typeclass for types that can be rendered as javascript and sent to the browser
  */
@@ -69,7 +68,7 @@ object Reactions extends Logger {
       js = js.tail
       ret
     }
-    def replace(f: JsCmd=>JsCmd): Unit = queue(f(dequeue))
+    def replace(f: JsCmd => JsCmd): Unit = queue(f(dequeue))
   }
   /**
    * A scope that calls S.appendJs with
@@ -160,7 +159,6 @@ object Reactions extends Logger {
    * Queues javascript to be rendered in the current Scope.
    */
   def queue[T: CanRender](renderable: T): Unit = _currentScope.value queue renderable
-
 
   /**
    * Executes code within a "local" scope. All javascript
