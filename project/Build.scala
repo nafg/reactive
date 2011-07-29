@@ -27,7 +27,8 @@ object ReactiveBuild extends Build {
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
-    scalaVersion := "2.8.1"
+    scalaVersion := "2.8.1",
+    scalacOptions += "-deprecation"
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
