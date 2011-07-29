@@ -46,7 +46,7 @@ class Page extends Observing {
   Page.withPage(this) {
     Reactions.inAnyScope(this) {
       val handler = S.SFuncHolder { s =>
-        Reactions.inClientScope {
+        Reactions.inLocalScope {
           try {
             for {
               maps <- Serialization.read(s)(DefaultFormats, manifest[List[Map[String, JValue]]])

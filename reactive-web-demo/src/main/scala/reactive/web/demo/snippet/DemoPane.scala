@@ -3,7 +3,7 @@ package reactive.web.demo.snippet
 
 import scala.xml.NodeSeq
 
-import net.liftweb.http.{S, TemplateFinder}
+import net.liftweb.http.{S, Templates}
 
 import net.liftweb.util._
   import Helpers._
@@ -21,11 +21,11 @@ object DemoPane {
   def render(xhtml: NodeSeq) = (
     for {
       snippetName <- S.attr("snippet") or loc.currentValue
-      layout <- TemplateFinder.findAnyTemplate(List("templates-hidden", "demopanelayout"))
+      layout <- Templates(List("templates-hidden", "demopanelayout"))
       scalaSource = scala.io.Source.fromInputStream(
         getClass.getResourceAsStream("/scala-sources/reactive/web/demo/snippet/" + snippetName + ".scala")
       )
-      template = TemplateFinder.findAnyTemplate(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
+      template = Templates(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
       bind = ".demo [class]" #> ("lift:" + snippetName) &
         ".demo *" #> template &
         ".template *" #> <pre class="brush: xml">{template.toString}</pre> &

@@ -44,7 +44,7 @@ object RElem {
    */
   def ajaxFunc(f: String => Unit): S.AFuncHolder = S.LFuncHolder {
     case Nil => JsCmds.Noop
-    case s :: _ => Reactions.inClientScope {
+    case s :: _ => Reactions.inLocalScope {
       try {
         f(s)
       } catch {

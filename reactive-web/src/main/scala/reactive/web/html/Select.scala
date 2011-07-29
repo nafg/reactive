@@ -136,7 +136,7 @@ object Select {
     def _size = size
     new Select[T](items, renderer) {
       override val size = _size
-      selectItem(selected)
+      selectedItem ()= selected
       override protected def addPage(elem: Elem)(implicit page: Page) = {
         val ret = super.addPage(elem)(page)
         selectedItem.change foreach handleChange
