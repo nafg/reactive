@@ -16,10 +16,12 @@ import scala.annotation.tailrec
 class Select[T](
   val items: SeqSignal[T],
   renderer: T => String = { t: T => t.toString },
-  val size: Int = 1)(implicit observing: Observing) extends Repeater with Logger {
+  val size: Int = 1)(implicit observing: Observing, config: Config) extends Repeater with Logger {
 
   case class UpdatedItemFromIndex(item: Option[T]) extends LogEventPredicate
   case class UpdatedIndexFromItem(item: Option[Int]) extends LogEventPredicate
+
+  def renderer = config.domMutationRenderer
 
   /**
    * The change DOM event
@@ -123,8 +125,8 @@ object Select {
    * @param size the height of the select, 1 for drop-downs
    * @param handleChange a function to call whenever the selection changes
    */
-  def apply[T](selected: Option[T], items: Seq[T], renderer: T => String, size: Int)(handleChange: Option[T] => Unit)(implicit observing: Observing): Select[T] =
-    apply(selected, SeqSignal(Val(items)), renderer, size)(handleChange)
+  def apply[T](selected: Option[T], items: Seq[T], renderer: T => String, size: Int)(handleChange: Option[T] => Unit)(implicit observing: Observing, config: Config): Select[T] =
+    apply(selected, SeqSignal(Val(items)), renderer, size)(handleChange)(observing, config)
 
   /**
    * @tparam T the type of the items
@@ -134,9 +136,9 @@ object Select {
    * @param size the height of the select, 1 for drop-downs. Defaults to 1.
    * @param handleChange a function to call whenever the selection changes
    */
-  def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T => String, size: Int = 1)(handleChange: Option[T] => Unit)(implicit observing: Observing): Select[T] = {
+  def apply[T](selected: Option[T], items: SeqSignal[T], renderer: T => String, size: Int = 1)(handleChange: Option[T] => Unit)(implicit observing: Observing, config: Config): Select[T] = {
     def _size = size
-    new Select[T](items, renderer) {
+    new Select[T](items, renderer)(observing, config) {
       override val size = _size
       selectedItem () = selected
       override protected def addPage(elem: Elem)(implicit page: Page) = {
@@ -152,28 +154,28 @@ object Select {
    * @param items a SeqSignal representing the dynamic list of items
    * @param renderer how to display items
    */
-  def apply[T](items: SeqSignal[T], renderer: T => String)(implicit observing: Observing): Select[T] =
-    new Select[T](items, renderer)
+  def apply[T](items: SeqSignal[T], renderer: T => String)(implicit observing: Observing, config: Config): Select[T] =
+    new Select[T](items, renderer)(observing, config)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them
    * @tparam T the type of the items
    * @param items a SeqSignal representing the dynamic list of items
    */
-  def apply[T](items: SeqSignal[T])(implicit observing: Observing): Select[T] =
-    new Select[T](items)
+  def apply[T](items: SeqSignal[T])(implicit observing: Observing, config: Config): Select[T] =
+    new Select[T](items)(observing, config)
   /**
    * Creates a drop-down Select.
    * @tparam T the type of the items
    * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    * @param renderer how to display items
    */
-  def apply[T](items: Signal[Seq[T]], renderer: T => String)(implicit observing: Observing): Select[T] =
-    new Select[T](SeqSignal(items), renderer)
+  def apply[T](items: Signal[Seq[T]], renderer: T => String)(implicit observing: Observing, config: Config): Select[T] =
+    new Select[T](SeqSignal(items), renderer)(observing, config)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them
    * @tparam T the type of the items
    * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    */
-  def apply[T](items: Signal[Seq[T]])(implicit observing: Observing): Select[T] =
-    new Select[T](SeqSignal(items))
+  def apply[T](items: Signal[Seq[T]])(implicit observing: Observing, config: Config): Select[T] =
+    new Select[T](SeqSignal(items))(observing, config)
 }

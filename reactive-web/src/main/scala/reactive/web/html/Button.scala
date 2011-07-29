@@ -40,10 +40,11 @@ object Button {
    * @param buttonType the type of the button. Default is ButtonType.Button
    * @param content The contents of the button. Default is empty
    */
-  def apply(buttonType: ButtonType.Value=ButtonType.Button, content: Signal[NodeSeq] = Val(NodeSeq.Empty)): Button with Cell = {
+  def apply(buttonType: ButtonType.Value=ButtonType.Button, content: Signal[NodeSeq] = Val(NodeSeq.Empty))(implicit config: Config): Button with Cell = {
     val content0 = content
     val buttonType0 = buttonType
     new Button with Cell {
+      def renderer = config.domMutationRenderer
       override val buttonType = buttonType0
       val content = content0
     }
@@ -58,8 +59,8 @@ object Button {
    * @param binding the Signal[NodeSeq=>NodeSeq] that represents the bind function used to generate the contents of the Button.
    * @return a NodeSeq=>NodeSeq that on each invocation renders a new Span Button
    */
-  def apply(buttonType: ButtonType.Value, binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq =
-    bindFunc2contentFunc(binding)(apply(buttonType, _).render)
+  def apply(buttonType: ButtonType.Value, binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page, config: Config): NodeSeq=>NodeSeq =
+    bindFunc2contentFunc(binding)(apply(buttonType, _)(config).render)
   
   /**
    * Creates a Button Cell with the specified contents and with the specified handler function
@@ -67,8 +68,8 @@ object Button {
    * @param content The contents of the button. Default is empty
    * @param action the callback to invoke when the button is clicked
    */
-  def apply(content: Signal[NodeSeq])(action: =>Unit)(implicit observing: Observing): Button with Cell = {
-    val ret = apply(ButtonType.Button, content)
+  def apply(content: Signal[NodeSeq])(action: =>Unit)(implicit observing: Observing, config: Config): Button with Cell = {
+    val ret = apply(ButtonType.Button, content)(config)
     ret.click.eventStream foreach {_=>action}
     ret
   }
@@ -79,8 +80,8 @@ object Button {
    * @param label The text of the button
    * @param action the callback to invoke when the button is clicked
    */
-  def apply(label: String)(action: =>Unit)(implicit observing: Observing): Button with Cell =
-    apply(Val(Text(label)))(action)(observing)
+  def apply(label: String)(action: =>Unit)(implicit observing: Observing, config: Config): Button with Cell =
+    apply(Val(Text(label)))(action)(observing, config)
 }
 /**
  * Enumerates the types of buttons (the type attribute of the button tag)

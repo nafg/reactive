@@ -19,7 +19,7 @@ object DomMutation extends HtmlFixer {
       fixHtmlCmdFunc(id, e.child)("e.innerHTML = "+_+";")
   }
 
-  implicit val defaultDomMutationRenderer: CanRender[DomMutation] = CanRender {
+  val defaultDomMutationRenderer: CanRender[DomMutation] = CanRender {
     case InsertChildBefore(parentId, child, prevId) =>
       "try{"+createElem(parentId, child)+
         "var p = document.getElementById('"+parentId+"');"+
