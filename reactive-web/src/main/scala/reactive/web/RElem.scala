@@ -149,6 +149,6 @@ trait RElem extends PageIds {
   /**
    * Calls render with the value of the CurrentPage RequestVar
    */
-  @deprecated
+  @deprecated("Use render instead")
   def asHtml: Elem = render(CurrentPage.is)
 }
