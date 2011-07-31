@@ -101,7 +101,7 @@ object Repeater {
    * to render that element.
    * @param binding a SeqSignal where each element is a binding function that renders one element in the view
    */
-  def apply(binding: SeqSignal[_ <: NodeSeq => NodeSeq])(implicit p: Page, config: Config): NodeSeq => NodeSeq = { ns: NodeSeq =>
+  def apply(binding: SeqSignal[_ <: NodeSeq => NodeSeq])(implicit p: Page, config: CanRenderDomMutationConfig): NodeSeq => NodeSeq = { ns: NodeSeq =>
     new Repeater {
       def renderer = config.domMutationRenderer
       val baseElem = nodeSeqToElem(ns)
