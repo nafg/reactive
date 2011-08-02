@@ -4,6 +4,7 @@ package web
 import net.liftweb.http.S
 import net.liftweb.http.js.{ JsCmd, JsCmds }
 import JsCmds.Run
+import scala.xml.NodeSeq
 
 /**
  * A Scope represents a dynamic scope in which javascript is queued and collected.
@@ -45,4 +46,24 @@ class LocalScope extends Scope {
  */
 case object DefaultScope extends Scope {
   def queue[T](renderable: T)(implicit canRender: CanRender[T]) = S.appendJs(Run(canRender(renderable)))
+}
+
+/**
+ * A scope to simulate the dom mutations that the browser would apply,
+ * by directly applying transformations to a NodeSeq
+ * @param init the initial NodeSeq (such as a template)
+ */
+class TestScope(init: NodeSeq) extends LocalScope {
+  /**
+   * The current xml
+   */
+  var xml = init
+  override def queue[T: CanRender](renderable: T): Unit = {
+    renderable match {
+      case dm: DomMutation =>
+        xml = dm(xml)
+      case _ =>
+    }
+    super.queue(renderable)
+  }
 }
