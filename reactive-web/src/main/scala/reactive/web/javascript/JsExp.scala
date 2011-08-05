@@ -56,22 +56,39 @@ trait JsExp[+T <: JsAny] {
    * Returns a JsExp that represents this + that
    */
   def +[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canPlus: CanPlus[T, T2, R]): JsExp[R] = canPlus(this, that)
+  def -[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canMinus: CanMinus[T, T2, R]): JsExp[R] = canMinus(this, that)
+  def *[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canTimes: CanTimes[T, T2, R]): JsExp[R] = canTimes(this, that)
+  def /[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canDivide: CanDivide[T, T2, R]): JsExp[R] = canDivide(this, that)
+  def %[T2 <: JsAny, R <: JsAny](that: JsExp[T2])(implicit canMod: CanMod[T, T2, R]): JsExp[R] = canMod(this, that)
   /**
    * Returns a JsExp that represents this & that
    */
   def &[T2 <: JsAny, R <: JsAny](that: $[T2])(implicit can_& : Can_&[T, T2, R]): $[R] = can_&(this, that)
+  def |[T2 <: JsAny, R <: JsAny](that: $[T2])(implicit can_| : Can_|[T, T2, R]): $[R] = can_|(this, that)
+
   /**
    * Returns a JsExp that represents this || that
    */
-  def ||[T2 <: JsAny, R <: JsAny](that: $[T2]): $[R] = JsOp(this, that, "||")
+  def ||[T2 <: JsBoolean, R <: JsAny](that: $[T2])(implicit ev: T <:< JsBoolean): $[R] = JsOp(this, that, "||")
+  def &&[T2 <: JsBoolean, R <: JsAny](that: $[T2])(implicit ev: T <:< JsBoolean): $[R] = JsOp(this, that, "&&")
+
   /**
    * Returns a JsExp that represents this != that
    */
-  def !=[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "!=")
+  def !==[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "!=")
   /**
    * Returns a JsExp that represents this == that
    */
-  def ==[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "==")
+  def ===[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "==")
+  def ====[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "===")
+  def !===[T2 <: JsAny](that: $[T2]): $[JsBoolean] = JsOp(this, that, "!==")
+
+  def >[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder(">")(this, that)
+  def >=[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder(">=")(this, that)
+  def <[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<")(this, that)
+  def <=[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<=")(this, that)
+
+  def unary_!(implicit ev: T <:< JsBoolean): $[JsBoolean] = new JsRaw[JsBoolean]("(!"+this.render+")")
 }
 
 /**
@@ -163,7 +180,7 @@ object JsOp {
   def apply[L <: JsAny, R <: JsAny, T <: JsAny](l: $[L], r: $[R], op: String) = new JsOp[L, R, T](l, r, op)
 }
 class JsOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](left: $[L], right: $[R], op: String) extends $[T] {
-  def render = left.render + op + right.render
+  def render = "("+left.render + op + right.render+")"
 }
 
 trait CanPlusLow {
@@ -171,6 +188,22 @@ trait CanPlusLow {
 }
 object CanPlus extends CanPlusLow {
   implicit val numNum: CanPlus[JsNumber, JsNumber, JsNumber] = new CanPlus((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsOp(l, r, "+"))
+}
+class CanMinus[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L, R, T](f)
+object CanMinus {
+  implicit val numNum: CanMinus[JsNumber, JsNumber, JsNumber] = new CanMinus((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsOp(l, r, "-"))
+}
+class CanTimes[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L, R, T](f)
+object CanTimes {
+  implicit val numNum: CanTimes[JsNumber, JsNumber, JsNumber] = new CanTimes((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsOp(l, r, "*"))
+}
+class CanDivide[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L, R, T](f)
+object CanDivide {
+  implicit val numNum: CanDivide[JsNumber, JsNumber, JsNumber] = new CanDivide((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsOp(l, r, "/"))
+}
+class CanMod[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L, R, T](f)
+object CanMod {
+  implicit val numNum: CanMod[JsNumber, JsNumber, JsNumber] = new CanMod((l: JsExp[JsNumber], r: JsExp[JsNumber]) => JsOp(l, r, "%"))
 }
 class CanPlus[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L, R, T](f)
 
@@ -181,6 +214,14 @@ object Can_& extends CanAmpLow {
   implicit val numNum: Can_&[JsNumber, JsNumber, JsNumber] = new Can_&[JsNumber, JsNumber, JsNumber]((l, r) => JsOp(l, r, "&"))
 }
 class Can_&[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) extends CanOp[L, R, T](f)
+
+trait CanBarLow {
+  implicit def boolean[L <: JsAny, R <: JsAny] = new Can_|[L, R, JsBoolean](JsOp(_, _, "|"))
+}
+object Can_| extends CanBarLow {
+  implicit val numNum: Can_|[JsNumber, JsNumber, JsNumber] = new Can_|[JsNumber, JsNumber, JsNumber]((l, r) => JsOp(l, r, "|"))
+}
+class Can_|[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) extends CanOp[L, R, T](f)
 
 class CanOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) extends (($[L], $[R]) => $[T]) {
   def apply(left: $[L], right: $[R]) = f(left, right)
@@ -206,6 +247,13 @@ object CanSelect {
 }
 class CanSelect[-T <: JsAny, T2 <: JsAny](f: JsExp[T] => JsExp[T2] => JsExp[T2]) {
   def apply(o: JsExp[T], m: JsExp[T2]): JsExp[T2] = f(o)(m)
+}
+
+object CanOrder {
+  implicit val numNum = new CanOrder[JsNumber, JsNumber, JsBoolean](op => l => r => JsOp(l, r, op))
+}
+class CanOrder[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: String => $[L] => $[R] => $[T]) extends (String => ($[L], $[R]) => $[T]) {
+  def apply(op: String) = (left: $[L], right: $[R]) => f(op)(left)(right)
 }
 
 /**

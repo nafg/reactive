@@ -11,9 +11,12 @@ class JsTests extends FunSuite with ShouldMatchers {
   test("Operators") {
     (1.$ + 2.$ render) should equal (new JsOp(1.$, 2.$, "+").render)
     (1.$ & 2.$ render) should equal (new JsOp(1.$, 2.$, "&").render)
-    (1.$ || 2.$ render) should equal (new JsOp(1.$, 2.$, "||").render)
-    (1.$ == 2.$ render) should equal (new JsOp(1.$, 2.$, "==").render)
-    (1.$ != 2.$ render) should equal (new JsOp(1.$, 2.$, "!=").render)
+    (1.$ | 2.$ render) should equal (new JsOp(1.$, 2.$, "|").render)
+    (true.$ || false.$ render) should equal (new JsOp(true.$, false.$, "||").render)
+    (1.$ === 2.$ render) should equal (new JsOp(1.$, 2.$, "==").render)
+    (1.$ !== 2.$ render) should equal (new JsOp(1.$, 2.$, "!=").render)
+
+    (!(true.$) render) should equal ("(!true)")
   }
   test("Statements") {
     window.alert(window.encodeURIComponent("Message"$))

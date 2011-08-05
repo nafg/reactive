@@ -40,14 +40,14 @@ object EventEncoder {
   implicit val keyPress = new EventEncoder[KeyPress](key.$)
   
   def buttons: Map[String,$[JsTypes.JsAny]] = if(S.request.dmap(false)(_.isIE)) Map(
-    "left" -> (('event.$->'buttons.$) & 1.$ != 0.$),
-    "middle" -> (('event.$->'buttons.$) & 4.$ != 0.$),
-    "right" -> (('event.$->'buttons.$) & 2.$ != 0.$),
+    "left" -> (('event.$->'buttons.$) & 1.$ !== 0.$),
+    "middle" -> (('event.$->'buttons.$) & 4.$ !== 0.$),
+    "right" -> (('event.$->'buttons.$) & 2.$ !== 0.$),
     "modifiers" -> modifiers.$
   ) else Map(
-    "left" -> (('event.$->'buttons.$) == 0.$),
-    "middle" -> (('event.$->'buttons.$) == 1.$),
-    "right" -> (('event.$->'buttons.$) == 2.$),
+    "left" -> (('event.$->'buttons.$) === 0.$),
+    "middle" -> (('event.$->'buttons.$) === 1.$),
+    "right" -> (('event.$->'buttons.$) === 2.$),
     "modifiers" -> modifiers.$
   )
   def mouse: Map[String,$[JsTypes.JsAny]] = Map(
