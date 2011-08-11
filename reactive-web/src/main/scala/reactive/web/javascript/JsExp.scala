@@ -15,7 +15,7 @@ object JsTypes {
   final class JsDate private extends JsAny
   final class JsRegex private extends JsAny
   final class JsObj private extends JsAny
-  final class JsArray private extends JsAny
+  final class JsArray[+T <: JsAny] private extends JsAny
   final class JsFunction1[-P <: JsAny, +R <: JsAny] private extends JsAny
   final class JsVoid private extends JsAny
 }
@@ -45,6 +45,11 @@ trait JsExp[+T <: JsAny] {
    * Returns a JsExp that represents function application of this JsExp
    */
   def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] with JsStatement = canApply(this, p)
+
+  /**
+   * Array access
+   */
+  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]) = canGet(this, i)
 
   /**
    * Returns a JsExp that represents member selection (the period) of this JsExp.
@@ -165,7 +170,7 @@ object ToJs extends ToJsLow {
   implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
   implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
   implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
-  implicit val array = new ToJsLit[List[JsExp[_]], JsArray](_.map(_.render).mkString("[", ",", "]"))
+  implicit def array[T <: JsAny] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
 }
 
 /**
@@ -238,6 +243,15 @@ object CanApply1 {
 }
 class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] => (JsExp[R] with JsStatement)) {
   def apply(f: JsExp[T], p: JsExp[P]): JsExp[R] with JsStatement = r(f)(p)
+}
+
+object CanGet {
+  implicit def arrayIndex[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsNumber, R](a => i => new JsRaw[R](a.render+"["+i.render+"]"))
+  implicit def arrayKey[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsString, R](a => k => new JsRaw[R](a.render+"["+k.render+"]"))
+  implicit def objKey[T <: JsObj] = new CanGet[T, JsString, JsAny](o => k => new JsRaw[JsAny](o.render+"["+k.render+"]"))
+}
+class CanGet[-T <: JsAny, -I <: JsAny, +R <: JsAny](r: $[T] => $[I] => $[R]) {
+  def apply(a: $[T], i: $[I]): $[R] = r(a)(i)
 }
 
 object CanSelect {
