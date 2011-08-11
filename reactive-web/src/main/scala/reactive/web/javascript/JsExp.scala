@@ -179,7 +179,6 @@ object ToJs extends ToJsLow {
 trait NamedIdent[T <: JsAny] extends JsIdent[T] {
   def ident = Symbol(scalaClassName(getClass))
 }
-class JsVar[T <: JsAny, S: ToJs.To[T, JsExp]#From](init: S) extends NamedIdent[T]
 
 object JsOp {
   def apply[L <: JsAny, R <: JsAny, T <: JsAny](l: $[L], r: $[R], op: String) = new JsOp[L, R, T](l, r, op)
@@ -234,11 +233,7 @@ class CanOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) exte
 
 object CanApply1 {
   implicit def canApply1[P <: JsAny, R <: JsAny]: CanApply1[P =|> R, P, R] = new CanApply1[P =|> R, P, R](
-    f => p => {
-      new JsRaw[R](f.render+"("+p.render+")") with JsStatement {
-        def toReplace = List(p)
-      }
-    }
+    f => p => new Apply1(f, p)
   )
 }
 class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] => (JsExp[R] with JsStatement)) {
@@ -275,64 +270,3 @@ class CanOrder[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: String => $[L] => $[R] 
  * whose methods result in calls to javascript methods
  */
 trait JsStub extends NamedIdent[JsObj]
-
-/**
- * A scala representation of a javascript statement.
- * On instantiation, puts itself on the JsStatement stack.
- */
-trait JsStatement {
-  /**
-   * Returns the javascript representation in a String
-   */
-  def render: String
-  /**
-   * A list of javascript expressions, that if they are a JsStatement
-   * and on the top of the JsStatement stack, should be replaced.
-   */
-  def toReplace: List[$[_]]
-
-  for (e <- toReplace if e.isInstanceOf[JsStatement] && (e eq JsStatement.peek)) JsStatement.pop
-
-  JsStatement.push(this)
-}
-/**
- * Maintains a thread-local stack of statement blocks
- */
-object JsStatement {
-  /**
-   * A dynamically-scoped stack of blocks of JsStatements
-   */
-  val stack = new scala.util.DynamicVariable[List[List[JsStatement]]](List(Nil))
-  /**
-   * The top JsStatement block
-   */
-  def currentScope: List[JsStatement] = stack.value.head
-  /**
-   * Sets the top JsStatement block
-   */
-  def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
-  /**
-   * Returns true if there is no other statement block on the stack
-   */
-  def bottomScope = stack.value.tail.isEmpty
-  /**
-   * Evaluates p in a new scope, and returns the top of the stack
-   * (JsStatements pushed during evaluation of p)
-   */
-  def inScope(p: => Unit): List[JsStatement] = stack.withValue(Nil :: stack.value){
-    p
-    currentScope
-  }
-
-  def push(s: JsStatement) = {
-    currentScope ::= s
-  }
-  def pop: JsStatement = {
-    val ret = currentScope.head
-    currentScope = currentScope.tail
-    ret
-  }
-  def peek = currentScope.head
-  def replace(pf: PartialFunction[JsStatement, JsStatement]) =
-    if (pf.isDefinedAt(peek)) push(pf(pop))
-}

@@ -9,6 +9,7 @@ package object javascript {
   implicit def toJsLiterable[T](x: T)(implicit c: ToJsLit[T, _]): JsLiterable[T] =
     new JsLiterable[T](x)
   implicit def toJsIdentable(s: Symbol): JsIdentable = JsIdentable(s)
+  implicit def toMatchable[T <: JsAny](against: $[T]) = new Matchable(against)
 
   /**
    * A type alias for JsExp
@@ -32,13 +33,7 @@ package object javascript {
   private class StubInvocationHandler[T <: JsStub: Manifest](ident: String) extends InvocationHandler {
     def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef = {
       val clazz: Class[_] = manifest[T].erasure
-      def hasField = try {
-        clazz.getField(method.getName)
-        true
-      } catch {
-        case _: NoSuchFieldException =>
-          false
-      }
+
       try { // look for static forwarder
         val forwarder = Class.
           forName(clazz.getName+"$class").
@@ -46,16 +41,7 @@ package object javascript {
         forwarder.invoke(null, proxy +: args: _*)
       } catch {
         case _: NoSuchMethodException | _: ClassNotFoundException =>
-          new JsRaw(ident+"."+method.getName + {
-            if (args.isEmpty && hasField)
-              ""
-            else if (method.getParameterTypes.forall(classOf[JsExp[_]].isAssignableFrom))
-              args.map(_.asInstanceOf[JsExp[_]].render).mkString("(", ",", ")")
-            else
-              args.map(_.toString).mkString("(", ",", ")")
-          }) with JsStatement {
-            def toReplace = args.collect{ case x: JsExp[_] => x }.toList
-          }
+          new ApplyProxyMethod(ident, method, clazz, args)
       }
     }
   }
@@ -70,7 +56,7 @@ package object javascript {
 
   /**
    * Returns a JsStub proxy for the specified type,
-   * with the specified identifier for the instance. 
+   * with the specified identifier for the instance.
    */
   def jsProxy[T <: JsStub: Manifest](ident: Symbol): T = jsProxy[T](ident.name)
   def jsProxy[T <: JsStub: Manifest](ident: String): T = {
