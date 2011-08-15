@@ -6,7 +6,9 @@ import net.liftweb.util.Helpers.urlDecode
 import javascript._
 import JsTypes._
 
-import scala.xml.{ Elem, NodeSeq }
+import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
+
+import scala.collection.mutable.WeakHashMap
 
 /**
  * Represents a DOM event type and related JsEventStreams.
@@ -15,8 +17,28 @@ import scala.xml.{ Elem, NodeSeq }
  */
 //TODO better name--it is not an EventSource; only wraps a JsEventStream
 
-class DOMEventSource[T <: DOMEvent:Manifest:EventEncoder]
-extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[JsObj] {
+class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[T] with Logger with JsForwardable[JsObj] {
+  class Renderer(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    /**
+     * Adds asAttribute to an Elem.
+     * If an attribute exists with the same name, combine the two values,
+     * separated by a semicolon.
+     */
+    def apply(elem: Elem): Elem = {
+      val a = asAttribute
+      elem.attribute(a.key) match {
+        case None     => elem % asAttribute
+        case Some(ns) => elem % new xml.UnprefixedAttribute(a.key, ns.text+";"+a.value.text, xml.Null)
+      }
+    }
+    /**
+     * Like apply(Elem). Needed to extend NodeSeq=>NodeSeq, for use with binding/css selectors.
+     * Forces `in` to an Elem by calling nodeSeqToElem (in the package object)
+     */
+    def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
+
+  }
+
   /**
    * The JsEventStream that fires the primary event data
    */
@@ -32,7 +54,7 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[
    * The name of the event
    */
   def eventName = scalaClassName(manifest[T].erasure).toLowerCase
-  
+
   /**
    * The name of the attribute to add the handler to
    */
@@ -42,20 +64,33 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[
    * Pairs a javascript expression to fire when this event occurs, with
    * a javascript event stream to fire it from.
    */
-  case class EventData[T<:JsAny](encode: $[T], es: JsEventStream[T])
+  case class EventData[T <: JsAny](encode: $[T], es: JsEventStream[T])
   private var eventData: List[EventData[_]] = List(
     EventData(implicitly[EventEncoder[T]].encodeExp, jsEventStream)
   )
-  
+  private val perPageEventData = WeakHashMap[Page, List[EventData[_]]]()
+
   /**
    * Register data to be fired whenever this event occurs
    * @param jsExp the javascript to be evaluated when it occurs
    * @param es the JsEventStream that the value will be fired from
    */
-  def addEventData[T<:JsAny](jsExp: $[T], es: JsEventStream[T]) = synchronized {
+  def addEventData[T <: JsAny](jsExp: $[T], es: JsEventStream[T]) = synchronized {
     eventData ::= EventData(jsExp, es)
   }
-  
+  /**
+   * Register data to be fired whenever this event occurs on the specified page
+   * @param jsExp the javascript to be evaluated when it occurs
+   * @param es the JsEventStream that the value will be fired from
+   */
+  def addPerPageEventData[T <: JsAny](jsExp: $[T], es: JsEventStream[T])(implicit page: Page) = perPageEventData.synchronized {
+    val ed = EventData(jsExp, es)
+    perPageEventData(page) = perPageEventData.get(page) match {
+      case Some(eds) =>
+        eds :+ ed
+      case None => ed :: Nil
+    }
+  }
 
   /**
    * The javascript to run whenever the browser fires the event.
@@ -65,39 +100,24 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[
    * such as by calling DOMEventSource#eventStream),
    * propagate the event to the server
    */
-  def propagateJS: String = {
-    eventData.map{ case EventData(enc, es) =>
-      es.fireExp(enc).render
-    }.mkString(";") + ";reactive.doAjax()"
+  def propagateJS(implicit page: Page): String = {
+    (eventData ::: perPageEventData.getOrElse(page, Nil)).map{
+      case EventData(enc, es) =>
+        es.fireExp(enc).render
+    }.mkString(";")+";reactive.doAjax()"
   }
 
   /**
    * Returns an attribute that will register a handler with the event.
    * Combines attributeName and propagateJS in a scala.xml.MetaData.
    */
-  def asAttribute: xml.MetaData = new xml.UnprefixedAttribute(
+  def asAttribute(implicit page: Page): MetaData = new UnprefixedAttribute(
     attributeName,
     propagateJS,
     xml.Null
   )
 
-  /**
-   * Adds asAttribute to an Elem.
-   * If an attribute exists with the same name, combine the two values,
-   * separated by a semicolon.
-   */
-  def apply(elem: Elem): Elem = {
-    val a = asAttribute
-    elem.attribute(a.key) match {
-      case None => elem % asAttribute
-      case Some(ns) => elem % new xml.UnprefixedAttribute(a.key, ns.text+";"+a.value.text, xml.Null)
-    }
-  }
-  /**
-   * Like apply(Elem). Needed to extend NodeSeq=>NodeSeq, for use with binding/css selectors.
-   * Forces `in` to an Elem by calling nodeSeqToElem (in the package object)
-   */
-  def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
+  def render(implicit page: Page) = new Renderer()(page)
 
   /**
    * Calls eventStream.foreach
@@ -106,7 +126,7 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[
   /**
    * Calls jsEventStream.foreach
    */
-  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj=|>JsVoid, E]#From](f: F) = jsEventStream.foreach(f)
+  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F) = jsEventStream.foreach(f)
   /**
    * Calls jsEventStream.foreach
    */
@@ -116,6 +136,11 @@ extends (NodeSeq => NodeSeq) with Forwardable[T] with Logger with JsForwardable[
 }
 
 object DOMEventSource {
+  /**
+   * An implicit conversion from DOMEventSource to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
+   */
+  implicit def toNodeSeqFunc(des: DOMEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
+
   /**
    * Creates a new Click DOMEventSource
    */
