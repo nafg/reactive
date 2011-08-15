@@ -17,8 +17,8 @@ object JsEventStream {
  * Proxies an event stream implemented in javascript.
  * Requires reactive-web.js (which is automatically included by the lift:reactive snippet).
  */
-//TODO use PageIds
-//TODO use JsStub?
+//TODO use PageIds??
+//TODO use JsStub
 class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with JsForwardable[T] { parent =>
   lazy val id = JsIdent.counter.next
   private var initialized = false

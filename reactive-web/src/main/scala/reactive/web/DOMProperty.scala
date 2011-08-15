@@ -6,7 +6,6 @@ import javascript._
 
 import scala.ref.WeakReference
 
-
 /**
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
  * and updateable on the client via the server.
@@ -22,7 +21,7 @@ class DOMProperty(val name: String) extends PageIds {
           new UnprefixedAttribute(name, _, Null)
         ).getOrElse(Null)
     ) { (e, es) =>
-        es(e)
+        es.render(page)(e)
       }
     )(page)
 
@@ -83,11 +82,9 @@ class DOMProperty(val name: String) extends PageIds {
       }
     }
     val jses = new JsEventStream[JsTypes.JsAny]
-    //apply linked DOM event sources
-    //TODO only pages that also own es
-    for ((page, id) <- pageIds; es <- eventSources) {
-      es.addEventData(readJS(id), jses)
-    }
+    for (es <- eventSources)
+      es.addPerPageEventData(readJS(id), jses)
+
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
     jses.toServer(_.values.toString).foreach(setFromAjax)(page)

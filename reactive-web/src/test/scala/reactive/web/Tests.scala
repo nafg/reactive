@@ -8,7 +8,6 @@ import net.liftweb.mockweb._
 
 import scala.xml.Elem
 
-
 class RElemTests extends FunSuite with ShouldMatchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
     Page.withPage(new Page) {
@@ -21,7 +20,7 @@ class RElemTests extends FunSuite with ShouldMatchers {
 class RepeaterTests extends FunSuite with ShouldMatchers {
   test("Repeater should have children with toNSFunc") {
     MockWeb.testS("/") {
-      implicit val o = new Observing{}
+      implicit val o = new Observing {}
       val select = html.Select(Val(List(1, 2, 3)))
       select(<select/>).asInstanceOf[Elem].child.length should equal (3)
     }
@@ -35,6 +34,19 @@ class DOMPropertyTests extends FunSuite with ShouldMatchers {
       val e1 = property.render apply <elem1/>
       val e2 = property.render apply <elem2/>
       e1.attributes("id") should equal(e2.attributes("id"))
+    }
+  }
+
+}
+
+class DOMEventSourceTests extends FunSuite with ShouldMatchers {
+  test("DOMEventSource only renders the current Page's propagation javascript") {
+    MockWeb.testS("/") {
+      val property = Page.withPage(new Page)(DOMProperty("someName") withEvents DOMEventSource.click)
+      val e1 = Page.withPage(new Page)(property.render apply <elem1/>)
+      val e2 = Page.withPage(new Page)(property.render apply <elem1/>)
+      ((e1 \ "@onclick" text) split ";" length) should equal (3)
+      ((e2 \ "@onclick" text) split ";" length) should equal (3)
     }
   }
 }
