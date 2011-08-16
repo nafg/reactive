@@ -42,13 +42,13 @@ class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[
   /**
    * The JsEventStream that fires the primary event data
    */
-  val jsEventStream = new JsEventStream[JsObj]
+  def jsEventStream(implicit p: Page) = getEventObjectData(p).es
   /**
    * An EventStream that fires events of type T on the server.
    * Calls toServer on jsEventStream.
    */
-  lazy val eventStream: EventStream[T] =
-    jsEventStream.toServer
+  def eventStream(implicit page: Page): EventStream[T] =
+    jsEventStream(page).toServer
 
   /**
    * The name of the event
@@ -65,27 +65,19 @@ class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[
    * a javascript event stream to fire it from.
    */
   case class EventData[T <: JsAny](encode: $[T], es: JsEventStream[T])
-  private var eventData: List[EventData[_]] = List(
-    EventData(implicitly[EventEncoder[T]].encodeExp, jsEventStream)
-  )
-  private val perPageEventData = WeakHashMap[Page, List[EventData[_]]]()
 
-  /**
-   * Register data to be fired whenever this event occurs
-   * @param jsExp the javascript to be evaluated when it occurs
-   * @param es the JsEventStream that the value will be fired from
-   */
-  def addEventData[T <: JsAny](jsExp: $[T], es: JsEventStream[T]) = synchronized {
-    eventData ::= EventData(jsExp, es)
-  }
+  private val eventData = WeakHashMap[Page, List[EventData[_]]]()
+  private def getEventObjectData(implicit p: Page) = eventObjectData.getOrElseUpdate(p, EventData(implicitly[EventEncoder[T]].encodeExp, new JsEventStream[JsObj]))
+  private val eventObjectData = WeakHashMap[Page, EventData[JsObj]]()
+
   /**
    * Register data to be fired whenever this event occurs on the specified page
    * @param jsExp the javascript to be evaluated when it occurs
    * @param es the JsEventStream that the value will be fired from
    */
-  def addPerPageEventData[T <: JsAny](jsExp: $[T], es: JsEventStream[T])(implicit page: Page) = perPageEventData.synchronized {
+  def addEventData[T <: JsAny](jsExp: $[T], es: JsEventStream[T])(implicit page: Page) = eventData.synchronized {
     val ed = EventData(jsExp, es)
-    perPageEventData(page) = perPageEventData.get(page) match {
+    eventData(page) = eventData.get(page) match {
       case Some(eds) =>
         eds :+ ed
       case None => ed :: Nil
@@ -101,7 +93,7 @@ class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[
    * propagate the event to the server
    */
   def propagateJS(implicit page: Page): String = {
-    (eventData ::: perPageEventData.getOrElse(page, Nil)).map{
+    (getEventObjectData(page) :: eventData.getOrElse(page, Nil)).map{
       case EventData(enc, es) =>
         es.fireExp(enc).render
     }.mkString(";")+";reactive.doAjax()"

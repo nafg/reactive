@@ -83,7 +83,7 @@ class DOMProperty(val name: String) extends PageIds {
     }
     val jses = new JsEventStream[JsTypes.JsAny]
     for (es <- eventSources)
-      es.addPerPageEventData(readJS(id), jses)
+      es.addEventData(readJS(id), jses)(page)
 
     // Register setFromAjax with all linked event streams,
     // for the lifetime of the page
