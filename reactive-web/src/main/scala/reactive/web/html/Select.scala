@@ -30,11 +30,13 @@ class Select[T](
    */
   val click = DOMEventSource.click
 
+  val keyUp = DOMEventSource.keyUp
+
   /**
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute.
    */
-  val selectedIndex = Select.selectedIndex(Some(0) filter (_ <= items.now.length)) updateOn change
+  val selectedIndex = Select.selectedIndex(Some(0) filter (_ <= items.now.length)) updateOn (change, click, keyUp)
 
   /**
    * A Var[Option[T]] that represents and sets the selected item.
@@ -52,7 +54,7 @@ class Select[T](
         adjustIndexFromDeltas(si - 1)(rest)
       case Remove(i, _) :: rest if i == si =>
         0
-      case Batch(ms @ _*) :: rest =>
+      case Batch(ms@_*) :: rest =>
         adjustIndexFromDeltas(adjustIndexFromDeltas(si)(ms.toList))(rest)
       case other :: rest =>
         adjustIndexFromDeltas(si)(rest)
@@ -104,7 +106,7 @@ class Select[T](
 
   def baseElem = <select size={ size.toString }/>
   def properties = List(selectedIndex)
-  def events = List(change)
+  def events = List(change, click, keyUp)
 }
 
 /**
@@ -136,7 +138,7 @@ object Select {
     def _size = size
     new Select[T](items, renderer) {
       override val size = _size
-      selectedItem ()= selected
+      selectedItem () = selected
       override protected def addPage(elem: Elem)(implicit page: Page) = {
         val ret = super.addPage(elem)(page)
         selectedItem.change foreach handleChange
