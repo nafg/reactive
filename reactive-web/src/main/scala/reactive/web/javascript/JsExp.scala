@@ -166,7 +166,7 @@ object ToJs extends ToJsLow {
   implicit val double: From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
   implicit val int: ToJsLit[Int, JsNumber] = new ToJsLit[Int, JsNumber](_.toString)
   implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
-  implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString]("\""+_+"\"")
+  implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs)
   implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
   implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
   implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
