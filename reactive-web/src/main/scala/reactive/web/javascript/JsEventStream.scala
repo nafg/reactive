@@ -20,10 +20,10 @@ object JsEventStream {
 //TODO use PageIds??
 //TODO use JsStub
 class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with JsForwardable[T] { parent =>
-  lazy val id = JsIdent.counter.next
+  lazy val id = page.nextId
   private var initialized = false
   def initExp = "new EventStream()"
-  def render = "reactive.eventStreams["+id+"]"
+  def render = "reactive.eventStreams['"+id+"']"
   def init: Unit = synchronized {
     if (!initialized) {
       initialized = true
@@ -77,7 +77,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * @param extract a function that takes a value of type JValue (a lift-json AST) and returns values of type U
    */
   def toServer[U](extract: net.liftweb.json.JValue => U): EventStream[U] = {
-    foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax("+id+")"))
+    foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax('"+id+"')"))
     page.ajaxEvents.collect { case (_id, json) if _id == id.toString => extract(json) }
   }
   /**
