@@ -29,7 +29,7 @@ trait Signal[+T] extends Forwardable[T] {
     f(now)
     change.foreach(f)(observing)
   }
-  
+
   /**
    * Return a new Signal whose value is computed from the value
    * of this Signal, transformed by f. It fires change events
@@ -98,16 +98,16 @@ trait Signal[+T] extends Forwardable[T] {
   def distinct: Signal[T] = new DistinctSignal[T](this)
 }
 
-protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S=>U) extends Signal[U] {
+protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S => U) extends Signal[U] {
   val change = new EventSource[U] {
     val ref = ph
   }
   protected var current = initial(state)
   def now = current
-  
+
   protected def parentHandler: (T, S) => S
   private lazy val ph = parentHandler
-  private val parentListener: T=>Unit = x => synchronized {
+  private val parentListener: T => Unit = x => synchronized {
     state = ph(x, state)
   }
   parent.change addListener parentListener
@@ -152,7 +152,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   }
 }
 
-protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) extends ChildSignal[T,U, Signal[U]](parent, f(parent.now), _.now) {
+protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) extends ChildSignal[T, U, Signal[U]](parent, f(parent.now), _.now) {
   private val thunk: U => Unit = x => synchronized {
     current = x
     change fire x
@@ -168,10 +168,10 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
   }
 }
 
-protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T,T,Unit](parent, (), _ => parent.now) {
+protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
   protected val changing = new scala.util.DynamicVariable(false)
   def parentHandler = (x, _) => {
-    if(!changing.value) changing.withValue(true) {
+    if (!changing.value) changing.withValue(true) {
       change fire x
     }
     ()
@@ -233,7 +233,7 @@ class Var[T](initial: T) extends Signal[T] {
   private lazy val change0 = new EventSource[T] {}
 
   override def toString = "Var("+now+")"
-  
+
   def <-->(other: Var[T])(implicit observing: Observing): this.type = {
     this.distinct >> other
     other.distinct >> this

@@ -117,7 +117,6 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
       v () = 2
     } should equal (List(4, 2))
   }
-  
 }
 
 class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {

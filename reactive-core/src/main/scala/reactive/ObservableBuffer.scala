@@ -2,7 +2,6 @@ package reactive
 
 import scala.collection.mutable.ArrayBuffer
 
-
 /**
  * A Buffer that contains an EventStream which fires SeqDelta events
  * after every time the Buffer is updated.
@@ -74,9 +73,9 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
    * buffer1.messages foreach buffer2.applyDelta
    */
   def applyDelta: SeqDelta[T, T] => Unit = {
-    case Include(i, e) => insert(i, e)
-    case Remove(i, e) => remove(i)
+    case Include(i, e)     => insert(i, e)
+    case Remove(i, e)      => remove(i)
     case Update(i, old, e) => update(i, e)
-    case Batch(ms@_*) => messages.batching { ms foreach applyDelta }
+    case Batch(ms@_*)      => messages.batching { ms foreach applyDelta }
   }
 }
