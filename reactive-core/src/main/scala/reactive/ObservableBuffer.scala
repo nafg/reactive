@@ -27,6 +27,15 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
     this
   }
 
+  override def ++=(xs: TraversableOnce[T]): this.type = {
+    val start = length
+    messages.suppressing(super.++=(xs))
+    messages fire Batch(
+      xs.toSeq.zipWithIndex.map{ case (e, i) => Include(start + i, e) }: _*
+    )
+    this
+  }
+
   override def +=:(element: T): this.type = {
     super.+=:(element)
     messages fire Include(0, element)
