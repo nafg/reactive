@@ -96,6 +96,34 @@ trait Signal[+T] extends Forwardable[T] {
    * that are mutually dependent in a consistent manner.
    */
   def distinct: Signal[T] = new DistinctSignal[T](this)
+
+  def actorBased: Signal[Volatile[T]] = new ChildSignal[T, Volatile[T], Volatile[T]](this, Volatile(now), identity) {
+    import scala.actors.Actor._
+    private val delegate = actor {
+      loop {
+        receive {
+          case x: Volatile[T] =>
+            println("actorBased.delegate: "+x)
+            current = x
+            change.fire(x)
+          case other => println("Got other event: "+other)
+        }
+      }
+    }
+    def parentHandler = (parentEvent, oldValue) => {
+      println("actorBased.parentHandler begin")
+      oldValue.stale = true
+      val v = Volatile(parentEvent)
+      delegate ! v
+      println("actorBased.parentHandler end")
+      v
+    }
+  }
+}
+
+case class Volatile[+T](val value: T) {
+  @volatile private[reactive] var stale = false
+  def isStale = stale
 }
 
 protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S => U) extends Signal[U] {

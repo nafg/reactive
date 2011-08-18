@@ -168,7 +168,35 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
     System.gc
     if (weakref.get.isDefined) info("Warning - takeWhile EventSource was not gc'ed")
   }
+
+  test("actorBased") {
+    val es = new EventSource[Int]
+    object last {
+      var value = 0
+    }
+    es.actorBased.foreach {
+      case vol@Volatile(n) =>
+        println("Entering listener")
+        for (b <- 1 to 10 if !vol.isStale) {
+          println("b="+b+"; stale: "+vol.isStale)
+          last.synchronized {
+            (n != last.value) should equal (vol.isStale)
+          }
+          Thread.sleep(250)
+        }
+        println("Exiting listener")
+    }
+    last.synchronized {
+      last.value = 2
+      es fire 2
+    }
+    Thread.sleep(250)
+    last.synchronized {
+      last.value = 3
+      es fire 3
 }
+    Thread.sleep(2250)
+  }
 
 
 class SuppressableTests extends FunSuite with ShouldMatchers with CollectEvents {

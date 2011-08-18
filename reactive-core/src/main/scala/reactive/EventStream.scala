@@ -134,6 +134,8 @@ trait EventStream[+T] extends Forwardable[T] {
    * that are mutually dependent.
    */
   def nonrecursive: EventStream[T]
+  
+  def actorBased: EventStream[Volatile[T]]
 
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
@@ -171,6 +173,23 @@ class EventSource[T] extends EventStream[T] with Logger {
       val newES = Some(f(parentEvent))
       newES foreach { _ addListener thunk }
       newES
+    }
+  }
+
+  class ActorEventStream extends ChildEventSource[Volatile[T], Option[Volatile[T]]](None) {
+    import scala.actors.Actor._
+    private val delegate = actor {
+      loop {
+        receive {
+          case x: Volatile[T] => fire(x)
+        }
+      }
+    }
+    def handler = (parentEvent, oldValue) => {
+      oldValue.foreach(_.stale = true)
+      val v = Volatile(parentEvent)
+      delegate ! v
+      Some(v)
     }
   }
 
@@ -280,6 +299,8 @@ class EventSource[T] extends EventStream[T] with Logger {
     val f = (v: T) => current = v
     change addListener f
   }
+
+  def actorBased: EventStream[Volatile[T]] = new ActorEventStream
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
     trace(AddingListener(f))

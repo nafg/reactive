@@ -117,6 +117,28 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
       v () = 2
     } should equal (List(4, 2))
   }
+
+  test("actorBased: no re-entry") {
+    val v0 = Var(0)
+    val v = Var(1)
+
+    var n = 0
+    for {
+      _ <- v0
+      vol@Volatile(v) <- v.actorBased
+    } {
+      n += 1
+      n should equal (1)
+      n -= 1
+    }
+
+    for (a <- 1 to 10 toList) {
+      scala.concurrent.ops.spawn {
+        for (b <- 1 to 10)
+          v () = v.now + 1
+      }
+    }
+  }
 }
 
 class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {
