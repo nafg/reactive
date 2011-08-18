@@ -119,7 +119,7 @@ object LCS {
     // The length of the longest substring is S[n][m]
     var pos = S(n)(m) - 1
 
-    var diffs = List[SeqDelta[T,U]]()
+    var diffs = List[IncludeOrRemove[T, U]]()
 
     // Trace the backtracking matrix.
     var ii = n

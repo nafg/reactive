@@ -39,11 +39,12 @@ sealed trait SeqDelta[+A, +B] {
    */
   def inverse: SeqDelta[B, A]
 }
+sealed trait IncludeOrRemove[+A, +B] extends SeqDelta[A, B]
 /**
  * Represents an insertion at an index
  */
 //TODO maybe rename to Insert?
-case class Include[+B](index: Int, elem: B) extends SeqDelta[Nothing, B] {
+case class Include[+B](index: Int, elem: B) extends IncludeOrRemove[Nothing, B] {
   def inverse = Remove(index, elem)
 }
 /**
@@ -56,7 +57,7 @@ case class Update[+A, +B](index: Int, old: A, elem: B) extends SeqDelta[A, B] {
 /**
  * Represents an element being removed at an index
  */
-case class Remove[+A](index: Int, old: A) extends SeqDelta[A, Nothing] {
+case class Remove[+A](index: Int, old: A) extends IncludeOrRemove[A, Nothing] {
   def inverse = Include(index, old)
 }
 /**
