@@ -2,37 +2,36 @@ package reactive
 
 import scala.collection.mutable.ArrayBuffer
 
-
 /**
  * Represents the delta of a change to a Seq (such as a Buffer)
  * @tparam A the type of the old element
  * @tparam B the type of the new element
  */
 object SeqDelta {
-  def flatten[A,B](messages: Seq[SeqDelta[A,B]]): Seq[SeqDelta[A,B]] = messages.flatMap {
+  def flatten[A, B](messages: Seq[SeqDelta[A, B]]): Seq[SeqDelta[A, B]] = messages.flatMap {
     case b: Batch[A, B] => flatten(b.messages)
-    case m => List(m)
+    case m              => List(m)
   }
-  def single[A,B](ms: Seq[SeqDelta[A,B]]): Option[SeqDelta[A,B]] =
+  def single[A, B](ms: Seq[SeqDelta[A, B]]): Option[SeqDelta[A, B]] =
     if (ms.isEmpty) None
     else if (ms.length == 1) Some(ms(0))
     else Some(Batch(ms: _*))
 
-  def applyToSeq[A](messages: Seq[SeqDelta[A,A]])(seq: Seq[A]): Seq[A] = {
+  def applyToSeq[A](messages: Seq[SeqDelta[A, A]])(seq: Seq[A]): Seq[A] = {
     val buf = ArrayBuffer(seq: _*)
     def applyDelta(m: SeqDelta[A, A]): Unit = m match {
-      case Include(i, e) => buf.insert(i, e)
-      case Remove(i, e) => buf.remove(i)
+      case Include(i, e)     => buf.insert(i, e)
+      case Remove(i, e)      => buf.remove(i)
       case Update(i, old, e) => buf.update(i, e)
-      case Batch(ms@_*) => ms foreach applyDelta
+      case Batch(ms@_*)      => ms foreach applyDelta
     }
     messages foreach applyDelta
     buf.toSeq
   }
-  final class Batchable[A,B](source: Seq[SeqDelta[A,B]]) {
-    def toBatch: Batch[A,B] = Batch(source: _*)
+  final class Batchable[A, B](source: Seq[SeqDelta[A, B]]) {
+    def toBatch: Batch[A, B] = Batch(source: _*)
   }
-  implicit def seqToBatchable[A,B](source: Seq[SeqDelta[A,B]]) = new Batchable(source)
+  implicit def seqToBatchable[A, B](source: Seq[SeqDelta[A, B]]) = new Batchable(source)
 }
 sealed trait SeqDelta[+A, +B] {
   /**
