@@ -322,9 +322,9 @@ trait TracksAlive[T] extends EventSource[T] {
 }
 
 /**
-  This EventStream allows one to block events
-  from within a certain scope. This can be used
-  to help prevent infinite loops when two EventStreams may depend on each other.
+ * This EventStream allows one to block events
+ * from within a certain scope. This can be used
+ * to help prevent infinite loops when two EventStreams may depend on each other.
 */
 //TODO suppressable event streams' transformed derivatives
 //should also be Suppressable
@@ -341,8 +341,8 @@ trait Suppressable[T] extends EventSource[T] {
 }
 
 /**
-  This EventStream fires SeqDeltas (Seq deltas) and can batch them up.
-*/
+ * This EventStream fires SeqDeltas (Seq deltas) and can batch them up.
+ */
 //TODO batchable event streams' transformed derivatives
 //should also be Batchable
 trait Batchable[A,B] extends EventSource[SeqDelta[A,B]] {

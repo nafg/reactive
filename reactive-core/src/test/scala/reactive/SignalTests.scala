@@ -58,24 +58,16 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
         parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
         System.gc()
         parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
-//        println("Setting to true...")
         parent ()= true
-//        println("done")
-//        System.gc()
         flatMapped.now should equal (Seq(2,3,4))
       } should equal (List(List(2,3,4)))
     }.toBatch.applyToSeq(List(1,2,3)) should equal (List(2,3,4))
     
     collecting(flatMapped.deltas){
       collecting(flatMapped.change){
-        bufSig2.deltas.asInstanceOf[EventSource[_]].debug=true
-        bufSig2.change.asInstanceOf[EventSource[_]].debug=true
-//        dumpListeners(bufSig2.deltas)
         System.gc
-//        dumpListeners(bufSig2.deltas)
         bufSig2 ()= Seq(2,3,4,5)
         flatMapped.now should equal (Seq(2,3,4,5))
-//        dumpListeners(bufSig2.deltas)
       } should equal (List(List(2,3,4,5)))
     } should equal (List(
       Batch(Include(3,5))

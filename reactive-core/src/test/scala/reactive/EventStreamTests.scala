@@ -158,7 +158,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   }
   
   test("garbage collection (takeWhile)") {
-    val es = new EventSource[Int] {}
+    val es = new EventSource[Int]
     def makeTakenWhile = {
       val takenWhile = es takeWhile (_ < 3)
       new scala.ref.WeakReference(takenWhile)

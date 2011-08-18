@@ -36,7 +36,8 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
   override def insertAll(n: Int, newElements: Traversable[T]): Unit = {
     super.insertAll(n, newElements)
     messages fire Batch(
-      newElements.toSeq.zipWithIndex.map { case (e, i) => Include(n + i, e) }: _*)
+      newElements.toSeq.zipWithIndex.map { case (e, i) => Include(n + i, e) }: _*
+    )
   }
 
   override def update(n: Int, newelement: T): Unit = {

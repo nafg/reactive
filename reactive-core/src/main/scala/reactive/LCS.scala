@@ -4,7 +4,7 @@ import scala.collection.mutable.ArrayBuffer
 
 
 /**
-  Based on Java code by Neil Jones at http://bix.ucsd.edu/bioalgorithms/downloads/code/LCS.java
+ * Based on Java code by Neil Jones at http://bix.ucsd.edu/bioalgorithms/downloads/code/LCS.java
 */
 object LCS {
   object Direction extends Enumeration {
