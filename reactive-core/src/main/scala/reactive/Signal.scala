@@ -105,22 +105,20 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
   protected var current = initial(state)
   def now = current
   
-  protected def parentHandler: (T,U,S)=>(U,S)
+  protected def parentHandler: (T, S) => S
   private lazy val ph = parentHandler
   private val parentListener: T=>Unit = x => synchronized {
-    val cs = ph(x, current, state)
-    current = cs._1
-    state = cs._2
+    state = ph(x, state)
   }
   parent.change addListener parentListener
 }
 
 protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T,U,Unit](parent, (), _ => f(parent.now)) {
-  def parentHandler = (x, _, _) => {
+  def parentHandler = (x, _) => {
     val u = f(x)
     current = u
     change.fire(u)
-    (u, ())
+    ()
   }
 }
 
@@ -160,33 +158,34 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
     change fire x
   }
   state.change addListener thunk
-  def parentHandler = (x, _, curSig) => {
+  def parentHandler = (x, curSig) => {
     curSig.change removeListener thunk
     val newSig = f(x)
     newSig.change addListener thunk
     change fire newSig.now
-    (newSig.now, newSig)
+    current = newSig.now
+    newSig
   }
 }
 
 protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T,T,Unit](parent, (), _ => parent.now) {
   protected val changing = new scala.util.DynamicVariable(false)
-  def parentHandler = (x, _, _) => {
+  def parentHandler = (x, _) => {
     if(!changing.value) changing.withValue(true) {
       change fire x
     }
-    (x, ())
+    ()
   }
 }
 
 protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
   var last = now
-  def parentHandler = (x, _, _) => {
+  def parentHandler = (x, _) => {
     if (x != last) {
       last = x
       change fire x
     }
-    (x, ())
+    ()
   }
 }
 
