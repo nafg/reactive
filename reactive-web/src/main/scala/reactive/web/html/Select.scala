@@ -36,7 +36,7 @@ class Select[T](
    * The selectedIndex DOM property
    * Also when the select is rendered, this affects which option has the selected="selected" attribute.
    */
-  val selectedIndex = Select.selectedIndex(Some(0) filter (_ <= items.now.length)) updateOn (change, click, keyUp)
+  val selectedIndex = Select.selectedIndex(Some(0) filter (_ <= items.now.length)) updateOn (change, keyUp)
 
   /**
    * A Var[Option[T]] that represents and sets the selected item.
