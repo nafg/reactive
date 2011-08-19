@@ -2,7 +2,6 @@ package reactive
 package web
 
 import scala.xml.{ Elem, NodeSeq }
-
 import net.liftweb.http.js.JsCmds.SetHtml
 
 /**
@@ -15,7 +14,7 @@ trait Cell extends RElem {
    */
   def content: Signal[NodeSeq]
 
-  override def renderer(implicit p: Page): Elem=>Elem = e => super.renderer(p)(e).copy(child = content.now)
+  override def renderer(implicit p: Page): Elem => Elem = e => super.renderer(p)(e).copy(child = content.now)
 
   override def addPage(elem: Elem)(implicit page: Page): Elem = {
     val ret = super.addPage(elem)(page)
