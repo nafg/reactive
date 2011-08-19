@@ -26,9 +26,10 @@ object Span {
    * @param content the Signal[NodeSeq] that represents the contents of the Span. Defaults to being empty.
    * @return a Span Cell
    */
-  def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty)) = {
+  def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty))(implicit config: CanRenderDomMutationConfig) = {
     def tmp = content
     new Span with Cell {
+      def renderer = config.domMutationRenderer
       val content = tmp
     }
   }
@@ -41,9 +42,9 @@ object Span {
    * @param binding the Signal[NodeSeq=>NodeSeq] that represents the bind function used to generate the contents of the Span.
    * @return a NodeSeq=>NodeSeq that on each invocation renders a new Span Cell
    */
-  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page): NodeSeq=>NodeSeq = 
+  def apply(binding: Signal[NodeSeq=>NodeSeq])(implicit p: Page, config: CanRenderDomMutationConfig): NodeSeq=>NodeSeq =
     bindFunc2contentFunc(binding){c =>
-      apply(c).render
+      apply(c)(config).render
     }
 }
 

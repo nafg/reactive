@@ -67,6 +67,7 @@ class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
  * The multiple-child counterpart of Cell.
  */
 trait Repeater extends RElem {
+  implicit def renderer: CanRender[DomMutation]
   /**
    * The SeqSignal[RElem] to render and keep up to date in the browser
    */
@@ -100,8 +101,9 @@ object Repeater {
    * to render that element.
    * @param binding a SeqSignal where each element is a binding function that renders one element in the view
    */
-  def apply(binding: SeqSignal[_ <: NodeSeq => NodeSeq])(implicit p: Page): NodeSeq => NodeSeq = { ns: NodeSeq =>
+  def apply(binding: SeqSignal[_ <: NodeSeq => NodeSeq])(implicit p: Page, config: CanRenderDomMutationConfig): NodeSeq => NodeSeq = { ns: NodeSeq =>
     new Repeater {
+      def renderer = config.domMutationRenderer
       val baseElem = nodeSeqToElem(ns)
       val events, properties = Nil
       lazy val children = binding map {

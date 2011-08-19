@@ -20,8 +20,7 @@ class RElemTests extends FunSuite with ShouldMatchers {
 class RepeaterTests extends FunSuite with ShouldMatchers {
   test("Repeater should have children with toNSFunc") {
     MockWeb.testS("/") {
-      implicit val o = new Observing {}
-      val select = html.Select(Val(List(1, 2, 3)))
+      val select = html.Select(Val(List(1, 2, 3)))(new Observing{}, Config.defaults)
       select(<select/>).asInstanceOf[Elem].child.length should equal (3)
     }
   }

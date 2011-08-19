@@ -9,6 +9,7 @@ import net.liftweb.http.js.JsCmds.SetHtml
  * It is the single-child counterpart of Repeater.
  */
 trait Cell extends RElem {
+  implicit def renderer: CanRender[DomMutation]
   /**
    * The Signal that determines the contents of the element.
    */
@@ -38,8 +39,9 @@ object Cell {
    * The Signal's value will be passed the children of the element used as the parent.
    * @param binding the binding-function-valued Signal
    */
-  def apply(binding: Signal[NodeSeq => NodeSeq])(implicit p: Page): NodeSeq => NodeSeq = { ns: NodeSeq =>
+  def apply(binding: Signal[NodeSeq => NodeSeq])(implicit p: Page, config: CanRenderDomMutationConfig): NodeSeq => NodeSeq = { ns: NodeSeq =>
     new Cell {
+      def renderer = config.domMutationRenderer
       val events, properties = Nil
       val baseElem = nodeSeqToElem(ns)
       lazy val content = binding map { _(baseElem.child) }
