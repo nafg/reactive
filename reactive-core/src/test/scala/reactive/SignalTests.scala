@@ -118,14 +118,14 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     } should equal (List(4, 2))
   }
 
-  test("actorBased: no re-entry") {
+  test("nonblocking: no re-entry") {
     val v0 = Var(0)
     val v = Var(1)
 
     var n = 0
     for {
       _ <- v0
-      vol@Volatile(v) <- v.actorBased
+      _ <- v.nonblocking
     } {
       n += 1
       n should equal (1)
