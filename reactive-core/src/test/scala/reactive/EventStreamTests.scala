@@ -168,8 +168,36 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
     System.gc
     if (weakref.get.isDefined) info("Warning - takeWhile EventSource was not gc'ed")
   }
-}
 
+  test("nonblocking") {
+    val es = new EventSource[Int]
+    object last {
+      var value = 0
+    }
+    es.nonblocking.foreach {
+      case (n, isStale) =>
+        println("Entering listener")
+        for (b <- 1 to 10 if !isStale()) {
+          println("b="+b+"; stale: "+isStale())
+          last.synchronized {
+            (n != last.value) should equal (isStale())
+          }
+          Thread.sleep(250)
+        }
+        println("Exiting listener")
+    }
+    last.synchronized {
+      last.value = 2
+      es fire 2
+    }
+    Thread.sleep(250)
+    last.synchronized {
+      last.value = 3
+      es fire 3
+    }
+    Thread.sleep(2250)
+  }
+}
 
 class SuppressableTests extends FunSuite with ShouldMatchers with CollectEvents {
   test("supressing") {

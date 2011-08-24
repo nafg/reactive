@@ -96,6 +96,50 @@ trait Signal[+T] extends Forwardable[T] {
    * that are mutually dependent in a consistent manner.
    */
   def distinct: Signal[T] = new DistinctSignal[T](this)
+
+  private type WithVolatility[T] = (T, () => Boolean)
+
+  /**
+   * Returns a derived signal in which value propagation does not happen on the thread triggering the change and block it.
+   * This is ideal for handling values in ways that are time consuming.
+   * The implementation delegates propagation to an actor (scala standard library).
+   * The signal will hold values of type (T, ()=>Boolean), where T is the type of the
+   * parent signal, and the value tuple will contain the parent's value at
+   * the last time it was received, as well as a function that can be used to test
+   * whether that value is outdated because the parent has received a new value.
+   * This is because the actor implementation means that a new value cannot
+   * be received until the previous value is finished being handled.
+   * The test function is useful because it may be desirable to abort the time-consuming work
+   * if the value has been superseded
+   * Example usage:
+   * for((v, isSuperseded) <- signal.nonblocking) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
+   * If you don't care whether it was superseded just do
+   * for((v, _) <- signal.nonblocking) ...
+   */
+  def nonblocking: Signal[(T, () => Boolean)] = new ChildSignal[T, WithVolatility[T], WithVolatility[T]](this, (now, new Volatility), identity) {
+    import scala.actors.Actor._
+    private val delegate = actor {
+      loop {
+        receive {
+          case (x: T, volatility: Volatility) =>
+            current = (x, volatility)
+            change.fire((x, volatility))
+        }
+      }
+    }
+    def parentHandler = {
+      case (parentEvent, (oldValue, volatility: Volatility)) =>
+        volatility.stale = true
+        val v = (parentEvent, new Volatility)
+        delegate ! v
+        v
+    }
+  }
+}
+
+private[reactive] class Volatility extends (() => Boolean) {
+  @volatile private[reactive] var stale = false
+  def apply() = stale
 }
 
 protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S => U) extends Signal[U] {
@@ -113,7 +157,7 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
   parent.change addListener parentListener
 }
 
-protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T,U,Unit](parent, (), _ => f(parent.now)) {
+protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T, U, Unit](parent, (), _ => f(parent.now)) {
   def parentHandler = (x, _) => {
     val u = f(x)
     current = u

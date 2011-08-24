@@ -135,6 +135,25 @@ trait EventStream[+T] extends Forwardable[T] {
    */
   def nonrecursive: EventStream[T]
 
+  /**
+   * Returns a derived event stream in which event propagation does not happen on the thread firing it and block it.
+   * This is ideal for handling events in ways that are time consuming.
+   * Subsequent events are handled sequentially.
+   * The signal will hold values of type (T, ()=>Boolean), where T is the type of the
+   * parent event stream, and the value tuple will contain the event fired in the parent
+   * as well as a function that can be used to test
+   * whether that event is outdated because a new event has been fired since.
+   * This is because the sequential nature means that a new event cannot
+   * be received until the previous event is finished being handled.
+   * The test function is useful because it may be desirable to abort the time-consuming work
+   * if the event has been superseded
+   * Example usage:
+   * for((v, isSuperseded) <- eventStream.nonblocking) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
+   * If you don't care whether it was superseded just do
+   * for((v, _) <- eventStream.nonblocking) ...
+   */
+  def nonblocking: EventStream[(T, () => Boolean)]
+
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
 }
@@ -171,6 +190,26 @@ class EventSource[T] extends EventStream[T] with Logger {
       val newES = Some(f(parentEvent))
       newES foreach { _ addListener thunk }
       newES
+    }
+  }
+
+  private type WithVolatility[T] = (T, () => Boolean)
+
+  class ActorEventStream extends ChildEventSource[WithVolatility[T], Option[Volatility]](None) {
+    import scala.actors.Actor._
+    private val delegate = actor {
+      loop {
+        receive {
+          case (x: T, volatility: Volatility) => fire((x, volatility))
+        }
+      }
+    }
+    def handler = {
+      case (parentEvent, volatilityOption) =>
+        volatilityOption.foreach(_.stale = true)
+        val volatility = new Volatility
+        delegate ! (parentEvent, volatility)
+        Some(volatility)
     }
   }
 
@@ -280,6 +319,8 @@ class EventSource[T] extends EventStream[T] with Logger {
     val f = (v: T) => current = v
     change addListener f
   }
+
+  def nonblocking: EventStream[(T, () => Boolean)] = new ActorEventStream
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
     trace(AddingListener(f))
