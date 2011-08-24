@@ -38,7 +38,7 @@ class DOMProperty(val name: String) extends PageIds {
   private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
 
   /**
-   * The Page whose ajax event the current thread is responding to, if any
+   * The Page whose ajax event for this property the current thread is responding to, if any
    */
   private[web] val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
 
@@ -139,16 +139,13 @@ class DOMProperty(val name: String) extends PageIds {
     new PropertyRenderer()(page) apply e
 
   /**
-   * Change the value of this property in the browser DOM
+   * Change the value of this property in the browser DOM on all pages
    */
-  def update(value: $[JsTypes.JsAny])(implicit page: Page) {
-    // Whenever the property is updated from a page besides the one
-    // being added now, send to all other pages javascript to apply
-    // the new value.
-    if (ajaxPage.value != Some(page)) {
-      for ((page, id) <- pageIds) Reactions.inAnyScope(page) {
-        Reactions.queue(writeJS(id)(value))
-      }
+  def update(value: $[JsTypes.JsAny]) {
+    // Send to all other pages javascript to apply
+    // the new value, other than the page on which this property started this ajax call.
+    for ((page, id) <- pageIds if Page.currentPageOption.map(page==) getOrElse true) Reactions.inAnyScope(page) {
+      Reactions.queue(writeJS(id)(value))
     }
   }
 }
@@ -163,7 +160,7 @@ object DOMProperty {
    * An implicit CanForward instance for DOMProperty's (does not need to be imported). Requires an implicit Page and PropertyCodec.
    * Values are forwarded by calling DOMProperty#update with the return value of codec.toJS applied to the value.
    */
-  implicit def canForward[T](implicit page: Page, codec: PropertyCodec[T]): CanForward[DOMProperty, T] = new CanForward[DOMProperty, T] {
+  implicit def canForward[T](implicit codec: PropertyCodec[T]): CanForward[DOMProperty, T] = new CanForward[DOMProperty, T] {
     def forward(f: Forwardable[T], d: => DOMProperty)(implicit o: Observing) = {
       f foreach { v => d.update(codec.toJS(v)) }
     }

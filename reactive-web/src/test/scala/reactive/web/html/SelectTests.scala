@@ -12,16 +12,17 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
   implicit val config = Config.defaults
 
   test("Selection should initally be defined") {
-    val select = withNewPage(Select(Val(List("A", "B"))))
+    val select = Select(Val(List("A", "B")))
     select.selectedIndex.now.isDefined should be(true)
   }
 
   test("Creating an empty Select should not IndexOutOfBounds") {
-    withNewPage(Select(Val(Nil)))
+    Select(Val(Nil))
+    ()
   }
 
   test("When selectedIndex is None then selectedItem is None") {
-    val select = withNewPage(Select(Val(List("A", "B"))))
+    val select = Select(Val(List("A", "B")))
     select.selectedIndex() = None
     select.selectedItem.now should equal(None)
   }
@@ -55,14 +56,12 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
   }
 
   test("Replacing items maintains the correct selection") {
-    withNewPage{
-      val itemsA = List("N", "B", "T")
-      val itemsB = List("N", "B", "T", "K")
-      val v = Var(itemsA)
-      val select = Select(v)
-      select.selectedItem () = Some("N")
-      v () = itemsB
-      select.selectedItem.now should equal (Some("N"))
-    }
+    val itemsA = List("N", "B", "T")
+    val itemsB = List("N", "B", "T", "K")
+    val v = Var(itemsA)
+    val select = Select(v)
+    select.selectedItem () = Some("N")
+    v () = itemsB
+    select.selectedItem.now should equal (Some("N"))
   }
 }

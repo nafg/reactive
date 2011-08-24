@@ -40,7 +40,7 @@ class DOMPropertyTests extends FunSuite with ShouldMatchers {
 class DOMEventSourceTests extends FunSuite with ShouldMatchers {
   test("DOMEventSource only renders the current Page's propagation javascript") {
     MockWeb.testS("/") {
-      val property = Page.withPage(new Page)(DOMProperty("someName") withEvents DOMEventSource.click)
+      val property = DOMProperty("someName") withEvents DOMEventSource.click
       val e1 = Page.withPage(new Page)(property.render apply <elem1/>)
       val e2 = Page.withPage(new Page)(property.render apply <elem1/>)
       ((e1 \ "@onclick" text) split ";" length) should equal (3)
