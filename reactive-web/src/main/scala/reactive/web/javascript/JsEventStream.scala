@@ -27,7 +27,9 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   def init: Unit = synchronized {
     if (!initialized) {
       initialized = true
-      Reactions queue render+"="+initExp
+      Reactions.inAnyScope(page) {
+        Reactions queue render+"="+initExp
+      }
     }
   }
 
@@ -40,7 +42,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   /**
    * The javascript event stream's fire method, as a JsExp[JsFunction1[T,Void]]
    */
-  def fireExp: $[T=|>JsVoid] = {
+  def fireExp: $[T =|> JsVoid] = {
     init
     JsRaw(render+".fire")
   }
@@ -50,13 +52,17 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * are scheduled to be processed after 500 milliseconds.
    */
   def fire(v: JsExp[T]) {
-    Reactions queue fireExp(v).render
-    Reactions queue "window.setTimeout('reactive.doAjax()',500)"
+    Reactions.inAnyScope(page) {
+      Reactions queue fireExp(v).render
+      Reactions queue "window.setTimeout('reactive.doAjax()',500)"
+    }
   }
 
   protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
-    init
-    Reactions queue render+".foreach("+f.render+")"
+    Reactions.inAnyScope(page) {
+      init
+      Reactions queue render+".foreach("+f.render+")"
+    }
   }
   /**
    * Register a javascript callback function with the javascript event stream.  
@@ -93,8 +99,8 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a mapping function.
    */
-  def map[U <: JsAny, F : ToJs.To[JsFunction1[T, U],JsExp]#From](f: F): JsEventStream[U] = child(parent.render+".map("+f.render+")")
-//  def map[U<:JsAny](f: $[T=|>U]): JsEventStream[U] = child(parent.render+".map("+f.render+")")
+  def map[U <: JsAny, F: ToJs.To[JsFunction1[T, U], JsExp]#From](f: F): JsEventStream[U] = child(parent.render+".map("+f.render+")")
+  //  def map[U<:JsAny](f: $[T=|>U]): JsEventStream[U] = child(parent.render+".map("+f.render+")")
   /**
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a flat-mapping function.
@@ -113,13 +119,13 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   //  def nonrecursive: EventStream[T]
 
 }
-trait CanForwardJs[-T, V<:JsAny] {
-  def forward(s: JsForwardable[V],t: T)
+trait CanForwardJs[-T, V <: JsAny] {
+  def forward(s: JsForwardable[V], t: T)
 }
 object CanForwardJs {
-  implicit def jes[V<:JsAny] = new CanForwardJs[JsEventStream[V],V] {
-    def forward(s: JsForwardable[V],t: JsEventStream[V]) =
-      s.foreach((x:$[V]) => t.fireExp(x))(ToJs.func1)
+  implicit def jes[V <: JsAny] = new CanForwardJs[JsEventStream[V], V] {
+    def forward(s: JsForwardable[V], t: JsEventStream[V]) =
+      s.foreach((x: $[V]) => t.fireExp(x))(ToJs.func1)
   }
 }
 
