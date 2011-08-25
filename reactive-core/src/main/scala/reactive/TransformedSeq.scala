@@ -37,7 +37,7 @@ trait TransformedSeq[T]
       case Remove(loc, elem) => xform(loc, elem) map {
         case (loc, elem) => Remove(loc, elem)
       }
-      case Batch(ms @ _*) => List(Batch(ms flatMap xform: _*))
+      case Batch(ms@_*) => List(Batch(ms flatMap xform: _*))
     }
     override def baseDeltas = LCS.lcsdiff(outer, underlying, (a: T, b: U) => a == b)
 
@@ -47,19 +47,19 @@ trait TransformedSeq[T]
     protected def initIndex: ArrayBuffer[Int]
     private def fixIndexes(ms: List[SeqDelta[U, U]]): List[SeqDelta[U, U]] = {
       def merged(ms: List[SeqDelta[U, U]]) = ms flatMap {
-        case Batch(ms @ _*) => ms
-        case m => List(m)
+        case Batch(ms@_*) => ms
+        case m            => List(m)
       }
       def idx(m: SeqDelta[U, U]) = m match {
-        case Include(i, _) => i
-        case Remove(i, _) => i
+        case Include(i, _)   => i
+        case Remove(i, _)    => i
         case Update(i, _, _) => i
       }
       val mergedAndSorted = merged(ms) sortWith { idx(_) < idx(_) }
       var off = 0
       mergedAndSorted map {
-        case Include(i, e) => Include(i - off, e)
-        case Remove(i, e) => off += 1; Remove(i - off + 1, e)
+        case Include(i, e)   => Include(i - off, e)
+        case Remove(i, e)    => off += 1; Remove(i - off + 1, e)
         case Update(i, a, b) => Update(i - off, a, b)
       }
     }
@@ -150,6 +150,12 @@ trait TransformedSeq[T]
       else
         Nil
     }
+    override protected[reactive] def xform(m: SeqDelta[T, T]): List[SeqDelta[T, T]] = m match {
+      case Remove(n, _) if n >= from && n < until =>
+        super.xform(m) :+ Include(until - 1 - from, outer(until))
+      case _ => super.xform(m)
+    }
+
     override def baseDeltas =
       (0 until from).toList.map { i => Remove(0, outer(i)) } ++
         (until until outer.length).toList.map { i => Remove(until - from, outer(i)) }
@@ -197,7 +203,7 @@ trait TransformedSeq[T]
             lastValid = n - 1
           else if (n == lastValid + 1 && (prev != v))
             lastValid = calcLastValid
-        case Batch(_@ _*) => // let super call below handle recursion
+        case Batch(_@_*) => // let super call below handle recursion
       }
       ret
     }
@@ -251,7 +257,7 @@ trait TransformedSeq[T]
 
   private def getThat[U, That](result: That)(f: Seq[U] => TransformedSeq[U]): That = result match {
     case s: Seq[U] => f(s).asInstanceOf[That]
-    case other => other
+    case other     => other
   }
 
   //TODO appending another TransformedSeq
