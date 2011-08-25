@@ -151,7 +151,7 @@ object Reactions extends Logger {
    */
   def inAnyScope[T](page: Page)(block: => T): T = {
     _currentScope.value match {
-      case s@CometScope(p) if p == Page =>
+      case s@CometScope(`page`) =>
         trace(ReusingScope(s))
         block
       case s if Page.currentPageOption == Some(page) =>
