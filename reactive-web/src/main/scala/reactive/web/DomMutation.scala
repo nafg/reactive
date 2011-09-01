@@ -9,52 +9,27 @@ import scala.xml.Group
 import net.liftweb.util.Helpers.encJs
 import net.liftweb.http.js.HtmlFixer
 
-
 object DomMutation extends HtmlFixer {
-  private def createElem(id: String, e: Elem): String = {
-    "var e=document.createElement('"+e.label+"');"+
-      (e.attributes.flatMap { attr =>
-        ("e.setAttribute('"+attr.key+"','"+attr.value.text+"');").toCharArray
-      }).mkString +
-      fixHtmlCmdFunc(id, e.child)("e.innerHTML = "+_+";")
-  }
-
+  private def elemString(id: String, ns: NodeSeq) = fixHtmlCmdFunc(id, ns)(s => s)
+  private def createElem(id: String, e: Elem): String = "reactive.createElem('%s',%s,%s)".format(
+    e.label,
+    e.attributes.map{ md => "'"+md.key+"':'"+md.value.text+"'" }.mkString("{", ",", "}"),
+    elemString(id, e.child)
+  )
   val defaultDomMutationRenderer: CanRender[DomMutation] = CanRender {
     case InsertChildBefore(parentId, child, prevId) =>
-      "try{"+createElem(parentId, child)+
-        "var p = document.getElementById('"+parentId+"');"+
-        "p.insertBefore(e, document.getElementById('"+prevId+"'))"+
-        "}catch(e){}"
+      "reactive.insertChild('%s',%s,'%s')".format(parentId, createElem(parentId, child), prevId)
     case AppendChild(parentId, child) =>
-      "try{"+createElem(parentId, child)+
-        "document.getElementById('"+parentId+"').appendChild(e);"+
-        "}catch(e){}"
+      "reactive.appendChild('%s',%s)".format(parentId, createElem(parentId, child))
     case RemoveChild(parentId, oldId) =>
-      "try{document.getElementById('"+parentId+"').removeChild(document.getElementById('"+oldId+
-        "'))}catch(e){}"
+      "reactive.removeChild('%s','%s')".format(parentId, oldId)
     case ReplaceChild(parentId, child, oldId) =>
-      "try{"+createElem(parentId, child)+
-        "document.getElementById('"+parentId+"').replaceChild(e, document.getElementById('"+oldId+
-        "'))}catch(e){}"
+      "reactive.replaceChild('%s',%s,'%s')".format(parentId, createElem(parentId, child), oldId)
     case ReplaceAll(parentId, child) =>
-      "try{"+
-        fixHtmlCmdFunc(parentId, child)("document.getElementById('"+parentId+"').innerHTML = "+_)+
-        "}catch(e){}"
+      "reactive.replaceAll('%s',%s)".format(parentId, elemString(parentId, child))
   }
 
-  //TODO should be written with DSL:
-  /* 
-   * Try {
-   *   val e = $ := document.createElement(child.label)
-   *   val a = $ := child.attributes.$
-   *   ForEach(a) { attr =>
-   *     e.setAttribute(attr.key, attr.value.text)
-   *   }
-   *   e.innerHtml := child.child.toString.$
-   *   document.getElementById(parentId) appendChild e
-   * } Catch { e =>
-   * }
-   */
+  //TODO should be written with DSL: JsStub for reactive object
 
   case class InsertChildBefore(parentId: String, child: Elem, prevId: String) extends DomMutation {
     def updateElem = { e =>

@@ -95,5 +95,60 @@ window.reactive = {
     var s = JSON.stringify(q);
     liftAjax.lift_ajaxHandler(this.funcId + "=" + encodeURIComponent(s), null,
         null, null);
+  },
+  createElem : function(label, attributes, innerHtml) {
+    var e = document.createElement(label);
+    for (k in attributes)
+      e.setAttribute(k, attributes[k]);
+    e.innerHTML = innerHtml;
+    return e;
+  },
+  insertChild : function(parentId, child, beforeId) {
+    try {
+      var p = document.getElementById(parentId);
+      var b = document.getElementById(beforeId);
+      p.insertBefore(child, b);
+    } catch (e) {
+      if (window.console)
+        console.error(e);
+    }
+  },
+  appendChild : function(parentId, child) {
+    try {
+      var p = document.getElementById(parentId);
+      p.appendChild(child);
+    } catch (e) {
+      if (window.console)
+        console.error(e);
+    }
+  },
+  removeChild : function(parentId, oldId) {
+    try {
+      var p = document.getElementById(parentId);
+      var c = document.getElementById(oldId);
+      p.removeChild(c);
+    } catch (e) {
+      if (window.console)
+        console.error(e);
+    }
+  },
+  replaceChild : function(parentId, child, oldId) {
+    try {
+      var p = document.getElementById(parentId);
+      var o = document.getElementById(oldId);
+      p.replaceChild(child, o);
+    } catch (e) {
+      if (window.console)
+        console.error(e);
+    }
+  },
+  replaceAll : function(parentId, innerHtml) {
+    try {
+      var p = document.getElementById(parentId);
+      p.innerHTML = innerHtml;
+    } catch (e) {
+      if (window.console)
+        console.error(e);
+    }
   }
 };
