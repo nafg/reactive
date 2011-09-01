@@ -60,9 +60,9 @@ sealed trait DomMutation {
   def parentId: String
   protected def updateElem: Elem => Elem
   def xformId(id: String)(in: NodeSeq)(f: Elem => NodeSeq): NodeSeq = in match {
-    case e: Elem if e.attribute("id").map(_.text) == Some(parentId) => f(e)
+    case e: Elem if e.attribute("id").map(_.text) == Some(id) => f(e)
     case Group(ns) => Group(ns flatMap apply)
-    case Seq(ns@_*) => ns flatMap apply
+    case Seq(ns@_*) if ns.length > 1 => ns flatMap apply
     case other => other
   }
   def apply(in: NodeSeq): NodeSeq = xformId(parentId)(in)(updateElem)
