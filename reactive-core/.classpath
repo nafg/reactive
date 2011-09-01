@@ -3,10 +3,7 @@
 	<classpathentry kind="src" output="target/eclipse/classes" path="src/main/scala"/>
 	<classpathentry kind="src" output="target/eclipse/test-classes" path="src/test/scala"/>
 	<classpathentry kind="con" path="ch.epfl.lamp.sdt.launching.SCALA_CONTAINER"/>
-	<classpathentry exported="true" kind="con" path="de.element34.sbt_eclipse.classpath.ManagedClasspathContainer"/>
-	<classpathentry exported="true" kind="con" path="de.element34.sbt_eclipse.classpath.UnmanagedClasspathContainer"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
-	<classpathentry kind="con" path="org.apache.ivyde.eclipse.cpcontainer.IVYDE_CONTAINER/?ivyXmlPath=target%2Fscala_2.8.0.RC6%2Fivy-0.0.1-SNAPSHOT.xml&amp;confs=*"/>
 	<classpathentry kind="output" path="target/eclipse/classes"/>
 </classpath>

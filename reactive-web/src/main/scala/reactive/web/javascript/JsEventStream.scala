@@ -65,13 +65,13 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
     }
   }
   /**
-   * Register a javascript callback function with the javascript event stream.  
+   * Register a javascript callback function with the javascript event stream.
    */
   def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F) {
     foreachImpl(f)
   }
   /**
-   * Register a javascript callback function with the javascript event stream.  
+   * Register a javascript callback function with the javascript event stream.
    */
   def foreach(f: $[T =|> JsVoid]) {
     foreachImpl(f)
