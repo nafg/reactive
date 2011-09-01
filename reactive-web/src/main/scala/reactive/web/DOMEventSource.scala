@@ -15,8 +15,10 @@ import scala.collection.mutable.WeakHashMap
  * Generates the javascript necessary to fire JsEventStreams
  * in response to events.
  */
-//TODO better name--it is not an EventSource; only wraps a JsEventStream
+//TODO better name? It is not an EventSource; only wraps a JsEventStream
+class DomEventSource[T <: DOMEvent: Manifest: EventEncoder] extends DOMEventSource[T]
 
+@deprecated("Use DomEventSource")
 class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[T] with Logger with JsForwardable[JsObj] {
   class Renderer(implicit page: Page) extends (NodeSeq => NodeSeq) {
     /**
