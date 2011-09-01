@@ -74,10 +74,12 @@ class Page extends Observing {
 
   private var counter = 0
 
-  def nextId = synchronized {
+  def nextId = "reactiveWebId_%06d" format nextNumber
+
+  def nextNumber = synchronized {
     val c = counter
     counter += 1
-    "reactiveWebId_%06d" format c
+    c
   }
 
   private[web] val ajaxEvents = new EventSource[(String, JValue)]
