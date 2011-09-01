@@ -177,6 +177,7 @@ class JsVar[T <: JsAny] extends NamedIdent[T] with JsStatement {
     val ident = JsVar.this.ident
     def toReplace = List(init) collect { case s: JsStatement => s }
   }
+  def :=(exp: $[T]) = new Assignment(exp)
 }
 
 object For {
