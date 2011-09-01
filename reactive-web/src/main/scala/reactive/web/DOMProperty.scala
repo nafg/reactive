@@ -18,7 +18,7 @@ class DOMProperty(val name: String) extends PageIds {
     extends Renderer(this)(elem => includedEvents.foldLeft(
       elem %
         attributeValue(attributeName).map(
-          new UnprefixedAttribute(name, _, Null)
+          new UnprefixedAttribute(attributeName, _, Null)
         ).getOrElse(Null)
     ) { (e, es) =>
         es.render(page)(e)
