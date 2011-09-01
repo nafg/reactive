@@ -40,8 +40,8 @@ object JsStatement {
         s.matches.map{ m =>
           "case "+m.against.render+": "+m.code.map(render).mkString(";\n")+";\nbreak;"
         }.mkString("\n")+"}"
-    case v: JsVar[_] => "var "+v.ident
-    case a: JsVar[_]#Assignment => a.ident+"="+a.init.render
+    case v: JsVar[_]            => "var "+v.ident.name
+    case a: JsVar[_]#Assignment => a.ident.name+"="+a.init.render
   }
 
   /**
