@@ -148,6 +148,6 @@ object DOMEventSource {
   /**
    * Creates a new Change DOMEventSource
    */
-  def change = new DOMEventSource[Change.type]
+  def change = new DOMEventSource[Change]
 
 }

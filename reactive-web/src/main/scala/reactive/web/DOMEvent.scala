@@ -13,12 +13,12 @@ class EventEncoder[T<:DOMEvent](val encodeExp: $[JsTypes.JsObj])
 
 object EventEncoder {
   val empty = Map.empty.$
-  implicit val blur = new EventEncoder[Blur.type](empty)
-  implicit val change = new EventEncoder[Change.type](empty)
-  implicit val error = new EventEncoder[Error.type](empty)
-  implicit val focus = new EventEncoder[Focus.type](empty)
-  implicit val resize = new EventEncoder[Resize.type](empty)
-  implicit val unload = new EventEncoder[Unload.type](empty)
+  implicit val blur = new EventEncoder[Blur](empty)
+  implicit val change = new EventEncoder[Change](empty)
+  implicit val error = new EventEncoder[Error](empty)
+  implicit val focus = new EventEncoder[Focus](empty)
+  implicit val resize = new EventEncoder[Resize](empty)
+  implicit val unload = new EventEncoder[Unload](empty)
 
   val modifiers = Map[String,$[JsTypes.JsAny]](
     "alt"->   ('event.$->'altKey.$),
@@ -69,12 +69,12 @@ object EventEncoder {
  * The base class for all events
  */
 sealed trait DOMEvent
-case object Blur extends DOMEvent
-case object Change extends DOMEvent
+case class Blur() extends DOMEvent
+case class Change() extends DOMEvent
 case class Click(modifiers: Modifiers) extends DOMEvent
 case class DblClick(modifiers: Modifiers) extends DOMEvent
-case object Error extends DOMEvent
-case object Focus extends DOMEvent
+case class Error() extends DOMEvent
+case class Focus() extends DOMEvent
 /**
  * @param code the keyCode or charCode property of the javascript event object
  */
@@ -99,9 +99,9 @@ case class MouseOut(buttons: Buttons, pos: Position, related: Option[RElem]) ext
  */
 case class MouseOver(buttons: Buttons, pos: Position, related: Option[RElem]) extends DOMEvent
 case class MouseUp(buttons: Buttons, pos: Position) extends DOMEvent
-case object Resize extends DOMEvent
+case class Resize() extends DOMEvent
 case class SelectText(modifiers: Modifiers) extends DOMEvent
-case object Unload extends DOMEvent
+case class Unload() extends DOMEvent
 
 /**
  * Encapsulates the state of modifier keys on the keyboard at the time of this event
