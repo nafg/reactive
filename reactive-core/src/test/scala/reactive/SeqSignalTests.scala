@@ -80,7 +80,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     def test[T](s: SeqSignal[T]) = s.deltas.foreach { ds =>
       val flattened = SeqDelta.flatten(List(ds))
       flattened foreach {
-        case d @ Include(i, n) =>
+        case d@Include(i, n) =>
           println("d: "+d+", s.now: "+s.now)
           s.now(i) should equal(n)
         case d => println("d: "+d)
@@ -95,11 +95,38 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     val s2 = s.map(_ map (_ * 10))
     test(s2)
     v() = List(3, 4, 5)
-    
+
     val v2 = Var(10)
-    val m = SeqSignal(v2.map(n => List(n,n+1,n+2)))
+    val m = SeqSignal(v2.map(n => List(n, n + 1, n + 2)))
     test(m)
-    v2 ()= 20
+    v2 () = 20
+  }
+
+  test("flatMap-map-slice") {
+    val xs = BufferSignal[Int]()
+    for (i <- 1 until 10) xs.value += i
+
+    val perPage = 2
+    val page = Var(0)
+    val curPageXs = page.flatMap{ p =>
+      //xs.map(_.drop(p * perPage)).map(_.take(perPage))
+      xs.map(_.slice(p * perPage, p * perPage + perPage))
+    }
+
+    curPageXs.now should equal (Seq(1, 2))
+
+    collecting(curPageXs.deltas){
+      page () = 1
+      curPageXs.now should equal(Seq(3, 4))
+    } should equal (List(Batch(
+      Remove(0, 1), Remove(0, 2), Include(0, 3), Include(1, 4)
+    )))
+    collecting(curPageXs.deltas){
+      page () = 2
+      curPageXs.now should equal(Seq(5, 6))
+    } should equal (List(Batch(
+      Remove(0, 3), Remove(0, 4), Include(0, 5), Include(1, 6)
+    )))
   }
 }
 
