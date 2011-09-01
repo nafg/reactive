@@ -177,7 +177,7 @@ object ToJs extends ToJsLow {
  * A JsIdent whose javascript name is the scala type
  */
 trait NamedIdent[T <: JsAny] extends JsIdent[T] {
-  def ident = Symbol(scalaClassName(getClass))
+  val ident = Symbol(scalaClassName(getClass))
 }
 
 object JsOp {
