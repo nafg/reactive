@@ -42,6 +42,7 @@ object JsStatement {
         }.mkString("\n")+"}"
     case v: JsVar[_]            => "var "+v.ident.name
     case a: JsVar[_]#Assignment => a.ident.name+"="+a.init.render
+    case f: For.For             => "for("+f.init.map(render).mkString(",")+";"+f.cond.render+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
   }
 
   /**
@@ -181,8 +182,11 @@ class JsVar[T <: JsAny] extends NamedIdent[T] with JsStatement {
 }
 
 object For {
-  class For(init: Seq[JsVar[_]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_]#Assignment])(block: =>Unit) extends HasBody(block) with JsStatement {
-    def toReplace = Nil
+  class For(
+    private[javascript] val init: Seq[JsVar[_]#Assignment],
+    private[javascript] val cond: $[JsBoolean],
+    private[javascript] val inc: Seq[JsVar[_]#Assignment])(block: => Unit) extends HasBody(block) with JsStatement {
+    def toReplace = inc ++ init toList
   }
-  def apply(init: Seq[JsVar[_]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_]#Assignment])(block: =>Unit) = new For(init, cond, inc)(block)
+  def apply(init: Seq[JsVar[_]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_]#Assignment])(block: => Unit) = new For(init, cond, inc)(block)
 }

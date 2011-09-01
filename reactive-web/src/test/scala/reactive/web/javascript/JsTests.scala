@@ -49,15 +49,20 @@ class JsTests extends FunSuite with ShouldMatchers {
         },
         1.$ :> window.alert("Yes"$)
       )
+      object i extends JsVar[JsNumber]
+      For(List(i := 1.$), i < 10.$, List(i := i + 1.$)) {
+      }
     }
     theStatements.map(JsStatement.render) should equal (List(
       """if(true) {window.alert("True")} else if(false) {window.alert("False")} else {if(true) {} else {}}""",
       """while(true) {window.alert("Again!")}""",
       """do {window.alert("Hello!")} while(false)""",
-"""switch(1) {case 0: window.alert("No");
+      """switch(1) {case 0: window.alert("No");
 break;
 case 1: window.alert("Yes");
-break;}"""
+break;}""",
+      """var i""",
+      """for(i=1;(i<10);i=(i+1)) {}"""
     ))
   }
 }
