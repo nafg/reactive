@@ -75,6 +75,10 @@ JSON.stringify = JSON.stringify || function(v) {
   }
 };
 window.reactive = {
+  error : function(e) {
+    if (window.console)
+      console.error(e);
+  },
   queuedAjaxEvents : [],
   eventStreams : {},
   fire : function(es, value) {
@@ -106,49 +110,79 @@ window.reactive = {
   insertChild : function(parentId, child, beforeId) {
     try {
       var p = document.getElementById(parentId);
-      var b = document.getElementById(beforeId);
-      p.insertBefore(child, b);
+      if (!p)
+        this.error("Error in insertChild('" + parentId + "'," + child + ",'"
+            + beforeId + "'): no element " + parentId);
+      else {
+        var b = document.getElementById(beforeId);
+        if (!b)
+          this.error("Error in insertChild('" + parentId + "'," + child + ",'"
+              + beforeId + "'): no element " + beforeId);
+        else
+          p.insertBefore(child, b);
+      }
     } catch (e) {
-      if (window.console)
-        console.error(e);
+      this.error(e);
     }
   },
   appendChild : function(parentId, child) {
     try {
       var p = document.getElementById(parentId);
-      p.appendChild(child);
+      if (!p)
+        this.error("Error in appendChild('" + parentId + "'," + child
+            + "): no element " + parentId);
+      else
+        p.appendChild(child);
     } catch (e) {
-      if (window.console)
-        console.error(e);
+      this.error(e);
     }
   },
   removeChild : function(parentId, oldId) {
     try {
       var p = document.getElementById(parentId);
-      var c = document.getElementById(oldId);
-      p.removeChild(c);
+      if (!p)
+        this.error("Error in removeChild('" + parentId + "','" + oldId
+            + "'): no element " + parentId);
+      else {
+        var c = document.getElementById(oldId);
+        if (!c)
+          this.error("Error in removeChild('" + parentId + "','" + oldId
+              + "'): no element " + oldId);
+        else
+          p.removeChild(c);
+      }
     } catch (e) {
-      if (window.console)
-        console.error(e);
+      this.error(e);
     }
   },
   replaceChild : function(parentId, child, oldId) {
     try {
       var p = document.getElementById(parentId);
-      var o = document.getElementById(oldId);
-      p.replaceChild(child, o);
+      if (!p)
+        this.error("Error in replaceChild('" + parentId + "'," + child + ",'"
+            + oldId + "'): no element " + parentId);
+      else {
+        var o = document.getElementById(oldId);
+        if (!o)
+          this.error("Error in replaceChild('" + parentId + "'," + child + ",'"
+              + oldId + "'): no element " + oldId);
+        else
+          p.replaceChild(child, o);
+      }
     } catch (e) {
-      if (window.console)
-        console.error(e);
+      this.error(e);
     }
   },
   replaceAll : function(parentId, innerHtml) {
     try {
       var p = document.getElementById(parentId);
-      p.innerHTML = innerHtml;
+      if (!p)
+        this.error("Error in replaceAll('" + parentId + "'," + innerHtml
+            + "): no element " + parentId);
+      else
+        p.innerHTML = innerHtml;
     } catch (e) {
-      if (window.console)
-        console.error(e);
+      this.error(e);
     }
   }
 };
