@@ -9,23 +9,24 @@ import net.liftweb.util.Helpers.encJs
 import net.liftweb.http.js.HtmlFixer
 
 object DomMutation extends HtmlFixer {
-  private def elemString(id: String, ns: NodeSeq) = fixHtmlCmdFunc(id, ns)(s => s)
-  private def createElem(id: String, e: Elem): String = "reactive.createElem('%s',%s,%s)".format(
-    e.label,
-    e.attributes.map{ md => "'"+md.key+"':'"+md.value.text+"'" }.mkString("{", ",", "}"),
-    elemString(id, e.child)
-  )
+  private def createElem(id: String, e: Elem)(f: String => String): String =
+    fixHtmlCmdFunc(id, e.child)("reactive.createElem('%s',%s,%s)".format(
+      e.label,
+      e.attributes.map{ md => "'"+md.key+"':'"+md.value.text+"'" }.mkString("{", ",", "}"),
+      _
+    )
+    )
   val defaultDomMutationRenderer: CanRender[DomMutation] = CanRender {
     case InsertChildBefore(parentId, child, prevId) =>
-      "reactive.insertChild('%s',%s,'%s')".format(parentId, createElem(parentId, child), prevId)
+      createElem(parentId, child)("reactive.insertChild('%s',%s,'%s')".format(parentId, _, prevId))
     case AppendChild(parentId, child) =>
-      "reactive.appendChild('%s',%s)".format(parentId, createElem(parentId, child))
+      createElem(parentId, child)("reactive.appendChild('%s',%s)".format(parentId, _))
     case RemoveChild(parentId, oldId) =>
       "reactive.removeChild('%s','%s')".format(parentId, oldId)
     case ReplaceChild(parentId, child, oldId) =>
-      "reactive.replaceChild('%s',%s,'%s')".format(parentId, createElem(parentId, child), oldId)
+      createElem(parentId, child)("reactive.replaceChild('%s',%s,'%s')".format(parentId, _, oldId))
     case ReplaceAll(parentId, child) =>
-      "reactive.replaceAll('%s',%s)".format(parentId, elemString(parentId, child))
+      fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s)".format(parentId, _))
   }
 
   //TODO should be written with DSL: JsStub for reactive object
