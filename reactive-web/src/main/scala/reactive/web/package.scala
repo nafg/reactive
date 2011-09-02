@@ -88,8 +88,6 @@ package object web {
   private[web] def scalaClassName(c: Class[_]) = {
     val name = c.getSimpleName
     val dropEnd = name.replaceAll("""(\$\d*)*\z""", "")
-    val ret = dropEnd.toList.reverse.takeWhile('$'!=).reverse.mkString
-    println(c.getSimpleName+" -> "+ret)
-    ret
+    dropEnd.toList.reverse.takeWhile('$'!=).reverse.mkString
   }
 }
