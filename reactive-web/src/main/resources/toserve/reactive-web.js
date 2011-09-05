@@ -177,8 +177,8 @@ window.reactive = {
     try {
       var p = document.getElementById(parentId);
       if (!p)
-        this.error("Error in replaceAll('" + parentId + "'," + innerHtml
-            + "): no element " + parentId);
+        this.error("Error in replaceAll('" + parentId + "','" + innerHtml
+            + "'): no element " + parentId);
       else
         p.innerHTML = innerHtml;
     } catch (e) {
