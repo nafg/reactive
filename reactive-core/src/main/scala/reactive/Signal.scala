@@ -92,8 +92,8 @@ trait Signal[+T] extends Forwardable[T] {
 
   /**
    * Returns a derived Signal that only fires change events that are not equal to the
-   * previous value, thus preventing infinite recursion between multiple signals
-   * that are mutually dependent in a consistent manner.
+   * previous value. This can be used to prevent infinite recursion between multiple
+   * signals that are mutually dependent in a consistent manner.
    */
   def distinct: Signal[T] = new DistinctSignal[T](this)
 

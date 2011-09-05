@@ -197,6 +197,19 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
     }
     Thread.sleep(2250)
   }
+
+  test("distinct") {
+    val es = new EventSource[Int]
+    collecting(es.distinct){
+      es fire 0
+      es fire 1
+      es fire 1
+      es fire 2
+      es fire 3
+      es fire 3
+      es fire 2
+    } should equal (List(0, 1, 2, 3, 2))
+  }
 }
 
 class SuppressableTests extends FunSuite with ShouldMatchers with CollectEvents {

@@ -136,6 +136,13 @@ trait EventStream[+T] extends Forwardable[T] {
   def nonrecursive: EventStream[T]
 
   /**
+   * Returns a derived EventStream that only fires events that are not equal to the
+   * previous event. This can be used to prevent infinite recursion between multiple
+   * event streams that are mutually dependent in a consistent manner.
+   */
+  def distinct: EventStream[T]
+
+  /**
    * Returns a derived event stream in which event propagation does not happen on the thread firing it and block it.
    * This is ideal for handling events in ways that are time consuming.
    * Subsequent events are handled sequentially.
@@ -299,6 +306,14 @@ class EventSource[T] extends EventStream[T] with Logger {
     def handler = (event, _) => if (!firing.value) firing.withValue(true) {
       fire(event)
     }
+  }
+
+  def distinct: EventStream[T] = foldLeft[List[T]](Nil){
+    case (Nil, e)      => e :: Nil
+    case (old :: _, e) => e :: old :: Nil
+  }.collect{
+    case e :: Nil                  => e
+    case e :: old :: _ if e != old => e
   }
 
   def |[U >: T](that: EventStream[U]): EventStream[U] = new EventSource[U] {
