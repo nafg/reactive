@@ -10,12 +10,15 @@ import net.liftweb.http.js.HtmlFixer
 
 object DomMutation extends HtmlFixer {
   private def createElem(id: String, e: Elem)(f: String => String): String =
-    fixHtmlCmdFunc(id, e.child)("reactive.createElem('%s',%s,%s)".format(
-      e.label,
-      e.attributes.map{ md => "'"+md.key+"':'"+md.value.text+"'" }.mkString("{", ",", "}"),
-      _
-    )
-    )
+    fixHtmlCmdFunc(id, e.child){ s =>
+      f(
+        "reactive.createElem('%s',%s,%s)".format(
+          e.label,
+          e.attributes.map{ md => "'"+md.key+"':'"+md.value.text+"'" }.mkString("{", ",", "}"),
+          s
+        )
+      )
+    }
   val defaultDomMutationRenderer: CanRender[DomMutation] = CanRender {
     case InsertChildBefore(parentId, child, prevId) =>
       createElem(parentId, child)("reactive.insertChild('%s',%s,'%s')".format(parentId, _, prevId))

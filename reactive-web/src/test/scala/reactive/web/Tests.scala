@@ -64,4 +64,11 @@ class DomMutationTests extends FunSuite with ShouldMatchers {
       xml.toString should equal (<span id="span">B</span> toString)
     }
   }
+
+  test("Rendering") {
+    DomMutation.
+      defaultDomMutationRenderer(DomMutation.InsertChildBefore("parentId", <elem/>, "beforeId")) should equal (
+        """reactive.insertChild('parentId',reactive.createElem('elem',{},""),'beforeId')"""
+      )
+  }
 }
