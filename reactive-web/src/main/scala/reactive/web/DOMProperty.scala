@@ -13,7 +13,7 @@ import scala.ref.WeakReference
  * and an update method that sends updates to the browser as a JsExp.
  * @param name The javascript name of the property
  */
-class DOMProperty(val name: String) extends PageIds {
+class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig) extends PageIds {
   class PropertyRenderer(attributeValue: String => Option[String] = _ => None)(implicit page: Page)
     extends Renderer(this)(elem => includedEvents.foldLeft(
       elem %
