@@ -16,7 +16,9 @@ import net.liftweb.util.{ Helpers, ThreadGlobal }
  * This singleton is used to enable reactive-web's features and to send javascript to the browser
  */
 object Reactions extends Logger {
-  case class QueueingJS(pageId: String, js: JsCmd) extends LogEventPredicate
+  case class QueueingJS[T: CanRender](pageId: Option[String], data: T) extends LogEventPredicate {
+    def js: String = implicitly[CanRender[T]] apply data
+  }
   case class FinishedServerScope(pageId: String, comet: ReactionsComet) extends LogEventPredicate
   case class ReusingScope(scope: Scope) extends LogEventPredicate
 
@@ -99,7 +101,14 @@ object Reactions extends Logger {
   /**
    * Queues javascript to be rendered in the current Scope.
    */
-  def queue[T: CanRender](renderable: T): Unit = _currentScope.value queue renderable
+  def queue[T: CanRender](renderable: T): Unit = {
+    lazy val page = currentScope match {
+      case CometScope(p) => Some(p.id)
+      case _             => Page.currentPageOption map (_.id)
+    }
+    trace(QueueingJS(page, renderable))
+    _currentScope.value queue renderable
+  }
 
   /**
    * Executes code within a "local" scope. All javascript
