@@ -5,7 +5,7 @@ import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import net.liftweb.mockweb._
 
-import scala.xml.{ Elem, NodeSeq, Text }
+import scala.xml.{ Elem, NodeSeq, Text, UnprefixedAttribute, Null }
 
 class RElemTests extends FunSuite with ShouldMatchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
@@ -49,10 +49,9 @@ class DOMEventSourceTests extends FunSuite with ShouldMatchers {
   }
 }
 
-class DomMutationTests extends FunSuite with ShouldMatchers {
-  import DomMutation._
+class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
   import net.liftweb.util.Helpers._
-  test("Can simulate DomMutations") {
+  test("TestScope") {
     MockWeb.testS("/") {
       val template = <span id="span">A</span>
       val signal = Var("A")
@@ -65,7 +64,34 @@ class DomMutationTests extends FunSuite with ShouldMatchers {
       xml.toString should equal (<span id="span">B</span> toString)
     }
   }
-  
+
+  test("Emulate event") {
+    Page.withPage(new Page) {
+      var fired = false
+      val event = DOMEventSource.keyUp ->> { fired = true }
+      val input = event.render apply <input/>
+      val ts = new TestScope(input)
+      import ts._
+      input fire KeyUp(56)
+      fired should equal (true)
+    }
+  }
+
+  test("Emulate property change") {
+    Page.withPage(new Page) {
+      val value = PropertyVar("value")("initial") withEvents DOMEventSource.change
+      val input = value render <input id="id"/>
+      val ts = new TestScope(input)
+      import ts._
+      (input("value") = "newValue") fire Change()
+      value.now should equal ("newValue")
+    }
+  }
+}
+
+class DomMutationTests extends FunSuite with ShouldMatchers {
+  import DomMutation._
+
   test("Apply to xml") {
     val template = <elem><parent id="parentId"><child1 id="child1"/><child2 id="child2"/></parent></elem>
     InsertChildBefore("parentId", <child3/>, "child2") apply template should equal (
@@ -87,11 +113,9 @@ class DomMutationTests extends FunSuite with ShouldMatchers {
     up.asInstanceOf[Elem].child(0).attributes.asAttrMap should equal (Map("id" -> "parentId", "value" -> "30"))
   }
 
-
   test("Rendering") {
-    DomMutation.
-      defaultDomMutationRenderer(DomMutation.InsertChildBefore("parentId", <elem/>, "beforeId")) should equal (
-        """reactive.insertChild('parentId',reactive.createElem('elem',{},""),'beforeId')"""
-      )
+    defaultDomMutationRenderer(InsertChildBefore("parentId", <elem/>, "beforeId")) should equal (
+      """reactive.insertChild('parentId',reactive.createElem('elem',{},""),'beforeId')"""
+    )
   }
 }
