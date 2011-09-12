@@ -184,5 +184,17 @@ window.reactive = {
     } catch (e) {
       this.error(e);
     }
+  },
+  updateProperty : function(parentId, propertyName, value) {
+    try {
+      var p = document.getElementById(parentId);
+      if (!p)
+        this.error("Error in updateProperty('" + parentId + "','"
+            + propertyName + "'," + value + "): no element " + parentId);
+      else
+        p[propertyName] = value;
+    } catch (e) {
+      this.error(e);
+    }
   }
 };

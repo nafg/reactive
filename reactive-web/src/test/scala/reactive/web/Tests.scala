@@ -50,6 +50,7 @@ class DOMEventSourceTests extends FunSuite with ShouldMatchers {
 }
 
 class DomMutationTests extends FunSuite with ShouldMatchers {
+  import DomMutation._
   import net.liftweb.util.Helpers._
   test("Can simulate DomMutations") {
     MockWeb.testS("/") {
@@ -64,6 +65,28 @@ class DomMutationTests extends FunSuite with ShouldMatchers {
       xml.toString should equal (<span id="span">B</span> toString)
     }
   }
+  
+  test("Apply to xml") {
+    val template = <elem><parent id="parentId"><child1 id="child1"/><child2 id="child2"/></parent></elem>
+    InsertChildBefore("parentId", <child3/>, "child2") apply template should equal (
+      <elem><parent id="parentId"><child1 id="child1"/><child3/><child2 id="child2"/></parent></elem>
+    )
+    AppendChild("parentId", <child3/>) apply template should equal (
+      <elem><parent id="parentId"><child1 id="child1"/><child2 id="child2"/><child3/></parent></elem>
+    )
+    RemoveChild("parentId", "child1") apply template should equal (
+      <elem><parent id="parentId"><child2 id="child2"/></parent></elem>
+    )
+    ReplaceChild("parentId", <child3/>, "child1") apply template should equal (
+      <elem><parent id="parentId"><child3/><child2 id="child2"/></parent></elem>
+    )
+    ReplaceAll("parentId", <child3/> ++ <child4/>) apply template should equal (
+      <elem><parent id="parentId"><child3/><child4/></parent></elem>
+    )
+    val up = UpdateProperty("parentId", "value", "value", 30) apply template
+    up.asInstanceOf[Elem].child(0).attributes.asAttrMap should equal (Map("id" -> "parentId", "value" -> "30"))
+  }
+
 
   test("Rendering") {
     DomMutation.

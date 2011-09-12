@@ -7,6 +7,9 @@ import scala.xml.NodeSeq
 import scala.xml.Group
 import net.liftweb.util.Helpers.encJs
 import net.liftweb.http.js.HtmlFixer
+import scala.xml.Node
+import scala.xml.UnprefixedAttribute
+import scala.xml.Null
 
 object DomMutation extends HtmlFixer {
   private def createElem(id: String, e: Elem)(f: String => String): String =
@@ -30,6 +33,8 @@ object DomMutation extends HtmlFixer {
       createElem(parentId, child)("reactive.replaceChild('%s',%s,'%s')".format(parentId, _, oldId))
     case ReplaceAll(parentId, child) =>
       fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s)".format(parentId, _))
+    case up@UpdateProperty(parentId, pname, aname, v) =>
+      "reactive.updateProperty('%s','%s',%s)".format(parentId, pname, up.codec.toJS(v).render)
   }
 
   //TODO should be written with DSL: JsStub for reactive object
@@ -56,6 +61,11 @@ object DomMutation extends HtmlFixer {
   }
   case class ReplaceAll(parentId: String, child: NodeSeq) extends DomMutation {
     def updateElem = _.copy(child = child)
+  }
+  case class UpdateProperty[T](parentId: String, propertyName: String, attributeName: String, value: T)(implicit val codec: PropertyCodec[T]) extends DomMutation {
+    def updateElem = { e =>
+      codec.toAttributeValue(value)(attributeName).map(e % new UnprefixedAttribute(attributeName, _, Null)).getOrElse(e)
+    }
   }
 }
 
