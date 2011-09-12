@@ -46,12 +46,6 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * The javascript expression that evaluates to the value of this property
    */
   def readJS(id: String): $[JsTypes.JsAny] = JsRaw("document.getElementById('"+id+"')."+name)
-  /**
-   * The javascript statement to mutate this property
-   * @param v the value to mutate it to, as a String
-   */
-  def writeJS(id: String)(v: $[JsTypes.JsAny]): String =
-    "try{"+readJS(id).render+"="+v.render+"}catch(e){}"
 
   /**
    * Registers a Page with this JSProperty.
