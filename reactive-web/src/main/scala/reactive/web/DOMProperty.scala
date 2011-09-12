@@ -144,7 +144,7 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   def update[T: PropertyCodec](value: T) {
     // Send to all other pages javascript to apply
     // the new value, other than the page on which this property started this ajax call.
-    for ((page, id) <- pageIds if Page.currentPageOption.map(page==) getOrElse true) Reactions.inAnyScope(page) {
+    for ((page, id) <- pageIds if Page.currentPageOption.map(page!=) getOrElse true) Reactions.inAnyScope(page) {
       Reactions queue DomMutation.UpdateProperty(id, name, attributeName, value)
     }
   }
