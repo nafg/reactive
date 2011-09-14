@@ -103,7 +103,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * splitting clazz and className on whitespace
      */
     lazy val classes: Set[String] =
-      attr.get("class").toSet.flatMap{s: String => s.split("\\s") filter ("" !=)}
+      attr.get("class").toSet.flatMap{ s: String => s.split("\\s") filter ("" !=) }
     /**
      * The value of the name attribute
      */

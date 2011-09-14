@@ -35,6 +35,72 @@ class DOMPropertyTests extends FunSuite with ShouldMatchers {
     }
   }
 
+  test("DOMProperty updates go everywhere except same property on same page") {
+    implicit val o = new Observing {}
+    val prop1, prop2 = DOMProperty("prop") withEvents DOMEventSource.change
+    prop1.values >> prop2
+    class TestPage(xml: => NodeSeq) extends Page {
+      override lazy val comet = new ReactionsComet {
+        override def queue[T](renderable: T)(implicit canRender: CanRender[T]) {
+          ts.queue(renderable)
+        }
+      }
+      val ts = new TestScope(Page.withPage(this)(xml))
+    }
+    val pageA, pageB = new TestPage((prop1.render apply <elem1/>) ++ (prop2.render apply <elem2/>))
+
+    import scala.actors.Actor._
+    var done = false
+    def pageActor(p: TestPage) = actor {
+      val ts = p.ts
+      while (!done) {
+        receiveWithin(100) {
+          case f: (TestScope => Unit) =>
+            try {
+              Page.withPage(p) {
+                Reactions.inScope(ts) {
+                  f(ts)
+                  reply(None)
+                }
+              }
+            } catch {
+              case e =>
+                reply(Some(e))
+            }
+        }
+      }
+    }
+    val (actorA, actorB) = (pageActor(pageA), pageActor(pageB))
+
+    def inPage(a: scala.actors.Actor)(f: TestScope => Unit) = {
+      a !? f match {
+        case Some(e: Exception) => throw e
+        case _                  =>
+      }
+    }
+    inPage(actorA){ ts =>
+      import ts._
+      ((ts / "elem1")("prop") = "value1") fire Change()
+      ts / "elem1" attr "prop" should equal ("value1")
+      ts / "elem2" attr "prop" should equal ("value1")
+    }
+    inPage(actorB) { ts =>
+      import ts._
+      ts / "elem2" attr "prop" should equal ("value1")
+      ts / "elem1" attr "prop" should equal ("value1")
+
+      ((ts / "elem1")("prop") = "value2") fire Change()
+      ts / "elem1" attr "prop" should equal ("value2")
+      ts / "elem2" attr "prop" should equal ("value2")
+    }
+    inPage(actorA) { ts =>
+      import ts._
+      ts / "elem1" attr "prop" should equal ("value2")
+      ts / "elem2" attr "prop" should equal ("value2")
+    }
+    done = true
+  }
+
 }
 
 class DOMEventSourceTests extends FunSuite with ShouldMatchers {
