@@ -181,8 +181,6 @@ class ReactionsComet extends CometActor {
   override def initCometActor(theSession: LiftSession, typ: Box[String], name: Box[String], defaultXml: NodeSeq, attributes: Map[String, String]) =
     super.initCometActor(theSession, typ, name, defaultXml, attributes)
 
-  private[reactive] val page: Page = CurrentPage.is
-
   private[reactive] var queued: JsCmd = JsCmds.Noop
 
   override def lifespan = Full(new Helpers.TimeSpan(60000))
