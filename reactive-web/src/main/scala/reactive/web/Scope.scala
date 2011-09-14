@@ -26,7 +26,7 @@ trait Scope {
  */
 case class CometScope(page: Page) extends Scope {
   def queue[T](renderable: T)(implicit canRender: CanRender[T]) {
-    page.comet queue Run(canRender(renderable))
+    page.comet queue renderable
   }
 }
 /**

@@ -206,7 +206,8 @@ class ReactionsComet extends CometActor {
       queued = JsCmds.Noop
       reply(ret)
   }
-  private[reactive] def queue(js: JsCmd) = this ! Queue(js)
+  protected[reactive] def queue[T](renderable: T)(implicit canRender: CanRender[T]) = this ! Queue(Run(canRender(renderable)))
+
   private[reactive] def flush = this ! Flush
   private[reactive] def take: JsCmd = this !! Take match {
     case Full(js: JsCmd) => js
