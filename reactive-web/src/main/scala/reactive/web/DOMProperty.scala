@@ -38,6 +38,11 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
 
   /**
+   * This is only used to ensure the event stream is only created once per page
+   */
+  private val jsEventStreams = new scala.collection.mutable.WeakHashMap[Page, JsEventStream[_]]
+
+  /**
    * The Page whose ajax event for this property the current thread is responding to, if any
    */
   private[web] val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
@@ -70,19 +75,23 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
      * With the thread-local 'ajaxPage' set to the Page addPage was called with,
      * the value Var is updated.
      */
-    def setFromAjax(v: String) {
+    def propagate(v: String) {
       ajaxPage.withValue(Some(page)) {
         valuesES fire v
         update(v)
       }
     }
-    val jses = new JsEventStream[JsTypes.JsAny]
-    for (es <- eventSources)
-      es.addEventData(readJS(id), jses)(page)
 
-    // Register setFromAjax with all linked event streams,
-    // for the lifetime of the page
-    jses.toServer(_.values.toString).foreach(setFromAjax)(page)
+    jsEventStreams.getOrElseUpdate(page, {
+      val jses = new JsEventStream[JsTypes.JsAny]
+      for (es <- eventSources)
+        es.addEventData(readJS(id), jses)(page)
+
+      // Register setFromAjax with all linked event streams,
+      // for the lifetime of the page
+      jses.toServer(_.values.toString).foreach(propagate)(page)
+      jses
+    })
 
     ret
   }
