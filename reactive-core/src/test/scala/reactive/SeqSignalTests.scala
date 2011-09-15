@@ -33,17 +33,13 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1, 2, 3)
     val mapped = ss.map { ts =>
-      //      println("Map _*10 : " + ts)
       (ts.map(_ * 10))
     }
-    println(mapped.getClass)
     collecting(mapped.deltas) {
       ss.value += 4
     } should equal(List(
       Include(3, 40)
     ))
-    //    ss.change foreach {x => println("ss change: " + x)}
-    //    mapped.change foreach {x => println("mapped change: " + x)}
     val mapMapped = ss.map(_.map(_ * 10))
     val flatMapMapped = ss.map {
       _ flatMap { n =>
@@ -81,9 +77,8 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
       val flattened = SeqDelta.flatten(List(ds))
       flattened foreach {
         case d@Include(i, n) =>
-          println("d: "+d+", s.now: "+s.now)
           s.now(i) should equal(n)
-        case d => println("d: "+d)
+        case d =>
       }
     }
 

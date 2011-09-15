@@ -176,15 +176,12 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
     }
     es.nonblocking.foreach {
       case (n, isStale) =>
-        println("Entering listener")
         for (b <- 1 to 10 if !isStale()) {
-          println("b="+b+"; stale: "+isStale())
           last.synchronized {
             (n != last.value) should equal (isStale())
           }
           Thread.sleep(250)
         }
-        println("Exiting listener")
     }
     last.synchronized {
       last.value = 2
