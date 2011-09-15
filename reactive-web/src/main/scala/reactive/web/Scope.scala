@@ -157,7 +157,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
     def fire[T <: DOMEvent: Manifest](event: T): this.type = {
       for (eventAttr <- attr.get("on"+scalaClassName(manifest[T].erasure).toLowerCase)) {
         val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
-        val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(document.getElementById\(\'(.*)\'\)\.([^\)]*)\)""".r
+        val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(document.getElementById\(\'([^\']*)\'\)\.([^\)]*)\)""".r
 
         val events = (eventRE findAllIn eventAttr).matchData.toList
         val props = (propRE findAllIn eventAttr).matchData.toList
