@@ -108,8 +108,8 @@ protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T =>
   currentMappedSignal.deltas addListener deltasListener
 
   private val parentChangeListener: T => Unit = { x =>
-    currentMappedSignal.change removeListener changeListener
-    currentMappedSignal.deltas removeListener deltasListener
+    //currentMappedSignal.change removeListener changeListener
+    //currentMappedSignal.deltas removeListener deltasListener
     currentMappedSignal = f(x)
     val n = currentMappedSignal.transform
     change.fire(n)

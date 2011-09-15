@@ -1,12 +1,11 @@
 package reactive
 
+import scala.collection.{ SeqProxy, SeqLike, LinearSeqOptimized, IterableProxyLike }
+import scala.collection.generic.{ SeqFactory, GenericTraversableTemplate, GenericCompanion, CanBuildFrom }
+import scala.collection.immutable.LinearSeq
+import scala.collection.mutable.{ WeakHashMap, Builder }
 import scala.ref.WeakReference
 import scala.util.DynamicVariable
-
-object EventSource {
-  @deprecated("Use Logger.defaultLevel, this does nothing anymore")
-  var debug = false
-}
 
 object EventStream {
   object empty extends EventSource[Nothing]
@@ -174,14 +173,116 @@ object NamedFunction {
   def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
 }
 
+object EventSource {
+  @deprecated("Use Logger.defaultLevel, this does nothing anymore")
+  var debug = false
+  /*
+   * We need to store globally nested listener groups.
+   * Deleting a group removes all listeners inside it from all EventSources.
+   * Ability to get all listeners for a given EventSource
+   */
+  case class WrapperFunction[-T](val function: T => Unit) extends (T => Unit) {
+    val group = {
+      val parent = currentListenerGroup.value
+      val ret = new ListenerGroup(Some(parent))
+      parent.synchronized { parent.subgroups :+= ret }
+      ret
+    }
+
+    def apply(e: T) = {
+      group.clear
+      currentListenerGroup.withValue(group) {
+        function(e)
+      }
+    }
+    override def toString = "WrapperFunction(%s)" format System.identityHashCode(function)
+  }
+  /**
+   * Keeps the wrapper functions from being gc'ed until the function itself is gc'ed
+   */
+  private val wrappers = new WeakHashMap[_ => Unit, List[WrapperFunction[_]]]
+
+  class ListenerGroup(val parent: Option[ListenerGroup]) {
+    //case class ListenerList[T](es: EventSource[T], listeners: WeakList[WrapperFunction[T]])
+    val _listeners = new WeakHashMap[EventSource[_], WeakList[WrapperFunction[_]]]()
+    var subgroups = List[ListenerGroup]()
+
+    def clear {
+      _listeners.synchronized {
+        _listeners.clear()
+      }
+      subgroups = Nil
+    }
+
+    def listeners[T](es: EventSource[T]): Iterator[WrapperFunction[T]] =
+      _listeners.getOrElse(es, WeakList.empty).iterator.map(_.asInstanceOf[WrapperFunction[T]]) ++ subgroups.iterator.flatMap(_.listeners(es))
+
+    def addListener[T](es: EventSource[T], listener: T => Unit) = _listeners.synchronized {
+      val wrapper = WrapperFunction(listener)
+      wrappers(listener) = wrapper :: wrappers.getOrElse(listener, Nil)
+      _listeners(es) = _listeners.getOrElse(es, WeakList.empty) :+ wrapper
+    }
+
+    def removeListener[T](es: EventSource[T], listener: T => Unit): Boolean = _listeners.synchronized {
+      val ls = _listeners.getOrElse(es, WeakList.empty)
+      ls.lastIndexWhere(listener eq _.function) match {
+        case -1 =>
+          subgroups.exists(_.removeListener(es, listener))
+        case n =>
+          _listeners(es) = ls.patch(n, Nil, 1)
+          true
+      }
+    }
+
+    //override def toString =
+    //  "ListenerGroup(listeners=%s, groups=%s)".format(listeners.map(System.identityHashCode), subgroups)
+    def printTree(indent: Int = 0) {
+      _listeners.synchronized {
+        println((" " * indent) + toString + _listeners.mkString("[", ",", "]"))
+      }
+      subgroups foreach (_.printTree(indent + 2))
+    }
+  }
+
+  private[reactive] object rootListenerGroup extends ListenerGroup(None)
+  private[reactive] val currentListenerGroup = new DynamicVariable[ListenerGroup](rootListenerGroup)
+}
+
+class WeakList[A](xs: WeakReference[A with AnyRef]*) extends LinearSeq[A]
+  with GenericTraversableTemplate[A, WeakList]
+  with LinearSeqOptimized[A, WeakList[A]] {
+
+  override def companion: GenericCompanion[WeakList] = WeakList
+
+  private var list: Seq[WeakReference[A with AnyRef]] = xs
+  def compact = if (list.nonEmpty && list.exists(_.get.isEmpty)) list.synchronized{
+    list = list.filter(_.get.isDefined)
+  }
+  compact
+
+  override def isEmpty = { compact; list.isEmpty }
+  override def head = { list.head.get getOrElse tail.head }
+  override def tail = { compact; new WeakList(list.tail: _*) }
+}
+
+object WeakList extends SeqFactory[WeakList] {
+  implicit def canBuildFrom[A <: AnyRef]: CanBuildFrom[Coll, A, WeakList[A]] = new GenericCanBuildFrom[A]
+
+  def newBuilder[A]: Builder[A, WeakList[A]] = new Builder[A, WeakList[A]] {
+    var list = List[A with AnyRef]()
+    def result = new WeakList(list.map(x => new WeakReference(x)): _*)
+    def clear { list = Nil }
+    def +=(elem: A) = { list :+= elem.asInstanceOf[A with AnyRef]; this }
+  }
+}
 /**
  * A basic implementation of EventStream,
  * adds fire method.
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
 class EventSource[T] extends EventStream[T] with Logger {
-  case class HasListeners(listeners: List[WeakReference[T => Unit]]) extends LogEventPredicate
-  case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int) extends LogEventPredicate
+  case class HasListeners(listeners: List[T => Unit]) extends LogEventPredicate
+  case class FiringEvent(event: T, listenersCount: Int) extends LogEventPredicate
   case class AddingListener(listener: T => Unit) extends LogEventPredicate
   case class AddedForeachListener(listener: T => Unit) extends LogEventPredicate
 
@@ -249,19 +350,22 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  private var listeners: List[WeakReference[T => Unit]] = Nil
+  //private var listeners: List[WeakReference[T => Unit]] = Nil
+  //private val _listeners = new WeakHashMap[AnyRef, List[WeakReference[T => Unit]]]
+  //def allListeners = _listeners.values.flatMap(_.flatMap(_.get))
+  def allListeners = EventSource.rootListenerGroup.listeners(this)
 
   /**
    * Whether this EventStream has any listeners depending on it
    */
   //TODO should it return false if it has listeners that have been gc'ed?
-  def hasListeners = listeners.nonEmpty //&& listeners.forall(_.get.isDefined)
+  def hasListeners = allListeners.nonEmpty // _listeners.values.nonEmpty && _listeners.values.forall(_.nonEmpty /*forall(_.get.isDefined)*/ )
 
   def debugName = "(eventSource: %s #%s)".format(getClass, System.identityHashCode(this))
   def debugString = {
     "%s\n  listeners%s".format(
       debugName,
-      listeners.flatMap(_.get).mkString("\n    ", "\n    ", "\n")
+      allListeners.mkString("\n    ", "\n    ", "\n")
     )
   }
 
@@ -270,15 +374,9 @@ class EventSource[T] extends EventStream[T] with Logger {
    * @param event the event to send
    */
   def fire(event: T) {
-    trace(
-      FiringEvent(
-        event,
-        listeners.size,
-        listeners.length - listeners.count(_.get ne None)
-      )
-    )
-    trace(HasListeners(listeners))
-    listeners.foreach{ _.get.foreach(_(event)) }
+    trace(HasListeners(allListeners.toList))
+    trace(FiringEvent(event, allListeners.size))
+    allListeners foreach (_(event))
   }
 
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
@@ -305,7 +403,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     observing.addRef(this)
     addListener(f)
     trace(AddedForeachListener(f))
-    trace(HasListeners(listeners))
+    trace(HasListeners(allListeners.toList))
   }
 
   def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
@@ -319,8 +417,9 @@ class EventSource[T] extends EventStream[T] with Logger {
     def handler = (event, _) =>
       if (p(event))
         fire(event)
-      else
+      else {
         EventSource.this.removeListener(listener)
+      }
   }
 
   def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new FoldedLeft(initial, f)
@@ -367,19 +466,29 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   def nonblocking: EventStream[(T, () => Boolean)] = new ActorEventStream
 
-  private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
+  private[reactive] def addListener(f: T => Unit): Unit =
+    EventSource.currentListenerGroup.value.addListener(this, f)
+  /*synchronized {
     trace(AddingListener(f))
-    listeners = listeners.filter(_.get.isDefined) :+ new WeakReference(f)
-  }
-  private[reactive] def removeListener(f: (T) => Unit): Unit = synchronized {
+    val group = _listeners.get(EventSource.currentListenerGroup.value) getOrElse Nil
+    val added = group.filter(_.get.isDefined) :+ new WeakReference(f)
+    _listeners(EventSource.currentListenerGroup.value) = added
+  }*/
+  private[reactive] def removeListener(f: T => Unit): Unit =
+    EventSource.rootListenerGroup.removeListener(this, f)
+  /*synchronized {
     //remove the last listener that is identical to f
-    listeners.lastIndexWhere(_.get.map(f.eq) getOrElse false) match {
+    val group = _listeners.get(EventSource.currentListenerGroup.value) getOrElse Nil
+    val removed = group.lastIndexWhere(_.get.map(f eq _) getOrElse false) match {
       case -1 =>
+        println("Listener not found: "+System.identityHashCode(f))
+        println(_listeners.map{ case (g, ls) => (System.identityHashCode(g), ls.map(wr => wr.get.map(wf => System.identityHashCode(wf)))) })
+        group
       case n =>
-        val (before, after) = listeners.splitAt(n)
-        listeners = before ::: after.drop(1)
+        group.patch(n, Nil, 1)
     }
-  }
+    _listeners(EventSource.currentListenerGroup.value) = removed
+  }*/
 }
 
 /**

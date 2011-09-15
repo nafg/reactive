@@ -24,8 +24,31 @@ trait CollectEvents {
   }
 }
 
+class WeakListTests extends FunSuite with ShouldMatchers with CollectEvents {
+  test("WeakList") {
+    try {
+      new WeakList(new scala.ref.WeakReference("A string")).toList should equal (List("A string"))
+    } catch {
+      case e =>
+        e.printStackTrace
+        throw e
+    }
+  }
+}
+
 class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   implicit val observing = new Observing {}
+
+  test("addListener") {
+    try {
+      val es1, es2 = new EventSource[Unit]
+      val f, g, h = { _: Unit => println }
+      es1 foreach f
+      es1 foreach g
+      es2 foreach h
+      es1.allListeners.map(_.function).toList should equal (List(f, g))
+    } catch { case e => e.printStackTrace }
+  }
 
   test("hasListeners") {
     val es = new EventSource[Nothing] {}
@@ -207,6 +230,29 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
       es fire 3
       es fire 2
     } should equal (List(0, 1, 2, 3, 2))
+  }
+
+  test("Nesting foreach should cause the inner listeners to be replaced each time") {
+    val es1, es2 = new EventSource[Unit]
+    var x = 0
+    es1.foreach { a =>
+      es2.foreach { b =>
+        x += 1
+      }
+    }
+
+    es1 fire ()
+    es2 fire ()
+    x should equal (1)
+    es2 fire ()
+    x should equal (2)
+    es1 fire ()
+    x should equal (2)
+
+    x = 0
+    es1 fire ()
+    es2 fire ()
+    x should equal (1)
   }
 }
 
