@@ -135,6 +135,7 @@ trait Signal[+T] extends Forwardable[T] {
         v
     }
   }
+  def debugName = "(%s: %s #%s)".format(toString, getClass(), System.identityHashCode(this))
 }
 
 private[reactive] class Volatility extends (() => Boolean) {
@@ -151,13 +152,14 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
 
   protected def parentHandler: (T, S) => S
   private lazy val ph = parentHandler
-  private val parentListener: T => Unit = x => synchronized {
+  private val parentListener: T => Unit = NamedFunction(debugName+".parentListener")(x => synchronized {
     state = ph(x, state)
-  }
+  })
   parent.change addListener parentListener
 }
 
 protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T, U, Unit](parent, (), _ => f(parent.now)) {
+  override def debugName = parent.debugName+".map("+f+")"
   def parentHandler = (x, _) => {
     val u = f(x)
     current = u
@@ -274,7 +276,9 @@ class Var[T](initial: T) extends Signal[T] {
    * Fires an event after every mutation, consisting of the new value
    */
   lazy val change: EventStream[T] = change0
-  private lazy val change0 = new EventSource[T] {}
+  private lazy val change0 = new EventSource[T] {
+    override def debugName = Var.this.debugName+".change"
+  }
 
   override def toString = "Var("+now+")"
 

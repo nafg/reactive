@@ -5,10 +5,10 @@ trait CanForward[-Target, Value] {
 }
 object CanForward {
   implicit def vari[T]: CanForward[Var[T], T] = new CanForward[Var[T], T] {
-    def forward(s: Forwardable[T], t: => Var[T])(implicit o: Observing) = s foreach t.update
+    def forward(s: Forwardable[T], t: => Var[T])(implicit o: Observing) = s foreach NamedFunction(">>"+t.debugName)(t.update)
   }
   implicit def eventSource[T]: CanForward[EventSource[T], T] = new CanForward[EventSource[T], T] {
-    def forward(s: Forwardable[T], t: => EventSource[T])(implicit o: Observing) = s foreach t.fire
+    def forward(s: Forwardable[T], t: => EventSource[T])(implicit o: Observing) = s foreach NamedFunction(">>"+t.debugString)(t.fire)
   }
 }
 
@@ -43,28 +43,28 @@ trait Forwardable[+T] {
    * Apply a function for every value
    */
   def =>>(thunk: T=>Unit)(implicit observing: Observing): this.type = {
-    this foreach thunk
+    this foreach NamedFunction("=>>"+thunk)(thunk)
     this
   }
   /**
    * Apply a function for every value. Same as =>>.
    */
   def +=(thunk: T=>Unit)(implicit observing: Observing): this.type = {
-    this foreach thunk
+    this foreach NamedFunction("+="+thunk)(thunk)
     this
   }
   /**
    * Apply a PartialFunction for every applicable value
    */
   def ?>>(pf: PartialFunction[T,Unit])(implicit observing: Observing): this.type = {
-    this foreach (pf orElse {case _ =>})
+    this foreach NamedFunction("?>>"+pf)((pf orElse { case _ => }))
     this
   }
   /**
    * Run a block of code for every value
    */
   def ->>(block: =>Unit)(implicit observing: Observing): this.type = {
-    this foreach {_ => block}
+    this foreach NamedFunction("->>{...}")({ _ => block })
     this
   }
 }

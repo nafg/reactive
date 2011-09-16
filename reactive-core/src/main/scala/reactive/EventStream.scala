@@ -163,6 +163,16 @@ trait EventStream[+T] extends Forwardable[T] {
 
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
+
+  def debugString: String
+}
+
+class NamedFunction[-T, +R](name: => String, f: T => R) extends (T => R) {
+  def apply(in: T): R = f(in)
+  override def toString = "NamedFunction(%s)(%s: %s #%s)" format (name, f.toString, f.getClass, System.identityHashCode(f))
+}
+object NamedFunction {
+  def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
 }
 
 /**
@@ -183,9 +193,9 @@ class EventSource[T] extends EventStream[T] with Logger {
     private val parent = EventSource.this
     protected def handler: (T, S) => S
     private val h = handler
-    protected val listener: T => Unit = v => synchronized {
+    protected val listener: T => Unit = NamedFunction(debugName+".listener")(v => synchronized {
       state = h(v, state)
-    }
+    })
     parent addListener listener
   }
 
@@ -228,8 +238,12 @@ class EventSource[T] extends EventStream[T] with Logger {
   //TODO should it return false if it has listeners that have been gc'ed?
   def hasListeners = listeners.nonEmpty //&& listeners.forall(_.get.isDefined)
 
-  protected[reactive] def dumpListeners {
-    trace(HasListeners(listeners))
+  def debugName = "(eventSource: %s #%s)".format(getClass, System.identityHashCode(this))
+  def debugString = {
+    "%s\n  listeners%s".format(
+      debugName,
+      listeners.flatMap(_.get).mkString("\n    ", "\n    ", "\n")
+    )
   }
 
   /**
@@ -244,7 +258,7 @@ class EventSource[T] extends EventStream[T] with Logger {
         listeners.length - listeners.count(_.get ne None)
       )
     )
-    dumpListeners
+    trace(HasListeners(listeners))
     listeners.foreach{ _.get.foreach(_(event)) }
   }
 
@@ -277,7 +291,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     observing.addRef(this)
     addListener(f)
     trace(AddedForeachListener(f))
-    dumpListeners
+    trace(HasListeners(listeners))
   }
 
   def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
@@ -286,6 +300,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   def takeWhile(p: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
+    override def debugName = EventSource.this.debugName+".takeWhile("+p+")"
     def handler = (event, _) =>
       if (p(event))
         fire(event)

@@ -4,8 +4,6 @@ import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
 class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
-  def dumpListeners(es: EventStream[_]) = es match { case es: EventSource[_] => es.dumpListeners }
-
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -54,9 +52,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
 
     collecting(flatMapped.deltas){
       collecting(flatMapped.change){
-        parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
         System.gc()
-        parent.change.asInstanceOf[EventSource[Boolean]].dumpListeners
         parent () = true
         flatMapped.now should equal (Seq(2, 3, 4))
       } should equal (List(List(2, 3, 4)))
