@@ -60,7 +60,7 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * For every page registered a listener is added to the
    * property value's change EventStream, that will propagate
    * the changes to all other pages.
-   * The Page is wrapped in a WeakReference.
+   * The Page is weakly referenced from this DOMProperty.
    * @param page the Page to add. If it exists no action is taken.
    */
   //TODO should events be associated with a Page more directly/explicitly?

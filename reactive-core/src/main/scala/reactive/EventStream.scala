@@ -45,10 +45,9 @@ object EventStream {
 trait EventStream[+T] extends Forwardable[T] {
   /**
    * Registers a listener function to run whenever
-   * an event is fired. The EventStream holds the
-   * function with a WeakReference and a strong reference
-   * is placed in the Observing, so the latter determines
-   * the function's gc lifetime.
+   * an event is fired. The function is held with a WeakReference
+   * and a strong reference is placed in the Observing, so
+   * the latter determines the function's gc lifetime.
    * @param f a function to be applied on every event
    * @param observing the object whose gc lifetime should determine that of the function
    */
