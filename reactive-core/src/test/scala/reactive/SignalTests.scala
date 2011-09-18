@@ -146,6 +146,31 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val nb = check(v.nonblocking)
     v () = 20
   }
+
+  test("Nesting flatMap + map should cause the inner listeners to be replaced each time") {
+    val s1, s2 = Var[Unit](())
+    var x = 0
+    val flatMapped = s1.flatMap{ _ =>
+      s2.map { _ =>
+        x += 1
+      }
+    }
+
+    x should equal (1)
+    s1 () = ()
+    x should equal (2)
+    s2 () = ()
+    x should equal (3)
+    s2 () = ()
+    x should equal (4)
+    s1 () = ()
+    x should equal (5)
+
+    x = 0
+    s1 () = ()
+    s2 () = ()
+    x should equal (2)
+  }
 }
 
 class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {

@@ -117,6 +117,8 @@ class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[
    * Calls eventStream.foreach
    */
   def foreach(f: T => Unit)(implicit o: Observing) = eventStream.foreach(f)(o)
+  def forward(f: T => Unit)(implicit o: Observing) = eventStream.forward(f)(o)
+
   /**
    * Calls jsEventStream.foreach
    */

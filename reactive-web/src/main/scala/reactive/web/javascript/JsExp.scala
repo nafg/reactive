@@ -27,7 +27,7 @@ object JsExp {
 
   implicit def canForward[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]) = new CanForward[$[J =|> JsVoid], T] {
     def forward(source: Forwardable[T], target: => $[J =|> JsVoid])(implicit o: Observing) =
-      source.foreach{ v => Reactions.queue(target apply conv(v)) }
+      source forward { v => Reactions.queue(target apply conv(v)) }
   }
 }
 

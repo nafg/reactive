@@ -30,6 +30,11 @@ trait Signal[+T] extends Forwardable[T] {
     change.foreach(f)(observing)
   }
 
+  def forward(f: T => Unit)(implicit observing: Observing): Unit = {
+    f(now)
+    change.forward(f)(observing)
+  }
+
   /**
    * Return a new Signal whose value is computed from the value
    * of this Signal, transformed by f. It fires change events
@@ -189,12 +194,12 @@ trait CanFlatMapSignal[-S1[_], S2[_]] {
 
 trait LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSignal: CanFlatMapSignal[Signal, Signal] = new CanFlatMapSignal[Signal, Signal] {
-    def flatMap[T, U](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
+    def flatMap[T, U](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, ScopedFunction(f))
   }
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
-    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, f)
+    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, ScopedFunction(f))
   }
 }
 
@@ -204,7 +209,9 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
     current = x
     change fire x
   }
+
   state.change addListener thunk
+
   def parentHandler = (x, curSig) => {
     curSig.change removeListener thunk
     val newSig = f(x)

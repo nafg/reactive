@@ -67,7 +67,7 @@ object Button {
    */
   def apply(content: Signal[NodeSeq])(action: => Unit)(implicit observing: Observing, config: CanRenderDomMutationConfig): Button with Cell = {
     val ret = apply(ButtonType.Button, content)(config)
-    ret.click.eventStream foreach {_=>action}
+    ret.click.eventStream =>> NamedFunction("Button.apply action"){ _ => action }
     ret
   }
 

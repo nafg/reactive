@@ -40,14 +40,15 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
   implicit val observing = new Observing {}
 
   test("addListener") {
-    try {
-      val es1, es2 = new EventSource[Unit]
-      val f, g, h = { _: Unit => println }
-      es1 foreach f
-      es1 foreach g
-      es2 foreach h
-      es1.allListeners.map(_.function).toList should equal (List(f, g))
-    } catch { case e => e.printStackTrace }
+    val es1, es2 = new EventSource[Unit]
+    val f, g, h = { _: Unit => println }
+    es1 foreach f
+    es1 foreach g
+    es2 foreach h
+    es1.allListeners.toList.map {
+      case ScopedFunction(f) => f
+      case f                 => f
+    } should equal (List(f, g))
   }
 
   test("hasListeners") {

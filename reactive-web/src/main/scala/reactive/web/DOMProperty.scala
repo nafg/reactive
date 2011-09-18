@@ -89,7 +89,7 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
 
       // Register setFromAjax with all linked event streams,
       // for the lifetime of the page
-      jses.toServer(_.values.toString).foreach(propagate)(page)
+      jses.toServer(_.values.toString).forward(propagate)(page)
       jses
     })
 
@@ -171,7 +171,7 @@ object DOMProperty {
    */
   implicit def canForward[T](implicit codec: PropertyCodec[T]): CanForward[DOMProperty, T] = new CanForward[DOMProperty, T] {
     def forward(f: Forwardable[T], d: => DOMProperty)(implicit o: Observing) = {
-      f foreach { v => d.update(v) }
+      f forward { v => d.update(v) }
     }
   }
   /**

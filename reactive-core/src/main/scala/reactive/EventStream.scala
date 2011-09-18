@@ -1,11 +1,7 @@
 package reactive
 
-import scala.collection.{ SeqProxy, SeqLike, LinearSeqOptimized, IterableProxyLike }
-import scala.collection.generic.{ SeqFactory, GenericTraversableTemplate, GenericCompanion, CanBuildFrom }
-import scala.collection.immutable.LinearSeq
-import scala.collection.mutable.{ WeakHashMap, Builder }
-import scala.ref.WeakReference
 import scala.util.DynamicVariable
+import scala.collection.mutable.WeakHashMap
 
 object EventStream {
   object empty extends EventSource[Nothing]
@@ -173,6 +169,30 @@ object NamedFunction {
   def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
 }
 
+case class ScopedFunction[-T, +R](val function: T => R) extends (T => R) {
+  def newGroup = {
+    val parent = EventSource.currentListenerScope.value
+    val ret = new EventSource.ListenerScope(Some(parent), this)
+    parent.synchronized { parent.subgroups :+= ret }
+    ret
+  }
+
+  var group = newGroup
+  def apply(e: T): R = {
+    //println("Invoking "+toString)
+    synchronized {
+      group.clear
+      group = newGroup
+    }
+    val ret = EventSource.currentListenerScope.withValue(group) {
+      function(e)
+    }
+    //println("Finished invoking "+toString)
+    ret
+  }
+  override def toString = "ScopedFunction(%s: %s #%s)" format (function.toString, function.getClass, System.identityHashCode(function))
+}
+
 object EventSource {
   @deprecated("Use Logger.defaultLevel, this does nothing anymore")
   var debug = false
@@ -180,101 +200,84 @@ object EventSource {
    * We need to store globally nested listener groups.
    * Deleting a group removes all listeners inside it from all EventSources.
    * Ability to get all listeners for a given EventSource
+   * 
+   * Scenarios where you would want listeners to remain:
+   *  • Clicking a button adds a new item, which has its own listeners.
+   *    The next time you click the button, the item should not lose its listeners!
+   *    We can differentiate by using forwarding instead of foreach
+   *  • A foreach inside a forwarding block
+   *    sigA =>> { _ => for(x <- sigX) doSomething(x) } // keep adding more listeners to sigX
+   *
+   * Scenarios where you would want listeners to be replaced:
+   *  • A foreach inside a foreach
+   *    for(a <- sigA; b <- sigB) doSomething(a, b)
+   *  • A map inside a flatMap
+   *    for(a <- sigA; b <- sigB) yield getSomethingWithASideEffect(a, b)
+   *  • A forwarding block inside a foreach 
+   *    for(_ <- sigA) sigX =>> doSomething             // replace listener in sigX
+   *    
+   * Questionable scenarios -- wrap the function in ScopedFunction to explicitly replace listeners
+   *  • A map inside a map 
+   *    sigA map ScopedFunction { a => Cell(for(b <- sigB) yield b) }          // re-rendering the (new) Cell causes old Cell's listener to be removed from sigB-mapped
+   *  • sigA map { a => val i = new Item(a); i.button ->> i.doSomething(); i}  // not scoped, so listener remains
+   *  
    */
-  case class WrapperFunction[-T](val function: T => Unit) extends (T => Unit) {
-    val group = {
-      val parent = currentListenerGroup.value
-      val ret = new ListenerGroup(Some(parent))
-      parent.synchronized { parent.subgroups :+= ret }
-      ret
-    }
 
-    def apply(e: T) = {
-      group.clear
-      currentListenerGroup.withValue(group) {
-        function(e)
-      }
-    }
-    override def toString = "WrapperFunction(%s)" format System.identityHashCode(function)
-  }
-  /**
-   * Keeps the wrapper functions from being gc'ed until the function itself is gc'ed
-   */
-  private val wrappers = new WeakHashMap[_ => Unit, List[WrapperFunction[_]]]
-
-  class ListenerGroup(val parent: Option[ListenerGroup]) {
-    //case class ListenerList[T](es: EventSource[T], listeners: WeakList[WrapperFunction[T]])
-    val _listeners = new WeakHashMap[EventSource[_], WeakList[WrapperFunction[_]]]()
-    var subgroups = List[ListenerGroup]()
+  class ListenerScope(val parent: Option[ListenerScope], sf: ScopedFunction[_, _]) {
+    val _listeners = new WeakHashMap[EventSource[_], WeakBuffer[_ => Unit]]()
+    var subgroups = List[ListenerScope]()
 
     def clear {
-      _listeners.synchronized {
-        _listeners.clear()
+      if (_listeners.nonEmpty || (subgroups.nonEmpty && subgroups.exists(_._listeners.nonEmpty))) {
+        //        println("Clearing listeners:")
+        //        printTree()
+        _listeners.synchronized {
+          _listeners.clear()
+        }
       }
       subgroups = Nil
+      parent foreach (p => p.subgroups = p.subgroups filterNot (this eq))
     }
 
-    def listeners[T](es: EventSource[T]): Iterator[WrapperFunction[T]] =
-      _listeners.getOrElse(es, WeakList.empty).iterator.map(_.asInstanceOf[WrapperFunction[T]]) ++ subgroups.iterator.flatMap(_.listeners(es))
+    def listeners[T](es: EventSource[T]): Iterator[T => Unit] =
+      _listeners.getOrElse(es, Seq.empty).iterator.map(_.asInstanceOf[T => Unit]) ++ subgroups.iterator.flatMap(_.listeners(es))
 
     def addListener[T](es: EventSource[T], listener: T => Unit) = _listeners.synchronized {
-      val wrapper = WrapperFunction(listener)
-      wrappers(listener) = wrapper :: wrappers.getOrElse(listener, Nil)
-      _listeners(es) = _listeners.getOrElse(es, WeakList.empty) :+ wrapper
+      val ls = _listeners.getOrElseUpdate(es, new WeakBuffer)
+      ls += listener
+      ls.compact(0)
     }
 
     def removeListener[T](es: EventSource[T], listener: T => Unit): Boolean = _listeners.synchronized {
-      val ls = _listeners.getOrElse(es, WeakList.empty)
-      ls.lastIndexWhere(listener eq _.function) match {
+      val ls = _listeners.getOrElseUpdate(es, new WeakBuffer)
+      val last = ls.lastIndexWhere{
+        case ScopedFunction(f) => f eq listener
+        case f                 => f eq listener
+      }
+      last match {
         case -1 =>
           subgroups.exists(_.removeListener(es, listener))
         case n =>
-          _listeners(es) = ls.patch(n, Nil, 1)
+          ls.remove(n)
           true
       }
     }
 
-    //override def toString =
-    //  "ListenerGroup(listeners=%s, groups=%s)".format(listeners.map(System.identityHashCode), subgroups)
     def printTree(indent: Int = 0) {
       _listeners.synchronized {
-        println((" " * indent) + toString + _listeners.mkString("[", ",", "]"))
+        println((" " * indent) + toString + _listeners.map{ case (es, ls) => (es.debugName, ls) }.mkString("[", ",", "]"))
       }
       subgroups foreach (_.printTree(indent + 2))
     }
+    override def toString = "ListenerScope for "+sf.toString
   }
 
-  private[reactive] object rootListenerGroup extends ListenerGroup(None)
-  private[reactive] val currentListenerGroup = new DynamicVariable[ListenerGroup](rootListenerGroup)
-}
-
-class WeakList[A](xs: WeakReference[A with AnyRef]*) extends LinearSeq[A]
-  with GenericTraversableTemplate[A, WeakList]
-  with LinearSeqOptimized[A, WeakList[A]] {
-
-  override def companion: GenericCompanion[WeakList] = WeakList
-
-  private var list: Seq[WeakReference[A with AnyRef]] = xs
-  def compact = if (list.nonEmpty && list.exists(_.get.isEmpty)) list.synchronized{
-    list = list.filter(_.get.isDefined)
+  private[reactive] object rootListenerScope extends ListenerScope(None, null) {
+    override def toString = "rootListenerScope"
   }
-  compact
-
-  override def isEmpty = { compact; list.isEmpty }
-  override def head = { list.head.get getOrElse tail.head }
-  override def tail = { compact; new WeakList(list.tail: _*) }
+  private[reactive] val currentListenerScope = new DynamicVariable[ListenerScope](rootListenerScope)
 }
 
-object WeakList extends SeqFactory[WeakList] {
-  implicit def canBuildFrom[A <: AnyRef]: CanBuildFrom[Coll, A, WeakList[A]] = new GenericCanBuildFrom[A]
-
-  def newBuilder[A]: Builder[A, WeakList[A]] = new Builder[A, WeakList[A]] {
-    var list = List[A with AnyRef]()
-    def result = new WeakList(list.map(x => new WeakReference(x)): _*)
-    def clear { list = Nil }
-    def +=(elem: A) = { list :+= elem.asInstanceOf[A with AnyRef]; this }
-  }
-}
 /**
  * A basic implementation of EventStream,
  * adds fire method.
@@ -350,10 +353,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  //private var listeners: List[WeakReference[T => Unit]] = Nil
-  //private val _listeners = new WeakHashMap[AnyRef, List[WeakReference[T => Unit]]]
-  //def allListeners = _listeners.values.flatMap(_.flatMap(_.get))
-  def allListeners = EventSource.rootListenerGroup.listeners(this)
+  def allListeners = EventSource.rootListenerScope.listeners(this)
 
   /**
    * Whether this EventStream has any listeners depending on it
@@ -398,11 +398,34 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
+  /**
+   * Registers a listener function to run whenever
+   * an event is fired. The function is help with a WeakReference,
+   * and a strong reference
+   * is placed in the Observing, so the latter determines
+   * the function's gc lifetime.
+   * NOTE: All listeners which are added to any EventSource
+   * during executing of f, will be removed every time
+   * f is executed subsequently! If this is not the
+   * behavior you want, use forward or one of the forwarding operators.
+   * @param f a function to be applied on every event
+   * @param observing the object whose gc lifetime should determine that of the function
+   */
   def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
+    val sl = ScopedFunction(f)
+    forward(sl)
+    trace(AddedForeachListener(sl))
+  }
+
+  /**
+   * Like foreach but listeners added to EventSources during
+   * f's executing will not be "scoped" until the next time
+   * f is invoked.
+   */
+  def forward(f: T => Unit)(implicit observing: Observing) {
     observing.addRef(f)
     observing.addRef(this)
     addListener(f)
-    trace(AddedForeachListener(f))
     trace(HasListeners(allListeners.toList))
   }
 
@@ -467,28 +490,10 @@ class EventSource[T] extends EventStream[T] with Logger {
   def nonblocking: EventStream[(T, () => Boolean)] = new ActorEventStream
 
   private[reactive] def addListener(f: T => Unit): Unit =
-    EventSource.currentListenerGroup.value.addListener(this, f)
-  /*synchronized {
-    trace(AddingListener(f))
-    val group = _listeners.get(EventSource.currentListenerGroup.value) getOrElse Nil
-    val added = group.filter(_.get.isDefined) :+ new WeakReference(f)
-    _listeners(EventSource.currentListenerGroup.value) = added
-  }*/
+    EventSource.currentListenerScope.value.addListener(this, f)
+
   private[reactive] def removeListener(f: T => Unit): Unit =
-    EventSource.rootListenerGroup.removeListener(this, f)
-  /*synchronized {
-    //remove the last listener that is identical to f
-    val group = _listeners.get(EventSource.currentListenerGroup.value) getOrElse Nil
-    val removed = group.lastIndexWhere(_.get.map(f eq _) getOrElse false) match {
-      case -1 =>
-        println("Listener not found: "+System.identityHashCode(f))
-        println(_listeners.map{ case (g, ls) => (System.identityHashCode(g), ls.map(wr => wr.get.map(wf => System.identityHashCode(wf)))) })
-        group
-      case n =>
-        group.patch(n, Nil, 1)
-    }
-    _listeners(EventSource.currentListenerGroup.value) = removed
-  }*/
+    EventSource.rootListenerScope.removeListener(this, f)
 }
 
 /**
