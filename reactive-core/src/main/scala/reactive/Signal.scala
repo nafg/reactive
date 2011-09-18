@@ -223,10 +223,9 @@ protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, 
 }
 
 protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
-  var last = now
   def parentHandler = (x, _) => {
-    if (x != last) {
-      last = x
+    if (x != current) {
+      current = x
       change fire x
     }
     ()
