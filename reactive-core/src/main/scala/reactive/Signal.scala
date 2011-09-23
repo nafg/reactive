@@ -194,12 +194,12 @@ trait CanFlatMapSignal[-S1[_], S2[_]] {
 
 trait LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSignal: CanFlatMapSignal[Signal, Signal] = new CanFlatMapSignal[Signal, Signal] {
-    def flatMap[T, U](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, ScopedFunction(f))
+    def flatMap[T, U](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
   }
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
-    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, ScopedFunction(f))
+    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, f)
   }
 }
 
