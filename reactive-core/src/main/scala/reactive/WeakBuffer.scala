@@ -29,9 +29,7 @@ class WeakBuffer[A <: AnyRef] extends Buffer[A] {
     }
   }
 
-  private val rq = new ReferenceQueue
-
-  private def ref(x: A): WeakReference[A] = new WeakReference(x, rq)
+  private def ref(x: A): WeakReference[A] = new WeakReference(x)
 
   def apply(n: Int): A = {
     var ret = self.apply(n).get
