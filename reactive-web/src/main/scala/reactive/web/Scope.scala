@@ -141,7 +141,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
       text.foldLeft(node){
         case (n, '\b') =>
           val v = n.value
-          (n.value = v.substring(0, v.length - 1)) fire KeyUp('\b'.toInt)
+          (n.value = v.dropRight(1)) fire KeyUp('\b'.toInt)
         case (n, ch) =>
           (n.value += ch) fire KeyUp(ch.toInt)
       } fire Change()
