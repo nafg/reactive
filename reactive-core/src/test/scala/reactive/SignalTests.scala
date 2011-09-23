@@ -147,10 +147,10 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     v () = 20
   }
 
-  test("Nesting flatMap + map should cause the inner listeners to be replaced each time") {
+  test("Nesting flatMap + map with ScopedFunction should cause the inner listeners to be replaced each time") {
     val s1, s2 = Var[Unit](())
     var x = 0
-    val flatMapped = s1.flatMap{ _ =>
+    val flatMapped = s1 flatMap ScopedFunction{ _ =>
       s2.map { _ =>
         x += 1
       }
