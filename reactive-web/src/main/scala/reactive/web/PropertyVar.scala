@@ -89,6 +89,8 @@ object PropertyVar {
 class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) {
   (this >> dom) <<: dom.values.map(codec.fromString)
 
+  override def debugName = "PropertyVar(%s)(%s)" format (dom, now)
+
   /**
    * Wraps a new DOMProperty as a type-safe Var.
    * @param name the name of the DOMProperty to create and wrap

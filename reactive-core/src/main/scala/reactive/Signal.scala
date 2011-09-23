@@ -145,6 +145,7 @@ private[reactive] class Volatility extends (() => Boolean) {
 
 protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S => U) extends Signal[U] {
   val change = new EventSource[U] {
+    override def debugName = ChildSignal.this.debugName+".change"
     val ref = ph
   }
   protected var current = initial(state)
@@ -199,6 +200,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
 }
 
 protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) extends ChildSignal[T, U, Signal[U]](parent, f(parent.now), _.now) {
+  override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
   private val thunk: U => Unit = x => synchronized {
     current = x
     change fire x
@@ -215,6 +217,7 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
 }
 
 protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
+  override def debugName = parent.debugName+".nonrecursive"
   protected val changing = new scala.util.DynamicVariable(false)
   def parentHandler = (x, _) => {
     if (!changing.value) changing.withValue(true) {
@@ -225,6 +228,7 @@ protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, 
 }
 
 protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
+  override def debugName = parent.debugName+".distinct"
   var last = now
   def parentHandler = (x, _) => {
     if (x != last) {
@@ -240,6 +244,7 @@ protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, U
  * (and hence never fires change events)
  */
 case class Val[T](now: T) extends Signal[T] {
+  override def debugName = "Val(%s)" format (now)
   def change = new EventSource[T] {}
 }
 
@@ -253,6 +258,7 @@ object Var {
  * A signal whose value can be changed directly
  */
 class Var[T](initial: T) extends Signal[T] {
+  override def debugName = "Var(%s)" format now
   private var _value = initial
 
   def now = value

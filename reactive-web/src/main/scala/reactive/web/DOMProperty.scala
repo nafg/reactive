@@ -155,6 +155,8 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
       Reactions queue DomMutation.UpdateProperty(id, name, attributeName, value)
     }
   }
+
+  override def toString = "DOMProperty(name=%s,attributeName=%s)" format (name, attributeName)
 }
 
 object DOMProperty {

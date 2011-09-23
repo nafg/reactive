@@ -168,7 +168,7 @@ trait EventStream[+T] extends Forwardable[T] {
 
 class NamedFunction[-T, +R](name: => String, f: T => R) extends (T => R) {
   def apply(in: T): R = f(in)
-  override def toString = "NamedFunction(%s)(%s: %s #%s)" format (name, f.toString, f.getClass, System.identityHashCode(f))
+  override def toString = "%s #%s" format (name, System.identityHashCode(f))
 }
 object NamedFunction {
   def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
@@ -199,6 +199,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   class FlatMapped[U](initial: Option[T])(val f: T => EventStream[U]) extends ChildEventSource[U, Option[EventStream[U]]](initial map f) {
+    override def debugName = "%s.flatMap(%s)" format (EventSource.this, f)
     val thunk: U => Unit = fire _
     state foreach { _ addListener thunk }
     def handler = (parentEvent, lastES) => {
@@ -209,9 +210,28 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
+  class FoldedLeft[U](initial: U, f: (U, T) => U) extends ChildEventSource[U, U](initial) {
+    override def debugName = "%s.foldLeft(%s)(%s)" format (EventSource.this.debugName, initial, f)
+    def handler = (event, last) => {
+      val next = f(last, event)
+      fire(next)
+      next
+    }
+  }
+
+  class Collected[U](pf: PartialFunction[T, U]) extends ChildEventSource[U, Unit] {
+    override def debugName = "%s.collect(%s)" format (EventSource.this.debugName, pf)
+    private val pf0 = pf
+    def handler = (event, _) => {
+      if (pf.isDefinedAt(event))
+        fire(pf apply event)
+    }
+  }
+
   private type WithVolatility[T] = (T, () => Boolean)
 
   class ActorEventStream extends ChildEventSource[WithVolatility[T], Option[Volatility]](None) {
+    override def debugName = "%s.nonblocking" format (EventSource.this.debugName)
     import scala.actors.Actor._
     private val delegate = actor {
       loop {
@@ -266,20 +286,15 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   //TODO should this become Signal#flatMap (which can of course be accessed from an EventStream via EventStream#Hold) or be renamed?
   def flatMap[U](initial: T)(f: T => EventStream[U]): EventStream[U] =
-    new FlatMapped(Some(initial))(f)
-
-  def collect[U](pf: PartialFunction[T, U]): EventStream[U] = {
-    new ChildEventSource[U, Unit] {
-      private val pf0 = pf
-      def handler = (event, _) => {
-        if (pf.isDefinedAt(event))
-          fire(pf apply event)
-      }
+    new FlatMapped(Some(initial))(f) {
+      override def debugName = "%s.flatMap(%s)(%s)" format (EventSource.this.debugName, initial, f)
     }
-  }
+
+  def collect[U](pf: PartialFunction[T, U]): EventStream[U] = new Collected(pf)
 
   def map[U](f: T => U): EventStream[U] = {
     new ChildEventSource[U, Unit] {
+      override def debugName = "%s.map(%s)" format (EventSource.this.debugName, f)
       val f0 = f
       def handler = (event, _) => this fire f(event)
     }
@@ -294,6 +309,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
+    override def debugName = "%s.filter(%s)" format (EventSource.this.debugName, f)
     val f0 = f
     def handler = (event, _) => if (f(event)) fire(event)
   }
@@ -307,27 +323,27 @@ class EventSource[T] extends EventStream[T] with Logger {
         EventSource.this.removeListener(listener)
   }
 
-  def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new ChildEventSource[U, U](initial) {
-    def handler = (event, last) => {
-      val next = f(last, event)
-      fire(next)
-      next
-    }
-  }
+  def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new FoldedLeft(initial, f)
 
   def nonrecursive: EventStream[T] = new ChildEventSource[T, Unit] {
+    override def debugName = "%s.nonrecursive" format (EventSource.this.debugName)
     protected val firing = new scala.util.DynamicVariable(false)
     def handler = (event, _) => if (!firing.value) firing.withValue(true) {
       fire(event)
     }
   }
 
-  def distinct: EventStream[T] = foldLeft[List[T]](Nil){
-    case (Nil, e)      => e :: Nil
-    case (old :: _, e) => e :: old :: Nil
-  }.collect{
-    case e :: Nil                  => e
-    case e :: old :: _ if e != old => e
+  def distinct: EventStream[T] = {
+    val folded = new FoldedLeft[List[T]](Nil, {
+      case (Nil, e)      => e :: Nil
+      case (old :: _, e) => e :: old :: Nil
+    })
+    new folded.Collected({
+      case e :: Nil                  => e
+      case e :: old :: _ if e != old => e
+    }) {
+      override def debugName = EventSource.this.debugName+".distinct"
+    }
   }
 
   def |[U >: T](that: EventStream[U]): EventStream[U] = new EventSource[U] {
