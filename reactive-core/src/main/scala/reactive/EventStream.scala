@@ -180,7 +180,6 @@ case class ScopedFunction[-T, +R](val function: T => R) extends (T => R) {
 
   var group = newGroup
   def apply(e: T): R = {
-    //println("Invoking "+toString)
     synchronized {
       group.clear
       group = newGroup
@@ -188,7 +187,6 @@ case class ScopedFunction[-T, +R](val function: T => R) extends (T => R) {
     val ret = EventSource.currentListenerScope.withValue(group) {
       function(e)
     }
-    //println("Finished invoking "+toString)
     ret
   }
   override def toString = "ScopedFunction(%s: %s #%s)" format (function.toString, function.getClass, System.identityHashCode(function))
@@ -361,8 +359,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   /**
    * Whether this EventStream has any listeners depending on it
    */
-  //TODO should it return false if it has listeners that have been gc'ed?
-  def hasListeners = allListeners.nonEmpty // _listeners.values.nonEmpty && _listeners.values.forall(_.nonEmpty /*forall(_.get.isDefined)*/ )
+  def hasListeners = allListeners.nonEmpty
 
   def debugName = "(eventSource: %s #%s)".format(getClass, System.identityHashCode(this))
   def debugString = {
@@ -379,7 +376,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   def fire(event: T) {
     trace(HasListeners(allListeners.toList))
     trace(FiringEvent(event, allListeners.size))
-    allListeners foreach (_(event))
+    allListeners.foreach(_(event))
   }
 
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
@@ -443,9 +440,8 @@ class EventSource[T] extends EventStream[T] with Logger {
     def handler = (event, _) =>
       if (p(event))
         fire(event)
-      else {
+      else
         EventSource.this.removeListener(listener)
-      }
   }
 
   def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new FoldedLeft(initial, f)
