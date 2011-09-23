@@ -2,6 +2,7 @@ package reactive
 
 import scala.util.DynamicVariable
 import scala.collection.mutable.WeakHashMap
+import scala.collection.mutable.ListBuffer
 
 object EventStream {
   object empty extends EventSource[Nothing]
@@ -173,7 +174,7 @@ case class ScopedFunction[-T, +R](val function: T => R) extends (T => R) {
   def newGroup = {
     val parent = EventSource.currentListenerScope.value
     val ret = new EventSource.ListenerScope(Some(parent), this)
-    parent.synchronized { parent.subgroups :+= ret }
+    parent.synchronized { parent.subgroups += ret }
     ret
   }
 
@@ -224,37 +225,37 @@ object EventSource {
    */
 
   class ListenerScope(val parent: Option[ListenerScope], sf: ScopedFunction[_, _]) {
-    val _listeners = new WeakHashMap[EventSource[_], WeakBuffer[_ => Unit]]()
-    var subgroups = List[ListenerScope]()
+    lazy val _listeners = new WeakHashMap[EventSource[_], WeakBuffer[_ => Unit]]
+    val subgroups = new ListBuffer[ListenerScope]
 
     def clear {
-      if (_listeners.nonEmpty || (subgroups.nonEmpty && subgroups.exists(_._listeners.nonEmpty))) {
-        //        println("Clearing listeners:")
-        //        printTree()
-        _listeners.synchronized {
-          _listeners.clear()
-        }
+      synchronized {
+        _listeners.valuesIterator.foreach(_.clear())
+        subgroups.foreach(_.clear)
+        subgroups.clear
+        parent foreach (_.subgroups -= this)
       }
-      subgroups = Nil
-      parent foreach (p => p.subgroups = p.subgroups filterNot (this eq))
     }
 
-    def listeners[T](es: EventSource[T]): Iterator[T => Unit] =
-      _listeners.getOrElse(es, Seq.empty).iterator.map(_.asInstanceOf[T => Unit]) ++ subgroups.iterator.flatMap(_.listeners(es))
+    private def byScopeAndES[T](es: EventSource[T]): WeakBuffer[T => Unit] = {
+      val existingForESAndScope = es._listeners.get(this)
+      if (existingForESAndScope.isDefined) existingForESAndScope.get
+      else {
+        val buf = _listeners.getOrElseUpdate(es, new WeakBuffer).asInstanceOf[WeakBuffer[T => Unit]]
+        es._listeners(this) = buf
+        buf
+      }
+    }
 
-    def addListener[T](es: EventSource[T], listener: T => Unit) = _listeners.synchronized {
-      val ls = _listeners.getOrElseUpdate(es, new WeakBuffer)
+    def addListener[T](es: EventSource[T], listener: T => Unit) = synchronized {
+      val ls = byScopeAndES(es)
       ls += listener
       ls.compact(0)
     }
 
-    def removeListener[T](es: EventSource[T], listener: T => Unit): Boolean = _listeners.synchronized {
-      val ls = _listeners.getOrElseUpdate(es, new WeakBuffer)
-      val last = ls.lastIndexWhere{
-        case ScopedFunction(f) => f eq listener
-        case f                 => f eq listener
-      }
-      last match {
+    def removeListener[T](es: EventSource[T], listener: T => Unit): Boolean = synchronized {
+      val ls = byScopeAndES(es)
+      ls.indexWhere(listener eq) match {
         case -1 =>
           subgroups.exists(_.removeListener(es, listener))
         case n =>
@@ -264,8 +265,8 @@ object EventSource {
     }
 
     def printTree(indent: Int = 0) {
-      _listeners.synchronized {
-        println((" " * indent) + toString + _listeners.map{ case (es, ls) => (es.debugName, ls) }.mkString("[", ",", "]"))
+      synchronized {
+        println((" " * indent) + toString + _listeners.toList.map{ case (es, ls) => (es.debugName, ls) }.mkString("[", ",", "]"))
       }
       subgroups foreach (_.printTree(indent + 2))
     }
@@ -353,7 +354,9 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  def allListeners = EventSource.rootListenerScope.listeners(this)
+  val _listeners = new WeakHashMap[EventSource.ListenerScope, WeakBuffer[T => Unit]]
+
+  def allListeners = _listeners.values.flatten
 
   /**
    * Whether this EventStream has any listeners depending on it
