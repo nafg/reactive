@@ -135,6 +135,17 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
       }
     }
   }
+
+  test("Signals should fire change event after 'now' is set") {
+    def check[T, S[_] <: Signal[_]](sig: S[T]): S[T] = { sig.change =>> (_ should equal (sig.now)); sig }
+    val v = check(Var(10))
+    val mapped = check(v.map(_ + 10))
+    val flatMapped = check(v.flatMap(x => Var(x + 15): Signal[Int]))
+    val distinct = check(v.distinct)
+    val nr = check(v.nonrecursive)
+    val nb = check(v.nonblocking)
+    v () = 20
+  }
 }
 
 class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {

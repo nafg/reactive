@@ -123,6 +123,19 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
       Remove(0, 3), Remove(0, 4), Include(0, 5), Include(1, 6)
     )))
   }
+
+  test("SeqSignals should fire change event and delta event after 'now' is set") {
+    def check[T, S[_] <: SeqSignal[_]](sig: S[T]): S[T] = {
+      var before = true
+      sig.change =>> { x => x should equal (sig.now); before = false }
+      sig.deltas ->> { before should equal (false) }
+      sig
+    }
+    val v = check(BufferSignal(10, 20))
+    val mapped = check(v.map(_ :+ 30))
+    val flatMapped = check(v.flatMap(x => BufferSignal(40, 50): SeqSignal[Int]))
+    v () = List(60, 70)
+  }
 }
 
 class BufferSignalTests extends FunSuite with ShouldMatchers with Observing {

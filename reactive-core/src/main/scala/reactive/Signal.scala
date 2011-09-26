@@ -165,7 +165,6 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
     val u = f(x)
     current = u
     change.fire(u)
-    ()
   }
 }
 
@@ -184,7 +183,7 @@ object CanMapSignal extends LowPriorityCanMapSignalImplicits {
   }
 }
 
-trait CanFlatMapSignal[S1[T], S2[T]] {
+trait CanFlatMapSignal[-S1[_], S2[_]] {
   def flatMap[T, U](parent: S1[T], f: T => S2[U]): S2[U]
 }
 
@@ -209,9 +208,8 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
   def parentHandler = (x, curSig) => {
     curSig.change removeListener thunk
     val newSig = f(x)
+    thunk(newSig.now)
     newSig.change addListener thunk
-    change fire newSig.now
-    current = newSig.now
     newSig
   }
 }
@@ -221,21 +219,19 @@ protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, 
   protected val changing = new scala.util.DynamicVariable(false)
   def parentHandler = (x, _) => {
     if (!changing.value) changing.withValue(true) {
+      current = x
       change fire x
     }
-    ()
   }
 }
 
 protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
   override def debugName = parent.debugName+".distinct"
-  var last = now
   def parentHandler = (x, _) => {
-    if (x != last) {
-      last = x
+    if (x != current) {
+      current = x
       change fire x
     }
-    ()
   }
 }
 
