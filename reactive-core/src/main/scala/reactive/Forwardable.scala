@@ -17,7 +17,7 @@ object CanForward {
  */
 trait Forwardable[+T] {
   def foreach(thunk: T => Unit)(implicit observing: Observing): Unit
-  
+
   /**
    * Forwards values from this Forwardable to a target, for whose type a CanForward exists (in the implicit scope).
    * @return the forwarding instance
@@ -26,46 +26,45 @@ trait Forwardable[+T] {
     canForward.forward(this, target)
     this
   }
-  
+
   /**
    * Forwards values from this Forwardable to a target, for whose type a CanForward exists (in the implicit scope).
    * This operator is available for right associativity. For example:
    * val time = Var(0) <<: timerTicks // equivalent to: val time = Var(0); timerTicks >> time
-   * 
-   * @return the target 
+   *
+   * @return the target
    */
   def <<:[U >: T, S](target: => S)(implicit canForward: CanForward[S, U], observing: Observing): S = {
     canForward.forward(this, target)
     target
   }
-  
+
   /**
    * Apply a function for every value
    */
-  def =>>(thunk: T=>Unit)(implicit observing: Observing): this.type = {
+  def =>>(thunk: T => Unit)(implicit observing: Observing): this.type = {
     this foreach NamedFunction("=>>"+thunk)(thunk)
     this
   }
   /**
    * Apply a function for every value. Same as =>>.
    */
-  def +=(thunk: T=>Unit)(implicit observing: Observing): this.type = {
+  def +=(thunk: T => Unit)(implicit observing: Observing): this.type = {
     this foreach NamedFunction("+="+thunk)(thunk)
     this
   }
   /**
    * Apply a PartialFunction for every applicable value
    */
-  def ?>>(pf: PartialFunction[T,Unit])(implicit observing: Observing): this.type = {
+  def ?>>(pf: PartialFunction[T, Unit])(implicit observing: Observing): this.type = {
     this foreach NamedFunction("?>>"+pf)((pf orElse { case _ => }))
     this
   }
   /**
    * Run a block of code for every value
    */
-  def ->>(block: =>Unit)(implicit observing: Observing): this.type = {
+  def ->>(block: => Unit)(implicit observing: Observing): this.type = {
     this foreach NamedFunction("->>{...}")({ _ => block })
     this
   }
 }
-
