@@ -63,4 +63,21 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
     v () = itemsB
     select.selectedItem.now should equal (Some("N"))
   }
+
+  test("Even when rendering (calling addPage) twice, listeners are not called more than twice") {
+    val select = Select(Val(List("A", "B", "C")))
+    Page.withPage(new Page) {
+      select.render
+      select.render
+      var itemChanges, indexChanges = 0
+      select.selectedItem.change ->> { itemChanges += 1 }
+      select.selectedIndex.change ->> { indexChanges += 1 }
+      select.selectedItem () = Some("C")
+      itemChanges should (be <= (2) and be >= (1))
+      indexChanges should equal (1)
+      select.selectedIndex () = Some(1)
+      itemChanges should (be <= (3) and be >= (2))
+      indexChanges should (be <= (3) and be >= (2))
+    }
+  }
 }
