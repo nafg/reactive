@@ -376,8 +376,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     listeners.lastIndexWhere(_.get.map(f.eq) getOrElse false) match {
       case -1 =>
       case n =>
-        val (before, after) = listeners.splitAt(n)
-        listeners = before ::: after.drop(1)
+        listeners = listeners.patch(n, Nil, 1)
     }
   }
 }
