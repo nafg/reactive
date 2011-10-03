@@ -45,7 +45,6 @@ class Select[T](
    */
   val selectedItem: Var[Option[T]] = Var(None)
 
-  @tailrec
   private def adjustIndexFromDeltas(si: Int)(deltas: List[SeqDelta[_, _]]): Int = {
     deltas match {
       case Nil =>
