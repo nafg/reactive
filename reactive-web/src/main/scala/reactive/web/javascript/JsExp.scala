@@ -104,13 +104,6 @@ trait JsIdent[T <: JsAny] extends JsExp[T] {
   def render = ident.name
 }
 object JsIdent {
-  object counter extends net.liftweb.http.RequestVar(0) {
-    def next = { set(is + 1); is - 1 }
-  }
-  /**
-   * Returns a JsIdent with a fresh name
-   */
-  def fresh[T <: JsAny] = JsIdent[T](Symbol("x$"+counter.next))
   /**
    * Returns a JsIdent with the specified name
    */
