@@ -95,7 +95,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
     /**
      * The value of the class attribute.
      * Note that tests will always use the attribute name
-     * of a DOMProperty, even if its property name is different.
+     * of a DomProperty, even if its property name is different.
      */
     lazy val clazz = attr("class")
     /**

@@ -17,6 +17,10 @@ package object web {
   val DOMEventSource = DomEventSource
   @deprecated("Use DomEventSource")
   type DOMEventSource[T <: DOMEvent] = DomEventSource[T]
+  @deprecated("Use DomProperty")
+  val DOMProperty = DomProperty
+  @deprecated("Use DomProperty")
+  type DOMProperty = DomProperty
 
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the

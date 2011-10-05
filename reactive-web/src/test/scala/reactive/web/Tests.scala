@@ -25,19 +25,19 @@ class RepeaterTests extends FunSuite with ShouldMatchers {
   }
 }
 
-class DOMPropertyTests extends FunSuite with ShouldMatchers {
-  test("DOMProperty has one id per page") {
+class DomPropertyTests extends FunSuite with ShouldMatchers {
+  test("DomProperty has one id per page") {
     Page.withPage(new Page) {
-      val property = DOMProperty("someName")
+      val property = DomProperty("someName")
       val e1 = property.render apply <elem1/>
       val e2 = property.render apply <elem2/>
       e1.attributes("id") should equal(e2.attributes("id"))
     }
   }
 
-  test("DOMProperty updates go everywhere except same property on same page") {
+  test("DomProperty updates go everywhere except same property on same page") {
     implicit val o = new Observing {}
-    val prop1, prop2 = DOMProperty("prop") withEvents DomEventSource.change
+    val prop1, prop2 = DomProperty("prop") withEvents DomEventSource.change
     prop1.values >> prop2
     class TestPage(xml: => NodeSeq) extends Page {
       override lazy val comet = new ReactionsComet {
@@ -106,7 +106,7 @@ class DOMPropertyTests extends FunSuite with ShouldMatchers {
 class DomEventSourceTests extends FunSuite with ShouldMatchers {
   test("DomEventSource only renders the current Page's propagation javascript") {
     MockWeb.testS("/") {
-      val property = DOMProperty("someName") withEvents DomEventSource.click
+      val property = DomProperty("someName") withEvents DomEventSource.click
       val e1 = Page.withPage(new Page)(property.render apply <elem1/>)
       val e2 = Page.withPage(new Page)(property.render apply <elem1/>)
       ((e1 \ "@onclick" text) split ";" length) should equal (3)

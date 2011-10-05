@@ -9,11 +9,11 @@ import scala.ref.WeakReference
 /**
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
  * and updateable on the client via the server.
- * DOMProperty is not typed. It has an EventStream[String], 'values', that fires received changes,
+ * DomProperty is not typed. It has an EventStream[String], 'values', that fires received changes,
  * and an update method that sends updates to the browser as a JsExp.
  * @param name The javascript name of the property
  */
-class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig) extends PageIds {
+class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig) extends PageIds {
   class PropertyRenderer(attributeValue: String => Option[String] = _ => None)(implicit page: Page)
     extends Renderer(this)(elem => includedEvents.foldLeft(
       elem %
@@ -60,7 +60,7 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * For every page registered a listener is added to the
    * property value's change EventStream, that will propagate
    * the changes to all other pages.
-   * The Page is weakly referenced from this DOMProperty.
+   * The Page is weakly referenced from this DomProperty.
    * @param page the Page to add. If it exists no action is taken.
    */
   //TODO should events be associated with a Page more directly/explicitly?
@@ -102,7 +102,7 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * event fires.
    * Events can belong to any Elem, not only the one
    * that this property applies to.
-   * @return This DOMProperty
+   * @return This DomProperty
    */
   def updateOn(es: DomEventSource[_]*): this.type = {
     eventSources :::= es.toList
@@ -113,11 +113,11 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * Links events with this property. The value
    * will be updated on the server whenever an
    * event fires.
-   * Additionally, applying this DOMProperty to
+   * Additionally, applying this DomProperty to
    * an Elem will apply the specified DomEventSources
    * too. Therefore events must belong to the same
    * Elem as this property!
-   * @return This DOMProperty
+   * @return This DomProperty
    */
   def withEvents(es: DomEventSource[_ <: DOMEvent]*): this.type = {
     updateOn(es: _*)
@@ -156,34 +156,34 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
     }
   }
 
-  override def toString = "DOMProperty(name=%s,attributeName=%s)" format (name, attributeName)
+  override def toString = "DomProperty(name=%s,attributeName=%s)" format (name, attributeName)
 }
 
-object DOMProperty {
+object DomProperty {
   /**
-   * An implicit conversion from DOMProperty to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
+   * An implicit conversion from DomProperty to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(dp: DOMProperty)(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
+  implicit def toNodeSeqFunc(dp: DomProperty)(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
 
   /**
-   * An implicit CanForward instance for DOMProperty's (does not need to be imported). Requires an implicit Page and PropertyCodec.
-   * Values are forwarded by calling DOMProperty#update with the return value of codec.toJS applied to the value.
+   * An implicit CanForward instance for DomProperty's (does not need to be imported). Requires an implicit Page and PropertyCodec.
+   * Values are forwarded by calling DomProperty#update with the return value of codec.toJS applied to the value.
    */
-  implicit def canForward[T](implicit codec: PropertyCodec[T]): CanForward[DOMProperty, T] = new CanForward[DOMProperty, T] {
-    def forward(f: Forwardable[T], d: => DOMProperty)(implicit o: Observing) = {
+  implicit def canForward[T](implicit codec: PropertyCodec[T]): CanForward[DomProperty, T] = new CanForward[DomProperty, T] {
+    def forward(f: Forwardable[T], d: => DomProperty)(implicit o: Observing) = {
       f foreach { v => d.update(v) }
     }
   }
   /**
-   * DOMProperty factory. Just calls the constructor.
+   * DomProperty factory. Just calls the constructor.
    */
-  def apply(name: String) = new DOMProperty(name)
+  def apply(name: String) = new DomProperty(name)
   /**
-   * DOMProperty factory. Calls the constructor and overrides attributeName.
+   * DomProperty factory. Calls the constructor and overrides attributeName.
    */
   def apply(name: String, attributeName: String) = {
     def tmp = attributeName
-    new DOMProperty(name) {
+    new DomProperty(name) {
       override def attributeName = tmp
     }
   }
