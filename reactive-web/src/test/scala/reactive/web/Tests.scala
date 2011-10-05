@@ -37,7 +37,7 @@ class DOMPropertyTests extends FunSuite with ShouldMatchers {
 
   test("DOMProperty updates go everywhere except same property on same page") {
     implicit val o = new Observing {}
-    val prop1, prop2 = DOMProperty("prop") withEvents DOMEventSource.change
+    val prop1, prop2 = DOMProperty("prop") withEvents DomEventSource.change
     prop1.values >> prop2
     class TestPage(xml: => NodeSeq) extends Page {
       override lazy val comet = new ReactionsComet {
@@ -103,10 +103,10 @@ class DOMPropertyTests extends FunSuite with ShouldMatchers {
 
 }
 
-class DOMEventSourceTests extends FunSuite with ShouldMatchers {
-  test("DOMEventSource only renders the current Page's propagation javascript") {
+class DomEventSourceTests extends FunSuite with ShouldMatchers {
+  test("DomEventSource only renders the current Page's propagation javascript") {
     MockWeb.testS("/") {
-      val property = DOMProperty("someName") withEvents DOMEventSource.click
+      val property = DOMProperty("someName") withEvents DomEventSource.click
       val e1 = Page.withPage(new Page)(property.render apply <elem1/>)
       val e2 = Page.withPage(new Page)(property.render apply <elem1/>)
       ((e1 \ "@onclick" text) split ";" length) should equal (3)
@@ -134,7 +134,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
   test("Emulate event") {
     Page.withPage(new Page) {
       var fired = false
-      val event = DOMEventSource.keyUp ->> { fired = true }
+      val event = DomEventSource.keyUp ->> { fired = true }
       val input = event.render apply <input/>
       val ts = new TestScope(input)
       import ts._
@@ -145,7 +145,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
 
   test("Emulate property change") {
     Page.withPage(new Page) {
-      val value = PropertyVar("value")("initial") withEvents DOMEventSource.change
+      val value = PropertyVar("value")("initial") withEvents DomEventSource.change
       val input = value render <input id="id"/>
       val ts = new TestScope(input)
       import ts._

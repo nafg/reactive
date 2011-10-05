@@ -13,7 +13,7 @@ import javascript._
  */
 trait PropertyCodec[T] {
   /**
-   * Get a T from the String representation sent via ajax with events (via DOMEventSource.rawEventData)
+   * Get a T from the String representation sent via ajax with events (via DomEventSource.rawEventData)
    */
   def fromString: String => T
   /**
@@ -133,17 +133,17 @@ class PropertyVar[T](val dom: DOMProperty)(init: T)(implicit codec: PropertyCode
    * that this property applies to.
    * @return This PropertyVar
    */
-  def updateOn(es: DOMEventSource[_]*) = { dom.updateOn(es: _*); this }
+  def updateOn(es: DomEventSource[_]*) = { dom.updateOn(es: _*); this }
 
   /**
    * Links events with this property. The value
    * will be updated on the server whenever an
    * event fires.
    * Additionally, applying this DOMProperty to
-   * an Elem will apply the specified DOMEventSources
+   * an Elem will apply the specified DomEventSources
    * too. Therefore events must belong to the same
    * Elem as this property!
    * @return This PropertyVar
    */
-  def withEvents(es: DOMEventSource[_ <: DOMEvent]*) = { dom.withEvents(es: _*); this }
+  def withEvents(es: DomEventSource[_ <: DOMEvent]*) = { dom.withEvents(es: _*); this }
 }

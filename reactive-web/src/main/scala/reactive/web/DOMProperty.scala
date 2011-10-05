@@ -34,8 +34,8 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   private val valuesES = new EventSource[String] {}
   def values: EventStream[String] = valuesES
 
-  private var eventSources = List[DOMEventSource[_]]()
-  private var includedEvents = List[DOMEventSource[_ <: DOMEvent]]()
+  private var eventSources = List[DomEventSource[_]]()
+  private var includedEvents = List[DomEventSource[_ <: DOMEvent]]()
 
   /**
    * This is only used to ensure the event stream is only created once per page
@@ -104,7 +104,7 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * that this property applies to.
    * @return This DOMProperty
    */
-  def updateOn(es: DOMEventSource[_]*): this.type = {
+  def updateOn(es: DomEventSource[_]*): this.type = {
     eventSources :::= es.toList
     this
   }
@@ -114,12 +114,12 @@ class DOMProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * will be updated on the server whenever an
    * event fires.
    * Additionally, applying this DOMProperty to
-   * an Elem will apply the specified DOMEventSources
+   * an Elem will apply the specified DomEventSources
    * too. Therefore events must belong to the same
    * Elem as this property!
    * @return This DOMProperty
    */
-  def withEvents(es: DOMEventSource[_ <: DOMEvent]*): this.type = {
+  def withEvents(es: DomEventSource[_ <: DOMEvent]*): this.type = {
     updateOn(es: _*)
     includedEvents :::= es.toList
     this

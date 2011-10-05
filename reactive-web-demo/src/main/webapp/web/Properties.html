@@ -16,8 +16,8 @@ the JavaScript queuing mechanism.</p>
 <p><code>DOMProperty</code> acts a proxy to a property or attribute of a DOM element.
 It has an <code>EventStream[String]</code> that fires updates to the property's value.
 And it has an <code>update</code> method that sets the property's value with a <code>JsExp</code>.</p>
-<p>Like <code>DOMEventSource</code>, you can apply it to an Elem and get a new Elem, or use it
-as a NodeSeq=&gt;NodeSeq function for CSS Selectors and legacy binding. Unlike <code>DOMEventSource</code> however, you need to either
+<p>Like <code>DomEventSource</code>, you can apply it to an Elem and get a new Elem, or use it
+as a NodeSeq=&gt;NodeSeq function for CSS Selectors and legacy binding. Unlike <code>DomEventSource</code> however, you need to either
 call render or rely on the implicit conversion to do so. In the case of <code>DOMProperty</code>, it
 returns an element with an added attribute
 corresponding the property and its value.
@@ -65,7 +65,7 @@ as in <code>checked="checked"</code>).</p>
 
 <dl>
   <dt><code>updateOn</code></dt>
-  <dd>Calling this method with one or more <code>DOMEventSource</code>s will
+  <dd>Calling this method with one or more <code>DomEventSource</code>s will
   add an element to its <code>rawEventData</code> with a JavaScript
   expression that reads the value of this property. When <code>Page</code>s
   are added subsequently, the value of the property will be updated via

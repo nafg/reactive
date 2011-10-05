@@ -13,6 +13,11 @@ package object web {
     case class WrappedNonElemInSpan(xml: NodeSeq) extends LogEventPredicate
   }
 
+  @deprecated("Use DomEventSource")
+  val DOMEventSource = DomEventSource
+  @deprecated("Use DomEventSource")
+  type DOMEventSource[T <: DOMEvent] = DomEventSource[T]
+
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
    * provided PartialFunction.
