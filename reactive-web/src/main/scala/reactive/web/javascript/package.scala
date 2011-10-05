@@ -1,7 +1,7 @@
 package reactive
 package web
 
-import java.lang.reflect.{ InvocationHandler, Proxy }
+import java.lang.reflect.{ InvocationHandler, Proxy, Method }
 
 package object javascript {
   import JsTypes._
@@ -34,7 +34,8 @@ package object javascript {
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
   private class StubInvocationHandler[T <: JsStub: Manifest](ident: String) extends InvocationHandler {
-    def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef = {
+    def invoke(proxy: AnyRef, method: Method, args0: Array[AnyRef]): AnyRef = {
+      val args = args0 match { case null => Array.empty case x => x }
       val clazz: Class[_] = manifest[T].erasure
 
       try { // look for static forwarder
