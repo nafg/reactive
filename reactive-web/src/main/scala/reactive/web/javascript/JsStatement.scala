@@ -4,6 +4,13 @@ package javascript
 
 import JsTypes._
 
+object Javascript {
+  def apply(f: => Unit): Unit = {
+    val js = JsStatement.inScope(f)
+    js foreach { s => Reactions.queue(s) }
+  }
+}
+
 /**
  * A scala representation of a javascript statement.
  * On instantiation, puts itself on the JsStatement stack.
