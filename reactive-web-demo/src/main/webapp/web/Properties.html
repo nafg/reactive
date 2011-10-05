@@ -66,14 +66,16 @@ as in <code>checked="checked"</code>).</p>
 <dl>
   <dt><code>updateOn</code></dt>
   <dd>Calling this method with one or more <code>DomEventSource</code>s will
-  add an element to its <code>rawEventData</code> with a JavaScript
-  expression that reads the value of this property. When <code>Page</code>s
-  are added subsequently, the value of the property will be updated via
-  the <code>rawEventStream</code>. Returns the <code>DomProperty</code> or <code>PropertyVar</code>.</dd>
+  register a <code>JsEventStream</code> with it that fires the property's value whenever
+  the browser raises that event. When <code>Page</code>s
+  are subsequently added to the <code>DomProperty</code> (for instance when it's rendered),
+  updates to the property will reach the server. In the case of <code>DomProperty</code>
+  they will be fired from its <code>values</code> event stream, and in the case of <code>PropertyVar</code>
+  it will contain the new value. Returns the <code>DomProperty</code> or <code>PropertyVar</code>.</dd>
   <dt><code>withEvents</code></dt>
   <dd>Like <code>updateOn</code>, plus
   the <code>DomProperty</code> will automatically
-  add the events to the element. Returns the <code>DomProperty</code> or <code>PropertyVar</code>.</dd>
+  add the events to any element it is rendered to. Returns the <code>DomProperty</code> or <code>PropertyVar</code>.</dd>
   <dt><code>render</code></dt>
   <dd>Returns a <code>NodeSeq=&gt;NodeSeq</code> binding function. Requires an implicit Page.</dd>
   <dt><code>render(Elem)</code></dt>
