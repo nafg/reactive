@@ -13,15 +13,15 @@ import javascript._
  */
 trait PropertyCodec[T] {
   /**
-   * Get a T from the String representation sent via ajax with events (via DomEventSource.rawEventData)
+   * Get a T from the String representation sent via ajax with events (via PropertyVar.withEvents/updateOn)
    */
   def fromString: String => T
   /**
-   * How to send the value as JavaScript to the browser via ajax or comet
+   * How to send the value as JavaScript to the browser
    */
   def toJS: T => $[JsTypes.JsAny]
   /**
-   * The attribute value to initialize the property's value, or None for no attribute
+   * The attribute value to initialize the property with (None for no attribute)
    */
   def toAttributeValue: T => String => Option[String]
 }
