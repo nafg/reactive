@@ -19,6 +19,30 @@ class JsTests extends FunSuite with ShouldMatchers {
     (!(true.$) render) should equal ("(!true)")
   }
 
+  test("JsStub") {
+    sealed trait obj extends JsStub {
+      def method(s: $[JsString]): $[JsString]
+      def self: obj
+    }
+    val obj = $$[obj]
+    Page.withPage(new Page) {
+      Reactions.inScope(new LocalScope) {
+
+        Javascript {
+          obj.method(obj.method("This is a scala string"$))
+          val v = JsVar[JsObj] := obj.self
+        }
+
+      }.js.map(_.toJsCmd) should equal (List(
+
+        "obj.method(obj.method(\"This is a scala string\"))",
+        "var x$0",
+        "x$0=obj.self"
+
+      ))
+    }
+  }
+
   test("Statements") {
     window.alert(window.encodeURIComponent("Message"$))
     JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"))")

@@ -38,14 +38,42 @@ package object javascript {
       val args = args0 match { case null => Array.empty case x => x }
       val clazz: Class[_] = manifest[T].erasure
 
-      try { // look for static forwarder
-        val forwarder = Class.
-          forName(clazz.getName+"$class").
-          getMethod(method.getName, clazz +: method.getParameterTypes: _*)
-        forwarder.invoke(null, proxy +: args: _*)
+      // look for static forwarder --- that means the method has a scala method body, so invoke it
+      def findAndInvokeForwarder(clazz: Class[_]): Option[Method] = try {
+        Some(
+          Class.
+            forName(clazz.getName+"$class").
+            getMethod(method.getName, clazz +: method.getParameterTypes: _*)
+        )
       } catch {
         case _: NoSuchMethodException | _: ClassNotFoundException =>
+          clazz.getInterfaces().map(findAndInvokeForwarder).find(_.isDefined) getOrElse (
+            clazz.getSuperclass match {
+              case null => None
+              case c    => findAndInvokeForwarder(c)
+            }
+          )
+      }
+      findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
+        if (classOf[JsStub] isAssignableFrom method.getReturnType()) {
+          val id = ident+"."+method.getName()
+          val ih = new StubInvocationHandler(id) {
+            override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
+              //TODO change when render is not a method on JsExp but on a typeclass
+              if (method.getName == "render" && method.getReturnType == classOf[String] && args == null)
+                id
+              else
+                super.invoke(proxy, method, args)
+            }
+          }
+          java.lang.reflect.Proxy.newProxyInstance(
+            getClass.getClassLoader,
+            method.getReturnType().getInterfaces :+ method.getReturnType(),
+            ih
+          )
+        } else {
           new ApplyProxyMethod(ident, method, clazz, args)
+        }
       }
     }
   }
