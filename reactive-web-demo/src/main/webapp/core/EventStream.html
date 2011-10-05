@@ -13,10 +13,10 @@ implicitly. Events are delivered on whichever thread they are fired, and
 execution of that thread continues when all listeners have processed the
 event.</p>
 
-<p>One can think of an <code>EventStream</code> as a collection of
-values, where, rather than all values existing side by side, each one
+<p>One can think of an <code>EventStream</code> as being similar to a collection of
+values, except that rather than all values existing simultaneously, each one
 exists at a different point in time. Keep this analogy in mind, because
-methods in reactive-core are named with it in mind.</p>
+methods in reactive-core are named like the corresponding methods in the scala collections framework.</p>
 
 <h3>Creating an <code>EventStream</code></h3>
 <p>Often you will be dealing with <code>EventStream</code>s
@@ -272,3 +272,8 @@ If that is the case, call <code>nonrecursive</code>, which returns
 a derived <code>EventStream</code> that uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>)
 to prevent it from firing recursively.</p>
 </div>
+
+<h3><code>distinct</code></h3>
+<p><code>anEventStream.distinct</code> returns a derived event stream that only invokes it listeners for
+events that are not equal to the previous event.</p>
+
