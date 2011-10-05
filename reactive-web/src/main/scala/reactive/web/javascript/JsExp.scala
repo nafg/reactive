@@ -133,6 +133,9 @@ object JsRaw {
   def apply[T <: JsAny](rendering: => String) = new JsRaw[T](rendering)
 }
 
+/**
+ * A typeclass to convert a scala value to a JsExp
+ */
 trait ToJs[-S, J <: JsAny, +E[J <: JsAny] <: JsExp[J]] extends (S => E[J])
 class ToJsExp[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsExp] {
   def apply(s: S) = JsRaw[J](renderer(s))
@@ -142,6 +145,7 @@ class ToJsLit[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsLitera
 }
 
 trait ToJsLow { // make sure Map has a higher priority than a regular function
+  //TODO also capture statements?
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){return "+_($('arg)).render+"}")
 }
@@ -163,7 +167,7 @@ object ToJs extends ToJsLow {
   implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
   implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
   implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
-  implicit def array[T <: JsAny] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
+  implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
 }
 
 /**
