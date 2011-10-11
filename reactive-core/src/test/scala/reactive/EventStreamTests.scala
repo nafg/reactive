@@ -169,12 +169,13 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
     def makeTakenWhile = {
       val f = { (_: Int) < 3 }
       val takenWhile = es takeWhile f
-      new scala.ref.WeakReference(f)
+      val weakref = new scala.ref.WeakReference(f)
+      es fire 2
+      System.gc
+      if (weakref.get.isEmpty) info("Warning - takeWhile EventSource was gc'ed")
+      weakref
     }
     val weakref = makeTakenWhile
-    es fire 2
-    System.gc
-    if (weakref.get.isEmpty) info("Warning - takeWhile EventSource was gc'ed")
     es fire 10
     System.gc
     if (weakref.get.isDefined) info("Warning - takeWhile EventSource was not gc'ed")
