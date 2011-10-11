@@ -101,37 +101,51 @@ trait Signal[+T] extends Forwardable[T] {
 
   /**
    * Returns a derived signal in which value propagation does not happen on the thread triggering the change and block it.
-   * This is ideal for handling values in ways that are time consuming.
-   * The implementation delegates propagation to an actor (scala standard library).
-   * The signal will hold values of type (T, ()=>Boolean), where T is the type of the
-   * parent signal, and the value tuple will contain the parent's value at
-   * the last time it was received, as well as a function that can be used to test
-   * whether that value is outdated because the parent has received a new value.
-   * This is because the actor implementation means that a new value cannot
-   * be received until the previous value is finished being handled.
-   * The test function is useful because it may be desirable to abort the time-consuming work
-   * if the value has been superseded
-   * Example usage:
-   * for((v, isSuperseded) <- signal.nonblocking) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
-   * If you don't care whether it was superseded just do
-   * for((v, _) <- signal.nonblocking) ...
+   * This is helpful when handling values can be time consuming.
+   * The implementation delegates propagation to an actor (scala standard library), so
+   * values are handled sequentially.
    */
-  def nonblocking: Signal[(T, () => Boolean)] = new ChildSignal[T, WithVolatility[T], WithVolatility[T]](this, (now, new Volatility), identity) {
+  def nonblocking: Signal[T] = new ChildSignal[T, T, Unit](this, now, _ => now) {
+    override def debugName = parent.debugName + ".nonblocking"
     import scala.actors.Actor._
     private val delegate = actor {
       loop {
         receive {
-          case (x: T, volatility: Volatility) =>
-            current = (x, volatility)
-            change.fire((x, volatility))
+          case x: T =>
+            current = x
+            change.fire(x)
         }
       }
     }
     def parentHandler = {
+      case (x, _) =>
+        delegate ! x
+    }
+  }
+
+  /**
+   * Returns a tuple-valued Signal whose value includes a function for testing staleness.
+   * The signal will hold values of type (T, ()=>Boolean), where T is the type of the
+   * parent signal, and the value tuple will contain the parent's value at
+   * the last time it was received, as well as a function that can be used to test
+   * whether that value is outdated because the parent has received a new value.
+   * This is especially useful in conjunction with 'nonblocking',
+   * because its actor implementation means that a new value cannot
+   * be received until the previous value is finished being handled.
+   * The test function is useful because it may be desirable to abort time-consuming work
+   * if the value has been superseded
+   * Example usage:
+   * for((v, isSuperseded) <- signal.zipWithStaleness) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
+   */
+  //TODO does this belong in Signal? Maybe only in EventStream? After all, it makes no sense for 'now' to include the staleness function; now._2() will always be false
+  def zipWithStaleness: Signal[(T, () => Boolean)] = new ChildSignal[T, WithVolatility[T], WithVolatility[T]](this, (now, new Volatility), identity) {
+    override def debugName = parent.debugName+".zipWithStaleness"
+    def parentHandler = {
       case (parentEvent, (oldValue, volatility: Volatility)) =>
-        volatility.stale = true
         val v = (parentEvent, new Volatility)
-        delegate ! v
+        current = v
+        volatility.stale = true
+        change.fire(v)
         v
     }
   }

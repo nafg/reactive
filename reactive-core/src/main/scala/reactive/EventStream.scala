@@ -143,22 +143,27 @@ trait EventStream[+T] extends Forwardable[T] {
 
   /**
    * Returns a derived event stream in which event propagation does not happen on the thread firing it and block it.
-   * This is ideal for handling events in ways that are time consuming.
-   * Subsequent events are handled sequentially.
-   * The signal will hold values of type (T, ()=>Boolean), where T is the type of the
-   * parent event stream, and the value tuple will contain the event fired in the parent
+   * This is helpful when handling events can be time consuming.
+   * The implementation delegates propagation to an actor (scala standard library), so
+   * events are handled sequentially.
+   */
+  def nonblocking: EventStream[T]
+
+  /**
+   * Returns an EventStream whose tuple-valued events include a function for testing staleness.
+   * The events will be of type (T, ()=>Boolean), where T is the type of the
+   * parent event stream; and the tuple will contain the event fired in the parent
    * as well as a function that can be used to test
-   * whether that event is outdated because a new event has been fired since.
-   * This is because the sequential nature means that a new event cannot
+   * whether that event is outdated because a new event has been fired since then.
+   * This is especially useful in conjunction with 'nonblocking',
+   * because its actor implementation means that a new event cannot
    * be received until the previous event is finished being handled.
    * The test function is useful because it may be desirable to abort the time-consuming work
-   * if the event has been superseded
+   * if a new event has been fired since then.
    * Example usage:
-   * for((v, isSuperseded) <- eventStream.nonblocking) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
-   * If you don't care whether it was superseded just do
-   * for((v, _) <- eventStream.nonblocking) ...
+   * for((v, isSuperseded) <- eventStream.zipWithStaleness) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
    */
-  def nonblocking: EventStream[(T, () => Boolean)]
+  def zipWithStaleness: EventStream[(T, () => Boolean)]
 
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
@@ -230,22 +235,19 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   private type WithVolatility[T] = (T, () => Boolean)
 
-  class ActorEventStream extends ChildEventSource[WithVolatility[T], Option[Volatility]](None) {
+  class ActorEventStream extends ChildEventSource[T, Unit](()) {
     override def debugName = "%s.nonblocking" format (EventSource.this.debugName)
     import scala.actors.Actor._
     private val delegate = actor {
       loop {
         receive {
-          case (x: T, volatility: Volatility) => fire((x, volatility))
+          case x: T => fire(x)
         }
       }
     }
     def handler = {
-      case (parentEvent, volatilityOption) =>
-        volatilityOption.foreach(_.stale = true)
-        val volatility = new Volatility
-        delegate ! (parentEvent, volatility)
-        Some(volatility)
+      case (parentEvent, _) =>
+        delegate ! parentEvent
     }
   }
 
@@ -365,7 +367,18 @@ class EventSource[T] extends EventStream[T] with Logger {
     change addListener f
   }
 
-  def nonblocking: EventStream[(T, () => Boolean)] = new ActorEventStream
+  def zipWithStaleness: EventStream[(T, () => Boolean)] = new ChildEventSource[WithVolatility[T], Option[Volatility]](None) {
+    override def debugName = "%s.withStaleness" format EventSource.this.debugName
+    def handler = {
+      case (parentEvent, volatilityOption) =>
+        volatilityOption.foreach(_.stale = true)
+        val volatility = new Volatility
+        fire((parentEvent, volatility))
+        Some(volatility)
+    }
+  }
+
+  def nonblocking: EventStream[T] = new ActorEventStream
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
     trace(AddingListener(f))
