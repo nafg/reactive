@@ -28,6 +28,11 @@
     can have a set of items transformed it in all sorts of ways and
     rendered, and when the set of items changes, only the necessary
     changes will be made to the DOM.</p>
+  <p>It is extremely testable. You can write Selenium-style tests &mdash;
+     but they don't require starting up a browser or Jetty, and your
+     tests can access and interact with both the "user interface"
+     as well as the server-side objects (such as the contents
+     of a snippet class).</p>
   <p>You can use it within a regular Lift application, in one place
     or throughout. Or you can use it to completely change the kind of
     webapps you write. No longer do webapps have to be less dynamic than
@@ -63,8 +68,6 @@
     <li>Onsubmit event, so you can use it when JavaScript is not
       enabled or supported</li>
     <li>JavaScript signals (event streams are already implemented)</li>
-    <li>Pluggability of dom mutation renderers</li>
-    <li>Ability to collect dom mutations, for extreme testability</li>
     <li>Widgets, from scratch and/or ExtJS etc.</li>
   </ul>
 </div>

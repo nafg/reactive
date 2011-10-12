@@ -49,6 +49,8 @@ class Boot {
         Menu("Events")  /"web"/"Events",
         Menu("Properties")  /"web"/"Properties",
         Menu("Elements")  /"web"/"Elements",
+        Menu("Testing")  /"web"/"TestScope",
+        Menu("Configuration")  /"web"/"Config",
         Menu("Simple demo")  /"demos"/"SimpleDemo"
       ),
       Menu("HTML")  /"2"  >>PlaceHolder  submenus(
