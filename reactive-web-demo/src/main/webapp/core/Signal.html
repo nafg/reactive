@@ -164,6 +164,9 @@ but with an added safety filter. <code>distinct</code> returns a new <code>Signa
 to the signal's previous value. This suffices in most cases. But what if when signal A causes signal B
 to change signal A, it sets to another value, infinitely? A silly illustration:</p>
 <pre class="brush:scala">myVar.map(_ + 1) >> myVar</pre>
-<p>Another example is where rounding errors are not symmetric. For such scenarios, call<code>nonrecursive</code>, which
+<p>Another example is where rounding errors are not symmetric. For such scenarios, call <code>nonrecursive</code>, which
 uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>) to prevent recursion.</p>
 </div>
+
+<h3>Time-consuming handling values</h3>
+<p>Similar to <code>EventStream</code>, <code>Signal</code> has <code>nonblocking</code> and <code>zipWithStaleness</code> methods.</p>

@@ -32,7 +32,7 @@ time you call one of the transforming methods (below). And there's <code>Timer</
 
 <h3><code>Timer</code></h3>
 <p>One useful subclass of <code>EventStream</code> is <code>Timer</code>.
-It fires ticks at a given interval (no guarantee of course). Ticks'
+It fires ticks at a given interval. Ticks'
 values are based on the time when they are fired, not when they were
 scheduled to fire.</p>
 
@@ -53,11 +53,11 @@ calling <code>foreach</code> explicitly.)</p>
 <p>This begs the question: How will the function, and any references
 it has, ever be garbage collected (before the <code>EventStream</code>
 is)? The answer is that <code>EventStream</code> keeps your function
-inside a <code>WeakReference</code>, thus not preventing it from being
-garbage collected. If so, what's stopping it from being garbage
+inside a <code>WeakReference</code>, thus allowing it to be
+garbage collected. If so, what stops it from being garbage
 collected too soon? For that reason you must have an instance of <code>Observing</code>
 in the implicits scope when calling <code>foreach</code> (and <code>forward</code>).
-<code>EventStream</code> will store a strong reference to the function
+<code>EventStream</code> will place a strong reference to the function
 inside the <code>Observing</code> object. Then the responsibility of
 memory lifetime falls on the <code>Observing</code>. The easiest (and
 often most correct) way to implement this, is to have the enclosing
@@ -71,9 +71,16 @@ reference to itself).</p>
 of transformation methods, which return <code>EventStream</code>s whose
 events are based on the original <code>EventStream</code> with
 some modification. You can chain together various transformations to get
-a completely different <code>EventStream</code>. Consumers of the
+a <code>EventStream</code> whose event values are very different than those
+of the original <code>EventStream</code>. This is similar to how
+you can transform collections: <code>List(1,2,3).map(_ * 10).filter(_ &lt; 25)</code>. Consumers of the
 resulting <code>EventStream</code> don't need to care about how it
-relates to the original <code>EventStream</code>.</p>
+relates to the original <code>EventStream</code>. Whenever the original <code>EventStream</code>
+fires an event, the transformed <code>EventStream</code>s may fire their own events
+that are based on the original's event, according to the transformation.
+The way this works behind the scenes is that a listener function is added to
+the "parent" <code>EventStream</code> that simply fires the correct
+event(s) from the "child" <code>EventStream</code>.</p>
 
 
 <h3>Finer-grained lifetime control: <code>takeWhile</code></h3>
@@ -216,7 +223,7 @@ seconds.filter(_ % 10 == 1).flatMap{ t =&gt;
 
 <button onclick="showdemo('EventStream_flatMap')">Live Example</button>
 
-<h3>Eliminating state: <code>foldLeft</code></h3>
+<h3>Passing state: <code>foldLeft</code></h3>
 <p>What if you need the way you handle events to depend on various
 factors, in a way that's more complex than what <code>flatMap</code>
 allows?</p>
@@ -277,3 +284,32 @@ to prevent it from firing recursively.</p>
 <p><code>anEventStream.distinct</code> returns a derived event stream that only invokes it listeners for
 events that are not equal to the previous event.</p>
 
+<h3>Handling events on a different thread: <code>nonblocking</code></h3>
+<p>Most <code>EventStream</code>s invoke all their listeners in whichever thread is firing the event,
+thus blocking it. This can be problematic when handling an event is time-consuming.</p>
+<p>Similarly, if a thread fires an event into an <code>EventStream</code> that
+is is already handling an event from another thread, it will handle the new event on its thread
+simultaneous with the other event handling already taking place. When handling
+an event involves a lot of work, this means some of that work may be redundant.</p>
+<p>Calling <code>nonblocking</code> on an <code>EventStream</code> returns a derived <code>EventStream</code>
+that hands off events to an internal actor to process. Thus, only one event will be handled
+at a time, and the thread firing the event won't block. See below for an example.</p>
+
+<h3>Detecting that an event is superseded: <code>zipWithStaleness</code></h3>
+<p>Sometimes, like when you have a long-running, hard-working event handler, you may want
+to check whether a new event has been fired since the handler began running. Perhaps
+if one indeed was, you want to short-circuit and skip the rest of the work (maybe because
+it's superfluous in light of the new event). This may be especially important if you are using
+<code>nonblocking</code>: since only one event can be processed at a time, things may fall
+more and more behind schedule. For instance, if processing a mouse click takes half a second,
+after the user clicks 10 times it will take five seconds for the computer to "catch up" to the
+user. One solution is to use <code>zipWithStaleness</code>. It will return an
+<code>EventStream[(T, ()=&gt;Boolean)]</code>. In other words, each event will be a <code>Tuple2</code>
+containing the actual event value together with a function. The function returns whether the
+event has been "superseded."</p>
+<pre class="brush: scala">
+for((click, isStale) &lt;- mouseClicks.zipWithStaleness.nonblocking) {
+  doSomeWork()
+  if(!isStale()) doSomeMoreWork()
+}
+</pre>
