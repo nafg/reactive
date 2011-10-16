@@ -481,12 +481,24 @@ trait Batchable[A, B] extends EventSource[SeqDelta[A, B]] {
 /**
  * An EventStream that is implemented by delegating everything to another EventStream
  */
-trait EventSourceProxy[T] extends EventSource[T] {
-  def underlying: EventSource[T]
-  override def fire(event: T) = underlying.fire(event)
-  override def flatMap[U](f: T => EventStream[U]): EventStream[U] = underlying.flatMap[U](f)
-  override def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = underlying.foldLeft[U](z)(f)
-  override def map[U](f: T => U): EventStream[U] = underlying.map[U](f)
-  override def foreach(f: T => Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
-  override def |[U >: T](that: EventStream[U]): EventStream[U] = underlying.|(that)
+trait EventStreamProxy[T] extends EventStream[T] {
+  def self: EventStream[T]
+
+  def debugString = self.debugString
+  def flatMap[U](f: T => EventStream[U]): EventStream[U] = self.flatMap[U](f)
+  def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = self.foldLeft[U](z)(f)
+  def map[U](f: T => U): EventStream[U] = self.map[U](f)
+  def foreach(f: T => Unit)(implicit observing: Observing): Unit = self.foreach(f)(observing)
+  def |[U >: T](that: EventStream[U]): EventStream[U] = self.|(that)
+  def filter(f: T => Boolean): EventStream[T] = self.filter(f)
+  def collect[U](pf: PartialFunction[T, U]): EventStream[U] = self.collect(pf)
+  def takeWhile(p: T => Boolean): EventStream[T] = self.takeWhile(p)
+  def hold[U >: T](init: U): Signal[U] = self.hold(init)
+  def nonrecursive: EventStream[T] = self.nonrecursive
+  def distinct: EventStream[T] = self.distinct
+  def nonblocking: EventStream[T] = self.nonblocking
+  def zipWithStaleness: EventStream[(T, () => Boolean)] = self.zipWithStaleness
+  private[reactive] def addListener(f: (T) => Unit): Unit = self.addListener(f)
+  private[reactive] def removeListener(f: (T) => Unit): Unit = self.removeListener(f)
+
 }
