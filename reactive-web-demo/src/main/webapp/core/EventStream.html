@@ -278,7 +278,6 @@ firing again, you may end up with infinite recursion (in other words, a <code>St
 If that is the case, call <code>nonrecursive</code>, which returns
 a derived <code>EventStream</code> that uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>)
 to prevent it from firing recursively.</p>
-</div>
 
 <h3><code>distinct</code></h3>
 <p><code>anEventStream.distinct</code> returns a derived event stream that only invokes it listeners for
@@ -313,3 +312,4 @@ for((click, isStale) &lt;- mouseClicks.zipWithStaleness.nonblocking) {
   if(!isStale()) doSomeMoreWork()
 }
 </pre>
+</div>
