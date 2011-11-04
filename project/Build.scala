@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
 import com.github.siasia.WebPlugin._
+import com.github.siasia.PluginKeys._
 
 object ReactiveBuild extends Build {
   val pomCommon = <xml:group>
@@ -68,8 +69,8 @@ object ReactiveBuild extends Build {
     "reactive-web-demo",
     file("reactive-web-demo"),
     settings = defaults ++ webSettings ++ Seq(
-      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "jetty,test"),
-      jettyScanDirs := Nil,
+      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container"),
+      scanDirectories := Nil,
       publishArtifact := false
     )
   ) dependsOn(reactive_web) aggregate(reactive_web)
