@@ -87,6 +87,11 @@ class JsTests extends FunSuite with ShouldMatchers {
             window.alert("Greater"$)
           }
         }
+        Try {
+          Throw("message"$)
+        } Catch { c =>
+        } Finally {
+        }
       }
     }
     theStatements.map(JsStatement.render) should equal (List(
@@ -100,7 +105,8 @@ break;}""",
       """var i""",
       """for(i=1;(i<10);i=(i+1)) {}""",
       """for(var x$0 in [1,2,3]) {if((x$0>1)) {window.alert("Greater")}}""",
-      """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater")}}"""
+      """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater")}}""",
+      """try {throw "message"} catch(x$2) {} finally {}"""
     ))
   }
 }

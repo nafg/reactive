@@ -49,6 +49,10 @@ object JsStatement {
     case f: For.For                      => "for("+f.init.map(render).mkString(",")+";"+f.cond.render+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
     case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+fi.exp.render+") "+render(fi.body)
     case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+fei.exp.render+") "+render(fei.body)
+    case Throw(e)                        => "throw "+e.render
+    case t: Try.Try                      => "try "+render(t.body)
+    case c: Try.Try#Catch                => render(c.outer)+" catch("+c.v.ident.name+") "+render(c.body)
+    case f: Try.Finallyable#Finally      => render(f.outer)+" finally "+render(f.body)
   }
 
   /**
@@ -222,5 +226,31 @@ case class ForEachInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
   def foreach(f: JsIdent[T] => Unit)(implicit p: Page) = {
     val v = JsVar[T]()
     new ForEachIn(v, exp)(f(v))
+  }
+}
+
+case class Throw[T <: JsAny](exp: JsExp[T]) extends JsStatement {
+  def toReplace = Nil
+}
+
+object Try {
+  trait Finallyable { this: JsStatement =>
+    def Finally(block: => Unit) = new Finally(block)
+    class Finally(block: => Unit) extends HasBody(block) with JsStatement {
+      private[javascript] lazy val outer = Finallyable.this
+      def toReplace = List(outer)
+    }
+  }
+  def apply(block: => Unit) = new Try(block)
+  private[javascript] class Try(block: => Unit) extends HasBody(block) with Finallyable with JsStatement {
+    def toReplace = Nil
+    def Catch(b: JsIdent[JsAny] => Unit) = {
+      val v = JsVar[JsAny]()
+      new Catch(v)(b(v))
+    }
+    class Catch(private[javascript] val v: JsVar[JsAny])(block: => Unit) extends HasBody(block) with Finallyable with JsStatement {
+      private[javascript] lazy val outer = Try.this
+      def toReplace = List(v, outer)
+    }
   }
 }
