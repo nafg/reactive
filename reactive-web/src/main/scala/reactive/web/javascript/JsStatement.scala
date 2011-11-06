@@ -13,7 +13,7 @@ object Javascript {
 
 /**
  * A scala representation of a javascript statement.
- * On instantiation, puts itself on the JsStatement stack.
+ * On instantiation, puts itself on the current JsStatement stack.
  */
 sealed trait JsStatement {
   /**
@@ -186,6 +186,15 @@ class JsVar[T <: JsAny] extends NamedIdent[T] with JsStatement {
     def toReplace = List(init) collect { case s: JsStatement => s }
   }
   def :=(exp: $[T]) = new Assignment(exp)
+}
+
+object JsVar {
+  /**
+   * Create a JsVar with a fresh name
+   */
+  def apply[T <: JsAny]()(implicit p: Page) = new JsVar[T] {
+    override val ident = Symbol("x$"+p.nextNumber)
+  }
 }
 
 object For {

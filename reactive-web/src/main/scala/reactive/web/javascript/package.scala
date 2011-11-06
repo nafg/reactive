@@ -22,13 +22,6 @@ package object javascript {
   type =|>[-P <: JsAny, +R <: JsAny] = JsTypes.JsFunction1[P, R]
 
   /**
-   * Create a JsVar with a fresh name 
-   */
-  def JsVar[T <: JsAny](implicit p: Page) = new JsVar[T] {
-    override val ident = Symbol("x$"+p.nextNumber)
-  }
-
-  /**
    * Returns a JsIdent with the specified name
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
