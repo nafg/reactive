@@ -74,7 +74,19 @@ class JsTests extends FunSuite with ShouldMatchers {
         1.$ :> window.alert("Yes"$)
       )
       object i extends JsVar[JsNumber]
-      For(List(i := 1.$), i < 10.$, List(i := i + 1.$)) {
+      For(List(i := 1.$), i < 10.$, List(i := i + 1.$)) {}
+
+      Page.withPage(new Page){
+        for (i <- List(1.$, 2.$, 3.$)$) {
+          If(i > 1.$) {
+            window.alert("Greater"$)
+          }
+        }
+        for (i <- Each(List(1.$, 2.$, 3.$))) {
+          If(i > 1.$) {
+            window.alert("Greater"$)
+          }
+        }
       }
     }
     theStatements.map(JsStatement.render) should equal (List(
@@ -86,7 +98,9 @@ break;
 case 1: window.alert("Yes");
 break;}""",
       """var i""",
-      """for(i=1;(i<10);i=(i+1)) {}"""
+      """for(i=1;(i<10);i=(i+1)) {}""",
+      """for(var x$0 in [1,2,3]) {if((x$0>1)) {window.alert("Greater")}}""",
+      """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater")}}"""
     ))
   }
 }

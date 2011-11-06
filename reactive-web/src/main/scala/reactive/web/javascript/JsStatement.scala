@@ -33,23 +33,22 @@ sealed trait JsStatement {
  * Maintains a thread-local stack of statement blocks
  */
 object JsStatement {
+  private def renderMatch(m: Match[_]) = "case "+m.against.render+": "+m.code.map(render).mkString(";\n")+";\nbreak;"
   def render(statement: JsStatement): String = statement match {
-    case i: If.If               => "if("+i.cond.render+") "+render(i.body)
-    case e: If.Elseable#Else    => render(e.outer)+" else "+render(e.body)
-    case ei: If.Elseable#ElseIf => render(ei.outer)+" else if("+ei.cond.render+") "+render(ei.body)
-    case s: Apply1[_, _]        => s.render
-    case s: ApplyProxyMethod[_] => s.render
-    case b: Block               => "{"+b.body.map(JsStatement.render).mkString(";\n")+"}"
-    case w: While.While         => "while("+w.cond.render+") "+render(w.body)
-    case dw: Do.DoWhile         => "do "+render(dw.body)+" while("+dw.cond.render+")"
-    case s: Switch.Switch[_] =>
-      "switch("+s.input.render+") {"+
-        s.matches.map{ m =>
-          "case "+m.against.render+": "+m.code.map(render).mkString(";\n")+";\nbreak;"
-        }.mkString("\n")+"}"
-    case v: JsVar[_]            => "var "+v.ident.name
-    case a: JsVar[_]#Assignment => a.ident.name+"="+a.init.render
-    case f: For.For             => "for("+f.init.map(render).mkString(",")+";"+f.cond.render+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
+    case i: If.If                        => "if("+i.cond.render+") "+render(i.body)
+    case e: If.Elseable#Else             => render(e.outer)+" else "+render(e.body)
+    case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+ei.cond.render+") "+render(ei.body)
+    case s: Apply1[_, _]                 => s.render
+    case s: ApplyProxyMethod[_]          => s.render
+    case b: Block                        => "{"+b.body.map(JsStatement.render).mkString(";\n")+"}"
+    case w: While.While                  => "while("+w.cond.render+") "+render(w.body)
+    case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+dw.cond.render+")"
+    case s: Switch.Switch[_]             => "switch("+s.input.render+") {"+s.matches.map(renderMatch).mkString("\n")+"}"
+    case v: JsVar[_]                     => "var "+v.ident.name
+    case a: JsVar[_]#Assignment          => a.ident.name+"="+a.init.render
+    case f: For.For                      => "for("+f.init.map(render).mkString(",")+";"+f.cond.render+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
+    case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+fi.exp.render+") "+render(fi.body)
+    case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+fei.exp.render+") "+render(fei.body)
   }
 
   /**
@@ -205,4 +204,23 @@ object For {
     def toReplace = inc ++ init toList
   }
   def apply(init: Seq[JsVar[_]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_]#Assignment])(block: => Unit) = new For(init, cond, inc)(block)
+}
+
+case class ForInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
+  class ForIn(private[javascript] val v: JsVar[JsNumber], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit) extends HasBody(block) with JsStatement {
+    def toReplace = List(v)
+  }
+  def foreach(f: JsIdent[JsNumber] => Unit)(implicit p: Page) = {
+    val v = JsVar[JsNumber]()
+    new ForIn(v, exp)(f(v))
+  }
+}
+case class ForEachInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
+  class ForEachIn(private[javascript] val v: JsVar[T], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit) extends HasBody(block) with JsStatement {
+    def toReplace = List(v)
+  }
+  def foreach(f: JsIdent[T] => Unit)(implicit p: Page) = {
+    val v = JsVar[T]()
+    new ForEachIn(v, exp)(f(v))
+  }
 }

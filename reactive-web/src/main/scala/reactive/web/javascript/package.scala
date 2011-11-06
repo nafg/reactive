@@ -21,6 +21,9 @@ package object javascript {
    */
   type =|>[-P <: JsAny, +R <: JsAny] = JsTypes.JsFunction1[P, R]
 
+  implicit def toForInable[T <: JsAny](exp: JsExp[JsArray[T]]) = ForInable(exp)
+  def Each[T <: JsAny](exp: $[JsArray[T]]) = ForEachInable(exp)
+
   /**
    * Returns a JsIdent with the specified name
    */
