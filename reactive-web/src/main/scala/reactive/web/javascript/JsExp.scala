@@ -136,7 +136,7 @@ object JsRaw {
 /**
  * A typeclass to convert a scala value to a JsExp
  */
-trait ToJs[-S, J <: JsAny, +E[J <: JsAny] <: JsExp[J]] extends (S => E[J])
+trait ToJs[-S, J <: JsAny, +E[K <: JsAny] <: JsExp[K]] extends (S => E[J])
 class ToJsExp[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsExp] {
   def apply(s: S) = JsRaw[J](renderer(s))
 }
@@ -175,6 +175,7 @@ object ToJs {
     type From[S] = ToJs[S, J, E]
   }
 }
+
 /**
  * A JsIdent whose javascript name is the scala type
  */
