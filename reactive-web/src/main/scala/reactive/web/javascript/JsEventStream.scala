@@ -125,7 +125,7 @@ trait CanForwardJs[-T, V <: JsAny] {
 object CanForwardJs {
   implicit def jes[V <: JsAny] = new CanForwardJs[JsEventStream[V], V] {
     def forward(s: JsForwardable[V], t: JsEventStream[V]) =
-      s.foreach((x: $[V]) => t.fireExp(x))(ToJs.func1)
+      s.foreach((x: $[V]) => t.fireExp(x))
   }
 }
 

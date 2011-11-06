@@ -5,7 +5,6 @@ import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
 
 import javascript._
 
-
 /**
  * Instances of this trait specify how to transport element property values to and from the client.
  * @tparam T the Scala type representation
@@ -29,17 +28,20 @@ trait PropertyCodec[T] {
 object PropertyCodec {
   implicit val string: PropertyCodec[String] = new PropertyCodec[String] {
     def fromString = s => s
-    val toJS = ToJs.string
+    val toJS = implicitly[String => $[JsTypes.JsString]]
     def toAttributeValue = v => _ => Some(v)
   }
   implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
     def fromString = _.toInt
-    val toJS = ToJs.int(_:Int)
+    val toJS = implicitly[Int => $[JsTypes.JsNumber]]
     def toAttributeValue = (v: Int) => _ => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
     def fromString = _.toInt match { case -1 => None case n => Some(n) }
-    val toJS = (io: Option[Int]) => ToJs.int(io getOrElse -1: Int)
+    val toJS = { io: Option[Int] =>
+      val i = implicitly[Int => $[JsTypes.JsNumber]]
+      i(io getOrElse -1: Int)
+    }
     def toAttributeValue = v => _ => v.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {

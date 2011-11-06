@@ -22,7 +22,7 @@ object JsTypes {
 
 import JsTypes._
 
-object JsExp {
+object JsExp extends ToJsHigh {
   implicit def any2JsExp[T, J <: JsAny, Exp[J <: JsAny] <: JsExp[J]](x: T)(implicit conv: ToJs[T, J, Exp]): Exp[J] = conv(x)
 
   implicit def canForward[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]) = new CanForward[$[J =|> JsVoid], T] {
@@ -152,15 +152,8 @@ trait ToJsLow { // make sure Map has a higher priority than a regular function
 /**
  * Contains implicit conversions from scala values to javascript literals
  */
-object ToJs extends ToJsLow {
-  class From[S] {
-    type To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] = ToJs[S, J, E]
-  }
-  class To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] {
-    type From[S] = ToJs[S, J, E]
-  }
-
-  implicit val double: From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
+trait ToJsHigh extends ToJsLow {
+  implicit val double: ToJs.From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
   implicit val int: ToJsLit[Int, JsNumber] = new ToJsLit[Int, JsNumber](_.toString)
   implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
   implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs)
@@ -170,6 +163,18 @@ object ToJs extends ToJsLow {
   implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
 }
 
+/**
+ * Defines type projections as alternative syntax to construct a ToJs type.
+ * ToJs.From[Int]#To[JsNumber, JsExp] == ToJs.To[JsNumber, JsExp]#From[Int] == ToJs[Int, JsNumber, JsExp]
+ */
+object ToJs {
+  class From[S] {
+    type To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] = ToJs[S, J, E]
+  }
+  class To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] {
+    type From[S] = ToJs[S, J, E]
+  }
+}
 /**
  * A JsIdent whose javascript name is the scala type
  */
