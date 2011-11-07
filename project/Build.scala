@@ -29,7 +29,8 @@ object ReactiveBuild extends Build {
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
     scalaVersion := "2.8.1",
-    scalacOptions += "-deprecation"
+    scalacOptions += "-deprecation",
+    checksums in update := Nil
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
