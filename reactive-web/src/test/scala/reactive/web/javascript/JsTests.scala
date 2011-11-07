@@ -29,7 +29,7 @@ class JsTests extends FunSuite with ShouldMatchers {
       Reactions.inScope(new LocalScope) {
 
         Javascript {
-          obj.method(obj.method("This is a scala string"$))
+          obj.method(obj.method("This is a scala string"))
           val v = JsVar[JsObj] := obj.self
         }
 
@@ -44,47 +44,47 @@ class JsTests extends FunSuite with ShouldMatchers {
   }
 
   test("Statements") {
-    window.alert(window.encodeURIComponent("Message"$))
+    window.alert(window.encodeURIComponent("Message"))
     JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"))")
 
     val theStatements = JsStatement.inScope{
-      If(true.$) {
-        window.alert("True"$)
-      }.ElseIf (false.$){
-        window.alert("False"$)
+      If(true) {
+        window.alert("True")
+      }.ElseIf (false){
+        window.alert("False")
       } Else {
-        If(true.$) {
+        If(true) {
         } Else {
         }
       }
-      While(true.$) {
-        window.alert("Again!"$)
+      While(true) {
+        window.alert("Again!")
       }
       Do {
-        window.alert("Hello!"$)
-      } While (false.$)
-      Switch(1.$)(
+        window.alert("Hello!")
+      } While (false)
+      Switch(1)(
         0.$ :> {
-          window.alert("No"$)
+          window.alert("No")
         },
-        1.$ :> window.alert("Yes"$)
+        1.$ :> window.alert("Yes")
       )
       object i extends JsVar[JsNumber]
-      For(List(i := 1.$), i < 10.$, List(i := i + 1.$)) {}
+      For(List(i := 1), i < 10, List(i := i + 1)) {}
 
       Page.withPage(new Page){
         for (i <- List(1.$, 2.$, 3.$)$) {
-          If(i > 1.$) {
+          If(i > 1) {
             window.alert("Greater"$)
           }
         }
         for (i <- Each(List(1.$, 2.$, 3.$))) {
-          If(i > 1.$) {
-            window.alert("Greater"$)
+          If(i > 1) {
+            window.alert("Greater")
           }
         }
         Try {
-          Throw("message"$)
+          Throw("message")
         } Catch { c =>
         } Finally {
         }
