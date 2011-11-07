@@ -47,10 +47,6 @@ class JsTests extends FunSuite with ShouldMatchers {
     window.alert(window.encodeURIComponent("Message"$))
     JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"))")
 
-    Reactions.inScope(new LocalScope) {
-      window.alert("This is a scala string")
-    }.js.map(_.toJsCmd) should equal (List("window.alert(\"This is a scala string\")"))
-
     val theStatements = JsStatement.inScope{
       If(true.$) {
         window.alert("True"$)
