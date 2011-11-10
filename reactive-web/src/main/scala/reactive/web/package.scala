@@ -53,10 +53,8 @@ package object web {
    * exist, in the server scope of the implicit page parameter.
    * @param message the text to display
    */
-  def alert(message: String)(implicit page: Page) {
-    Reactions.inAnyScope(page){
-      Reactions queue JsCmds.Run("alert("+Str(message).toJsCmd+")")
-    }
+  def alert(message: String)(implicit page: Page) = javascript.Javascript {
+    javascript.window.alert(message)
   }
 
   private[web] def trimNodeSeq(ns: NodeSeq): NodeSeq = {
