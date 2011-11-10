@@ -154,7 +154,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * Currently on handles Change, Click, and KeyUp.
      * @return this PowerNode
      */
-    def fire[T <: DOMEvent: Manifest](event: T): this.type = {
+    def fire[T <: DomEvent: Manifest](event: T): this.type = {
       for (eventAttr <- attr.get("on"+scalaClassName(manifest[T].erasure).toLowerCase)) {
         val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
         val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(document.getElementById\(\'([^\']*)\'\)\.([^\)]*)\)""".r

@@ -147,5 +147,5 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * Elem as this property!
    * @return This PropertyVar
    */
-  def withEvents(es: DomEventSource[_ <: DOMEvent]*) = { dom.withEvents(es: _*); this }
+  def withEvents(es: DomEventSource[_ <: DomEvent]*) = { dom.withEvents(es: _*); this }
 }

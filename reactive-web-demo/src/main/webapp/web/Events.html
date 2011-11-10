@@ -9,12 +9,12 @@ you want to react to events directly. In addition,
 element properties are propagated to the server via events.</p>
 
 
-<h3><code>DOMEvent</code></h3>
-<p><code>DOMEvent</code>
+<h3><code>DomEvent</code></h3>
+<p><code>DomEvent</code>
 is a simple trait that represents the event object that is raised by the browser. It is extended
 by case classes and case objects that represent the various
 DOM events and their state. When the browser fires an event, <code>reactive-web</code>
-may fire a corresponding DOMEvent instance to your code.</p>
+may fire a corresponding DomEvent instance to your code.</p>
 
 <h3><code>DomEventSource</code></h3>
 <p>Let's move on to <code>DomEventSource</code>.
@@ -24,7 +24,7 @@ handle the event on the client side, without requiring an
 ajax call to the server. In addition, <code>DomEventSource</code>
 has an <code>EventStream</code> instance (a <code>lazy val</code>,
 implemented by calling <code>toServer</code> on the <code>JsEventStream</code>)
-that fires <code>DOMEvent</code> instances. It provides the
+that fires <code>DomEvent</code> instances. It provides the
 ability to generate an event handler attribute that fires the
 <code>JsEventStream</code>.</p>
 
@@ -70,7 +70,7 @@ def render = {
   in the browser.</dd>
   <dt><code>eventStream</code></dt>
   <dd>The lazily instantiated <code>EventStream</code> that propagates <code>jsEventStreams</code>'s 
-  values to the server as <code>DOMEvent</code>s.</dd>
+  values to the server as <code>DomEvent</code>s.</dd>
   <dt><code>addEventData</code></dt>
   <dd>Supplies an additional <code>JsEventStream</code> to be fired in response to this event,
   and a <code>JsExp</code> to calculate the value to be fired.</dd> 

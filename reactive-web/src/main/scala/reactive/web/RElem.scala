@@ -97,7 +97,7 @@ trait RElem extends PageIds {
   /**
    * The events that contribute to rendering
    */
-  def events: Seq[DomEventSource[_ <: DOMEvent]]
+  def events: Seq[DomEventSource[_ <: DomEvent]]
 
   /**
    * The properties that contribute to rendering

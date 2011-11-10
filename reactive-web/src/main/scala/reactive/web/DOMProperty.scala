@@ -35,7 +35,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   def values: EventStream[String] = valuesES
 
   private var eventSources = List[DomEventSource[_]]()
-  private var includedEvents = List[DomEventSource[_ <: DOMEvent]]()
+  private var includedEvents = List[DomEventSource[_ <: DomEvent]]()
 
   /**
    * This is only used to ensure the event stream is only created once per page
@@ -119,7 +119,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    * Elem as this property!
    * @return This DomProperty
    */
-  def withEvents(es: DomEventSource[_ <: DOMEvent]*): this.type = {
+  def withEvents(es: DomEventSource[_ <: DomEvent]*): this.type = {
     updateOn(es: _*)
     includedEvents :::= es.toList
     this
