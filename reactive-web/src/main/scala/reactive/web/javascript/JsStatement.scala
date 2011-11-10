@@ -5,7 +5,7 @@ package javascript
 import JsTypes._
 
 object Javascript {
-  def apply(f: => Unit): Unit = {
+  def apply(f: => Unit)(implicit page: Page): Unit = Reactions.inAnyScope(page){
     val js = JsStatement.inScope(f)
     js foreach { s => Reactions.queue(s) }
   }
