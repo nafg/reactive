@@ -70,7 +70,7 @@ object ReactiveBuild extends Build {
     "reactive-web-demo",
     file("reactive-web-demo"),
     settings = defaults ++ webSettings ++ Seq(
-      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container"),
+      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test"),
       scanDirectories := Nil,
       publishArtifact := false
     )
