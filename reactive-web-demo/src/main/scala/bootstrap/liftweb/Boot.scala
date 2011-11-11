@@ -49,17 +49,10 @@ class Boot {
         Menu("Events")  /"web"/"Events",
         Menu("Properties")  /"web"/"Properties",
         Menu("Elements")  /"web"/"Elements",
+        Menu("HTML Classes")  /"web"/"Html",
         Menu("Testing")  /"web"/"TestScope",
         Menu("Configuration")  /"web"/"Config",
         Menu("Simple demo")  /"demos"/"SimpleDemo"
-      ),
-      Menu("HTML")  /"2"  >>PlaceHolder  submenus(
-        Menu("Span")  /"html"/"Span",
-        Menu("Div")  /"html"/"Div",
-        Menu("Button")  /"html"/"Button",
-        Menu("TextInput")  /"html"/"TextInput",
-        Menu("CheckboxInput")  /"html"/"CheckboxInput",
-        Menu("Select")  /"html"/"Select"
       ),
       Menu("Scaladocs")  /"3"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,
