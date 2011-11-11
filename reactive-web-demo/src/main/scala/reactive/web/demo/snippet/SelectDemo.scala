@@ -7,7 +7,7 @@ import reactive.web.html._
 import net.liftweb.util.Helpers
 import Helpers._
 
-import scala.xml.NodeSeq
+import scala.xml.{NodeSeq,Text}
 
 class SelectDemo extends Observing {
 
@@ -35,6 +35,6 @@ class SelectDemo extends Observing {
         for {
           c <- consonantSelect.selectedItem
           v <- vowelSelect.selectedItem
-        } yield "*" #> ("You selected "+(c.toList ::: v.toList).mkString(" and "))
+        } yield { _: NodeSeq => Text("You selected "+(c.toList ::: v.toList).mkString(" and ")) }
       }
 }
