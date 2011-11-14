@@ -11,6 +11,7 @@ case class Contact(name: String, numbers: List[String]) {
   def copy(name: String = this.name, numbers: List[String] = this.numbers) = new Contact(name, numbers) {
     override val id = Contact.this.id
   }
+  def save = Contacts.save(this)
 }
 
 object Contacts {
