@@ -1,50 +1,42 @@
 package reactive.web.demo.snippet
 
 import reactive._
-  import web._
-    import html._
+import web._
+import html._
 
+import net.liftweb.util.Helpers._
 
-// Transient in-memory store with method names similar to Mapper, for the time being
 case class Contact(name: String, numbers: List[String]) {
-  val id = Contact.nextId
-  def save = Contact.save(this)
-  def delete_! = Contact.delete_!(this)
-  
+  val id = Page.currentPage.nextNumber
   def copy(name: String = this.name, numbers: List[String] = this.numbers) = new Contact(name, numbers) {
     override val id = Contact.this.id
   }
+  def save = Contacts.save(this)
 }
-object Contact {
-  private var _nextId = 0
-  private def nextId = {val ret = _nextId; _nextId += 1; ret}
-  
+
+object Contacts {
   val contacts = BufferSignal[Contact]()
-  
-  def save(c: Contact) = contacts.now.indexWhere(_.id == c.id) match {
+
+  def save(c: Contact) = contacts.now.indexWhere(c eq) match {
     case -1 => contacts.value += c
-    case n => contacts.value(n) = c
+    case n  => contacts.value(n) = c
   }
-  
   def delete_!(c: Contact) {
-    contacts.now.indexWhere(_.id == c.id) match {
+    contacts.now.indexWhere(c eq) match {
       case -1 =>
-      case n => contacts.value.remove(n)
+      case n  => contacts.value.remove(n)
     }
   }
-  
-  def findAll = contacts.now
 }
 
 class ContactsPage extends Observing {
-  val curContact = Var(Contact("",Nil))
-  
-  val curContactNameField = TextInput(curContact.value.name){s =>
-    curContact.value = curContact.value.copy(name = s)
-    curContact.value.save
+  def render = "tbody" #> Repeater {
+    Contacts.contacts map {
+      _ map { contact =>
+        val name = TextInput.value(contact.name).withEvents(DomEventSource.change) =>>
+          { n => contact.copy(name = n).save }
+        ".name" #> name
+      }
+    }
   }
-  val contactsList = (Contact.contacts: SeqSignal[Contact]) map { _ flatMap {contact =>
-    <tr><th>{contact.name}</th><td>{contact.numbers}</td></tr>: xml.NodeSeq
-  }}
-    
 }
