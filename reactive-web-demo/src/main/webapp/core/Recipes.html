@@ -1,0 +1,45 @@
+<div class="lift:surround?with=default;at=content">
+
+	<h2>Recipes</h2>
+    
+  	<h4>Double-click</h4>
+  	<code><pre class="brush: scala"> 	clicks
+    	.map(_ => System.currentTimeMillis)
+    	.foldLeft((0L,0L)) {
+    		case ((_, lastT), newT) => (lastT, newT)
+  	}.collect{ case (lastT, newT) if newT-lastT < 500 => () }</pre>
+  	</code>
+  
+  	<h4>EventStreams of different event types</h4>
+    <p>Sometimes one needs to deal with events of the type <code>EventStream[(X,Y)]</code> where <code>X</code> represents the event type and <code>Y</code> is the event value and one needs to keep previous state for each event type for further calculations. This is not so straight foward as in the previous case. We keep the last two values and times per type of event using Maps: </p>
+  	<code><pre class="brush: scala">  def lastValues[X, Y](x: EventStream[(X, Y)], defaultX: X) = x.foldLeft((Map.empty[X, (Y, Long)], Map.empty[X, (Y, Long)], defaultX)) {
+    case ((mapBeforeLast, mapLastT, b), (a, v)) => (mapLastT, mapLastT updated(a, (v, System.currentTimeMillis)), a)
+  }.collect {
+    case ((mapLastT, mapNewT, a)) =>
+      for (
+        (x1, t1) <- mapNewT.get(a);
+        (x0, t0) <- mapLastT.get(a)
+      ) yield (ctl, (x1, t1), (x0, t0))
+  }
+  
+  val x = new EventSource[(String,Double)]
+  
+  //double clicks:
+  val doubleClicks = lastValues(x, "").collect {
+    case Some( (key, (x1, t1), (x0, t0)) ) if t1 - t0 < 500 => "double click from: "+key
+  }
+  
+  doubleClicks.foreach(println)
+  
+  x.fire( ("mouse",2.0) )
+  x.fire( ("mouse",4.0) )
+  x.fire( ("trackpad",2.3) )
+  x.fire( ("trackpad",5.3) )
+  x.fire( ("joystick",5.3) )
+  
+  //results
+  //scala> double click from: mouse
+  //scala> double click from: trackpad</pre>
+  </code>
+
+</div>
