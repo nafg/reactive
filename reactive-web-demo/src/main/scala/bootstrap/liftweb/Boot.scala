@@ -41,6 +41,7 @@ class Boot {
         Menu("SeqSignal")  /"core"/"SeqSignal",
         Menu("Forwardable")  /"core"/"Forwardable",
         Menu("Logger")  /"core"/"Logger"
+        Menu("Recipes")  /"core"/"Recipes"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Getting Started")  /"web"/"GettingStarted",
