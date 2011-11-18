@@ -1,0 +1,50 @@
+<div>
+  <head>
+<style>
+table {
+  border-collapse: collapse;
+}
+
+td {
+  vertical-align: top;
+  border-bottom: solid black 1px;
+  border-top: solid black 1px;
+}
+</style>
+  </head>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Phone Numbers</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><div>
+            <div>
+              <input class="name" type="text" value="John Smith" />
+            </div>
+          </div></td>
+        <td>
+          <div class="eachPhone">
+            <div>
+              <input type="text" value="123-456-7890" />
+              <button class="deletephone"
+                title="Delete this phone number">X</button>
+            </div>
+          </div>
+          <button class="insertphone" title="Add another phone number">+</button>
+        </td>
+        <td><button class="deletecontact">Delete Contact</button></td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td></td>
+        <td></td>
+        <td><button class="insertcontact">Add Contact</button></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
