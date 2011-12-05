@@ -12,7 +12,7 @@ trait Button extends RElem {
   /**
    * The click DOM event
    */
-  val click = DOMEventSource.click
+  val click = DomEventSource.click
 
   def baseElem = <button type={ buttonType.toString.toLowerCase }/>
   def events = List(click)

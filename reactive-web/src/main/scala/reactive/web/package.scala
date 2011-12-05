@@ -13,6 +13,17 @@ package object web {
     case class WrappedNonElemInSpan(xml: NodeSeq) extends LogEventPredicate
   }
 
+  @deprecated("Use DomEventSource")
+  val DOMEventSource = DomEventSource
+  @deprecated("Use DomEventSource")
+  type DOMEventSource[T <: DomEvent] = DomEventSource[T]
+  @deprecated("Use DomProperty")
+  val DOMProperty = DomProperty
+  @deprecated("Use DomProperty")
+  type DOMProperty = DomProperty
+  @deprecated("User DomEvent")
+  type DOMEvent = DomEvent
+
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
    * provided PartialFunction.
@@ -42,10 +53,8 @@ package object web {
    * exist, in the server scope of the implicit page parameter.
    * @param message the text to display
    */
-  def alert(message: String)(implicit page: Page) {
-    Reactions.inAnyScope(page){
-      Reactions queue JsCmds.Run("alert("+Str(message).toJsCmd+")")
-    }
+  def alert(message: String)(implicit page: Page) = javascript.Javascript {
+    javascript.window.alert(message)
   }
 
   private[web] def trimNodeSeq(ns: NodeSeq): NodeSeq = {

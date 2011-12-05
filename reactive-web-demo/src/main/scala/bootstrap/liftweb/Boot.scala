@@ -19,11 +19,11 @@ class Boot {
         println("Classpath:" + rcl.getURLs.mkString("\n  ", "\n  ",""))
     }
 
-    def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".tk") &&
+    def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".co.cc") &&
       r.request.serverName != "localhost"
     LiftRules.statelessDispatchTable.append {
       case r if shouldRedirect(r) => () => Full(
-        PermRedirectResponse("http://reactive-web.tk"+r.uri, r, r.cookies: _*) 
+        PermRedirectResponse("http://reactive-web.co.cc"+r.uri, r, r.cookies: _*) 
       )
     }
 
@@ -40,7 +40,8 @@ class Boot {
         Menu("Signal")  /"core"/"Signal",
         Menu("SeqSignal")  /"core"/"SeqSignal",
         Menu("Forwardable")  /"core"/"Forwardable",
-        Menu("Logger")  /"core"/"Logger"
+        Menu("Logger")  /"core"/"Logger",
+        Menu("Recipes")  /"core"/"Recipes"
       ),
       Menu("Web")  /"1"  >>PlaceHolder  submenus(
         Menu("Getting Started")  /"web"/"GettingStarted",
@@ -49,15 +50,10 @@ class Boot {
         Menu("Events")  /"web"/"Events",
         Menu("Properties")  /"web"/"Properties",
         Menu("Elements")  /"web"/"Elements",
+        Menu("HTML Classes")  /"web"/"Html",
+        Menu("Testing")  /"web"/"TestScope",
+        Menu("Configuration")  /"web"/"Config",
         Menu("Simple demo")  /"demos"/"SimpleDemo"
-      ),
-      Menu("HTML")  /"2"  >>PlaceHolder  submenus(
-        Menu("Span")  /"html"/"Span",
-        Menu("Div")  /"html"/"Div",
-        Menu("Button")  /"html"/"Button",
-        Menu("TextInput")  /"html"/"TextInput",
-        Menu("CheckboxInput")  /"html"/"CheckboxInput",
-        Menu("Select")  /"html"/"Select"
       ),
       Menu("Scaladocs")  /"3"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,

@@ -46,11 +46,11 @@ trait TransformedSeq[T]
     protected var index: ArrayBuffer[Int] = initIndex
     protected def initIndex: ArrayBuffer[Int]
     private def fixIndexes(ms: List[SeqDelta[U, U]]): List[SeqDelta[U, U]] = {
-      def merged(ms: List[SeqDelta[U, U]]) = ms flatMap {
-        case Batch(ms@_*) => ms
-        case m            => List(m)
+      def merged(ms: Seq[SeqDelta[U, U]]): Seq[IncludeOrRemoveOrUpdate[U,U]] = ms flatMap {
+        case Batch(ms@_*) => merged(ms)
+        case m: IncludeOrRemoveOrUpdate[U,U]            => List(m)
       }
-      def idx(m: SeqDelta[U, U]) = m match {
+      def idx(m: IncludeOrRemoveOrUpdate[U, U]) = m match {
         case Include(i, _)   => i
         case Remove(i, _)    => i
         case Update(i, _, _) => i
@@ -61,7 +61,7 @@ trait TransformedSeq[T]
         case Include(i, e)   => Include(i - off, e)
         case Remove(i, e)    => off += 1; Remove(i - off + 1, e)
         case Update(i, a, b) => Update(i - off, a, b)
-      }
+      } toList
     }
     override protected[reactive] def xform(m: SeqDelta[T, T]): List[SeqDelta[U, U]] = m match {
       case Include(n, _) =>

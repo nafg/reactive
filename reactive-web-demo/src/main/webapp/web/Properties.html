@@ -12,13 +12,13 @@ Modifications to properties are sent to the
 browser with
 the JavaScript queuing mechanism.</p>
 
-<h3><code>DOMProperty</code></h3>
-<p><code>DOMProperty</code> acts a proxy to a property or attribute of a DOM element.
+<h3><code>DomProperty</code></h3>
+<p><code>DomProperty</code> acts a proxy to a property or attribute of a DOM element.
 It has an <code>EventStream[String]</code> that fires updates to the property's value.
 And it has an <code>update</code> method that sets the property's value with a <code>JsExp</code>.</p>
-<p>Like <code>DOMEventSource</code>, you can apply it to an Elem and get a new Elem, or use it
-as a NodeSeq=&gt;NodeSeq function for CSS Selectors and legacy binding. Unlike <code>DOMEventSource</code> however, you need to either
-call render or rely on the implicit conversion to do so. In the case of <code>DOMProperty</code>, it
+<p>Like <code>DomEventSource</code>, you can apply it to an Elem and get a new Elem, or use it
+as a NodeSeq=&gt;NodeSeq function for CSS Selectors and legacy binding. Unlike <code>DomEventSource</code> however, you need to either
+call render or rely on the implicit conversion to do so. In the case of <code>DomProperty</code>, it
 returns an element with an added attribute
 corresponding the property and its value.
 In addition, any events it was linked to by
@@ -28,16 +28,16 @@ does not have an <code>id</code> attribute
 one will be added. <code>render</code> (and the implicit conversion) take an
 implicit <code>Page</code> (which defaults to
 the current Lift request). The element's id will be
-stored in the <code>DOMProperty</code>, for that
+stored in the <code>DomProperty</code>, for that
 <code>Page</code>, so that update commands can be sent to the browser.</p>
 
 <h3>PropertyVar</h3>
-<p>Usually you will not use <code>DOMProperty</code> directly. It fires raw values as <code>String</code>s,
+<p>Usually you will not use <code>DomProperty</code> directly. It fires raw values as <code>String</code>s,
 accepts new values as <code>JsExp</code>s, and does not maintain a current value. Instead,
 most of the time you will use the type-safe <code>PropertyVar</code>. <code>PropertyVar</code> extends <code>Var</code>
-and wraps a <code>DOMProperty</code>. Setting its value will will result in the corresponding
+and wraps a <code>DomProperty</code>. Setting its value will will result in the corresponding
   property being changed in the browser on whichever <code>Page</code>s
-  are registered with this <code>DOMProperty</code> (whether via Ajax or
+  are registered with this <code>DomProperty</code> (whether via Ajax or
   Comet) except for the <code>Page</code> that is currently firing an
   Ajax event that is setting its value, if any.</p>
 
@@ -61,19 +61,21 @@ and <code>Boolean</code> (<code>false</code> generates no attribute, <code>true<
 as in <code>checked="checked"</code>).</p>
 
 
-<p>Here are some members of <code>DOMProperty</code> and <code>PropertyVar</code>:</p>
+<p>Here are some members of <code>DomProperty</code> and <code>PropertyVar</code>:</p>
 
 <dl>
   <dt><code>updateOn</code></dt>
-  <dd>Calling this method with one or more <code>DOMEventSource</code>s will
-  add an element to its <code>rawEventData</code> with a JavaScript
-  expression that reads the value of this property. When <code>Page</code>s
-  are added subsequently, the value of the property will be updated via
-  the <code>rawEventStream</code>. Returns the <code>DOMProperty</code> or <code>PropertyVar</code>.</dd>
+  <dd>Calling this method with one or more <code>DomEventSource</code>s will
+  register a <code>JsEventStream</code> with it that fires the property's value whenever
+  the browser raises that event. When <code>Page</code>s
+  are subsequently added to the <code>DomProperty</code> (for instance when it's rendered),
+  updates to the property will reach the server. In the case of <code>DomProperty</code>
+  they will be fired from its <code>values</code> event stream, and in the case of <code>PropertyVar</code>
+  it will contain the new value. Returns the <code>DomProperty</code> or <code>PropertyVar</code>.</dd>
   <dt><code>withEvents</code></dt>
   <dd>Like <code>updateOn</code>, plus
-  the <code>DOMProperty</code> will automatically
-  add the events to the element. Returns the <code>DOMProperty</code> or <code>PropertyVar</code>.</dd>
+  the <code>DomProperty</code> will automatically
+  add the events to any element it is rendered to. Returns the <code>DomProperty</code> or <code>PropertyVar</code>.</dd>
   <dt><code>render</code></dt>
   <dd>Returns a <code>NodeSeq=&gt;NodeSeq</code> binding function. Requires an implicit Page.</dd>
   <dt><code>render(Elem)</code></dt>

@@ -9,7 +9,7 @@ import net.liftweb.util._
 import Helpers._
 
 class JsEventStreamDemo extends Observing {
-  val clicks = DOMEventSource.click
+  val clicks = DomEventSource.click
   // map all event values to a single string
   val jses = clicks.jsEventStream.map{ (_: $[JsObj]) => "Button clicked"$ }
 

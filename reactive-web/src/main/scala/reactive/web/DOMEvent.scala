@@ -5,11 +5,11 @@ import javascript._
 import net.liftweb.http.S
 
 /**
- * Implicit instances of EventEncoder are associated with DOMEvents
+ * Implicit instances of EventEncoder are associated with DomEvents
  * to provide a javascript object initializer expression
  * that consists of the relevant data in the browser's Event object.
  */
-class EventEncoder[T <: DOMEvent](val encodeExp: $[JsTypes.JsObj])
+class EventEncoder[T <: DomEvent](val encodeExp: $[JsTypes.JsObj])
 
 object EventEncoder {
   val empty = Map.empty.$
@@ -69,40 +69,40 @@ object EventEncoder {
 /**
  * The base class for all events
  */
-sealed trait DOMEvent
-case class Blur() extends DOMEvent
-case class Change() extends DOMEvent
-case class Click(modifiers: Modifiers = Modifiers()) extends DOMEvent
-case class DblClick(modifiers: Modifiers = Modifiers()) extends DOMEvent
-case class Error() extends DOMEvent
-case class Focus() extends DOMEvent
+sealed trait DomEvent
+case class Blur() extends DomEvent
+case class Change() extends DomEvent
+case class Click(modifiers: Modifiers = Modifiers()) extends DomEvent
+case class DblClick(modifiers: Modifiers = Modifiers()) extends DomEvent
+case class Error() extends DomEvent
+case class Focus() extends DomEvent
 /**
  * @param code the keyCode or charCode property of the javascript event object
  */
-case class KeyDown(code: Int, modifiers: Modifiers = Modifiers()) extends DOMEvent
+case class KeyDown(code: Int, modifiers: Modifiers = Modifiers()) extends DomEvent
 /**
  * @param code the keyCode or charCode property of the javascript event object
  */
-case class KeyPress(code: Int, modifiers: Modifiers = Modifiers()) extends DOMEvent
+case class KeyPress(code: Int, modifiers: Modifiers = Modifiers()) extends DomEvent
 /**
  * @param code the keyCode or charCode property of the javascript event object
  */
-case class KeyUp(code: Int, modifiers: Modifiers = Modifiers()) extends DOMEvent
+case class KeyUp(code: Int, modifiers: Modifiers = Modifiers()) extends DomEvent
 
-case class MouseDown(buttons: Buttons, pos: Position) extends DOMEvent
-case class MouseMove(buttons: Buttons, pos: Position) extends DOMEvent
+case class MouseDown(buttons: Buttons, pos: Position) extends DomEvent
+case class MouseMove(buttons: Buttons, pos: Position) extends DomEvent
 /**
  * @param related the RElem corresponding to the relatedTarget or toElement property of the event object
  */
-case class MouseOut(buttons: Buttons, pos: Position, related: Option[RElem]) extends DOMEvent
+case class MouseOut(buttons: Buttons, pos: Position, related: Option[RElem]) extends DomEvent
 /**
  * @param related the RElem corresponding to the relatedTarget or fromElement property of the event object
  */
-case class MouseOver(buttons: Buttons, pos: Position, related: Option[RElem]) extends DOMEvent
-case class MouseUp(buttons: Buttons, pos: Position) extends DOMEvent
-case class Resize() extends DOMEvent
-case class SelectText(modifiers: Modifiers) extends DOMEvent
-case class Unload() extends DOMEvent
+case class MouseOver(buttons: Buttons, pos: Position, related: Option[RElem]) extends DomEvent
+case class MouseUp(buttons: Buttons, pos: Position) extends DomEvent
+case class Resize() extends DomEvent
+case class SelectText(modifiers: Modifiers) extends DomEvent
+case class Unload() extends DomEvent
 
 /**
  * Encapsulates the state of modifier keys on the keyboard at the time of this event

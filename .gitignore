@@ -12,3 +12,7 @@ work/
 *.bak
 .directory
 hs_err*.log
+.history
+jrockit.*.dump
+*.orig
+.settings

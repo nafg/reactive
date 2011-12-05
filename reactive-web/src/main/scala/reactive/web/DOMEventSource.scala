@@ -16,10 +16,7 @@ import scala.collection.mutable.WeakHashMap
  * in response to events.
  */
 //TODO better name? It is not an EventSource; only wraps a JsEventStream
-class DomEventSource[T <: DOMEvent: Manifest: EventEncoder] extends DOMEventSource[T]
-
-@deprecated("Use DomEventSource")
-class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[T] with Logger with JsForwardable[JsObj] {
+class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[T] with Logger with JsForwardable[JsObj] {
   class Renderer(implicit page: Page) extends (NodeSeq => NodeSeq) {
     /**
      * Adds asAttribute to an Elem.
@@ -89,9 +86,9 @@ class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[
   /**
    * The javascript to run whenever the browser fires the event.
    * Whether this will result in an ajax call to the server
-   * depends on the JsEventStreams registered with this DOMEventSource
+   * depends on the JsEventStreams registered with this DomEventSource
    * (for instance, whether toServer has been called on them,
-   * such as by calling DOMEventSource#eventStream),
+   * such as by calling DomEventSource#eventStream),
    * propagate the event to the server
    */
   def propagateJS(implicit page: Page): String = {
@@ -126,30 +123,30 @@ class DOMEventSource[T <: DOMEvent: Manifest: EventEncoder] extends Forwardable[
    */
   def foreach(f: $[JsObj =|> JsVoid]) = jsEventStream.foreach(f)
 
-  override def toString = "DOMEventSource["+manifest[T]+"]"
+  override def toString = "DomEventSource["+manifest[T]+"]"
 }
 
-object DOMEventSource {
+object DomEventSource {
   /**
-   * An implicit conversion from DOMEventSource to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
+   * An implicit conversion from DomEventSource to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(des: DOMEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
+  implicit def toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
 
   /**
-   * Creates a new Click DOMEventSource
+   * Creates a new Click DomEventSource
    */
-  def click = new DOMEventSource[Click]
+  def click = new DomEventSource[Click]
   /**
-   * Creates a new DblClick DOMEventSource
+   * Creates a new DblClick DomEventSource
    */
-  def dblClick = new DOMEventSource[DblClick]
+  def dblClick = new DomEventSource[DblClick]
   /**
-   * Creates a new KeyUp DOMEventSource
+   * Creates a new KeyUp DomEventSource
    */
-  def keyUp = new DOMEventSource[KeyUp]
+  def keyUp = new DomEventSource[KeyUp]
   /**
-   * Creates a new Change DOMEventSource
+   * Creates a new Change DomEventSource
    */
-  def change = new DOMEventSource[Change]
+  def change = new DomEventSource[Change]
 
 }

@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
 import com.github.siasia.WebPlugin._
+import com.github.siasia.PluginKeys._
 
 object ReactiveBuild extends Build {
   val pomCommon = <xml:group>
@@ -28,7 +29,8 @@ object ReactiveBuild extends Build {
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
     scalacOptions += "-deprecation",
-    scalaVersion := "2.9.0-1"
+    scalaVersion := "2.9.0-1",
+    checksums in update := Nil
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
@@ -68,8 +70,8 @@ object ReactiveBuild extends Build {
     "reactive-web-demo",
     file("reactive-web-demo"),
     settings = defaults ++ webSettings ++ Seq(
-      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "jetty,test"),
-      jettyScanDirs := Nil,
+      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test"),
+      scanDirectories in Compile := Nil,
       publishArtifact := false
     )
   ) dependsOn(reactive_web) aggregate(reactive_web)

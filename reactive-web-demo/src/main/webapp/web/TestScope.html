@@ -1,0 +1,181 @@
+<div class="lift:surround?with=default;at=content">
+  <h2>Testing</h2>
+  <p>
+    <code>Reactive-web</code>
+    has very powerful support for user interface testing. You can do
+    most things Selenium is usually used for, but you don't have to run
+    a browser or Jetty, and your tests can have direct access to server
+    objects like snippet classes. Here's a little taste:
+  </p>
+  <pre class="brush:scala">
+  val ts: TestScope = ...
+  def phone = ts / "#phone"  // the element with id 'phone'
+  // type in it (it's a text input)
+  phone sendKeys cust.home_phone.is
+  // check that the snippet received the value we typed
+  snippet.phone.now should equal (cust.home_phone.is)
+  // check that the DOM was updated (the customer who's phone we typed was loaded)
+  ts / ".firstname" attr "value" should equal (cust.firstName.is)
+  </pre>  
+  <p>
+    It builds on two things: (1) All updates in
+    <code>reactive</code>
+    go to the thread-locally current
+    <code>Scope</code>
+    ; and (2) DOM updates have a semantic (case class) representation.
+    The way it works is that there is a
+    <code>Scope</code>,
+    <code>TestScope</code>, that maintains XML (representing the browser's theoretical
+    contents, or part of it), and whenever a DOM update is called for,
+    it applies the transformation to its own XML. This way, you can
+    always tell what the browser's DOM would look like. In addition, you
+    can simulate events, and it has a DSL that makes checking the DOM
+    very concise.
+  </p>
+  <h3>Setup</h3>
+  <p>
+    You will probably want to surround your tests with
+    <code>net.liftweb.mockweb.MockWeb.testS("/") { ... }</code>
+    so you can run snippets outside of an actual HTTP context.
+  </p>
+  <p>Next, you need to generate the initial state of the browser. So
+    you need to instantiate instances of your snippet classes, and tell
+    Lift to run the template with those snippets. For example:</p>
+  <pre class="brush: scala">
+  val snippet = new EditOrder
+  val page = {
+    S.mapSnippet("EditOrder", snippet.render)
+    S.runTemplate("orders" :: "edit" :: Nil).open_!
+  }
+  </pre>
+  <p>(It's fine to use <code>open_!</code> because if the template cannot be run, we want the test to abort.)</p>
+  <p>
+    Now, instantiate a
+    <code>TestScope</code>
+    with the output, and use it as the scope for your tests. Also import
+    its members &mdash; it has some important implicits.
+  </p>
+  <pre class="brush: scala">
+  val ts = new TestScope(page)
+  import ts._
+  Reactions.inScope(ts) {
+    // test things here
+  }
+  </pre>
+  <h3>Accessing the DOM and interacting with it</h3>
+  <p>
+    The current xml can be accessed as a
+    <code>NodeSeq</code>
+    by writing
+    <code>ts.xml</code>. You can use all of Scala's existing features to analyze it, such
+    as the simple XPath support available with
+    <code>\</code>
+    and
+    <code>\\</code>, the collections'
+    <code>find</code>. In addition TestScope provides some powerful searching tools
+    (using implicits). There are six searching operators, which are used
+    like this:
+    <code>node / pred</code>, or like this:
+    <code>node / (pred1, ... predN)</code>, and returns a node or nodes that satisfy all predicates.
+    Predicates are explained below. All six operators take a varargs, so
+    they can be used in either form. Also they can be used either on a
+    <code>Seq[Node]</code>
+    (which every
+    <code>Node</code>
+    is, by the way), or on the
+    <code>TestScope</code>
+    itself.
+  </p>
+  <p>
+    The six operators are
+    <code>/</code>,
+    <code>/?</code>,
+    <code>/+</code>,
+    <code>&gt;</code>,
+    <code>&gt;?</code>, and
+    <code>&gt;+</code>.
+    <code>/</code>
+    means search all descendants (and the node itself), while
+    <code>&gt;</code>
+    means only search direct children.
+    <code>?</code>
+    means it an
+    <code>Option[Node]</code>,
+    <code>+</code>
+    that it returns a
+    <code>Seq[Node]</code>, and no suffix means it returns a
+    <code>Node</code>
+    or throws an exception if none is found.
+  </p>
+  <p>
+    Predicates are any
+    <code>Node=&gt;Boolean</code>, a useful implicit lets you write common predicates as
+    strings. You can write strings of the form
+    <code>"label"</code>,
+    <code>"#id"</code>,
+    <code>".class"</code>,
+    <code>":name"</code>,
+    <code>"=exact match of text"</code>, or
+    <code>"~substring of text"</code>. As an illustration, instead of the XPath expression
+    <code>//fieldset[legend/text()='Items']</code>
+    (as you might in Selenium), you can write
+    <code>ts / ("fieldset", _ /? ("legend", "=Items") isDefined)</code>. This means, find a node whose label is "fieldset" (the first
+    predicate), and that the function passed as the second predicate
+    returns true for. That function searches the fieldset for a node
+    whose label is "legend", and whose text content is "Items". Since it
+    uses
+    <code>/?</code>, the result, if any, is put in an
+    <code>Option</code>, on which we can call
+    <code>isDefined</code>    to get a
+    <code>Boolean</code>
+    indication of its presence, making it a valid predicate function.
+  </p>
+  <p>
+    Also, as a shortcut, you can get a node by id just by writing
+    <code>testScope("anId")</code>.
+  </p>
+  <p>
+    Another implicit conversion wraps a
+    <code>Node</code>
+    as a
+    <code>PowerNode</code>, which has several convenient members:
+  </p>
+  <dl>
+    <dt><code>attr</code></dt><dd>The attributes as a <code>Map[String, String]</code></dd>
+    <dt><code>update</code></dt><dd>Replace the TestScopes DOM with one that has a different
+    attribute value in this node. The node itself is immutable and won't have
+    the new value, but update looks up the new node and returns it.
+    This requires that the node has an id attribute (and assumes you aren't
+    changing it). Usage: <code>node("attribute") = "value"</code></dd>
+    <dt><code>id</code></dt>
+    <dd>The value of the id attribute</dd>
+    <dt><code>clazz</code></dt><dd>The value of the class attribute</dd>
+    <dt><code>classes</code></dt><dd>A <code>Set[String]</code> consisting of the
+    class attribute split on whitespace.</dd>
+    <dt><code>value</code></dt><dd>The value of the value attribute.
+    You can also set it (<code>node.value = "xyz"</code>), which
+    calls <code>update</code>.</dd>
+    <dt><code>fire(event)</code></dt><dd>Simulate an event being fired on this node.
+    <code>event</code> is a <code>DomEvent</code>.
+    This works by analyzing the corresponding event attribute on the node
+    for events and property updates its fires.
+    Currently only implemented for Change, Click, and KeyUp.</dd>
+    <dt><code>sendKeys(text)</code></dt><dd>Simulates typing in a field. <code>text</code>
+    may contain <code>'\b'</code> which is treated as a backspace.
+    For each character, it updates the <code>value attribute</code>
+    and fires a <code>KeyUp</code> event, and finally it fires
+    a <code>Change</code> event.</dd>
+  </dl>
+
+<h3>Limitations as compared to Selenium</h3>
+<ol>
+<li>No XPath. Instead of <code>"//fieldset[legend/text()='Items']"</code> do something like <code>ts / ("fieldset", _ /? "=Items" isDefined)</code></li>
+<li>Currently no support for alerts, confirms, etc.</li>
+<li>Currently only works with javascript generated by <code>reactive-web</code>.</li>
+<li>Since events are artificially simulated, there may be some differences to real life based on how browsers handle events.</li>
+<li>You can't see what's happening. Of course, you can work around this by rendering the xml at each step somewhere.
+One possibility is to use something like Flying Saucer to render it to a Swing component. Another is to run the tests
+from within a webapp and insert the xml into the DOM to display it.</li>
+</ol>
+
+</div>

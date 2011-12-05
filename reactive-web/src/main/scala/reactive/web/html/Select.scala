@@ -26,13 +26,13 @@ class Select[T](
   /**
    * The change DOM event
    */
-  val change = DOMEventSource.change
+  val change = DomEventSource.change
   /**
    * The click DOM event
    */
-  val click = DOMEventSource.click
+  val click = DomEventSource.click
 
-  val keyUp = DOMEventSource.keyUp
+  val keyUp = DomEventSource.keyUp
 
   /**
    * The selectedIndex DOM property

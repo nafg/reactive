@@ -1,50 +1,63 @@
 package reactive.web.demo.snippet
 
 import reactive._
-  import web._
-    import html._
+import web._
+import html._
 
+import net.liftweb.util.Helpers._
 
-// Transient in-memory store with method names similar to Mapper, for the time being
 case class Contact(name: String, numbers: List[String]) {
-  val id = Contact.nextId
-  def save = Contact.save(this)
-  def delete_! = Contact.delete_!(this)
-  
+  val id = Page.currentPage.nextNumber
   def copy(name: String = this.name, numbers: List[String] = this.numbers) = new Contact(name, numbers) {
     override val id = Contact.this.id
   }
 }
-object Contact {
-  private var _nextId = 0
-  private def nextId = {val ret = _nextId; _nextId += 1; ret}
-  
-  val contacts = BufferSignal[Contact]()
-  
+
+object Contacts {
+  val contacts = BufferSignal[Contact](
+    Contact("John Smith", List("124568790", "0987654321"))
+  )
+
   def save(c: Contact) = contacts.now.indexWhere(_.id == c.id) match {
     case -1 => contacts.value += c
-    case n => contacts.value(n) = c
+    case n  => contacts.value(n) = c
   }
-  
-  def delete_!(c: Contact) {
+  def delete(c: Contact) {
     contacts.now.indexWhere(_.id == c.id) match {
       case -1 =>
-      case n => contacts.value.remove(n)
+      case n  => contacts.value.remove(n)
     }
   }
-  
-  def findAll = contacts.now
 }
 
 class ContactsPage extends Observing {
-  val curContact = Var(Contact("",Nil))
-  
-  val curContactNameField = TextInput(curContact.value.name){s =>
-    curContact.value = curContact.value.copy(name = s)
-    curContact.value.save
-  }
-  val contactsList = (Contact.contacts: SeqSignal[Contact]) map { _ flatMap {contact =>
-    <tr><th>{contact.name}</th><td>{contact.numbers}</td></tr>: xml.NodeSeq
-  }}
-    
+  def render = "tbody" #> Repeater {
+    Contacts.contacts map {
+      _ map { contact =>
+        val name = TextInput.value(contact.name) withEvents DomEventSource.change
+        name.change =>> { n => Contacts save contact.copy(name = n) }
+        val phones = BufferSignal(contact.numbers: _*)
+        phones.change =>> { ps => Contacts save contact.copy(numbers = ps.toList) }
+        ".name" #> name &
+          ".eachPhone" #> Repeater {
+            phones.map {
+              _ map { phone =>
+                val input = TextInput.value(phone) withEvents DomEventSource.change
+                input.change =>> { phones.value(phones.value indexOf phone) = _ }
+                "input" #> input &
+                  ".deletephone" #> (DomEventSource.click ->> {
+                    phones.value.indexOf(phone) match {
+                      case -1 => javascript.window.alert("Error")
+                      case n  => phones.value remove n
+                    }
+                  })
+              }
+            }
+          } &
+          ".insertphone" #> (DomEventSource.click ->> { phones.value += "" }) &
+          ".deletecontact" #> (DomEventSource.click ->> { Contacts delete contact })
+      }
+    }
+  } &
+    ".insertcontact" #> (DomEventSource.click ->> { Contacts save Contact("", Nil) })
 }

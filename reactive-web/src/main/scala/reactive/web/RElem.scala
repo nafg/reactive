@@ -97,7 +97,7 @@ trait RElem extends PageIds {
   /**
    * The events that contribute to rendering
    */
-  def events: Seq[DOMEventSource[_ <: DOMEvent]]
+  def events: Seq[DomEventSource[_ <: DomEvent]]
 
   /**
    * The properties that contribute to rendering
@@ -141,7 +141,7 @@ trait RElem extends PageIds {
       case (e, prop) => prop.render(e)(page)
     }
     events.foldLeft[Elem](withProps) {
-      case (e, evt: DOMEventSource[_]) => e % evt.asAttribute
+      case (e, evt: DomEventSource[_]) => e % evt.asAttribute
       case (e, _) => e
     }
   }

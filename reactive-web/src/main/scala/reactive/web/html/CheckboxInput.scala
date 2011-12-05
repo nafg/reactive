@@ -11,15 +11,15 @@ class CheckboxInput(_value: Var[Boolean] = Var(false))(implicit observing: Obser
   /**
    * The dblclick DOM event
    */
-  val dblClick = DOMEventSource.dblClick
+  val dblClick = DomEventSource.dblClick
   /**
    * The keyup DOM event
    */
-  val keyUp = DOMEventSource.keyUp
+  val keyUp = DomEventSource.keyUp
   /**
    * The change DOM event
    */
-  val change = DOMEventSource.change
+  val change = DomEventSource.change
   /**
    * The checked property. Whether the checkbox is checked.
    */

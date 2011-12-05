@@ -22,9 +22,7 @@ object JsTypes {
 
 import JsTypes._
 
-object JsExp {
-  implicit def any2JsExp[T, J <: JsAny, Exp[J <: JsAny] <: JsExp[J]](x: T)(implicit conv: ToJs[T, J, Exp]): Exp[J] = conv(x)
-
+object JsExp extends ToJsHigh {
   implicit def canForward[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]) = new CanForward[$[J =|> JsVoid], T] {
     def forward(source: Forwardable[T], target: => $[J =|> JsVoid])(implicit o: Observing) =
       source.foreach{ v => Reactions.queue(target apply conv(v)) }
@@ -104,13 +102,6 @@ trait JsIdent[T <: JsAny] extends JsExp[T] {
   def render = ident.name
 }
 object JsIdent {
-  object counter extends net.liftweb.http.RequestVar(0) {
-    def next = { set(is + 1); is - 1 }
-  }
-  /**
-   * Returns a JsIdent with a fresh name
-   */
-  def fresh[T <: JsAny] = JsIdent[T](Symbol("x$"+counter.next))
   /**
    * Returns a JsIdent with the specified name
    */
@@ -140,7 +131,10 @@ object JsRaw {
   def apply[T <: JsAny](rendering: => String) = new JsRaw[T](rendering)
 }
 
-trait ToJs[-S, J <: JsAny, +E[J <: JsAny] <: JsExp[J]] extends (S => E[J])
+/**
+ * A typeclass to convert a scala value to a JsExp
+ */
+trait ToJs[-S, J <: JsAny, +E[K <: JsAny] <: JsExp[K]] extends (S => E[J])
 class ToJsExp[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsExp] {
   def apply(s: S) = JsRaw[J](renderer(s))
 }
@@ -149,28 +143,35 @@ class ToJsLit[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsLitera
 }
 
 trait ToJsLow { // make sure Map has a higher priority than a regular function
+  //TODO also capture statements?
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){return "+_($('arg)).render+"}")
 }
 /**
  * Contains implicit conversions from scala values to javascript literals
  */
-object ToJs extends ToJsLow {
-  class From[S] {
-    type To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] = ToJs[S, J, E]
-  }
-  class To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] {
-    type From[S] = ToJs[S, J, E]
-  }
-
-  implicit val double: From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
+trait ToJsHigh extends ToJsLow {
+  implicit val double: ToJs.From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
   implicit val int: ToJsLit[Int, JsNumber] = new ToJsLit[Int, JsNumber](_.toString)
   implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
   implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs)
   implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
   implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
   implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
-  implicit def array[T <: JsAny] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
+  implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
+}
+
+/**
+ * Defines type projections as alternative syntax to construct a ToJs type.
+ * ToJs.From[Int]#To[JsNumber, JsExp] == ToJs.To[JsNumber, JsExp]#From[Int] == ToJs[Int, JsNumber, JsExp]
+ */
+object ToJs {
+  class From[S] {
+    type To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] = ToJs[S, J, E]
+  }
+  class To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] {
+    type From[S] = ToJs[S, J, E]
+  }
 }
 
 /**
