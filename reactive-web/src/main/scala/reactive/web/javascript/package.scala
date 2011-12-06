@@ -55,4 +55,7 @@ package object javascript {
    * A proxy to the browser's window object
    */
   val window = jsProxy[Window]('window)
+
+  implicit def relem2HTMLElement(relem: RElem)(implicit page: Page): HTMLElement =
+    jsProxy[HTMLElement]("document.getElementById('" + relem.id + "')")
 }
