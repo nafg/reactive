@@ -30,7 +30,7 @@ object ReactiveBuild extends Build {
     ),
     checksums in update := Nil,
     scalacOptions += "-deprecation",
-    scalaVersion := "2.9.1"
+    crossScalaVersions := List("2.8.1", "2.9.0-1", "2.9.1")
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
