@@ -50,8 +50,7 @@ object ReactiveBuild extends Build {
     "reactive-core",
     file("reactive-core"),
     settings = publishingDefaults ++ Seq(
-      pomExtra := pom("reactive-core", "An FRP framework"),
-      libraryDependencies += "org.scalatest" % "scalatest_2.9.0" % "1.6.1"
+      pomExtra := pom("reactive-core", "An FRP framework")
     )
   )
   lazy val reactive_web = Project(
