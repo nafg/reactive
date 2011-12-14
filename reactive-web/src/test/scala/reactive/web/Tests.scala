@@ -4,8 +4,10 @@ package web
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import net.liftweb.mockweb._
-
 import scala.xml.{ Elem, NodeSeq, Text, UnprefixedAttribute, Null }
+import org.scalatest.concurrent.Conductor
+import java.lang.Thread
+import scala.concurrent.SyncVar
 
 class RElemTests extends FunSuite with ShouldMatchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
@@ -39,6 +41,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     implicit val o = new Observing {}
     val prop1, prop2 = DomProperty("prop") withEvents DomEventSource.change
     prop1.values >> prop2
+    //TODO testable comet should be in the library
     class TestPage(xml: => NodeSeq) extends Page {
       override lazy val comet = new ReactionsComet {
         override def queue[T](renderable: T)(implicit canRender: CanRender[T]) {
@@ -49,58 +52,77 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     }
     val pageA, pageB = new TestPage((prop1.render apply <elem1/>) ++ (prop2.render apply <elem2/>))
 
-    import scala.actors.Actor._
-    var done = false
-    def pageActor(p: TestPage) = actor {
-      val ts = p.ts
-      while (!done) {
-        receiveWithin(100) {
-          case f: (TestScope => Unit) =>
-            try {
-              Page.withPage(p) {
-                Reactions.inScope(ts) {
-                  f(ts)
-                  reply(None)
-                }
-              }
-            } catch {
-              case e =>
-                reply(Some(e))
-            }
+    def thread(n: String)(f: => Unit) = new Thread(n) {
+      val exc = new SyncVar[Option[Throwable]]
+      start
+
+      override def run = try {
+        f
+        println(this+" ok")
+        exc.put(None)
+      } catch {
+        case e =>
+          println(this+":")
+          e.printStackTrace()
+          exc.put(Some(e))
+      } finally {
+        println(this+" finally")
+      }
+    }
+    val sync = new SyncVar[Unit]
+
+    val ta = thread("pageA") {
+      val ts = pageA.ts
+      import ts._
+
+      Page.withPage(pageA) {
+        Reactions.inScope(ts) {
+          println("pageA part one")
+          val t = System.currentTimeMillis()
+          ((ts / "elem1")("prop") = "value1") fire Change()
+          println("Finished firing Change after "+(System.currentTimeMillis() - t))
+          ts / "elem1" attr "prop" should equal ("value1")
+          ts / "elem2" attr "prop" should equal ("value1")
+          sync put ()
+          while (sync.isSet) Thread.`yield`()
+          sync get 2000 getOrElse error("timeout waiting for pageB")
+          sync.unset
+
+          println("pageA part two")
+          ts / "elem1" attr "prop" should equal ("value2")
+          ts / "elem2" attr "prop" should equal ("value2")
+          println("pageA done")
         }
       }
+      println("thread pageA done")
     }
-    val (actorA, actorB) = (pageActor(pageA), pageActor(pageB))
+    val tb = thread("pageB") {
+      val ts = pageB.ts
+      import ts._
 
-    def inPage(a: scala.actors.Actor)(f: TestScope => Unit) = {
-      a !? f match {
-        case Some(e: Exception) => throw e
-        case _                  =>
+      sync get 10000 getOrElse error("timeout waiting for pageA")
+      sync.unset
+      Page.withPage(pageB) {
+        Reactions.inScope(ts) {
+          println("pageB")
+          ts / "elem2" attr "prop" should equal ("value1")
+          ts / "elem1" attr "prop" should equal ("value1")
+
+          ((ts / "elem1")("prop") = "value2") fire Change()
+          ts / "elem1" attr "prop" should equal ("value2")
+          ts / "elem2" attr "prop" should equal ("value2")
+          println("pageB done")
+        }
       }
+      sync put ()
+      println("thread pageB done")
     }
-    inPage(actorA){ ts =>
-      import ts._
-      ((ts / "elem1")("prop") = "value1") fire Change()
-      ts / "elem1" attr "prop" should equal ("value1")
-      ts / "elem2" attr "prop" should equal ("value1")
+    ta.exc.get(10000) orElse tb.exc.get(10000) match {
+      case Some(Some(e)) => throw e
+      case None          => error("timeout")
+      case Some(None)    =>
     }
-    inPage(actorB) { ts =>
-      import ts._
-      ts / "elem2" attr "prop" should equal ("value1")
-      ts / "elem1" attr "prop" should equal ("value1")
-
-      ((ts / "elem1")("prop") = "value2") fire Change()
-      ts / "elem1" attr "prop" should equal ("value2")
-      ts / "elem2" attr "prop" should equal ("value2")
-    }
-    inPage(actorA) { ts =>
-      import ts._
-      ts / "elem1" attr "prop" should equal ("value2")
-      ts / "elem2" attr "prop" should equal ("value2")
-    }
-    done = true
   }
-
 }
 
 class DomEventSourceTests extends FunSuite with ShouldMatchers {
