@@ -44,8 +44,6 @@ object ReactiveBuild extends Build {
   )
 
 
-  val liftVersion = "2.4-SNAPSHOT"
-
   lazy val reactive_core = Project(
     "reactive-core",
     file("reactive-core"),
@@ -57,12 +55,7 @@ object ReactiveBuild extends Build {
     "reactive-web",
     file("reactive-web"),
     settings = publishingDefaults ++ Seq(
-      pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet"),
-      libraryDependencies ++= Seq(
-        "javax.servlet" % "servlet-api" % "2.5" % "test",
-        "net.liftweb" %% "lift-testkit" % liftVersion,
-        "net.liftweb" %% "lift-webkit" % liftVersion
-      )
+      pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet")
     )
   ) dependsOn(reactive_core) aggregate(reactive_core)
   lazy val reactive_web_demo = Project(
