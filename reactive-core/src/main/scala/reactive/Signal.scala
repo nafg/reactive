@@ -1,5 +1,8 @@
 package reactive
 
+object Signal {
+  def unapply[T](s: Signal[T]) = Some(s.now)
+}
 /**
  * A Signal in FRP represents a continuous value.
  *
@@ -259,10 +262,11 @@ case class Val[T](now: T) extends Signal[T] {
 }
 
 /**
- * Defines a factory for Vars
+ * Defines a factory and extractor for Vars
  */
 object Var {
   def apply[T](v: T) = new Var(v)
+  def unapply[T](v: Var[T]) = Some(v.now)
 }
 /**
  * A signal whose value can be changed directly
