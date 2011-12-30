@@ -61,9 +61,7 @@ object ReactiveBuild extends Build {
   lazy val reactive_web_demo = Project(
     "reactive-web-demo",
     file("reactive-web-demo"),
-    settings = defaults ++ webSettings ++ Seq(
-      libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test"),
-      scanDirectories in Compile := Nil,
+    settings = defaults ++ Seq(
       publishArtifact := false
     )
   ) dependsOn(reactive_web) aggregate(reactive_web)

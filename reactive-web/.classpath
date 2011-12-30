@@ -14,16 +14,37 @@
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/joda-time/joda-time/jars/joda-time-1.6.2.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-codec/commons-codec/jars/commons-codec-1.4.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-actor_2.8.1/jars/lift-actor_2.8.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-common_2.8.1/jars/lift-common_2.8.1-2.4-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.6.1.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-json_2.8.1/jars/lift-json_2.8.1-2.4-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/com.thoughtworks.paranamer/paranamer/jars/paranamer-2.3.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scala-lang/scalap/jars/scalap-2.8.1.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/dev/reactive/project/boot/scala-2.8.1/lib/scala-compiler.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-webkit_2.8.1/jars/lift-webkit_2.8.1-2.4-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-fileupload/commons-fileupload/jars/commons-fileupload-1.2.2.jar"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/reactive"/>
 	<classpathentry kind="output" path="target/classes"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/javax.activation-activation-1.1.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-codec-commons-codec-1.4.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-fileupload-commons-fileupload-1.2.2.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-httpclient-commons-httpclient-3.1.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-logging-commons-logging-1.0.4.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/nu.validator.htmlparser-htmlparser-1.2.1.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/joda-time-joda-time-1.6.2.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-actor_2.9.1-2.4-SNAPSHOT.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-common_2.9.1-2.4-SNAPSHOT.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-json_2.9.1-2.4-SNAPSHOT.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-testkit_2.9.1-2.4-SNAPSHOT.jar" sourcepath="/home/naftoli/.esbt/jars/net.liftweb-lift-testkit_2.9.1-2.4-SNAPSHOT-sources.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-util_2.9.1-2.4-SNAPSHOT.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-webkit_2.9.1-2.4-SNAPSHOT.jar" sourcepath="/home/naftoli/.esbt/jars/net.liftweb-lift-webkit_2.9.1-2.4-SNAPSHOT-sources.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/javax.mail-mail-1.4.4.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/com.thoughtworks.paranamer-paranamer-2.3.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-lang-scala-compiler.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-lang-scalap-2.9.1.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scalatest-scalatest_2.9.1-1.6.1.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/javax.servlet-servlet-api-2.5.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.slf4j-slf4j-api-1.6.4.jar"/>
+	<classpathentry from="sbt" kind="src" path="src/main/scala/"/>
+	<classpathentry from="sbt" kind="src" path="src/main/resources/"/>
+	<classpathentry from="sbt" kind="src" path="src/test/scala/"/>
 </classpath>
