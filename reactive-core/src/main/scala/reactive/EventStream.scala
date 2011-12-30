@@ -9,7 +9,10 @@ object EventSource {
 }
 
 object EventStream {
-  object empty extends EventSource[Nothing]
+  private object empty0 extends EventSource[Nothing] {
+    override def debugName = "EventStream.empty"
+  }
+  def empty[A]: EventStream[A] = empty0
 }
 
 /**
@@ -169,6 +172,7 @@ trait EventStream[+T] extends Forwardable[T] {
   private[reactive] def removeListener(f: (T) => Unit): Unit
 
   def debugString: String
+  def debugName: String
 }
 
 class NamedFunction[-T, +R](name: => String, f: T => R) extends (T => R) {
@@ -204,7 +208,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   class FlatMapped[U](initial: Option[T])(val f: T => EventStream[U]) extends ChildEventSource[U, Option[EventStream[U]]](initial map f) {
-    override def debugName = "%s.flatMap(%s)" format (EventSource.this, f)
+    override def debugName = "%s.flatMap(%s)" format (EventSource.this.debugName, f)
     val thunk: U => Unit = fire _
     state foreach { _ addListener thunk }
     def handler = (parentEvent, lastES) => {
@@ -349,6 +353,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   def |[U >: T](that: EventStream[U]): EventStream[U] = new EventSource[U] {
+    override def debugName = "("+EventSource.this.debugName+" | "+that.debugName+")"
     val parent = EventSource.this
     val f: U => Unit = fire _
 
@@ -357,6 +362,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   def hold[U >: T](init: U): Signal[U] = new Signal[U] {
+    override def debugName = EventSource.this.debugName+".hold("+init+")"
     private lazy val initial: U = init
     private var current: U = init
     def now = current

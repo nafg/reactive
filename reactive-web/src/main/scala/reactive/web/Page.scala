@@ -82,7 +82,9 @@ class Page extends Observing {
     c
   }
 
-  private[web] val ajaxEvents = new EventSource[(String, JValue)]
+  private[web] val ajaxEvents = new EventSource[(String, JValue)] {
+    override def debugName = Page.this.toString+".ajaxEvents"
+  }
 }
 
 object Page {

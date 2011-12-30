@@ -106,7 +106,7 @@ trait Signal[+T] extends Forwardable[T] {
    * values are handled sequentially.
    */
   def nonblocking: Signal[T] = new ChildSignal[T, T, Unit](this, now, _ => now) {
-    override def debugName = parent.debugName + ".nonblocking"
+    override def debugName = parent.debugName+".nonblocking"
     import scala.actors.Actor._
     private val delegate = actor {
       loop {
