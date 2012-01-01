@@ -51,33 +51,34 @@ package object javascript {
             }
           )
       }
-      findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
-        if (classOf[JsStub] isAssignableFrom method.getReturnType()) {
-          val id = ident+"."+method.getName()
-          val ih = new StubInvocationHandler(id) {
-            override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
-              //TODO change when render is not a method on JsExp but on a typeclass
-              if (method.getName == "render" && method.getReturnType == classOf[String] && args == null)
-                id
-              else
+      //TODO hack
+      if (method.getName == "render" && method.getReturnType == classOf[String] && args.isEmpty)
+        ident
+      else {
+        findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
+          if (classOf[JsStub] isAssignableFrom method.getReturnType()) {
+            val id = ident+"."+method.getName()
+            val ih = new StubInvocationHandler(id) {
+              override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
                 super.invoke(proxy, method, args)
+              }
             }
+            java.lang.reflect.Proxy.newProxyInstance(
+              getClass.getClassLoader,
+              method.getReturnType().getInterfaces :+ method.getReturnType(),
+              ih
+            )
+          } else {
+            def hasField = try {
+              clazz.getField(method.getName); true
+            } catch {
+              case _: NoSuchFieldException => false
+            }
+            if (args.isEmpty && classOf[Assignable[_]].isAssignableFrom(method.getReturnType()))
+              new ProxyField(ident, method.getName)
+            else
+              new ApplyProxyMethod(ident, method, clazz, args)
           }
-          java.lang.reflect.Proxy.newProxyInstance(
-            getClass.getClassLoader,
-            method.getReturnType().getInterfaces :+ method.getReturnType(),
-            ih
-          )
-        } else {
-          def hasField = try {
-            clazz.getField(method.getName); true
-          } catch {
-            case _: NoSuchFieldException => false
-          }
-          if (args.isEmpty && classOf[Assignable[_]].isAssignableFrom(method.getReturnType()))
-            new ProxyField(ident, method.getName)
-          else
-            new ApplyProxyMethod(ident, method, clazz, args)
         }
       }
     }

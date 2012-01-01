@@ -9,12 +9,12 @@ import org.scalatest.matchers.ShouldMatchers
 
 class JsTests extends FunSuite with ShouldMatchers {
   test("Operators") {
-    (1.$ + 2.$ render) should equal (new JsOp(1.$, 2.$, "+").render)
-    (1.$ & 2.$ render) should equal (new JsOp(1.$, 2.$, "&").render)
-    (1.$ | 2.$ render) should equal (new JsOp(1.$, 2.$, "|").render)
-    (true.$ || false.$ render) should equal (new JsOp(true.$, false.$, "||").render)
-    (1.$ === 2.$ render) should equal (new JsOp(1.$, 2.$, "==").render)
-    (1.$ !== 2.$ render) should equal (new JsOp(1.$, 2.$, "!=").render)
+    (1.$ + 2 render) should equal (new JsOp(1, 2, "+").render)
+    (1.$ & 2 render) should equal (new JsOp(1, 2, "&").render)
+    (1.$ | 2 render) should equal (new JsOp(1, 2, "|").render)
+    (true.$ || false render) should equal (new JsOp(true, false, "||").render)
+    (1.$ === 2 render) should equal (new JsOp(1, 2, "==").render)
+    (1.$ !== 2 render) should equal (new JsOp(1, 2, "!=").render)
 
     (!(true.$) render) should equal ("(!true)")
   }
@@ -43,21 +43,21 @@ class JsTests extends FunSuite with ShouldMatchers {
     val obj = $$[obj]
     Page.withPage(new Page) {
       Reactions.inScope(new LocalScope) {
-
         Javascript {
           obj.method(obj.method("This is a scala string"))
           val v = JsVar[JsObj] := obj.self
           obj.nullary()
           obj.prop := 2
+          obj.get("otherProp") := "xyz"
         }
-
       }.js.map(_.toJsCmd) should equal (List(
 
         "obj.method(obj.method(\"This is a scala string\"))",
         "var x$0",
         "x$0=obj.self",
         "obj.nullary()",
-        "obj.prop=2"
+        "obj.prop=2",
+        """obj["otherProp"]="xyz""""
       ))
     }
   }
@@ -121,7 +121,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
       }
     }
-    theStatements map JsStatement.render foreach println
+//    theStatements map JsStatement.render foreach println
     val target = List(
       """if(true) {window.alert("True")} else if(false) {window.alert("False")} else {if(true) {} else {}}""",
       """while(true) {window.alert("Again!")}""",
