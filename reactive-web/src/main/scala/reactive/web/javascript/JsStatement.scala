@@ -35,20 +35,37 @@ sealed trait JsStatement {
  * Maintains a thread-local stack of statement blocks
  */
 object JsStatement {
-  private def renderMatch(m: Match[_]) = "case "+JsExp.render(m.against)+": "+m.code.map(render).mkString(";\n")+";\nbreak;"
-  def render(statement: JsStatement): String = statement match {
-    case i: If.If                        => "if("+JsExp.render(i.cond)+") "+render(i.body)
+  /**
+   * Some to pretty print at the given indent, None for compressed output
+   */
+  val indent = new scala.util.DynamicVariable[Option[Int]](None)
+  def indentStr = indent.value.map(" " * _).getOrElse("")
+  def nl = indent.value.map(_ => "\n") getOrElse ""
+  private val renderMatch: Match[_] => String = m =>
+    "case "+JsExp.render(m.against)+":"+nl+m.code.map(indentAndRender).mkString(";"+nl)+";"+nl
+  private def varsFirst(stmts: Seq[JsStatement]) = {
+    val (vars, others) = stmts partition (_.isInstanceOf[JsVar[_]])
+    vars ++ others
+  }
+  def render(statement: JsStatement) = indent.value match {
+    case Some(i) => renderImpl(statement)
+    case _       => renderImpl(statement)
+  }
+  private def indentAndRender(statement: JsStatement) = indent.withValue(indent.value map (2+))(indentStr + render(statement))
+  private def renderImpl(statement: JsStatement): String = statement match {
+    case i: If.If                        => "if("+JsExp.render(i.cond)+") "+renderImpl(i.body)
     case e: If.Elseable#Else             => render(e.outer)+" else "+render(e.body)
     case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+JsExp.render(ei.cond)+") "+render(ei.body)
     case s: Apply1[_, _]                 => s.render
     case s: ApplyProxyMethod[_]          => s.render
-    case b: Block                        => "{"+b.body.map(JsStatement.render).mkString(";\n")+"}"
+    case b: Block                        => if(b.body.isEmpty) "{}" else varsFirst(b.body).map(indentAndRender).mkString("{"+nl, ";"+nl, nl + indentStr+"}")
     case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
     case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+JsExp.render(dw.cond)+")"
-    case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+s.matches.map(renderMatch).mkString("\n")+"}"
+    case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl+s.matches.map(renderMatch).mkString+"}"
+    case b: Break                        => "break"
     case v: JsVar[_]                     => "var "+v.ident.name
     case a: Assignable[_]#Assignment     => a.ident+"="+JsExp.render(a.init)
-    case f: For.For                      => "for("+f.init.map(render).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
+    case f: For.For                      => "for("+f.init.map(renderImpl).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderImpl).mkString(",")+") "+render(f.body)
     case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+JsExp.render(fi.exp)+") "+render(fi.body)
     case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+JsExp.render(fei.exp)+") "+render(fei.body)
     case Throw(e)                        => "throw "+JsExp.render(e)
@@ -56,9 +73,7 @@ object JsStatement {
     case c: Try.Try#Catch                => render(c.outer)+" catch("+c.v.ident.name+") "+render(c.body)
     case f: Try.Finallyable#Finally      => render(f.outer)+" finally "+render(f.body)
     case Return(e)                       => "return "+JsExp.render(e)
-    case f: Function[_] =>
-      JsStatement.inScope(f.capt($('arg))) map render mkString
-        ("function "+f.ident.name+"(arg){\n  ", ";\n  ", "\n}")
+    case f: Function[_]                  => "function "+f.ident.name+"(arg0)"+render(f.body)
   }
 
   /**
@@ -169,9 +184,13 @@ class Matchable[+T <: JsAny](against: $[T]) { matchable =>
     lazy val block = JsStatement.inScope(code)
     new Match[T] {
       def against = matchable.against
-      def code = block
+      def code = block :+ Break
     }
   }
+}
+
+class Break extends JsStatement {
+  def toReplace = Nil
 }
 
 object Switch {
@@ -203,12 +222,12 @@ object JsVar {
 
 object For {
   class For(
-    private[javascript] val init: Seq[JsVar[_]#Assignment],
+    private[javascript] val init: Seq[JsVar[_ <: JsAny]#Assignment],
     private[javascript] val cond: $[JsBoolean],
-    private[javascript] val inc: Seq[JsVar[_]#Assignment])(block: => Unit) extends HasBody(block) with JsStatement {
+    private[javascript] val inc: Seq[JsVar[_ <: JsAny]#Assignment])(block: => Unit) extends HasBody(block) with JsStatement {
     def toReplace = inc ++ init toList
   }
-  def apply(init: Seq[JsVar[_]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_]#Assignment])(block: => Unit) = new For(init, cond, inc)(block)
+  def apply(init: Seq[JsVar[_ <: JsAny]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_ <: JsAny]#Assignment])(block: => Unit) = new For(init, cond, inc)(block)
 }
 
 case class ForInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
@@ -257,6 +276,7 @@ object Try {
 }
 
 class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAny] with JsStatement {
+  private[javascript] lazy val body = new Block(capt('arg0 $))
   def toReplace = Nil
 }
 object Function {

@@ -29,9 +29,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "function(arg){\n"+
-        "  if((arg>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}\n"+
-        "}"
+      "function (arg0){if((arg0>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}}"
     )
   }
 
@@ -123,24 +121,21 @@ class JsTests extends FunSuite with ShouldMatchers {
         val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
       }
     }
-    theStatements.map(JsStatement.render) should equal (List(
+    theStatements map JsStatement.render foreach println
+    val target = List(
       """if(true) {window.alert("True")} else if(false) {window.alert("False")} else {if(true) {} else {}}""",
       """while(true) {window.alert("Again!")}""",
       """do {window.alert("Hello!")} while(false)""",
-      """switch(1) {case 0: window.alert("No");
-break;
-case 1: window.alert("Yes");
-break;}""",
+      """switch(1) {case 0:window.alert("No");break;case 1:window.alert("Yes");break;}""",
       """var i""",
       """for(i=1;(i<10);i=(i+1)) {}""",
       """for(var x$0 in [1,2,3]) {if((x$0>1)) {window.alert("Greater")}}""",
       """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater")}}""",
       """try {throw "message"} catch(x$2) {} finally {}""",
-      "function myFunc(arg){\n"+
-        "  if((arg>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}\n"+
-        "}",
+      """function myFunc(arg0){if((arg0>10)) {window.alert("Greater")} else {window.alert("Small")}}""",
       "myFunc(10)",
-      "function f$0(arg){\n  return (arg>10)\n}"
-    ))
+      "function f$0(arg0){return (arg0>10)}"
+    )
+    theStatements map JsStatement.render zip target foreach { case (s, t) => s should equal (t) }
   }
 }

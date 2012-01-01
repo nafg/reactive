@@ -23,6 +23,7 @@ package object javascript {
 
   implicit def toForInable[T <: JsAny](exp: JsExp[JsArray[T]]) = ForInable(exp)
   def Each[T <: JsAny](exp: $[JsArray[T]]) = ForEachInable(exp)
+  def Break = new Break
 
   /**
    * Returns a JsIdent with the specified name

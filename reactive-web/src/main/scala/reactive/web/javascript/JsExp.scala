@@ -153,11 +153,9 @@ trait ToJsLow { // make sure Map has a higher priority than a regular function
 }
 trait ToJsMedium extends ToJsLow {
   implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] = new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]({ f =>
-    JsStatement.inScope(f($('arg))).map(JsStatement.render).mkString(
-      "function(arg){\n  ",
-      ";\n  ",
-      "\n}"
-    )
+    JsStatement.render(new Function[P](x => f(x)) {
+      override val ident = Symbol("")
+    })
   })
 }
 /**
