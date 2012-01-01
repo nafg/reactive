@@ -80,6 +80,20 @@ trait Signal[+T] extends Forwardable[T] {
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
 
   /**
+   * Return a new Signal whose initial value is f(initial, parent.now).
+   * Whenever the parent's value changes, the signal's value changes to f(previous, parent.now)
+   */
+  def foldLeft[U](initial: U)(f: (U, T) => U): Signal[U] = new ChildSignal[T, U, U](this, f(initial, now), identity) {
+    override def debugName = Signal.this.debugName+".foldLeft("+initial+")("+f+")"
+    def parentHandler = (x, last) => {
+      val next = f(last, x)
+      current = next
+      change.fire(next)
+      next
+    }
+  }
+
+  /**
    * Returns a Tuple2-valued Signal that contains the values of this Signal and another Signal
    * @param that the other Signal
    * @return the Tuple2-valued Signal

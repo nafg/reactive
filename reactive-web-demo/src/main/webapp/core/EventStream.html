@@ -226,7 +226,7 @@ seconds.filter(_ % 10 == 1).flatMap{ t =&gt;
 
 <button onclick="showdemo('EventStream_flatMap')">Live Example</button>
 
-<h3>Passing state: <code>foldLeft</code></h3>
+<h3><a id="foldLeft">Passing state: <code>foldLeft</code></a></h3>
 <p>What if you need the way you handle events to depend on various
 factors, in a way that's more complex than what <code>flatMap</code>
 allows?</p>
@@ -297,7 +297,7 @@ an event involves a lot of work, this means some of that work may be redundant.<
 that hands off events to an internal actor to process. Thus, only one event will be handled
 at a time, and the thread firing the event won't block. See below for an example.</p>
 
-<h3>Detecting that an event is superseded: <code>zipWithStaleness</code></h3>
+<h3>Detecting that an event has been superseded: <code>zipWithStaleness</code></h3>
 <p>Sometimes, like when you have a long-running, hard-working event handler, you may want
 to check whether a new event has been fired since the handler began running. Perhaps
 if one indeed was, you want to short-circuit and skip the rest of the work (maybe because

@@ -139,13 +139,16 @@ depressed. You have two <code>EventStream</code>s, one firing left mouse button 
 and one firing right mouse button clicks, and a <code>Signal</code> representing
 the <code>Alt</code> key's state.</p>
 
-<p>
 <pre class="brush:scala">
 val selectClicks = altKey flatMap (if(_) leftButtonClicks else rightButtonClicks)
 val contextClicks = altKey flatMap (if(_) rightButtonClicks else leftButtonClicks)
-</pre></p>
+</pre>
 
 <button onclick="showdemo('Signal_flatMap')">Live Example</button>
+
+<h3>Passing down state: <code>foldLeft</code></h3>
+<p>If you need to derive a signal based on memory of previous state,
+use <code>foldLeft</code>. It works similar to <a href="EventStream#foldLeft">EventStream.foldLeft</a>.</p>
 
 <h3><code>zip</code></h3>
 <p>A method that can be convenient sometimes is <code>zip</code>. A parallel to the collections' <code>zip</code> method,
