@@ -290,7 +290,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
     new FlatMapped(None)(f)
 
-  //TODO should this become Signal#flatMap (which can of course be accessed from an EventStream via EventStream#Hold) or be renamed?
+  @deprecated("Use eventStream.hold(initial).flatMap(f)")
   def flatMap[U](initial: T)(f: T => EventStream[U]): EventStream[U] =
     new FlatMapped(Some(initial))(f) {
       override def debugName = "%s.flatMap(%s)(%s)" format (EventSource.this.debugName, initial, f)

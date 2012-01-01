@@ -4,7 +4,7 @@
 <h2>Signal</h2>
 <h3>Introduction</h3>
 <p>While <code>EventStream</code> represents a stream of discrete
-values over time --- that is, each value only exists instantaneously (in
+values over time &mdash; that is, each value only exists instantaneously (in
 practice that means that you can never say "what is the current
 value?"), <code>Signal</code> represents a continuous value. In
 practical terms, a <code>Signal</code> has a current value, and an <code>EventStream</code>
@@ -78,8 +78,7 @@ println(mapped.now)  // prints 620
 
 <button onclick="showdemo('Signal_map')">Live Example</button>
 
-
-<h3><code>flatMap</code></h3>
+<h3><a id="flatMap"><code>flatMap</code></a></h3>
 <p>Just like you can <code>flatMap</code> an <code>EventStream</code>
 to get an <code>EventStream</code> that "switches" between several <code>EventStream</code>s,
 so too you can create a <code>Signal</code> whose value depends on
@@ -112,25 +111,7 @@ println(flatMapped.now)  // prints 1
 
 </pre>
 
-<p>Another example: suppose you have an application that swaps the
-meaning of the mouse buttons while the <code>Alt</code> key is
-depressed. You have two <code>Signal</code>s, one representing the state
-of the left mouse button and one representing the state of the right
-mouse button. You have a third <code>Signal</code> representing the <code>Alt</code>
-key's state.</p>
-
-<pre class="brush:scala">
-val selectButton = altKey.flatMap {
-  case true =&gt; leftButton
-  case false =&gt; rightButton
-}
-val contextButton = altKey.flatMap {
-  case true =&gt; rightButton
-  case false =&gt; leftButton
-}
-</pre>
-
-<p>A third example: filtering a list based on an entered string.</p>
+<p>Another example: filtering a list based on an entered string.</p>
 
 <pre class="brush: scala">
 def filteredList(filterSignal: Signal[String], itemsSignal: Signal[Seq[String]]) =
@@ -146,6 +127,23 @@ filterSignal.flatMap{ filter =&gt;
 }
 */
 </pre>
+
+<p>Similarly, you can pass <code>flatMap</code> a function that returns
+<code>EventStream</code>s, and <code>flatMap</code> will return an
+<code>EventStream</code> that &ldquo;strings together&rdquo;
+the event streams that correspond to the signal&rsquo;s values.</p>
+
+<p>For instance, suppose you have an application that swaps the
+meaning of the mouse buttons while the <code>Alt</code> key is
+depressed. You have two <code>EventStream</code>s, one firing left mouse button clicks,
+and one firing right mouse button clicks, and a <code>Signal</code> representing
+the <code>Alt</code> key's state.</p>
+
+<p>
+<pre class="brush:scala">
+val selectClicks = altKey flatMap (if(_) leftButtonClicks else rightButtonClicks)
+val contextClicks = altKey flatMap (if(_) rightButtonClicks else leftButtonClicks)
+</pre></p>
 
 <button onclick="showdemo('Signal_flatMap')">Live Example</button>
 
@@ -167,6 +165,6 @@ to change signal A, it sets to another value, infinitely? A silly illustration:<
 <p>Another example is where rounding errors are not symmetric. For such scenarios, call <code>nonrecursive</code>, which
 uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>) to prevent recursion.</p>
 
-<h3>Time-consuming handling values</h3>
+<h3>Time-consuming handling of values</h3>
 <p>Similar to <code>EventStream</code>, <code>Signal</code> has <code>nonblocking</code> and <code>zipWithStaleness</code> methods.</p>
 </div>

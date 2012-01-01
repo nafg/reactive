@@ -49,10 +49,13 @@ trait Signal[+T] extends Forwardable[T] {
   def map[U, S](f: T => U)(implicit canMapSignal: CanMapSignal[U, S]): S = canMapSignal.map(this, f)
 
   /**
-   * Returns a new signal, that for every value of this parent signal,
-   * will correspond to the signal resulting from applying f to
-   * the respective value of this parent signal.
-   * Whenever this Signal's change EventStream fires, the
+   * Returns a new Signal or EventStream,
+   * that for every value of this parent signal,
+   * will correspond to the Signal or EventStream
+   * resulting from applying f to the value of the parent signal.
+   * 
+   * If the function returns a Signal, then
+   * whenever this Signal's change EventStream fires, the
    * resulting Signal's change EventStream will fire the
    * value of the new signal, and subsequently will fire
    * all change events fired by that signal.
@@ -69,8 +72,11 @@ trait Signal[+T] extends Forwardable[T] {
    * In addition, every change to the parent results in a change event
    * as well as deltas reflecting the transition from the SeqSignal
    * previously returned by ''f'' and the on returned by it now.
+   *
+   * If the function returns an EventStream, then this function returns a
+   * new EventStream that corresponds fires the events of whichever
+   * EventStream is returns by f for the Signal's current value.
    */
-  //TODO perhaps allow for flatMap(T => EventStream[U]), i.e., S==EventStream?
   def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
 
   /**
@@ -212,6 +218,15 @@ trait LowPriorityCanFlatMapSignalImplicits {
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
     def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, f)
+  }
+  implicit def canFlatMapEventStream: CanFlatMapSignal[Signal, EventStream] = new CanFlatMapSignal[Signal, EventStream] {
+    def flatMap[T, U](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
+      val parentChange = new EventSource[T]
+      parent.change addListener parentChange.fire
+      new parentChange.FlatMapped(Some(parent.now))(f) {
+        override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
+      }
+    }
   }
 }
 
