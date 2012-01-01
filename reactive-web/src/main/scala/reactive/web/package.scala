@@ -21,7 +21,7 @@ package object web {
   val DOMProperty = DomProperty
   @deprecated("Use DomProperty")
   type DOMProperty = DomProperty
-  @deprecated("User DomEvent")
+  @deprecated("Use DomEvent")
   type DOMEvent = DomEvent
 
   /**
