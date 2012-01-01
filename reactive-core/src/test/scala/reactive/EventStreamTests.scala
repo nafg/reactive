@@ -27,9 +27,9 @@ trait CollectEvents {
 class LoggerTests extends FunSuite with ShouldMatchers with Observing {
   test("doesn't StackOverflow") {
     Logger.defaultLevel = Logger.Levels.Trace
-    Logger.all foreach println
+    Logger.all foreach { _ => }
     val es = new EventSource[Int]
-    es foreach println
+    es foreach { _ => }
     es fire 1
   }
 }
