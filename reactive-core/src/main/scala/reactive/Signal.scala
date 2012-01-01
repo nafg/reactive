@@ -215,8 +215,8 @@ trait LowPriorityCanMapSignalImplicits {
   }
 }
 object CanMapSignal extends LowPriorityCanMapSignalImplicits {
-  implicit def canMapSeqSignal[E]: CanMapSignal[TransformedSeq[E], SeqSignal[E]] = new CanMapSignal[TransformedSeq[E], SeqSignal[E]] {
-    def map[T](parent: Signal[T], f: T => TransformedSeq[E]): SeqSignal[E] = new MappedSeqSignal[T, E](parent, f)
+  implicit def canMapSeqSignal[E]: CanMapSignal[TransformedSeqBase[E], SeqSignal[E]] = new CanMapSignal[TransformedSeqBase[E], SeqSignal[E]] {
+    def map[T](parent: Signal[T], f: T => TransformedSeqBase[E]): SeqSignal[E] = new MappedSeqSignal[T, E](parent, f)
   }
 }
 

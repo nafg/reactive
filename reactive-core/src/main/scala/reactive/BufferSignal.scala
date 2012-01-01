@@ -43,7 +43,7 @@ object BufferSignal {
  * deltas by diffing the old Seq and the new one.
  * Normally you would mix this in to a Var.
  */
-@deprecated("Instead we need a DiffSignal that extracts deltas from diffs")
+@deprecated("Instead use SeqSignal.apply or SeqSignal.diffStream")
 trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
   def comparator: (T, T) => Boolean = { _ == _ }
   override lazy val transform = new TransformedSeq[T] {
@@ -94,7 +94,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
 class DiffSignal[T](
   signal: Signal[TransformedSeq[T]],
   comparator: (T, T) => Boolean = { (_: T) == (_: T) })(
-    implicit _observing: Observing) extends SeqSignal[T] with Logger {
+    implicit _observing: Observing) extends SeqSignalImpl[T] with Logger {
   override lazy val transform = new TransformedSeq[T] {
     def underlying = DiffSignal.this.now
     override lazy val deltas = new EventSource[SeqDelta[T, T]]
