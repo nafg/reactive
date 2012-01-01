@@ -18,14 +18,15 @@ object Javascript {
 sealed trait JsStatement {
   /**
    * A list of JsStatements that if they are
-   * on the top of the JsStatement stack should be replaced.
+   * on the top of the JsStatement stack should be replaced
+   * by this statement (generally because it renders them itself).
    */
   def toReplace: List[JsStatement]
 
-  for (e <- toReplace)
-    if (e eq JsStatement.peek)
+  for (e <- toReplace; head <- JsStatement.peek)
+    if (e eq head)
       JsStatement.pop
-    else println("'"+JsStatement.render(JsStatement.peek)+"' is the top of the stack, not '"+JsStatement.render(e)+
+    else println("'"+JsStatement.render(head)+"' is the top of the stack, not '"+JsStatement.render(e)+
       "', when applying toReplace for '"+JsStatement.render(this)+"'")
 
   JsStatement.push(this)
@@ -93,9 +94,7 @@ object JsStatement {
     currentScope = currentScope.tail
     ret
   }
-  def peek = currentScope.head
-  def replace(pf: PartialFunction[JsStatement, JsStatement]) =
-    if (pf.isDefinedAt(peek)) push(pf(pop))
+  def peek = currentScope.headOption
 }
 
 final private class Block(block: => Unit) extends JsStatement {

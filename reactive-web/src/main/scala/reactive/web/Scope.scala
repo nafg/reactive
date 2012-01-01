@@ -45,7 +45,6 @@ class LocalScope extends Scope {
     js = js.tail
     ret
   }
-  def replace(f: JsCmd => JsCmd): Unit = queue(f(dequeue))
 }
 /**
  * A scope that calls S.appendJs with
