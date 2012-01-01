@@ -6,17 +6,21 @@ package reactive
  * deltas (SeqDeltas).
  */
 //TODO covariance
-trait SeqSignal[T] extends Signal[TransformedSeq[T]] {
+trait SeqSignal[+T] extends Signal[TransformedSeqBase[T]] {
+  def deltas: EventStream[SeqDelta[T, T]]
+  def transform: TransformedSeqBase[T]
+}
+trait SeqSignalImpl[T] extends SeqSignal[T] {
   private lazy val underlying: TransformedSeq[T] = new TransformedSeq[T] {
-    def underlying = SeqSignal.this.now
+    def underlying = SeqSignalImpl.this.now
   }
 
   /**
    * Returns the TransformedSeq, the actual delta-propagating Seq.
    */
-  def transform: TransformedSeq[T] = underlying
+  def transform: TransformedSeqBase[T] = underlying
 
-  override lazy val change: EventStream[TransformedSeq[T]] = new EventSource[TransformedSeq[T]] {}
+  lazy val change: EventStream[TransformedSeqBase[T]] = new EventSource[TransformedSeqBase[T]] {}
 
   /**
    * The EventStream of incremental updates (SeqDeltas) to the underlying Seq.
@@ -35,7 +39,7 @@ object SeqSignal {
    */
   def apply[A](orig: Signal[Seq[A]],
                diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc[A],
-               includeInit: Boolean = false): SeqSignal[A] = new SeqSignal[A] with Logger {
+               includeInit: Boolean = false): SeqSignal[A] = new SeqSignalImpl[A] with Logger {
     def now = transform
     override lazy val transform = new TransformedSeq[A] {
       def underlying = orig.now
@@ -60,14 +64,14 @@ object SeqSignal {
 
 class MappedSeqSignal[T, E](
   private val parent: Signal[T],
-  f: T => TransformedSeq[E]) extends ChangingSeqSignal[E] with Logger {
+  f: T => TransformedSeqBase[E]) extends ChangingSeqSignal[E] with Logger {
   case class NotPropagatingDelta(delta: SeqDelta[T, T]) extends LogEventPredicate
   case object DoesntHaveSeqSignalParent extends LogEventPredicate
 
   def now = underlying
   override def transform = underlying
-  def underlying: TransformedSeq[E] = _underlying
-  private var _underlying: TransformedSeq[E] = f(parent.now)
+  def underlying: TransformedSeqBase[E] = _underlying
+  private var _underlying: TransformedSeqBase[E] = f(parent.now)
 
   private val parentChangeListener = { x: T =>
     _underlying = f(x)
@@ -93,10 +97,10 @@ class MappedSeqSignal[T, E](
   override def toString = "MappedSeqSignal("+parent+","+Util.debugString(f)+")"
 }
 
-protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T => SeqSignal[U]) extends SeqSignal[U] {
+protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T => SeqSignal[U]) extends SeqSignalImpl[U] {
   def now = currentMappedSignal.now
-  override lazy val change = new EventSource[TransformedSeq[U]] {}
-  private val changeListener: TransformedSeq[U] => Unit = change.fire _
+  override lazy val change = new EventSource[TransformedSeqBase[U]] {}
+  private val changeListener: TransformedSeqBase[U] => Unit = change.fire _
   private val deltasListener: SeqDelta[U, U] => Unit = transform.deltas.fire _
   private var currentMappedSignal = f(parent.now)
   override lazy val transform = new TransformedSeq[U] {
@@ -112,7 +116,7 @@ protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T =>
     currentMappedSignal.deltas removeListener deltasListener
     currentMappedSignal = f(x)
     val n = currentMappedSignal.transform
-    change.fire(n)
+    change fire n
     lastSeq = fireDeltaDiff(lastSeq, n)
     currentMappedSignal.change addListener changeListener
     currentMappedSignal.deltas addListener deltasListener
@@ -128,11 +132,11 @@ protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T =>
 }
 
 /**
- * Mix in this trait to a SeqSignal to have it fire change events  whenever a delta is fired.
+ * Mix in this trait to a SeqSignal to have it fire change events whenever a delta is fired.
  */
-trait ChangingSeqSignal[T] extends SeqSignal[T] {
-  private lazy val change0 = new EventSource[TransformedSeq[T]] {}
-  override lazy val change: EventStream[TransformedSeq[T]] = change0
+trait ChangingSeqSignal[T] extends SeqSignalImpl[T] {
+  private lazy val change0 = new EventSource[TransformedSeqBase[T]] {}
+  override lazy val change: EventStream[TransformedSeqBase[T]] = change0
   private val fireTransform: SeqDelta[T, T] => Unit = _ => change0 fire transform //TODO transform? underlying? now?
   deltas addListener fireTransform
 }

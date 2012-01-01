@@ -19,10 +19,24 @@ import scala.ref.WeakReference
 //replacing it is on the consumer.
 //A third option is to have xform return a new TransformedSeq...
 
-trait TransformedSeq[T]
-  extends immutable.Seq[T]
-  with GenericTraversableTemplate[T, TransformedSeq]
-  with SeqLike[T, TransformedSeq[T]] { outer =>
+sealed trait TransformedSeqBase[+T] extends immutable.Seq[T]
+  with GenericTraversableTemplate[T, TransformedSeqBase]
+  with SeqLike[T, TransformedSeqBase[T]] {
+  override def companion = TransformedSeqBase
+
+  def underlying: scala.collection.Seq[T]
+  def apply(i: Int): T = underlying.apply(i)
+  def length = underlying.length
+  def iterator = underlying.iterator
+
+  lazy val deltas: EventStream[SeqDelta[T, T]] = new EventSource[SeqDelta[T, T]] {}
+  /**
+   * The delta from the parent TransformedSeq to this one,
+   * or if no parent, from Nil to this TransformedSeq
+   */
+  def baseDeltas: Seq[SeqDelta[_, T]] = underlying.zipWithIndex.map { case (e, i) => Include(i, e) }
+}
+trait TransformedSeq[T] extends TransformedSeqBase[T] { outer =>
   protected def uid = getClass.getName+"@"+System.identityHashCode(this)
 
   trait Transformed[U] extends TransformedSeq[U] {
@@ -37,7 +51,7 @@ trait TransformedSeq[T]
       case Remove(loc, elem) => xform(loc, elem) map {
         case (loc, elem) => Remove(loc, elem)
       }
-      case Batch(ms@_*) => List(Batch(ms flatMap xform: _*))
+      case Batch(ms @ _*) => List(Batch(ms flatMap xform: _*))
     }
     override def baseDeltas = LCS.lcsdiff(outer, underlying, (a: T, b: U) => a == b)
 
@@ -46,9 +60,9 @@ trait TransformedSeq[T]
     protected var index: ArrayBuffer[Int] = initIndex
     protected def initIndex: ArrayBuffer[Int]
     private def fixIndexes(ms: List[SeqDelta[U, U]]): List[SeqDelta[U, U]] = {
-      def merged(ms: Seq[SeqDelta[U, U]]): Seq[IncludeOrRemoveOrUpdate[U,U]] = ms flatMap {
-        case Batch(ms@_*) => merged(ms)
-        case m: IncludeOrRemoveOrUpdate[U,U]            => List(m)
+      def merged(ms: Seq[SeqDelta[U, U]]): Seq[IncludeOrRemoveOrUpdate[U, U]] = ms flatMap {
+        case Batch(ms @ _*)                   => merged(ms)
+        case m: IncludeOrRemoveOrUpdate[U, U] => List(m)
       }
       def idx(m: IncludeOrRemoveOrUpdate[U, U]) = m match {
         case Include(i, _)   => i
@@ -203,7 +217,7 @@ trait TransformedSeq[T]
             lastValid = n - 1
           else if (n == lastValid + 1 && (prev != v))
             lastValid = calcLastValid
-        case Batch(_@_*) => // let super call below handle recursion
+        case Batch(_@ _*) => // let super call below handle recursion
       }
       ret
     }
@@ -216,14 +230,6 @@ trait TransformedSeq[T]
     override protected def xform(index: Int, elem: T) =
       if (index > lastValid) List((index - lastValid - 1, elem)) else Nil
   }
-
-  lazy val deltas: EventStream[SeqDelta[T, T]] = new EventSource[SeqDelta[T, T]] {}
-
-  def underlying: scala.collection.Seq[T]
-  def apply(i: Int): T = underlying.apply(i)
-  def length = underlying.length
-  def iterator = underlying.iterator
-  override def companion = TransformedSeq
 
   protected def newAppended[U >: T](that: Traversable[U])(result: Seq[U]): TransformedSeq[U] = new Appended[U] {
     val rest = that
@@ -261,15 +267,15 @@ trait TransformedSeq[T]
   }
 
   //TODO appending another TransformedSeq
-  override def ++[U >: T, That](xs: TraversableOnce[U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That = {
+  override def ++[U >: T, That](xs: TraversableOnce[U])(implicit bf: CanBuildFrom[TransformedSeqBase[T], U, That]): That = {
     getThat(super.++(xs))(newAppended(xs.toTraversable))
   }
-  override def map[U, That](f: T => U)(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That = {
+  override def map[U, That](f: T => U)(implicit bf: CanBuildFrom[TransformedSeqBase[T], U, That]): That = {
     getThat(super.map(f)(bf))(newMapped(f))
   }
-  override def collect[U, That](pf: PartialFunction[T, U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That =
+  override def collect[U, That](pf: PartialFunction[T, U])(implicit bf: CanBuildFrom[TransformedSeqBase[T], U, That]): That =
     filter(pf.isDefinedAt _).map(pf)(bf)
-  override def flatMap[U, That](f: T => Traversable[U])(implicit bf: CanBuildFrom[TransformedSeq[T], U, That]): That =
+  override def flatMap[U, That](f: T => Traversable[U])(implicit bf: CanBuildFrom[TransformedSeqBase[T], U, That]): That =
     getThat(super.flatMap(f))(newFlatMapped(f))
   override def filter(p: T => Boolean): TransformedSeq[T] =
     newFiltered(p)(super.filter(p))
@@ -301,19 +307,13 @@ trait TransformedSeq[T]
     (newTakenWhile(p)(a), newDroppedWhile(p)(b))
   }
 
-  /**
-   * The delta from the parent TransformedSeq to this one,
-   * or if no parent, from Nil to this TransformedSeq
-   */
-  def baseDeltas: Seq[SeqDelta[_, T]] = underlying.zipWithIndex.map { case (e, i) => Include(i, e) }
-
-  override protected[this] def newBuilder: Builder[T, TransformedSeq[T]] = new TransformedSeq.TransformedBuilder
+  override protected[this] def newBuilder: Builder[T, TransformedSeqBase[T]] = new TransformedSeqBase.TransformedBuilder
 }
-object TransformedSeq extends SeqFactory[TransformedSeq] {
-  implicit def canBuildFrom[T]: CanBuildFrom[Coll, T, TransformedSeq[T]] =
+object TransformedSeqBase extends SeqFactory[TransformedSeqBase] {
+  implicit def canBuildFrom[T]: CanBuildFrom[Coll, T, TransformedSeqBase[T]] =
     new GenericCanBuildFrom[T] {
       override def apply(from: Coll) = from match {
-        case f: TransformedSeq[_] => new TransformedBuilder[T]
+        case f: TransformedSeqBase[_] => new TransformedBuilder[T]
       }
     }
   def newBuilder[T] = new TransformedBuilder[T]
