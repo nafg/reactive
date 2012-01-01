@@ -217,7 +217,7 @@ trait TransformedSeq[T]
       if (index > lastValid) List((index - lastValid - 1, elem)) else Nil
   }
 
-  lazy val deltas: EventSource[SeqDelta[T, T]] = new EventSource[SeqDelta[T, T]] {}
+  lazy val deltas: EventStream[SeqDelta[T, T]] = new EventSource[SeqDelta[T, T]] {}
 
   def underlying: scala.collection.Seq[T]
   def apply(i: Int): T = underlying.apply(i)

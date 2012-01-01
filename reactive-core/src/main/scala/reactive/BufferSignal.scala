@@ -1,8 +1,7 @@
 package reactive
 
-
-
-/**  This SeqSignal contains a Buffer which you can modify  directly, causing deltas to be fired.  You can also replace the buffer contents directly,  causing a diff to be calculated and the resulting deltas  to be fired.  @see ChangingSeqSignal
+/**
+ * This SeqSignal contains a Buffer which you can modify  directly, causing deltas to be fired.  You can also replace the buffer contents directly,  causing a diff to be calculated and the resulting deltas  to be fired.  @see ChangingSeqSignal
  */
 trait BufferSignal[T] extends SeqSignal[T] with ChangingSeqSignal[T] {
   protected lazy val underlying = new ObservableBuffer[T]
@@ -49,7 +48,7 @@ trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
   def comparator: (T, T) => Boolean = { _ == _ }
   override lazy val transform = new TransformedSeq[T] {
     def underlying = DiffSeqSignal.this.now
-    //override val deltas = new EventStream[SeqDelta[T]] {}
+    override lazy val deltas = new EventSource[SeqDelta[T, T]]
   }
   change.foldLeft(value) {
     case (_prev, _cur) =>
@@ -58,7 +57,8 @@ trait DiffSeqSignal[T] extends SeqSignal[T] { this: Var[TransformedSeq[T]] =>
   }
 }
 
-/**  This trait provides a SeqSignal that fires deltas on change, and
+/**
+ * This trait provides a SeqSignal that fires deltas on change, and
  */
 @deprecated("Instead we need a BufferVar that fires change on mutate; and a DiffSignal that extracts deltas from diffs")
 trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]] =>
@@ -70,7 +70,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
   override def now = transform
   private val fromBuffer = new scala.util.DynamicVariable(false)
 
-  private val propagate: SeqDelta[T,T]=>Unit = { m =>
+  private val propagate: SeqDelta[T, T] => Unit = { m =>
     fromBuffer.withValue(true) {
       transform.deltas.fire(m)
     }
@@ -85,7 +85,7 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
       underlying.messages.suppressing {
         underlying.remove(i)
       }
-    case Batch(ms@_*) => ms foreach applyDelta
+    case Batch(ms @ _*) => ms foreach applyDelta
   }
   private lazy val o = new Observing {}
   transform.deltas.filter(_ => !fromBuffer.value).foreach(applyDelta)(o)
@@ -93,12 +93,14 @@ trait DiffBufferSignal[T] extends DiffSeqSignal[T] { this: Var[TransformedSeq[T]
 
 class DiffSignal[T](
   signal: Signal[TransformedSeq[T]],
-  comparator: (T, T) => Boolean = { (_: T) == (_: T) }
-)(
-  implicit _observing: Observing
-) extends SeqSignal[T] with Logger {
-  case class CalculatedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T,T]]) extends LogEventPredicate
-  
+  comparator: (T, T) => Boolean = { (_: T) == (_: T) })(
+    implicit _observing: Observing) extends SeqSignal[T] with Logger {
+  override lazy val transform = new TransformedSeq[T] {
+    def underlying = DiffSignal.this.now
+    override lazy val deltas = new EventSource[SeqDelta[T, T]]
+  }
+  case class CalculatedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T, T]]) extends LogEventPredicate
+
   protected var _now = signal.now
   def observing = _observing
   def now = _now
@@ -106,7 +108,7 @@ class DiffSignal[T](
     case (prev, cur) =>
       _now = cur
       val diff = LCS.lcsdiff(prev, cur, comparator)
-      trace(CalculatedDiff(prev,cur,diff))
+      trace(CalculatedDiff(prev, cur, diff))
       transform.deltas.fire(Batch(diff: _*))
       cur
   }

@@ -25,38 +25,35 @@ trait SeqSignal[T] extends Signal[TransformedSeq[T]] {
 }
 
 object SeqSignal {
+  private def defaultDiffFunc[A]: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = { (a: Seq[A], b: Seq[A]) => LCS.lcsdiff[A, A](a, b, _ == _) }
   /**
    * This factory creates a SeqSignal that wraps an ordinary Signal[Seq[_]],
    * with the behavior that whenever the original signal's value changes,
    * a diff is calculated and the new SeqSignal fires deltas representing
    * the change incrementally.
+   * The deltas EventStream is created by calling diffStream.
    */
-  //TODO this should be built on a public method that just creates an
-  //EventStream of the diffs
-  def apply[T](orig: Signal[Seq[T]]): SeqSignal[T] =
-    new SeqSignal[T] with Logger {
-      case class ComputedDiff(prev: Seq[T], cur: Seq[T], diff: Seq[SeqDelta[T, T]]) extends LogEventPredicate
-
-      def now = transform
-      //TODO cache?
-      override lazy val transform = new TransformedSeq[T] {
-        def underlying = orig.now
-      }
-      override lazy val change = new EventSource[TransformedSeq[T]]
-
-      private var _prev: List[T] = now.toList
-      lazy val parentChangeListener = { _cur: Seq[T] =>
-        val c = _cur.toList
-        val diff = LCS.lcsdiff[T, T](_prev, c, _ == _)
-        trace(ComputedDiff(_prev, c, diff))
-        change fire new TransformedSeq[T] { def underlying = transform }
-        transform.deltas.fire(Batch(diff: _*))
-        _prev = c
-      }
-      orig.change addListener parentChangeListener
-
-      override def toString = "SeqSignal("+now+")"
+  def apply[A](orig: Signal[Seq[A]],
+               diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc[A],
+               includeInit: Boolean = false): SeqSignal[A] = new SeqSignal[A] with Logger {
+    def now = transform
+    override lazy val transform = new TransformedSeq[A] {
+      def underlying = orig.now
+      override lazy val deltas = { change; diffStream[A](orig, diffFunc, includeInit) } // Ensure change is initialized first so change events fire first!!
     }
+    override lazy val change: EventStream[TransformedSeq[A]] = orig.change map { _ =>
+      new TransformedSeq[A] { def underlying = transform }
+    }
+    override def toString = "SeqSignal("+now+")"
+  }
+
+  /**
+   * Given a Signal[Seq[A]], return an EventStream that fires the diff represeting every change.
+   */
+  def diffStream[A](orig: Signal[Seq[A]],
+                    diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc,
+                    includeInit: Boolean = false): EventStream[SeqDelta[A, A]] =
+    orig.foldLeft((Seq.empty[A], if (includeInit) Nil else orig.now)){ case ((_, old), xs) => (old, xs) }.map{ case (a, b) => Batch(diffFunc(a, b): _*) }.change
 
   //TODO optimized shortcut for apply(Val(seq))
 }
@@ -100,9 +97,12 @@ protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T =>
   def now = currentMappedSignal.now
   override lazy val change = new EventSource[TransformedSeq[U]] {}
   private val changeListener: TransformedSeq[U] => Unit = change.fire _
-  private val deltasListener: SeqDelta[U, U] => Unit = deltas.fire _
+  private val deltasListener: SeqDelta[U, U] => Unit = transform.deltas.fire _
   private var currentMappedSignal = f(parent.now)
-  //  private var lastDeltas: Seq[SeqDelta[T,U]] = now.zipWithIndex.map{case (e,i)=>Include(i,e)}
+  override lazy val transform = new TransformedSeq[U] {
+    def underlying = currentMappedSignal.now
+    override lazy val deltas = new EventSource[SeqDelta[U, U]]
+  }
   private var lastSeq: Seq[U] = now
   currentMappedSignal.change addListener changeListener
   currentMappedSignal.deltas addListener deltasListener
@@ -120,7 +120,7 @@ protected class FlatMappedSeqSignal[T, U](private val parent: Signal[T], f: T =>
   parent.change addListener parentChangeListener
 
   private def fireDeltaDiff(lastSeq: Seq[U], newSeq: Seq[U]): Seq[U] = {
-    deltas fire Batch(LCS.lcsdiff(lastSeq, newSeq, (_: U) == (_: U)): _*)
+    transform.deltas fire Batch(LCS.lcsdiff(lastSeq, newSeq, (_: U) == (_: U)): _*)
     newSeq
   }
 
