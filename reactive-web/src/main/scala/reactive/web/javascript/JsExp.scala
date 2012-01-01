@@ -147,10 +147,20 @@ trait ToJsLow { // make sure Map has a higher priority than a regular function
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){return "+_($('arg)).render+"}")
 }
+trait ToJsMedium extends ToJsLow {
+  implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] = new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]({ f =>
+    JsStatement.inScope(f($('arg))).map(JsStatement.render).mkString(
+      "function(arg){\n  ",
+      ";\n  ",
+      "\n}"
+    )
+  })
+}
 /**
- * Contains implicit conversions from scala values to javascript literals
+ * Contains implicit conversions from scala values to javascript literals.
+ * Extended by object JsExp
  */
-trait ToJsHigh extends ToJsLow {
+trait ToJsHigh extends ToJsMedium {
   implicit val double: ToJs.From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
   implicit val int: ToJsLit[Int, JsNumber] = new ToJsLit[Int, JsNumber](_.toString)
   implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
