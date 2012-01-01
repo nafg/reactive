@@ -25,7 +25,8 @@ sealed trait JsStatement {
   for (e <- toReplace)
     if (e eq JsStatement.peek)
       JsStatement.pop
-    else println(JsStatement.peek+" != "+e)
+    else println("'"+JsStatement.render(JsStatement.peek)+"' is the top of the stack, not '"+JsStatement.render(e)+
+      "', when applying toReplace for '"+JsStatement.render(this)+"'")
 
   JsStatement.push(this)
 }
@@ -53,6 +54,10 @@ object JsStatement {
     case t: Try.Try                      => "try "+render(t.body)
     case c: Try.Try#Catch                => render(c.outer)+" catch("+c.v.ident.name+") "+render(c.body)
     case f: Try.Finallyable#Finally      => render(f.outer)+" finally "+render(f.body)
+    case Return(e)                       => "return "+e.render
+    case f: Function[_] =>
+      JsStatement.inScope(f.capt($('arg))) map render mkString
+        ("function "+f.ident.name+"(arg){\n  ", ";\n  ", "\n}")
   }
 
   /**
@@ -253,4 +258,16 @@ object Try {
       def toReplace = List(v, outer)
     }
   }
+}
+class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAny] with JsStatement {
+  def toReplace = Nil
+}
+object Function {
+  def apply[P <: JsAny](capt: $[P] => Unit)(implicit p: Page) = new Function[P](capt) {
+    override val ident = Symbol("f$"+p.nextNumber)
+  }
+}
+
+case class Return[T <: JsAny](exp: JsExp[T]) extends JsStatement {
+  def toReplace = Nil
 }

@@ -29,16 +29,18 @@ this, <code>reactive-web</code> contains a DSL for writing typesafe javascript e
 <li><code>$[T]</code>, the type, is a type alias for <code>JsExp[T]</code>.</li>
 <li>Many scala values can be converted into javascript with the <code>$</code> postfix operator. For instance, <code>"A string".$</code>
     yields a <code>JsLiteral[JsString]</code>, and <code>'symbol.$[JsString]</code> yields a <code>JsIdent[JsString]</code> named <code>symbol</code>.</li>
-<li>A scala function of type <code>JsExp[P] =&gt; JsExp[R]</code> (a.k.a. <code>$[P] =&gt; $[R]</code>) can represent a javascript function literal.
+<li>A scala function of type <code>JsExp[P] =&gt; JsExp[R]</code> (a.k.a. <code>$[P] =&gt; $[R]</code>) can represent a javascript function literal
+    consisting of a return statement and an expression.
     For instance, <code>(i: $[JsInt]) =&gt; i + 1.$</code> can automatically be converted into <code>function(arg){return arg+1}</code>.
     (The way this works is simple: <code>reactive-web</code> invokes the function with a <code>JsIdent[JsInt]</code> named <code>arg</code>. <code>JsExp</code> has a +
     method that returns a new <code>JsExp</code> that represents the addition of itself and its argument. This <code>JsExp</code>
     is then returned from your function to <code>reactive-web</code>, which inserts that into the template of a javascript function literal.)</li>
+<li>Similarly, a function <code>JsExp[P] =&gt; JsStatement</code> creates a function that contains any number of statements.</li>
 <li>You can represent entire javascript APIs in scala by defining a trait that extends <code>JsStub</code>, and getting an instance of it by writing
     <code>$$[myStubTrait]</code>. <code>$$</code> creates a dynamic proxy class that intercepts calls to abstract methods whose
     parameter types are all <code>JsExp</code> (or a subtype), and invokes the method of the same name in the browser.
     Note that the name of the trait is assumed to be the name of the identifier on which to call the method. If you need to distinguish,
-    call <code>jsProxy</code>.</li>
+    call <code>jsProxy[myStubTrait]('name)</code> or <code>jsProxy[myStubTrait]("name")</code>.</li>
 </ul>
 
 <button onclick="showdemo('JsEventStreamDemo')">Live Example</button>
@@ -92,6 +94,14 @@ Javascript {
   } Catch { c =&gt;
   } Finally {
   }
+  object myFunc extends Function({ x: $[JsNumber] =>
+    If(x > 10) {
+      window alert "Greater"
+    } Else {
+      window alert "Small"
+    }
+  })
+  myFunc(10)
 }
 </pre>
 

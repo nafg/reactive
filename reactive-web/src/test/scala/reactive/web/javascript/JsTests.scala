@@ -19,6 +19,22 @@ class JsTests extends FunSuite with ShouldMatchers {
     (!(true.$) render) should equal ("(!true)")
   }
 
+  test("Functions") {
+    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("function(arg){return (arg+1)}")
+
+    { x: $[JsNumber] =>
+      If(x > 10) {
+        window alert "Greater"
+      } Else {
+        window alert "Small"
+      }
+    }.$.render should equal (
+      "function(arg){\n"+
+        "  if((arg>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}\n"+
+        "}"
+    )
+  }
+
   test("JsStub") {
     sealed trait obj extends JsStub {
       def method(s: $[JsString]): $[JsString]
@@ -73,13 +89,13 @@ class JsTests extends FunSuite with ShouldMatchers {
       For(List(i := 1), i < 10, List(i := i + 1)) {}
 
       Page.withPage(new Page){
-        for (i <- List(1.$, 2.$, 3.$)$) {
-          If(i > 1) {
+        for (j <- List(1.$, 2.$, 3.$)$) {
+          If(j > 1) {
             window.alert("Greater"$)
           }
         }
-        for (i <- Each(List(1.$, 2.$, 3.$))) {
-          If(i > 1) {
+        for (j <- Each(List(1.$, 2.$, 3.$))) {
+          If(j > 1) {
             window.alert("Greater")
           }
         }
@@ -88,6 +104,18 @@ class JsTests extends FunSuite with ShouldMatchers {
         } Catch { c =>
         } Finally {
         }
+      }
+
+      object myFunc extends Function({ x: $[JsNumber] =>
+        If(x > 10) {
+          window alert "Greater"
+        } Else {
+          window alert "Small"
+        }
+      })
+      myFunc(10)
+      Page.withPage(new Page) {
+        val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
       }
     }
     theStatements.map(JsStatement.render) should equal (List(
@@ -102,7 +130,12 @@ break;}""",
       """for(i=1;(i<10);i=(i+1)) {}""",
       """for(var x$0 in [1,2,3]) {if((x$0>1)) {window.alert("Greater")}}""",
       """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater")}}""",
-      """try {throw "message"} catch(x$2) {} finally {}"""
+      """try {throw "message"} catch(x$2) {} finally {}""",
+      "function myFunc(arg){\n"+
+        "  if((arg>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}\n"+
+        "}",
+      "myFunc(10)",
+      "function f$0(arg){\n  return (arg>10)\n}"
     ))
   }
 }
