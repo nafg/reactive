@@ -12,4 +12,7 @@ import JsTypes._
 sealed trait Window extends JsStub {
   def alert(s: $[JsString]): $[JsVoid]
   def encodeURIComponent(in: $[JsString]): $[JsString]
+
+  def onbeforeunload: Assignable[JsObj =|> JsAny]
+  def event: Assignable[JsObj]
 }

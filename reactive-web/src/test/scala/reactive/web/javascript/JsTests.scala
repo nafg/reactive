@@ -39,6 +39,8 @@ class JsTests extends FunSuite with ShouldMatchers {
     sealed trait obj extends JsStub {
       def method(s: $[JsString]): $[JsString]
       def self: obj
+      def nullary(): $[JsVoid]
+      val prop: Assignable[JsNumber]
     }
     val obj = $$[obj]
     Page.withPage(new Page) {
@@ -47,14 +49,17 @@ class JsTests extends FunSuite with ShouldMatchers {
         Javascript {
           obj.method(obj.method("This is a scala string"))
           val v = JsVar[JsObj] := obj.self
+          obj.nullary()
+          obj.prop := 2
         }
 
       }.js.map(_.toJsCmd) should equal (List(
 
         "obj.method(obj.method(\"This is a scala string\"))",
         "var x$0",
-        "x$0=obj.self"
-
+        "x$0=obj.self",
+        "obj.nullary()",
+        "obj.prop=2"
       ))
     }
   }

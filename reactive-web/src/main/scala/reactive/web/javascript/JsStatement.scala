@@ -46,7 +46,7 @@ object JsStatement {
     case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+dw.cond.render+")"
     case s: Switch.Switch[_]             => "switch("+s.input.render+") {"+s.matches.map(renderMatch).mkString("\n")+"}"
     case v: JsVar[_]                     => "var "+v.ident.name
-    case a: JsVar[_]#Assignment          => a.ident.name+"="+a.init.render
+    case a: Assignable[_]#Assignment     => a.ident+"="+a.init.render
     case f: For.For                      => "for("+f.init.map(render).mkString(",")+";"+f.cond.render+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
     case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+fi.exp.render+") "+render(fi.body)
     case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+fei.exp.render+") "+render(fei.body)
@@ -111,20 +111,15 @@ case class Apply1[P <: JsAny, +R <: JsAny](f: $[P =|> R], arg0: $[P]) extends Js
   def toReplace = List(arg0).collect{ case s: JsStatement => s }
   def render = f.render+"("+arg0.render+")"
 }
-class ApplyProxyMethod[+R <: JsAny](ident: String, method: java.lang.reflect.Method, clazz: Class[_], args: Seq[_]) extends JsStatement with JsExp[R] {
+
+class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {
+  def render = ident+"."+name
+}
+class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, clazz: Class[_], args: Seq[_]) extends JsStatement with JsExp[R] {
   def toReplace = args.toList.collect{ case s: JsStatement => s }
-  private def hasField = try {
-    clazz.getField(method.getName)
-    true
-  } catch {
-    case _: NoSuchFieldException =>
-      false
-  }
   def render =
     ident+"."+method.getName + {
-      if (args.isEmpty && hasField)
-        ""
-      else if (method.getParameterTypes.forall(classOf[JsExp[_]].isAssignableFrom))
+      if (method.getParameterTypes.forall(classOf[JsExp[_]].isAssignableFrom))
         args.map(_.asInstanceOf[JsExp[_]].render).mkString("(", ",", ")")
       else
         args.map(_.toString).mkString("(", ",", ")")
@@ -187,13 +182,15 @@ object Switch {
   def apply[T <: JsAny](input: $[T])(matches: Match[T]*) = new Switch(input)(matches: _*)
 }
 
-class JsVar[T <: JsAny] extends NamedIdent[T] with JsStatement {
-  def toReplace = Nil
+trait Assignable[T <: JsAny] extends JsExp[T] {
+  def :=(exp: $[T]) = new Assignment(exp)
   class Assignment(private[javascript] val init: $[T]) extends JsStatement {
-    val ident = JsVar.this.ident
+    lazy val ident: String = Assignable.this.render
     def toReplace = List(init) collect { case s: JsStatement => s }
   }
-  def :=(exp: $[T]) = new Assignment(exp)
+}
+class JsVar[T <: JsAny] extends NamedIdent[T] with Assignable[T] with JsStatement {
+  def toReplace = Nil
 }
 
 object JsVar {
@@ -259,6 +256,7 @@ object Try {
     }
   }
 }
+
 class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAny] with JsStatement {
   def toReplace = Nil
 }

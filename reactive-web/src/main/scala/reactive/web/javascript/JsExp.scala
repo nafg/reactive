@@ -252,12 +252,12 @@ class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] =
 }
 
 object CanGet {
-  implicit def arrayIndex[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsNumber, R](a => i => new JsRaw[R](a.render+"["+i.render+"]"))
-  implicit def arrayKey[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsString, R](a => k => new JsRaw[R](a.render+"["+k.render+"]"))
-  implicit def objKey[T <: JsObj] = new CanGet[T, JsString, JsAny](o => k => new JsRaw[JsAny](o.render+"["+k.render+"]"))
+  implicit def arrayIndex[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsNumber, R](a => i => new JsRaw[R](a.render+"["+i.render+"]") with Assignable[R])
+  implicit def arrayKey[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsString, R](a => k => new JsRaw[R](a.render+"["+k.render+"]") with Assignable[R])
+  implicit def objKey[T <: JsObj] = new CanGet[T, JsString, JsAny](o => k => new JsRaw[JsAny](o.render+"["+k.render+"]") with Assignable[JsAny])
 }
-class CanGet[-T <: JsAny, -I <: JsAny, +R <: JsAny](r: $[T] => $[I] => $[R]) {
-  def apply(a: $[T], i: $[I]): $[R] = r(a)(i)
+class CanGet[-T <: JsAny, -I <: JsAny, R <: JsAny](r: $[T] => $[I] => Assignable[R]) {
+  def apply(a: $[T], i: $[I]): Assignable[R] = r(a)(i)
 }
 
 object CanSelect {

@@ -116,11 +116,13 @@ You then obtain an instance by calling <code>$$[theTrait]</code>.</p>
 sealed trait obj extends JsStub {
   def method(s: $[JsString]): $[JsString]
   def self: obj
+  val prop: Assignable[JsNumber]
 }
 val obj = $$[obj]
 Javascript {
   obj.method(obj.method("This is a scala string"))
   val v = JsVar[JsObj] := obj.self
+  obj.prop := 2
 }
 </pre>
 </div>

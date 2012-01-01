@@ -68,7 +68,15 @@ package object javascript {
             ih
           )
         } else {
-          new ApplyProxyMethod(ident, method, clazz, args)
+          def hasField = try {
+            clazz.getField(method.getName); true
+          } catch {
+            case _: NoSuchFieldException => false
+          }
+          if (args.isEmpty && classOf[Assignable[_]].isAssignableFrom(method.getReturnType()))
+            new ProxyField(ident, method.getName)
+          else
+            new ApplyProxyMethod(ident, method, clazz, args)
         }
       }
     }
