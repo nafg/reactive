@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src/main/scala"/>
+	<classpathentry kind="src" path="src/main/scala-2.9.1"/>
+	<classpathentry kind="src" path="src/test/scala"/>
 	<classpathentry kind="lib" path="src/main/scala/reactive/Forwardable.scala"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
