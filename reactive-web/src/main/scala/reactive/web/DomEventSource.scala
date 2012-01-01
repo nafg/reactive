@@ -93,8 +93,7 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[
    */
   def propagateJS(implicit page: Page): String = {
     (getEventObjectData(page) :: eventData.getOrElse(page, Nil)).map{
-      case EventData(enc, es) =>
-        es.fireExp(enc).render
+      case EventData(enc, es) => JsExp render es.fireExp(enc)
     }.mkString(";")+";reactive.doAjax()"
   }
 

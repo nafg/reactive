@@ -34,7 +34,7 @@ object DomMutation extends HtmlFixer {
     case ReplaceAll(parentId, child) =>
       fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s)".format(parentId, _))
     case up@UpdateProperty(parentId, pname, aname, v) =>
-      "reactive.updateProperty('%s','%s',%s)".format(parentId, pname, up.codec.toJS(v).render)
+      "reactive.updateProperty('%s','%s',%s)".format(parentId, pname, JsExp render up.codec.toJS(v))
   }
 
   //TODO should be written with DSL: JsStub for reactive object

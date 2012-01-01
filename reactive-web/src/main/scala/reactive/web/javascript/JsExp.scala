@@ -27,6 +27,14 @@ object JsExp extends ToJsHigh {
     def forward(source: Forwardable[T], target: => $[J =|> JsVoid])(implicit o: Observing) =
       source.foreach{ v => Reactions.queue(target apply conv(v)) }
   }
+
+  /**
+   * Returns the javascript representation of the expression in a String
+   */
+  def render(e: JsExp[_]): String = e match {
+    case null => "null"
+    case e => e.render
+  }
 }
 
 /**
@@ -34,9 +42,6 @@ object JsExp extends ToJsHigh {
  * @tparam T the javascript type of the expression.
  */
 trait JsExp[+T <: JsAny] {
-  /**
-   * Returns the javascript representation of the expression in a String
-   */
   def render: String
 
   /**
@@ -91,7 +96,7 @@ trait JsExp[+T <: JsAny] {
   def <[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<")(this, that)
   def <=[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<=")(this, that)
 
-  def unary_!(implicit ev: T <:< JsBoolean): $[JsBoolean] = new JsRaw[JsBoolean]("(!"+this.render+")")
+  def unary_!(implicit ev: T <:< JsBoolean): $[JsBoolean] = new JsRaw[JsBoolean]("(!"+JsExp.render(this)+")")
 }
 
 /**
@@ -143,9 +148,8 @@ class ToJsLit[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsLitera
 }
 
 trait ToJsLow { // make sure Map has a higher priority than a regular function
-  //TODO also capture statements?
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
-    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]("function(arg){return "+_($('arg)).render+"}")
+    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]](f => "function(arg){return "+JsExp.render(f('arg $))+"}")
 }
 trait ToJsMedium extends ToJsLow {
   implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] = new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]({ f =>
@@ -167,8 +171,8 @@ trait ToJsHigh extends ToJsMedium {
   implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs)
   implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
   implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
-  implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+v.render }.mkString("{", ",", "}"))
-  implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(_.render).mkString("[", ",", "]"))
+  implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
+  implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(JsExp.render).mkString("[", ",", "]"))
 }
 
 /**
@@ -195,7 +199,7 @@ object JsOp {
   def apply[L <: JsAny, R <: JsAny, T <: JsAny](l: $[L], r: $[R], op: String) = new JsOp[L, R, T](l, r, op)
 }
 class JsOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](left: $[L], right: $[R], op: String) extends $[T] {
-  def render = "("+left.render + op + right.render+")"
+  def render = "("+JsExp.render(left) + op + JsExp.render(right)+")"
 }
 
 trait CanPlusLow {
@@ -252,9 +256,9 @@ class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] =
 }
 
 object CanGet {
-  implicit def arrayIndex[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsNumber, R](a => i => new JsRaw[R](a.render+"["+i.render+"]") with Assignable[R])
-  implicit def arrayKey[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsString, R](a => k => new JsRaw[R](a.render+"["+k.render+"]") with Assignable[R])
-  implicit def objKey[T <: JsObj] = new CanGet[T, JsString, JsAny](o => k => new JsRaw[JsAny](o.render+"["+k.render+"]") with Assignable[JsAny])
+  implicit def arrayIndex[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsNumber, R](a => i => new JsRaw[R](JsExp.render(a)+"["+JsExp.render(i)+"]") with Assignable[R])
+  implicit def arrayKey[T <: JsArray[R], R <: JsAny] = new CanGet[T, JsString, R](a => k => new JsRaw[R](JsExp.render(a)+"["+JsExp.render(k)+"]") with Assignable[R])
+  implicit def objKey[T <: JsObj] = new CanGet[T, JsString, JsAny](o => k => new JsRaw[JsAny](JsExp.render(o)+"["+JsExp.render(k)+"]") with Assignable[JsAny])
 }
 class CanGet[-T <: JsAny, -I <: JsAny, R <: JsAny](r: $[T] => $[I] => Assignable[R]) {
   def apply(a: $[T], i: $[I]): Assignable[R] = r(a)(i)
@@ -262,7 +266,7 @@ class CanGet[-T <: JsAny, -I <: JsAny, R <: JsAny](r: $[T] => $[I] => Assignable
 
 object CanSelect {
   implicit def canSelect[T <: JsObj, T2 <: JsAny]: CanSelect[T, T2] = new CanSelect(
-    o => m => JsRaw[T2](o.render+"."+m.render)
+    o => m => JsRaw[T2](JsExp.render(o)+"."+JsExp.render(m))
   )
 }
 class CanSelect[-T <: JsAny, T2 <: JsAny](f: JsExp[T] => JsExp[T2] => JsExp[T2]) {

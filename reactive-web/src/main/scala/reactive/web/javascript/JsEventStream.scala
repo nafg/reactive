@@ -53,7 +53,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    */
   def fire(v: JsExp[T]) {
     Reactions.inAnyScope(page) {
-      Reactions queue fireExp(v).render
+      Reactions queue JsExp.render(fireExp(v))
       Reactions queue "window.setTimeout('reactive.doAjax()',500)"
     }
   }
@@ -61,7 +61,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
     Reactions.inAnyScope(page) {
       init
-      Reactions queue render+".foreach("+f.render+")"
+      Reactions queue render+".foreach("+JsExp.render(f)+")"
     }
   }
   /**
@@ -99,18 +99,18 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a mapping function.
    */
-  def map[U <: JsAny, F: ToJs.To[JsFunction1[T, U], JsExp]#From](f: F): JsEventStream[U] = child(parent.render+".map("+f.render+")")
+  def map[U <: JsAny, F: ToJs.To[JsFunction1[T, U], JsExp]#From](f: F): JsEventStream[U] = child(JsExp.render(parent)+".map("+JsExp.render(f)+")")
   //  def map[U<:JsAny](f: $[T=|>U]): JsEventStream[U] = child(parent.render+".map("+f.render+")")
   /**
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a flat-mapping function.
    */
-  def flatMap[U <: JsAny, F <% JsExp[JsFunction1[T, U]]](f: F): JsEventStream[U] = child(parent.render+".flatMap("+f.render+")")
+  def flatMap[U <: JsAny, F <% JsExp[JsFunction1[T, U]]](f: F): JsEventStream[U] = child(JsExp.render(parent)+".flatMap("+JsExp.render(f)+")")
   /**
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a filtering function.
    */
-  def filter[F <% JsExp[JsFunction1[T, JsBoolean]]](f: F): JsEventStream[T] = child(parent.render+".filter("+f.render+")")
+  def filter[F <% JsExp[JsFunction1[T, JsBoolean]]](f: F): JsEventStream[T] = child(JsExp.render(parent)+".filter("+JsExp.render(f)+")")
   //  def takeWhile(p: T=>Boolean): EventStream[T]
   //  def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U]
   //  def |[U>:T](that: EventStream[U]): EventStream[U]

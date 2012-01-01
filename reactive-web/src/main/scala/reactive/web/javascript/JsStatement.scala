@@ -34,27 +34,27 @@ sealed trait JsStatement {
  * Maintains a thread-local stack of statement blocks
  */
 object JsStatement {
-  private def renderMatch(m: Match[_]) = "case "+m.against.render+": "+m.code.map(render).mkString(";\n")+";\nbreak;"
+  private def renderMatch(m: Match[_]) = "case "+JsExp.render(m.against)+": "+m.code.map(render).mkString(";\n")+";\nbreak;"
   def render(statement: JsStatement): String = statement match {
-    case i: If.If                        => "if("+i.cond.render+") "+render(i.body)
+    case i: If.If                        => "if("+JsExp.render(i.cond)+") "+render(i.body)
     case e: If.Elseable#Else             => render(e.outer)+" else "+render(e.body)
-    case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+ei.cond.render+") "+render(ei.body)
+    case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+JsExp.render(ei.cond)+") "+render(ei.body)
     case s: Apply1[_, _]                 => s.render
     case s: ApplyProxyMethod[_]          => s.render
     case b: Block                        => "{"+b.body.map(JsStatement.render).mkString(";\n")+"}"
-    case w: While.While                  => "while("+w.cond.render+") "+render(w.body)
-    case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+dw.cond.render+")"
-    case s: Switch.Switch[_]             => "switch("+s.input.render+") {"+s.matches.map(renderMatch).mkString("\n")+"}"
+    case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
+    case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+JsExp.render(dw.cond)+")"
+    case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+s.matches.map(renderMatch).mkString("\n")+"}"
     case v: JsVar[_]                     => "var "+v.ident.name
-    case a: Assignable[_]#Assignment     => a.ident+"="+a.init.render
-    case f: For.For                      => "for("+f.init.map(render).mkString(",")+";"+f.cond.render+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
-    case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+fi.exp.render+") "+render(fi.body)
-    case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+fei.exp.render+") "+render(fei.body)
-    case Throw(e)                        => "throw "+e.render
+    case a: Assignable[_]#Assignment     => a.ident+"="+JsExp.render(a.init)
+    case f: For.For                      => "for("+f.init.map(render).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(render).mkString(",")+") "+render(f.body)
+    case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+JsExp.render(fi.exp)+") "+render(fi.body)
+    case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+JsExp.render(fei.exp)+") "+render(fei.body)
+    case Throw(e)                        => "throw "+JsExp.render(e)
     case t: Try.Try                      => "try "+render(t.body)
     case c: Try.Try#Catch                => render(c.outer)+" catch("+c.v.ident.name+") "+render(c.body)
     case f: Try.Finallyable#Finally      => render(f.outer)+" finally "+render(f.body)
-    case Return(e)                       => "return "+e.render
+    case Return(e)                       => "return "+JsExp.render(e)
     case f: Function[_] =>
       JsStatement.inScope(f.capt($('arg))) map render mkString
         ("function "+f.ident.name+"(arg){\n  ", ";\n  ", "\n}")
@@ -109,7 +109,7 @@ sealed class HasBody(block: => Unit) {
 
 case class Apply1[P <: JsAny, +R <: JsAny](f: $[P =|> R], arg0: $[P]) extends JsStatement with JsExp[R] {
   def toReplace = List(arg0).collect{ case s: JsStatement => s }
-  def render = f.render+"("+arg0.render+")"
+  def render = JsExp.render(f)+"("+JsExp.render(arg0)+")"
 }
 
 class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {
@@ -120,7 +120,7 @@ class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Meth
   def render =
     ident+"."+method.getName + {
       if (method.getParameterTypes.forall(classOf[JsExp[_]].isAssignableFrom))
-        args.map(_.asInstanceOf[JsExp[_]].render).mkString("(", ",", ")")
+        args.map(JsExp render _.asInstanceOf[JsExp[_]]).mkString("(", ",", ")")
       else
         args.map(_.toString).mkString("(", ",", ")")
     }
@@ -185,7 +185,7 @@ object Switch {
 trait Assignable[T <: JsAny] extends JsExp[T] {
   def :=(exp: $[T]) = new Assignment(exp)
   class Assignment(private[javascript] val init: $[T]) extends JsStatement {
-    lazy val ident: String = Assignable.this.render
+    lazy val ident: String = JsExp.render(Assignable.this)
     def toReplace = List(init) collect { case s: JsStatement => s }
   }
 }
