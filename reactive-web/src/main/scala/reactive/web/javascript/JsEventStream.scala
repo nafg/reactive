@@ -32,6 +32,14 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
       }
     }
   }
+  private var ajaxQueued = false
+  def queueAjax = synchronized {
+    init
+    if(!ajaxQueued) {
+      ajaxQueued = true
+      foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax("+id+")"))
+    }
+  }
 
   protected def child[U <: JsAny](renderer: => String) = {
     init
@@ -83,7 +91,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * @param extract a function that takes a value of type JValue (a lift-json AST) and returns values of type U
    */
   def toServer[U](extract: net.liftweb.json.JValue => U): EventStream[U] = {
-    foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax("+id+")"))
+    queueAjax
     page.ajaxEvents.collect { case (_id, json) if _id == id.toString => extract(json) }
   }
   /**
