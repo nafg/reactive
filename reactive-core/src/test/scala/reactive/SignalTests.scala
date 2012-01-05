@@ -73,9 +73,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
         parent () = false
         flatMapped.now should equal (Seq(1, 2, 3))
       } should equal (List(List(1, 2, 3)))
-
     }.toBatch.applyToSeq(List(2, 3, 4, 5)) should equal (List(1, 2, 3))
-
   }
 
   test("flatMap(value => seqSignal.map(_ filter pred))") {
@@ -87,11 +85,11 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
       case true  => filteredNumbers
     }
 
-    numbers.now.baseDeltas should equal (Seq(
+    SeqDelta.flatten(numbers.now.fromDelta :: Nil) should equal (List(
       Include(0, 1), Include(1, 2), Include(2, 3), Include(3, 4), Include(4, 5)
     ))
-    filteredNumbers.now.baseDeltas should equal (Seq(
-      Remove(2, 3), Remove(2, 4), Remove(2, 5)
+    filteredNumbers.now.fromDelta should equal (Batch(
+      Include(0, 1), Include(1, 2)
     ))
 
     collecting(flatMapped.deltas) {

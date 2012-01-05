@@ -53,7 +53,7 @@ trait Signal[+T] extends Forwardable[T] {
    * that for every value of this parent signal,
    * will correspond to the Signal or EventStream
    * resulting from applying f to the value of the parent signal.
-   * 
+   *
    * If the function returns a Signal, then
    * whenever this Signal's change EventStream fires, the
    * resulting Signal's change EventStream will fire the
@@ -205,7 +205,7 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
   }
 }
 
-trait CanMapSignal[U, S] {
+trait CanMapSignal[-U, S] {
   def map[T](parent: Signal[T], f: T => U): S
 }
 
@@ -215,8 +215,8 @@ trait LowPriorityCanMapSignalImplicits {
   }
 }
 object CanMapSignal extends LowPriorityCanMapSignalImplicits {
-  implicit def canMapSeqSignal[E]: CanMapSignal[TransformedSeqBase[E], SeqSignal[E]] = new CanMapSignal[TransformedSeqBase[E], SeqSignal[E]] {
-    def map[T](parent: Signal[T], f: T => TransformedSeqBase[E]): SeqSignal[E] = new MappedSeqSignal[T, E](parent, f)
+  implicit def canMapSeqSignal[E]: CanMapSignal[DeltaSeq[E], SeqSignal[E]] = new CanMapSignal[DeltaSeq[E], SeqSignal[E]] {
+    def map[T](parent: Signal[T], f: T => DeltaSeq[E]): SeqSignal[E] = SeqSignal(canMapSignal.map(parent, f).map(_.underlying)) //new MappedSeqSignal[T, E](parent, f)
   }
 }
 
@@ -231,7 +231,7 @@ trait LowPriorityCanFlatMapSignalImplicits {
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
-    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = new FlatMappedSeqSignal[T, U](parent, f)
+    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = SeqSignal(canFlatMapSignal.flatMap(parent, f).map(_.underlying)) //new FlatMappedSeqSignal[T, U](parent, f)
   }
   implicit def canFlatMapEventStream: CanFlatMapSignal[Signal, EventStream] = new CanFlatMapSignal[Signal, EventStream] {
     def flatMap[T, U](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
