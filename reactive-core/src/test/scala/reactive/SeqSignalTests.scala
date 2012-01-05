@@ -33,14 +33,17 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1, 2, 3)
     val mapped = ss.map { ts =>
-      (ts.map(_ * 10))
+      implicitly[ts.type <:< DeltaSeq[Int]]
+      ts.map(_ * 10)
     }
+    implicitly[mapped.type <:< Signal[DeltaSeq[Int]]]
+    implicitly[mapped.type <:< SeqSignal[Int]]
     collecting(mapped.deltas) {
       ss.value += 4
-    } should equal(List(
+    } should equal(List(Batch(
       Include(3, 40)
-    ))
-    val mapMapped = ss.map(_.map(_ * 10))
+    )))
+    val mapMapped = ss.map(_ map (_ * 10))
     val flatMapMapped = ss.map {
       _ flatMap { n =>
         <xml>{ n }</xml>
@@ -49,12 +52,12 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     collecting(mapMapped.deltas) {
       collecting(flatMapMapped.deltas) {
         ss.value += 5
-      } should equal(List(
+      } should equal(List(Batch(
         Include(4, <xml>{ 5 }</xml>)
-      ))
-    } should equal(List(
+      )))
+    } should equal(List(Batch(
       Include(4, 50)
-    ))
+    )))
     mapped.now should equal(List(10, 20, 30, 40, 50))
   }
 
@@ -76,7 +79,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     def test[T](s: SeqSignal[T]) = s.deltas.foreach { ds =>
       val flattened = SeqDelta.flatten(List(ds))
       flattened foreach {
-        case d@Include(i, n) =>
+        case d @ Include(i, n) =>
           s.now(i) should equal(n)
         case d =>
       }
@@ -155,7 +158,7 @@ class BufferSignalTests extends FunSuite with ShouldMatchers with Observing {
     //    signal.change foreach {_ should equal (ob)}
     signal.change foreach { _ => changes += 1 }
 
-    signal.value += 4
+    withClue("Adding 4:"){ signal.value += 4 }
     signal.value -= 3
     signal() = Seq(10, 9, 8, 7, 6, 5, 4, 3)
 
