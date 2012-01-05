@@ -82,7 +82,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
       }
     }
 
-    jsEventStreams.getOrElseUpdate(page, {
+    if (eventSources.nonEmpty) jsEventStreams.getOrElseUpdate(page, {
       val jses = new JsEventStream[JsTypes.JsAny]
       for (es <- eventSources)
         es.addEventData(readJS(id), jses)(page)

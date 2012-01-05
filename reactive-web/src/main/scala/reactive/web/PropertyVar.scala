@@ -21,6 +21,7 @@ trait PropertyCodec[T] {
   def toJS: T => $[JsTypes.JsAny]
   /**
    * The attribute value to initialize the property with (None for no attribute)
+   * value => name => attribute
    */
   def toAttributeValue: T => String => Option[String]
 }
