@@ -5,11 +5,12 @@ package reactive
  * preserving the transformation relationship of derived signals by propagating
  * deltas (SeqDeltas).
  */
-trait SeqSignal[+T] extends Signal[DeltaSeq[T]] {
+trait SeqSignal[+A] extends Signal[DeltaSeq[A]] {
   /**
    * The EventStream of incremental updates (SeqDeltas) to the underlying Seq.
    */
-  lazy val deltas: EventStream[SeqDelta[T, T]] = change.map(_.fromDelta)
+  lazy val deltas: EventStream[SeqDelta[A, A]] = change.map(_.fromDelta)
+
 }
 
 object SeqSignal {
@@ -24,7 +25,7 @@ object SeqSignal {
    */
   def apply[A](orig: Signal[Seq[A]],
                diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc[A],
-               includeInit: Boolean = true): SeqSignal[A] = new SeqSignal[A] with Logger {
+               includeInit: Boolean = true): SeqSignal[A] = new SeqSignal[A] with Logger { owner =>
     val underlying: Signal[DeltaSeq[A]] = orig.foldLeft(if (includeInit) Nil else List(orig.now.toList)){
       case (old, xs) =>
         xs.toList :: old.take(1)
@@ -33,6 +34,7 @@ object SeqSignal {
       case b :: a => new DeltaSeq[A] {
         val underlying = b
         val fromDelta = Batch(diffFunc(a.headOption getOrElse Nil, b): _*)
+        val signal = owner
       }
     }(CanMapSignal.canMapSignal)
     def change = underlying.change

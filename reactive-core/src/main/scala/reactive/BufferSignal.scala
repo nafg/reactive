@@ -18,6 +18,7 @@ class BufferSignal[T] extends SeqSignal[T] {
     change fire now
   }
   val now = new DeltaSeq[T] {
+    def signal = BufferSignal.this
     val underlying = BufferSignal.this.underlying
     val fd = underlying.messages hold DeltaSeq.startDelta(underlying)
     def fromDelta = fd.now

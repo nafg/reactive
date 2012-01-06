@@ -7,7 +7,9 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers {
   implicit val observing0 = new Observing {}
   val ts = DeltaSeq(1, 2, 3, 4)
 
-  def xform(ds: DeltaSeq[Int])(m: SeqDelta[Int, Int]) = DeltaSeq.updatedFromParent(ds.asInstanceOf[DeltaSeq.Transformed[Int, Int]], DeltaSeq.updatedByDeltas(ts, m)).fromDelta
+  def xform(ds0: DeltaSeq[Int])(m: SeqDelta[Int, Int]) = ds0 match {
+    case ds: DeltaSeq[Int]#Transformed[Int, Int] => ds.updatedFromParent(DeltaSeq.updatedByDeltas(ts, m)).fromDelta
+  }
 
   test("(untransformed)") {
     ts.fromDelta should equal (Batch(
@@ -76,5 +78,32 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers {
     appended.underlying should equal (Seq(1, 2, 3, 4, 5, 6))
 
     xform(appended)(Remove(0, 1)) should equal (Remove(0, 1))
+  }
+
+  test("Repeating updatedFromParent") {
+    val v = Var(List(1, 2, 3))
+    val s = SeqSignal(v)
+    val m = s.now map (_ + 1)
+
+    var c: Seq[Int] = null
+
+    m.signal.change foreach { ds => c = ds.underlying }
+
+    def check(xs: List[Int]) = withClue("xs == %s: " format xs) {
+      v () = xs
+      c should equal (xs map (_ + 1))
+    }
+    List(
+      List(1, 2),
+      List(1, 2, 3),
+      List(1, 2, 3, 4),
+      List(1, 2),
+      List(1, 2, 3),
+      List(1),
+      List(1, 2),
+      List(1),
+      List(1, 0, 0, 0, 0, 0),
+      List(1, 0, 0, 0, 0)
+    ) foreach check
   }
 }
