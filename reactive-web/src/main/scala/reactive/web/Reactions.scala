@@ -27,7 +27,8 @@ object Reactions extends Logger {
   def currentScope: Scope = _currentScope.value
 
   net.liftweb.http.ResourceServer.allow {
-    case "reactive-web.js" :: Nil => true
+    case "reactive-web.js" :: Nil          => true
+    case "reactive-web-default.css" :: Nil => true
   }
 
   @deprecated("Use init(comet=true) instead")
@@ -42,7 +43,7 @@ object Reactions extends Logger {
   def init(comet: net.liftweb.http.Req => Boolean) {
     LiftRules.cometCreation.append {
       case CometCreationInfo(
-        t@"net.liftweb.reactive.ReactionsComet",
+        t @ "net.liftweb.reactive.ReactionsComet",
         name,
         defaultXml,
         attributes,
@@ -160,7 +161,7 @@ object Reactions extends Logger {
    */
   def inAnyScope[T](page: Page)(block: => T): T = {
     _currentScope.value match {
-      case s@CometScope(`page`) =>
+      case s @ CometScope(`page`) =>
         trace(ReusingScope(s))
         block
       case s if Page.currentPageOption == Some(page) =>
