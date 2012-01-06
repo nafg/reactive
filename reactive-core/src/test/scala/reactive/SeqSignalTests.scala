@@ -132,7 +132,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     }
     val v = check(BufferSignal(10, 20))
     val mapped = check(v.now :+ 30 signal)
-    val flatMapped = check(SeqSignal(v.flatMap(x => BufferSignal(40, 50))))
+    val flatMapped = check(SeqSignal(v.flatMap[DeltaSeq[Int],Signal,Signal](x => BufferSignal(40, 50))(CanFlatMapSignal.canFlatMapBufferSignal[Int])))
     v () = List(60, 70)
   }
 }
