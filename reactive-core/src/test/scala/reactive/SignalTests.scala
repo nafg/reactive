@@ -21,7 +21,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val aVar = Var(3)
     val vals = List(Val(1), Val(2), aVar)
     val parent = Var(0)
-    val flatMapped = parent.flatMap[Int, Signal](vals)
+    val flatMapped = parent.flatMap(vals)
 
     collecting(flatMapped.change) {
       flatMapped.now should equal (1)

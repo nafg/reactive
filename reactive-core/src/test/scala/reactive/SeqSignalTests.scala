@@ -32,10 +32,8 @@ class ObservableBufferTests extends FunSuite with ShouldMatchers with Observing 
 class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1, 2, 3)
-    val mapped = ss.map { ts =>
-      implicitly[ts.type <:< DeltaSeq[Int]]
-      ts.map(_ * 10)
-    }
+    val mapped = ss.now.map(_ * 10).signal
+
     implicitly[mapped.type <:< Signal[DeltaSeq[Int]]]
     implicitly[mapped.type <:< SeqSignal[Int]]
     collecting(mapped.deltas) {
@@ -43,12 +41,10 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     } should equal(List(Batch(
       Include(3, 40)
     )))
-    val mapMapped = ss.map(_ map (_ * 10))
-    val flatMapMapped = ss.map {
-      _ flatMap { n =>
-        <xml>{ n }</xml>
-      }
-    }
+    val mapMapped = ss.now.map(_ * 10).signal
+    val flatMapMapped = ss.now.flatMap{ n =>
+      <xml>{ n }</xml>
+    }.signal
     collecting(mapMapped.deltas) {
       collecting(flatMapMapped.deltas) {
         ss.value += 5
@@ -90,7 +86,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     test(s)
     v() = List(2, 3, 4)
 
-    val s2 = s.map(_ map (_ * 10))
+    val s2 = s.now.map(_ * 10).signal
     test(s2)
     v() = List(3, 4, 5)
 
@@ -106,10 +102,10 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
 
     val perPage = 2
     val page = Var(0)
-    val curPageXs = page.flatMap{ p =>
+    val curPageXs = SeqSignal(page.flatMap{ p => // TODO!!!
       //xs.map(_.drop(p * perPage)).map(_.take(perPage))
       xs.map(_.slice(p * perPage, p * perPage + perPage))
-    }
+    }(CanFlatMapSignal.canFlatMapSignal))
 
     curPageXs.now should equal (Seq(1, 2))
 
@@ -135,8 +131,8 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
       sig
     }
     val v = check(BufferSignal(10, 20))
-    val mapped = check(v.map(_ :+ 30))
-    val flatMapped = check(v.flatMap(x => BufferSignal(40, 50): SeqSignal[Int]))
+    val mapped = check(v.now :+ 30 signal)
+    val flatMapped = check(SeqSignal(v.flatMap(x => BufferSignal(40, 50))))
     v () = List(60, 70)
   }
 }
