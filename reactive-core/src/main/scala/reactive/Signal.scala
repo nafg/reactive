@@ -77,7 +77,7 @@ trait Signal[+T] extends Forwardable[T] {
    * new EventStream that corresponds fires the events of whichever
    * EventStream is returns by f for the Signal's current value.
    */
-  def flatMap[U, S[_], S2[_]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[U, Signal, S[U], S2[U]]): S2[U] = canFlatMapSignal.flatMap(this, f)
+  def flatMap[FunRet, Ret](f: T => FunRet)(implicit canFlatMapSignal: CanFlatMapSignal[Signal, FunRet, Ret]): Ret = canFlatMapSignal.flatMap(this, f)
 
   /**
    * Return a new Signal whose initial value is f(initial, parent.now).
@@ -220,7 +220,7 @@ object CanMapSignal extends LowPriorityCanMapSignalImplicits {
   //  }
 }
 
-trait CanFlatMapSignal[U, -Parent[_], -FunRet, +Ret] {
+trait CanFlatMapSignal[-Parent[_], -FunRet, +Ret] {
   def flatMap[T](parent: Parent[T], f: T => FunRet): Ret
 }
 
@@ -229,13 +229,16 @@ trait LowPriorityCanFlatMapSignalImplicits {
   //    def flatMap[T, U](parent: Signal[T], f: T => S[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
   //  }
   implicitly[BufferSignal[Int] <:< Signal[DeltaSeq[Int]]]
-  
-  implicit def canFlatMapSignal[U, S <: Signal[U]]: CanFlatMapSignal[U, Signal, S, Signal[U]] = new CanFlatMapSignal[U, Signal, S, Signal[U]] {
-    def flatMap[T](parent: Signal[T], f: T => S): Signal[U] = new FlatMappedSignal[T, U](parent, f)
+
+  implicit def canFlatMapSignal[U]: CanFlatMapSignal[Signal, Signal[U], Signal[U]] = new CanFlatMapSignal[Signal, Signal[U], Signal[U]] {
+    def flatMap[T](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
   }
+  //implicitly[CanFlatMapSignal[Signal, Signal]]
+  //  type SD[X] = Signal[DeltaSeq[X]]
+  //  implicitly[CanFlatMapSignal[DeltaSeq[Int], Signal, BufferSignal[Int], Signal]]
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
-//  implicit def canFlatMapSeqSignal[U]: CanFlatMapSignal[DeltaSeq[U], Signal, BufferSignal[U], Signal[DeltaSeq[U]]] = canFlatMapSignal[DeltaSeq[U], BufferSignal[U]]
+  //  implicit def canFlatMapSeqSignal[U]: CanFlatMapSignal[DeltaSeq[U], Signal, BufferSignal[U], Signal[DeltaSeq[U]]] = canFlatMapSignal[DeltaSeq[U], BufferSignal[U]]
   //  implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
   //    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = SeqSignal(canFlatMapSignal.flatMap(parent, f).map(_.underlying)) //new FlatMappedSeqSignal[T, U](parent, f)
   //  }
