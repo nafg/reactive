@@ -32,32 +32,28 @@ object Contacts {
 
 class ContactsPage extends Observing {
   def render = "tbody" #> Repeater {
-    Contacts.contacts map {
-      _ map { contact =>
-        val name = TextInput.value(contact.name) withEvents DomEventSource.change
-        name.change =>> { n => Contacts save contact.copy(name = n) }
-        val phones = BufferSignal(contact.numbers: _*)
-        phones.change =>> { ps => Contacts save contact.copy(numbers = ps.toList) }
-        ".name" #> name &
-          ".eachPhone" #> Repeater {
-            phones.map {
-              _ map { phone =>
-                val input = TextInput.value(phone) withEvents DomEventSource.change
-                input.change =>> { phones.value(phones.value indexOf phone) = _ }
-                "input" #> input &
-                  ".deletephone" #> (DomEventSource.click ->> {
-                    phones.value.indexOf(phone) match {
-                      case -1 => javascript.window.alert("Error")
-                      case n  => phones.value remove n
-                    }
-                  })
-              }
-            }
-          } &
-          ".insertphone" #> (DomEventSource.click ->> { phones.value += "" }) &
-          ".deletecontact" #> (DomEventSource.click ->> { Contacts delete contact })
-      }
-    }
+    Contacts.contacts.now.map{ contact =>
+      val name = TextInput.value(contact.name) withEvents DomEventSource.change
+      name.change =>> { n => Contacts save contact.copy(name = n) }
+      val phones = BufferSignal(contact.numbers: _*)
+      phones.change =>> { ps => Contacts save contact.copy(numbers = ps.toList) }
+      ".name" #> name &
+        ".eachPhone" #> Repeater {
+          phones.now.map{ phone =>
+            val input = TextInput.value(phone) withEvents DomEventSource.change
+            input.change =>> { phones.value(phones.value indexOf phone) = _ }
+            "input" #> input &
+              ".deletephone" #> (DomEventSource.click ->> {
+                phones.value.indexOf(phone) match {
+                  case -1 => javascript.window.alert("Error")
+                  case n  => phones.value remove n
+                }
+              })
+          }.signal
+        } &
+        ".insertphone" #> (DomEventSource.click ->> { phones.value += "" }) &
+        ".deletecontact" #> (DomEventSource.click ->> { Contacts delete contact })
+    }.signal
   } &
     ".insertcontact" #> (DomEventSource.click ->> { Contacts save Contact("", Nil) })
 }

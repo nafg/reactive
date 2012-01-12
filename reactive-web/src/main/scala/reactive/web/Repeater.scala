@@ -38,10 +38,11 @@ class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
         List(DomMutation.ReplaceChild(parentId, e, oldId))
 
     case Remove(index, _) =>
+      val oldId = ids(index)
       ids.patch(index, Nil, 1) ->
-        List(DomMutation.RemoveChild(parentId, ids(index)))
+        List(DomMutation.RemoveChild(parentId, oldId))
 
-    case Batch(ms@_*) =>
+    case Batch(ms @ _*) =>
       ms.foldLeft[(Seq[String], List[DomMutation])]((ids, Nil)){
         case ((ids, cmds), delta) =>
           handleUpdate(parentId, delta, ids) match {
@@ -106,9 +107,9 @@ object Repeater {
       def renderer = config.domMutationRenderer
       val baseElem = nodeSeqToElem(ns)
       val events, properties = Nil
-      lazy val children = binding map {
-        _ map { f => RElem(nodeSeqToElem(f(baseElem.child))) }
-      }
+      lazy val children = binding.now.map { f =>
+        RElem(nodeSeqToElem(f(baseElem.child)))
+      }.signal
     }.render
   }
 }

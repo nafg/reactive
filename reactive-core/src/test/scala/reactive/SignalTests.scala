@@ -21,7 +21,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val aVar = Var(3)
     val vals = List(Val(1), Val(2), aVar)
     val parent = Var(0)
-    val flatMapped = parent.flatMap[Int, Signal](vals)
+    val flatMapped = parent.flatMap(vals)
 
     collecting(flatMapped.change) {
       flatMapped.now should equal (1)
@@ -44,9 +44,9 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val bufSig1 = BufferSignal(1, 2, 3)
     val bufSig2 = BufferSignal(2, 3, 4)
     val parent = Var(false)
-    val flatMapped: SeqSignal[Int] = parent.flatMap { b: Boolean =>
+    val flatMapped = SeqSignal(parent.flatMap { b: Boolean =>
       if (!b) bufSig1 else bufSig2
-    }
+    })
 
     flatMapped.now should equal (Seq(1, 2, 3))
 
@@ -80,10 +80,10 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val switch = Var(false)
     val numbers = BufferSignal(1, 2, 3, 4, 5)
     val filteredNumbers = numbers.map(_ filter (_ < 3))
-    val flatMapped = switch.flatMap {
+    val flatMapped = SeqSignal(switch.flatMap {
       case false => numbers
       case true  => filteredNumbers
-    }
+    })
 
     SeqDelta.flatten(numbers.now.fromDelta :: Nil) should equal (List(
       Include(0, 1), Include(1, 2), Include(2, 3), Include(3, 4), Include(4, 5)

@@ -88,7 +88,7 @@ package object web {
    * [T](SeqSignal[NodeSeq=>NodeSeq])(SeqSignal[NodeSeq]=>T)(NodeSeq=>T)
    */
   private[web] def bindFunc2seqContentFunc[T](bindFunc: SeqSignal[NodeSeq => NodeSeq])(andThen: SeqSignal[NodeSeq] => T): NodeSeq => T =
-    ns => andThen(bindFunc map { _ map { _(ns) } })
+    ns => andThen(bindFunc.now.map(_(ns)).signal)
 
   /**
    * Given a Class instance, extract the original scala identifier name.

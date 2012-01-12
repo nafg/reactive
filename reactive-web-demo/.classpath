@@ -27,7 +27,10 @@
 	<classpathentry kind="output" path="target/classes"/>
 	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.mortbay.jetty-jetty-6.1.26.jar"/>
 	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.mortbay.jetty-jetty-util-6.1.26.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-tools.testing-scalacheck_2.9.1-1.9.jar" sourcepath="/home/naftoli/.esbt/jars/org.scala-tools.testing-scalacheck_2.9.1-1.9-sources.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scalatest-scalatest_2.9.1-1.6.1.jar" sourcepath="/home/naftoli/.esbt/jars/org.scalatest-scalatest_2.9.1-1.6.1-sources.jar"/>
 	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.mortbay.jetty-servlet-api-2.5-20081211.jar"/>
+	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-tools.testing-test-interface-0.5.jar"/>
 	<classpathentry from="sbt" kind="src" path="src/main/scala/"/>
 	<classpathentry from="sbt" kind="src" path="src/main/resources/"/>
 	<classpathentry from="sbt" kind="src" path="src/test/scala/"/>

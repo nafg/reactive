@@ -8,6 +8,8 @@ import scala.xml.{ Elem, NodeSeq, Text, UnprefixedAttribute, Null }
 import org.scalatest.concurrent.Conductor
 import java.lang.Thread
 import scala.concurrent.SyncVar
+import net.liftweb.util.Helpers._
+import org.scalatest.prop.PropertyChecks
 
 class RElemTests extends FunSuite with ShouldMatchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
@@ -18,11 +20,48 @@ class RElemTests extends FunSuite with ShouldMatchers {
     }
   }
 }
-class RepeaterTests extends FunSuite with ShouldMatchers {
-  test("Repeater should have children with toNSFunc") {
-    MockWeb.testS("/") {
+class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
+  test("Repeater should render its children") {
+    Page.withPage(new Page) {
       val select = html.Select(Val(List(1, 2, 3)))(new Observing {}, Config.defaults)
       select(<select/>).asInstanceOf[Elem].child.length should equal (3)
+    }
+  }
+
+  test("Repeater should send correct deltas") {
+    MockWeb.testS("/") {
+      val template = <div><span></span></div>
+      implicit val page = Page.currentPage
+      import org.scalacheck.Gen._
+      forAll(listOf1(listOf(alphaUpperChar map (_.toString))), maxSize(10)){ xss: List[List[String]] =>
+        whenever(xss.length >= 2) {
+          val signal = BufferSignal(xss.head: _*)
+          def snippet: NodeSeq => NodeSeq = "div" #> Repeater(signal.now.map(x => "span *" #> x).signal)
+          val ts = new TestScope(snippet(template))
+          import ts._
+          Page.withPage(page) {
+            Reactions.inScope(ts) {
+              //              println(Console.RESET+"\n"+"=" * 25)
+//              println(xss)
+              for (xs <- xss.tail) {
+                try {
+                  signal () = xs
+                  //                  println(ts.js)
+                  //                  println(ts.xml)
+                  (ts.xml >+ "span" length) should equal (signal.now.length)
+                  (ts.xml >+ "span" map (_.text)) should equal (signal.now)
+                } catch {
+                  case e =>
+                    println(Console.RED + e)
+                    println("X" * 25 + Console.RESET)
+                    throw e
+                }
+              }
+              //              println(Console.GREEN+"=" * 10+" Ok "+"=" * 11 + Console.RESET)
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -138,7 +177,6 @@ class DomEventSourceTests extends FunSuite with ShouldMatchers {
 }
 
 class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
-  import net.liftweb.util.Helpers._
   test("TestScope") {
     MockWeb.testS("/") {
       val template = <span id="span">A</span>

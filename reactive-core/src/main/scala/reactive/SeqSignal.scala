@@ -56,7 +56,8 @@ object SeqSignal {
   //TODO optimized shortcut for apply(Val(seq))
 }
 
-// TODO reimplement using DeltaSeq.updatedFromParent
+
+// TODO reimplement using DeltaSeq.updatedFromParent?
 //class MappedSeqSignal[T, E](
 //  private val parent: Signal[T],
 //  f: T => TransformedSeqBase[E]) extends ChangingSeqSignal[E] with Logger {

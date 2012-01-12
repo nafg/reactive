@@ -41,10 +41,10 @@ class Messages {
   /**
    * Returns a Repeater that displays the messages
    */
-  def render(implicit page: Page) = Repeater(messages map (_ map { m =>
+  def render(implicit page: Page) = Repeater(messages.now map { m =>
     ".text *" #> m &
       ".close" #> (DomEventSource.click ->> { messages.value -= m })
-  }))
+  } signal)
   /**
    * Render the template with the Repeater
    */

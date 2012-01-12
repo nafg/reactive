@@ -84,12 +84,15 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
 
     lazy val signal = new SeqSignal[V] {
       private var current: This = Transformed.this.asInstanceOf[This]
+      current.underlying
       def now = current
-      val pc: DeltaSeq[T] => Unit = { ds => current = current.updatedFromParent(ds).asInstanceOf[This]; change fire now }
-      override lazy val change = {
-        parent.signal.change addListener pc
-        new EventSource[DeltaSeq[V]] {}
+      val pc: DeltaSeq[T] => Unit = { ds =>
+        current = current.updatedFromParent(ds).asInstanceOf[This]
+        current.underlying
+        change fire now
       }
+      parent.signal.change addListener pc
+      lazy val change = new EventSource[DeltaSeq[V]] {}
     }
   }
   class Appended[T](val parent: DeltaSeq[T], val xs: Seq[T]) extends Transformed[T, T] { prev =>
@@ -103,17 +106,18 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       override val underlying = SeqDelta.patch(prev.underlying, fromDelta)
     }
   }
+  //TODO rename back to FlatMapped
   class Folded[T, V](val parent: DeltaSeq[T], val f: T => GTraversableOnce[V]) extends Transformed[T, V] { prev =>
     type This = Folded[T, V]
     lazy val (underlying, indexMap) = {
       val buf = new ArrayBuffer[V]
-      val map = scala.collection.mutable.Map.empty[Int, Range]
+      val map = scala.collection.mutable.Map.empty[Int, Seq[Int]]
       var j = 0
       for ((x, i) <- parent.underlying.zipWithIndex) {
         val y = f(x)
         val yl = y.toList
         buf ++= yl
-        map(i) = j until j + yl.size
+        map(i) = j to j + yl.size
         j += y.size
       }
       (buf.toSeq, map.toMap)
@@ -121,105 +125,293 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
     lazy val fromDelta: SeqDelta[V, V] = startDelta(underlying)
 
     def updatedFromParent(parentUpdated: DeltaSeq[T]): Folded[T, V] = new Folded[T, V](parentUpdated, prev.f) {
-      override lazy val (fromDelta, indexMap) = {
-        val uds = SeqDelta flatten List(parentUpdated.fromDelta)
+      override lazy val (fromDelta, indexMap, underlying) = {
         var map = prev.indexMap
         val ds = new ArrayBuffer[SeqDelta[V, V]]
+        val buf = prev.underlying.toBuffer
         def applyDelta(d: SingleDelta[T, T]): Unit = d match {
           case Remove(i, _) => // convert a remove on parent.prev to a remove on prev  (parent == parentUpdated)
-            val prevFlatmappedIndices = prev.indexMap(i)
+            val prevFlatmappedIndices = map(i).init
             map = map - i map {
-              case (j, xs) if j > i => (j - 1, xs)
+              case (j, xs) if j > i => (j - 1, xs map (_ - prevFlatmappedIndices.size))
               case other            => other
             }
             // all removes happen at same index
-            ds ++= prevFlatmappedIndices map (i =>
-              Remove(prevFlatmappedIndices.start, prev.underlying(i))
-            )
+            prevFlatmappedIndices foreach { _ =>
+              ds += Remove(prevFlatmappedIndices.head, buf(prevFlatmappedIndices.head))
+              buf.remove(prevFlatmappedIndices.head)
+            }
           case Include(i, e) =>
-            val startIndex = prev.indexMap get i map (_.start) getOrElse prev.underlying.length
+            val startIndex = map get i map (_.head) getOrElse buf.length
             val res = f(e)
             val resSeq = res.toList
-            ds ++= resSeq.zipWithIndex map { case (v, j) => Include(startIndex + j, v) }
+            resSeq.zipWithIndex foreach {
+              case (v, j) =>
+                buf.insert(startIndex + j, v)
+                ds += Include(startIndex + j, v)
+            }
             map = map.map {
-              case (j, xs) if j >= i => (j + 1, xs)
+              case (j, xs) if j >= i => (j + 1, xs map (_ + resSeq.length))
               case other             => other
-            } + (i -> (startIndex until startIndex + resSeq.length))
+            } + (i -> (startIndex until startIndex + resSeq.length + 1))
           case Update(i, o, e) =>
             applyDelta(Remove(i, o))
             applyDelta(Include(i, e))
         }
-        uds foreach applyDelta
-        (Batch(ds.toSeq: _*), map)
+        SeqDelta flatten List(parentUpdated.fromDelta) foreach { d =>
+          val beforeMsg = "Delta: "+d+"\n>buf: "+buf+"\n>map: "+map+"\n>ds: "+ds
+          try {
+            applyDelta(d)
+          } catch {
+            case e =>
+              println("parentUpdated.fromDelta: "+parentUpdated.fromDelta)
+              println(beforeMsg)
+              println("<buf: "+buf)
+              println("<map: "+map)
+              println("<ds: "+ds)
+              throw e
+          }
+        }
+        (Batch(ds.toSeq: _*), map, buf.toSeq)
       }
-      override lazy val underlying = SeqDelta.patch(prev.underlying, fromDelta)
     }
   }
   class Sliced[T](val parent: DeltaSeq[T], val from: Int, val until: Int) extends Transformed[T, T] { prev =>
     type This = Sliced[T]
-    lazy val underlying = parent.underlying.slice(from, until)
+    lazy val underlying = parent.underlying.slice(from, until).toList
     lazy val fromDelta = startDelta(underlying)
+    /*
+     * prev.parent: The DeltaSeq the original (previous) Sliced is a window of
+     * parentUpdated: The result of applying deltas to prev.parent, considered the parent of the new Sliced
+     * from: The index of the parent which is mapped to index 0 in the Sliced
+     * until: The first index of the parent which is not mapped in the Sliced. This is allowed to be greater than
+     *        parent.length so that future additions appear in the window, but calculations should use (until min parent.length).
+     *        The Sliced should therefore always have length (until min parent.length) - from
+     * 
+     * Includes and Removes on prev.parent (parentUpdated.fromDelta) can occur either before the window, inside the window, or after the window.
+     * 
+     * Those that occur after the window do not directly affect the Sliced.
+     * After the window means i >= until.
+     * 
+     * Those that occur before the window affect the Sliced as if they occurred at '''from''', with the element at that location.
+     * Before the window means i < from.
+     * For instance, List(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14).slice(5,10) == List(5,6,7,8,9).
+     * If an extra zero was inserted at the beginning of the original List, the slice would become List(4,5,6,7,8) --- as though a 4 had been inserted.
+     * Conversely, if the zero was deleted, the slice would become (6,7,8,9,10) --- as though the 5 had been deleted.
+     * So an insert before the window is as if the item at (from - 1) was inserted at from, and a remove before the window is as if the item at from was deleted.
+     * 
+     * Inserts within the window affect the slice as follows:
+     *  1. The element is inserted at the translated (i - from) index.
+     *  2. If the slice would now be longer than (until - from), the last element is removed.
+     * Removes within the window affect the slice as follows:
+     *  1. The element at the translated index is removed.
+     *  2. If the slice would now be shorter than (until - from) and does not already include the last element of the parent (that is,
+     *     slice.length + from < parent.length), insert the next element of the parent (parent(slice.length + from)).
+     */
     def updatedFromParent(parentUpdated: DeltaSeq[T]): Sliced[T] = new Sliced[T](parentUpdated, prev.from, prev.until) {
-      override lazy val fromDelta = Batch(SeqDelta flatten List(parentUpdated.fromDelta) flatMap {
-        case Remove(i, e) if i >= from && i < until =>
-          Remove(i - from, e) :: (if (prev.parent.length > until)
-            List(Include(until - 1 - from, prev.parent.underlying(until)))
-          else
-            Nil
-          )
-        case Include(i, e) if i >= from && i < until =>
-          List(Include(i - from, e))
-        case Update(i, o, e) if i >= from && i < until =>
-          List(Update(i - from, o, e))
-        case _ => Nil
-      }: _*)
-      override lazy val underlying = SeqDelta.patch(prev.underlying, fromDelta)
+      override lazy val (fromDelta, underlying) = {
+        val ds = new ArrayBuffer[SeqDelta[T, T]]
+        val buf = prev.toList.toBuffer
+        var parentBuf = prev.parent.toList.toBuffer
+        def actUntil = until min parentBuf.length
+        def applyDelta(d: SingleDelta[T, T]): Unit = d match {
+          case Remove(i, e) =>
+            if ((i max from) < actUntil) {
+              val j = i - from max 0
+              ds += Remove(j, buf(j))
+              buf.remove(j)
+            }
+            parentBuf.remove(i)
+            if (buf.length < until - from && buf.length + from < parentBuf.length) {
+              ds += Include(buf.length, parentBuf(buf.length + from))
+              buf.insert(buf.length, parentBuf(buf.length + from))
+            }
+          case Include(i, e) =>
+            parentBuf.insert(i, e)
+            if (i < actUntil && parentBuf.length > (i max from)) {
+              val (j, v) = if (i >= from) (i - from, e) else (0, parentBuf(from))
+              ds += Include(j, v)
+              buf.insert(j, v)
+              if (buf.length > until - from) {
+                ds += Remove(buf.length - 1, buf(buf.length - 1))
+                buf.remove(buf.length - 1)
+              }
+            }
+          case Update(i, o, e) =>
+            applyDelta(Remove(i, o))
+            applyDelta(Include(i, e))
+        }
+        //        println("prev.parent: "+prev.parent)
+        //        println("parentUpdated: "+parentUpdated)
+        //        println("(from, until): "+(from, until))
+        SeqDelta flatten List(parentUpdated.fromDelta) foreach { d =>
+          //          println("Delta: "+d)
+          //          println(">ds: "+ds)
+          //          println(">buf: "+buf)
+          //          println(">parentBuf: "+parentBuf)
+          applyDelta(d)
+          //          println("<ds: "+ds)
+          //          println("<buf: "+buf)
+          //          println("<parentBuf: "+parentBuf)
+        }
+        (Batch(ds: _*), buf.toList)
+      }
     }
   }
   class PrefixWhile[T](val parent: DeltaSeq[T], val take: Boolean, val p: T => Boolean) extends Transformed[T, T] { prev =>
     type This = PrefixWhile[T]
-    def filterIndex(lastValid: Int, i: Int): Option[Int] = if (take)
-      Some(i) filter (_ <= lastValid)
-    else
-      Some(i - lastValid - 1) filter (_ => i > lastValid)
-    lazy val valid = parent.underlying.toStream map { x => x -> p(x) }
+    lazy val predValues = parent.underlying.toStream map { x => x -> p(x) }
     lazy val underlying: Seq[T] = if (take)
-      valid.takeWhile{ case (_, b) => b }.map(_._1)
+      predValues.takeWhile{ case (_, b) => b }.map(_._1)
     else
-      valid.dropWhile{ case (_, b) => b }.map(_._1)
+      predValues.dropWhile{ case (_, b) => b }.map(_._1)
     lazy val fromDelta = startDelta(underlying)
 
+    /*
+     * takeWhile and dropWhile both see a sequence as divided into a prefix of elements that pass a predicate, and the remaining elements,
+     * beginning with the first element that fails the predicate. (It makes no difference whether subsequent elements pass it or fail it.)
+     * The difference is that takeWhile returns the prefix, and dropWhile returns the remaining elements.
+     * 
+     * Edits can occur within the prefix specified by the predicate, at its border, or outside it.
+     * At its border means either removing the first element failing the predicate, inserting a new element at its index, or updating the value at its index.
+     * 
+     * In the case of takeWhile, an edit occurring at the first element for which the predicate fails
+     * can cause any number of elements to be included, if the element that will now follow the current prefix will pass the predicate.
+     * In the case of dropWhile, it can cause any number of elements to be removed, if the element that will now follow the
+     * prefix will pass the predicate.
+     * 
+     * An edit more than one past the end of the prefix has no effect in the case of takeWhile; in the case of dropWhile, that edit is
+     * applied after translating it (i - prefixLength).
+     * 
+     * A remove, or insert or update whose new element passes the predicate, that occurs before the end of the prefix, has no effect in the case of dropWhile;
+     * in the case of takeWhile, it can be applied directly.
+     * 
+     * An insert or update within the prefix, whose new element fails the predicate, in the case of takeWhile is not applied,
+     * and subsequent elements are removed, as the prefix has been shortened.
+     * In the case of dropWhile, it and subsequent elements are inserted; since the prefix has been shortened, the set of remaining elements has expanded.
+     * 
+     * prefixLength: The number of elements in a row at the beginning of the parent sequence that pass the predicate. Consequently, the first index
+     * that is either outside of the parent sequence or whose element fails the predicate.
+     * 
+     */
     def updatedFromParent(parentUpdated: DeltaSeq[T]): PrefixWhile[T] = new PrefixWhile[T](parentUpdated, prev.take, prev.p.asInstanceOf[T => Boolean]) {
-      override lazy val (fromDelta, valid) = {
-        var vld = prev.valid.asInstanceOf[Stream[(T, Boolean)]]
-        def calcLastValid = vld.prefixLength({ case (_, b) => b })
-        var lastValid = calcLastValid
-        Batch(SeqDelta flatten List(parentUpdated.fromDelta) flatMap {
-          case Include(i, e) =>
-            val v = p(e)
-            vld = vld.patch(i, List(e -> v), 0)
-            if (i <= lastValid) {
-              if (!v) lastValid = i - 1
-              else lastValid += 1
-            } else if (v && i == lastValid + 1) {
-              lastValid = calcLastValid
-            }
-            filterIndex(lastValid, i) map (Include(_, e))
-          case Remove(i, o) =>
-            vld = vld.patch(i, Nil, 1)
-            if (i <= lastValid) lastValid -= 1
-            else if (i == lastValid + 1) lastValid = calcLastValid
-            filterIndex(lastValid, i) map (Remove(_, o))
-          case Update(i, o, e) =>
-            val prevValid = vld(i)
-            val v = p(e)
-            vld = vld.patch(i, List(e -> v), 1)
-            if (i <= lastValid && !v) lastValid = i - 1
-            else if (i == lastValid + 1 && prevValid != v) lastValid = calcLastValid
-            filterIndex(lastValid, i) map (Update(_, o, e))
-        }: _*) -> vld
+      override lazy val (fromDelta, predValues, underlying) = {
+        val buf = prev.toList.toBuffer
+        val ds = new ArrayBuffer[SeqDelta[T, T]]
+        var prdVals = prev.predValues
+        def calcPrefixLength = {
+          def loop(n: Int, s: Stream[(T, Boolean)]): Int = if (s.isEmpty || !s.head._2) n else loop(n + 1, s.tail)
+          loop(0, prdVals)
+        }
+        var prefixLength = calcPrefixLength
+        def applyDelta(d: SingleDelta[T, T]): Unit = {
+          val oldPrefixLength = prefixLength
+          d match {
+            case Include(i, e) =>
+              val v = p(e)
+              prdVals = prdVals.patch(i, List(e -> v), 0)
+
+              if (i < prefixLength) {
+                if (v) prefixLength += 1 else prefixLength = i
+              } else if (v && i == prefixLength) {
+                prefixLength = calcPrefixLength
+              }
+
+              if (!take || v) {
+                if (take && v && i <= prefixLength && i <= buf.length) {
+                  ds += Include(i, e)
+                  buf.insert(i, e)
+                } else if (!take && i >= prefixLength) {
+                  val j = i - prefixLength
+                  println("Applying original Include at "+j)
+                  ds += Include(j, e)
+                  buf.insert(j, e)
+                }
+              }
+
+              if (prefixLength > oldPrefixLength) for (j <- oldPrefixLength + 1 until prefixLength) {
+                if (take && j <= buf.length) {
+                  ds += Include(j, prdVals(j)._1)
+                  buf.insert(j, prdVals(j)._1)
+                } else if (!take && j < buf.length) {
+                  ds += Remove(0, prdVals(oldPrefixLength)._1)
+                  buf.remove(0)
+                }
+              }
+              else if (prefixLength < oldPrefixLength) for (j <- prefixLength until oldPrefixLength) {
+                println("j: "+j)
+                if (take && prefixLength < buf.length) {
+                  ds += Remove(prefixLength, prdVals(j)._1)
+                  buf.remove(prefixLength)
+                } else if (!take && j - prefixLength <= buf.length) {
+                  ds += Include(j - prefixLength + 1, prdVals(j + 1)._1)
+                  buf.insert(j - prefixLength + 1, prdVals(j + 1)._1)
+                }
+              }
+
+            case Remove(i, o) =>
+              prdVals = prdVals.patch(i, Nil, 1)
+              if (i < prefixLength)
+                prefixLength -= 1
+              else if (i == prefixLength)
+                prefixLength = calcPrefixLength
+
+              if (take && i <= prefixLength && i < buf.length) {
+                ds += Remove(i, o)
+                buf.remove(i)
+              } else if (!take && i >= prefixLength) {
+                val j = i - prefixLength max 0
+                if (j < buf.length) {
+                  println("Applying original Remove at "+j)
+                  ds += Remove(j, o)
+                  buf.remove(j)
+                }
+              }
+
+              if (prefixLength > oldPrefixLength) for (j <- oldPrefixLength until prefixLength) {
+                if (take && j <= buf.length && (prdVals isDefinedAt j)) {
+                  ds += Include(j, prdVals(j)._1)
+                  buf.insert(j, prdVals(j)._1)
+                } else if (!take && buf.nonEmpty && (prdVals isDefinedAt j)) {
+                  ds += Remove(0, prdVals(j)._1)
+                  buf.remove(0)
+                }
+              }
+              else if (prefixLength < oldPrefixLength) {
+                for (j <- (if (take) prefixLength else prefixLength) until oldPrefixLength) {
+                  println("j: "+j)
+                  if (take && j < buf.length && (prdVals isDefinedAt j)) {
+                    ds += Remove(prefixLength, prdVals(j)._1)
+                    buf.remove(prefixLength)
+                  } else if (!take && j - prefixLength <= buf.length && (prdVals isDefinedAt j + 1)) {
+                    ds += Include(j - prefixLength, prdVals(j + 1)._1)
+                    buf.insert(j - prefixLength, prdVals(j + 1)._1)
+                  }
+                }
+              }
+
+            case Update(i, o, e) =>
+              applyDelta(Remove(i, o))
+              applyDelta(Include(i, o))
+          }
+        }
+        println("prev.parent: "+prev.parent)
+        println("parentUpdated: "+parentUpdated)
+        println("take: "+take)
+        SeqDelta flatten List(parentUpdated.fromDelta) foreach { d =>
+          println("Delta: "+d)
+          println(">prdVals: "+prdVals)
+          println(">prefixLength: "+prefixLength)
+          println(">buf: "+buf)
+          println(">ds: "+ds)
+          applyDelta(d)
+          println("<prdVals: "+prdVals)
+          println("<prefixLength: "+prefixLength)
+          println("<buf: "+buf)
+          println("<ds: "+ds)
+        }
+        (Batch(ds: _*), prdVals, buf.toSeq)
       }
-      override lazy val underlying = SeqDelta.patch(prev.underlying, fromDelta)
     }
   }
 
@@ -254,13 +446,13 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       super.collect(pf)
     )
   override def slice(from: Int, until: Int): DeltaSeq[T] =
-    new Sliced[T](this, from, until)
+    new Sliced[T](this map (x => x), from max 0, until)
   override def init = slice(0, underlying.size - 1)
-  override def drop(n: Int) = slice(n max 0, underlying.size - n)
+  override def drop(n: Int) = slice(n max 0, underlying.size + 1)
   override def take(n: Int) = slice(0, n)
   override def splitAt(n: Int) = (take(n), drop(n))
-  override def dropWhile(p: T => Boolean): DeltaSeq[T] = new PrefixWhile(this, false, p)
-  override def takeWhile(p: T => Boolean): DeltaSeq[T] = new PrefixWhile(this, true, p)
+  override def dropWhile(p: T => Boolean): DeltaSeq[T] = new PrefixWhile(this map (x => x), false, p)
+  override def takeWhile(p: T => Boolean): DeltaSeq[T] = new PrefixWhile(this map (x => x), true, p)
   override def ++[U >: T, That](xs: TraversableOnce[U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
     ifDS(
       new Appended[U](this, xs.toSeq),

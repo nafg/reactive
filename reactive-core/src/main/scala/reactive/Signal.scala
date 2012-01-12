@@ -77,7 +77,7 @@ trait Signal[+T] extends Forwardable[T] {
    * new EventStream that corresponds fires the events of whichever
    * EventStream is returns by f for the Signal's current value.
    */
-  def flatMap[U, S[X]](f: T => S[U])(implicit canFlatMapSignal: CanFlatMapSignal[Signal, S]): S[U] = canFlatMapSignal.flatMap(this, f)
+  def flatMap[FunRet, Ret](f: T => FunRet)(implicit canFlatMapSignal: CanFlatMapSignal[Signal, FunRet, Ret]): Ret = canFlatMapSignal.flatMap(this, f)
 
   /**
    * Return a new Signal whose initial value is f(initial, parent.now).
@@ -215,26 +215,27 @@ trait LowPriorityCanMapSignalImplicits {
   }
 }
 object CanMapSignal extends LowPriorityCanMapSignalImplicits {
-  implicit def canMapSeqSignal[E]: CanMapSignal[DeltaSeq[E], SeqSignal[E]] = new CanMapSignal[DeltaSeq[E], SeqSignal[E]] {
-    def map[T](parent: Signal[T], f: T => DeltaSeq[E]): SeqSignal[E] = SeqSignal(canMapSignal.map(parent, f).map(_.underlying)) //new MappedSeqSignal[T, E](parent, f)
-  }
+  //  implicit def canMapSeqSignal[E]: CanMapSignal[DeltaSeq[E], SeqSignal[E]] = new CanMapSignal[DeltaSeq[E], SeqSignal[E]] {
+  //    def map[T](parent: Signal[T], f: T => DeltaSeq[E]): SeqSignal[E] = SeqSignal(canMapSignal.map(parent, f).map(_.underlying)) //new MappedSeqSignal[T, E](parent, f)
+  //  }
 }
 
-trait CanFlatMapSignal[-S1[_], S2[_]] {
-  def flatMap[T, U](parent: S1[T], f: T => S2[U]): S2[U]
+trait CanFlatMapSignal[-Parent[_], -FunRet, +Ret] {
+  def flatMap[T](parent: Parent[T], f: T => FunRet): Ret
 }
 
 trait LowPriorityCanFlatMapSignalImplicits {
-  implicit def canFlatMapSignal: CanFlatMapSignal[Signal, Signal] = new CanFlatMapSignal[Signal, Signal] {
-    def flatMap[T, U](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
+
+  implicit def canFlatMapSignal[U]: CanFlatMapSignal[Signal, Signal[U], Signal[U]] = new CanFlatMapSignal[Signal, Signal[U], Signal[U]] {
+    def flatMap[T](parent: Signal[T], f: T => Signal[U]): Signal[U] = new FlatMappedSignal[T, U](parent, f)
   }
 }
 object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
-  implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
-    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = SeqSignal(canFlatMapSignal.flatMap(parent, f).map(_.underlying)) //new FlatMappedSeqSignal[T, U](parent, f)
-  }
-  implicit def canFlatMapEventStream: CanFlatMapSignal[Signal, EventStream] = new CanFlatMapSignal[Signal, EventStream] {
-    def flatMap[T, U](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
+//  implicit def canFlatMapSeqSignal: CanFlatMapSignal[Signal, SeqSignal] = new CanFlatMapSignal[Signal, SeqSignal] {
+//    def flatMap[T, U](parent: Signal[T], f: T => SeqSignal[U]): SeqSignal[U] = SeqSignal(canFlatMapSignal.flatMap(parent, f).map(_.underlying)) //new FlatMappedSeqSignal[T, U](parent, f)
+//  }
+  implicit def canFlatMapEventStream[U]: CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] = new CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] {
+    def flatMap[T](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
       val parentChange = new EventSource[T]
       parent.change addListener parentChange.fire
       new parentChange.FlatMapped(Some(parent.now))(f) {

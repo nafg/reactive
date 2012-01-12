@@ -55,7 +55,7 @@ class Select[T](
         adjustIndexFromDeltas(si - 1)(rest)
       case Remove(i, _) :: rest if i == si =>
         0
-      case Batch(ms@_*) :: rest =>
+      case Batch(ms @ _*) :: rest =>
         adjustIndexFromDeltas(adjustIndexFromDeltas(si)(ms.toList))(rest)
       case other :: rest =>
         adjustIndexFromDeltas(si)(rest)
@@ -71,16 +71,14 @@ class Select[T](
     selectedIndex() = item.map(items.now.indexOf(_)).filter(_ != -1)
   }
 
-  lazy val children = items.map {
-    _ map { item: T =>
-      RElem {
-        if (selectedItem.now == Some(item))
-          <option selected="selected">{ renderer(item) }</option>
-        else
-          <option>{ renderer(item) }</option>
-      }
+  lazy val children = items.now.map { item: T =>
+    RElem {
+      if (selectedItem.now == Some(item))
+        <option selected="selected">{ renderer(item) }</option>
+      else
+        <option>{ renderer(item) }</option>
     }
-  }
+  }.signal
 
   items.change.foreach { is =>
     val i = selectedIndex.now map { _.min(is.length - 1) } filter { _ >= 0 }

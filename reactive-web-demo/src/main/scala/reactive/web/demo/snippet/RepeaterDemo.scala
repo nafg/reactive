@@ -1,20 +1,19 @@
 package reactive.web.demo.snippet
 
 import net.liftweb.util._
-  import Helpers._
+import Helpers._
 
 import reactive._
-  import web._
-    import html._
+import web._
+import html._
 
 class RepeaterDemo extends Observing {
   val signal = BufferSignal[Person]()
 
   def render =
     ".add *" #> Button("Add")(signal.value += Person.newPerson) &
-    "#people" #> Repeater {
-      signal map {
-        _ map { person =>
+      "#people" #> Repeater {
+        signal.now map { person =>
           ".eachPerson" #> {
             ".first *" #> person.first &
               ".last *" #> person.last &
@@ -22,9 +21,8 @@ class RepeaterDemo extends Observing {
                 signal.value -= person
               }
           }
-        }
+        } signal
       }
-    }
 }
 
 case class Person(first: String, last: String)

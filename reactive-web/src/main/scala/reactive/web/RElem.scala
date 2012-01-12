@@ -16,7 +16,7 @@ import scala.xml._
 object RElem {
   def withId(elem: Elem): Elem = elem.attributes get "id" match {
     case Some(id) => elem
-    case None => elem % new UnprefixedAttribute("id", Page.newId, Null)
+    case None     => elem % new UnprefixedAttribute("id", Page.newId, Null)
   }
   /**
    * An RElem based on a scala.xml.Elem.
@@ -32,8 +32,11 @@ object RElem {
         sup.child ++ children.map(_.render(p))
       })
     }
-    
-    override def toString = "ElemWrapper("+ (baseElem :: children.toList).mkString(",")+"): "+render
+
+    override def toString = "ElemWrapper("+(baseElem :: children.toList).mkString(",")+")"+(Page.currentPageOption match {
+      case Some(p) => ":  "+render(p)
+      case _       => ""
+    })
   }
 
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String, RElem] //TODO
@@ -131,8 +134,8 @@ trait RElem extends PageIds {
    * properties and events.
    */
   def toNSFunc(implicit page: Page) = new Renderer(this)(renderer)(page)
-  
-  protected def renderer(implicit page: Page): Elem=>Elem = e => {
+
+  protected def renderer(implicit page: Page): Elem => Elem = e => {
     val elem = baseElem.copy(
       child = e.child ++ baseElem.child,
       attributes = e.attributes append baseElem.attributes
@@ -142,7 +145,7 @@ trait RElem extends PageIds {
     }
     events.foldLeft[Elem](withProps) {
       case (e, evt: DomEventSource[_]) => e % evt.asAttribute
-      case (e, _) => e
+      case (e, _)                      => e
     }
   }
 

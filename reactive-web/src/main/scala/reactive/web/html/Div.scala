@@ -47,6 +47,6 @@ object Div {
    */
   def apply(binding: SeqSignal[NodeSeq=>NodeSeq])(implicit p: Page, config: CanRenderDomMutationConfig): NodeSeq=>NodeSeq =
     bindFunc2seqContentFunc(binding){c =>
-      apply(c map (_ map {ns => RElem(nodeSeqToElem(ns))}))(config).render
+      apply(c.now.map(ns => RElem(nodeSeqToElem(ns))).signal)(config).render
     }
 }
