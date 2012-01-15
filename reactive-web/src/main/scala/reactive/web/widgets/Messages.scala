@@ -1,6 +1,6 @@
 package reactive
 package web
-package widget
+package widgets
 
 import scala.xml._
 import net.liftweb.util._
