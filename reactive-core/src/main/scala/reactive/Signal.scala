@@ -237,8 +237,10 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapEventStream[U]: CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] = new CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] {
     def flatMap[T](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
       val parentChange = new EventSource[T]
-      parent.change addListener parentChange.fire
+      val f0 = parentChange.fire _
+      parent.change addListener f0
       new parentChange.FlatMapped(Some(parent.now))(f) {
+        private val f1 = f0
         override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
       }
     }

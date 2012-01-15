@@ -40,7 +40,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     } should equal (List(2, 3, 4, 1))
   }
 
-  test("flatMap (T=>SeqSignal[U])") {
+  ignore("flatMap (T=>SeqSignal[U])") {   //TODO is there any value in any part of this test after the new way of transforming SeqSignals?
     val bufSig1 = BufferSignal(1, 2, 3)
     val bufSig2 = BufferSignal(2, 3, 4)
     val parent = Var(false)
@@ -76,7 +76,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     }.toBatch.applyToSeq(List(2, 3, 4, 5)) should equal (List(1, 2, 3))
   }
 
-  test("flatMap(value => seqSignal.map(_ filter pred))") {
+  ignore("flatMap(value => seqSignal.map(_ filter pred))") {  //TODO is there any value in any part of this test after the new way of transforming SeqSignals?
     val switch = Var(false)
     val numbers = BufferSignal(1, 2, 3, 4, 5)
     val filteredNumbers = numbers.map(_ filter (_ < 3))
@@ -99,6 +99,15 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
         Remove(2, 3), Remove(2, 4), Remove(2, 5)
       )
     ))
+  }
+
+  test("flatMap(value => EventStream)") {
+    val s = Var(10)
+    val es = new EventSource[Int]
+    val fm = s.flatMap(x => es.map(x*))
+    collecting(fm){ es fire 3 } should equal(List(30))
+    collecting(fm){ s () = 20 } should equal (Nil)
+    collecting(fm){ es fire 4 } should equal (List(80))
   }
 
   test("distinct") {
