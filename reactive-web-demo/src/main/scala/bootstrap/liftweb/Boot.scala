@@ -31,6 +31,7 @@ class Boot {
     LiftRules.addToPackages("reactive.web.demo")
 
     reactive.web.Reactions.init(comet = true)
+    reactive.web.widgets.Messages.init
 
     // Build SiteMap
     def sitemap = () => SiteMap(
@@ -54,6 +55,9 @@ class Boot {
         Menu("Testing")  /"web"/"TestScope",
         Menu("Configuration")  /"web"/"Config",
         Menu("Simple demo")  /"demos"/"SimpleDemo"
+      ),
+      Menu("Widgets")  /"2"  >>PlaceHolder  submenus(
+        Menu("Messages")  /"widgets"/"Messages"
       ),
       Menu("Scaladocs")  /"3"  >>PlaceHolder  submenus(
         Menu("reactive-core")  /"reactive-core-api"/ **,

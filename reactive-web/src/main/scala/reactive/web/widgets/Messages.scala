@@ -49,6 +49,6 @@ class Messages {
    * Render the template with the Repeater
    */
   def renderWithTemplate(template: NodeSeq = Messages.template)(implicit page: Page): NodeSeq => NodeSeq = { ns =>
-    render apply nodeSeqToElem(ns).copy(child = template)
+    render apply template
   }
 }
