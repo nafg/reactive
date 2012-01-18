@@ -129,7 +129,8 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
         println(" == Ok == ")
       }
     }
-    println("==================")
+//    println("==================")
+    //checkPrefixBased(List(List(true, false), List(false)))
 
     forAll(Gen.listOf1(arbitrary[List[(Int, List[Int])]]), maxSize(10)){
       case Nil => whenever(false) {}
@@ -151,19 +152,50 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
         val sliced = s.now.slice(from, to).signal
         iter(s, xss)(xs => sliced.now should equal (xs.slice(from, to)))
     }
-    def checkPrefixBased: ((List[List[Int]], Int)) => Unit = {
-      case (Nil, _) => whenever(false){}
-      case (head :: xss, threshold) =>
-        println("Values: "+(head :: xss).mkString(" :: ")+" :: Nil")
-        println("Predicate: (_ < "+threshold+")")
+    forAll(for (list1 <- Gen.listOf1(Gen.listOf1(arbitrary[Int])); list2 <- arbitrary[List[Int]]) yield (list1, list2), maxSize(10)) {
+      case (head :: xss, toAppend) =>
         val s = BufferSignal(head: _*)
-        val t = s.now.takeWhile(_ < threshold).signal
-        val d = s.now.dropWhile(_ < threshold).signal
+        val appended = (s.now ++ toAppend signal)
+        iter(s, xss)(xs => appended.now should equal (xs ++ toAppend))
+      case _ => whenever(false) {}
+    }
+    def checkPrefixBased: (List[List[Boolean]]) => Unit = {
+      case Nil => whenever(false) {}
+      case head :: xss =>
+//        println("Values: "+(head :: xss).mkString(" :: ")+" :: Nil")
+        val s = BufferSignal(head: _*)
+        val t = s.now.takeWhile(_ == true).signal
+        val d = s.now.dropWhile(_ == true).signal
         iter(s, xss){ xs =>
-          withClue("takeWhile: ")(t.now should equal (xs.takeWhile(_ < threshold)))
-          withClue("dropWhile: ")(d.now should equal (xs.dropWhile(_ < threshold)))
+          withClue("dropWhile: ")(d.now should equal (xs.dropWhile(_ == true)))
+          withClue("takeWhile: ")(t.now should equal (xs.takeWhile(_ == true)))
         }
     }
-    forAll(for (list <- Gen.listOf1(arbitrary[List[Int]]); threshold <- Gen.choose(0, 5)) yield (list, threshold), maxSize(10))(checkPrefixBased)
+    val gen = Gen.listOf1(Gen.listOf1(arbitrary[Boolean]))
+    forAll(gen, maxSize(10))(checkPrefixBased)
+    /*
+     // The REALLY thorough test -- systematic not random
+     // currently only single removes
+     val excs = for {
+      i <- 1 to 3
+      l1 <- (List.fill(i)(true) ++ List.fill(i)(false)).permutations
+      j <- 0 to l1.length
+      b <- List(true, false)
+      l2 = l1.patch(j, List(b), 0)
+      g = List(l1, l2)
+      e <- try {
+        checkPrefixBased(g)
+        None
+      } catch {
+        case e => Some(g -> e)
+      }
+    } yield e
+    println(excs.length+" failures")
+    excs foreach {
+      case (g, e) =>
+        val line = e.getStackTrace().find(_.getFileName endsWith "DeltaSeq.scala")
+        val msg = e.toString + line.map(" at "+_).getOrElse("")
+    }
+    excs.headOption foreach { case (_, e) => throw e }*/
   }
 }
