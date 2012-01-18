@@ -29,7 +29,10 @@ object ReactiveBuild extends Build {
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
     checksums in update := Nil,
-    scalacOptions += "-deprecation",
+    scalacOptions in (Compile, compile) += "-deprecation",
+    (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
+      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
+    }),
     crossScalaVersions := List("2.8.1", /*"2.9.0-1",*/ "2.9.1"),
     testOptions in Test += Tests.Argument("-oF")
   )
