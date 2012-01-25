@@ -123,6 +123,7 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
       printStack {
         println
         for (xs <- xss) {
+//          println("Changing s from "+s.now+" to "+xs)
           s () = xs
           withClue("s.now = "+s.now+":") { f(xs) }
         }
@@ -138,6 +139,10 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
         val s = BufferSignal(head: _*)
         val mapped = s.now.map(_._1 + 1).signal
         val flatMapped = s.now.flatMap(_._2).signal
+//        s.change foreach println
+//        s.deltas foreach println
+//        flatMapped.change foreach println
+//        flatMapped.deltas foreach println
         val filtered = s.now.filter(_._1 % 2 == 0).signal
         iter(s, xss) { xs =>
           mapped.now should equal (xs map (_._1 + 1))

@@ -34,7 +34,6 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
     val signal: SeqSignal[A] = new Val(this) with SeqSignal[A]
   }
   override def apply[A](xs: A*) = fromSeq(xs)
-  implicit def toSeq[A](ds: DeltaSeq[A]): Seq[A] = ds.underlying
 
   def updatedByValue[T](prev: DeltaSeq[T], seq: Seq[T]): DeltaSeq[T] = new DeltaSeq[T] {
     val signal = prev.signal
@@ -87,7 +86,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       current.underlying
       def now = current
       val pc: DeltaSeq[T] => Unit = { ds =>
-        current = current.updatedFromParent(ds).asInstanceOf[This]
+        current = current.updatedFromParent(ds.immutableCopy).asInstanceOf[This]
         current.underlying
         change fire now
       }
@@ -106,21 +105,20 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       override val underlying = SeqDelta.patch(prev.underlying, fromDelta)
     }
   }
-  //TODO rename back to FlatMapped
   class FlatMapped[T, V](val parent: DeltaSeq[T], val f: T => GTraversableOnce[V]) extends Transformed[T, V] { prev =>
     type This = FlatMapped[T, V]
     lazy val (underlying, indexMap) = {
       val buf = new ArrayBuffer[V]
-      val map = scala.collection.mutable.Map.empty[Int, Seq[Int]]
+      var map = scala.collection.immutable.Map.empty[Int, Seq[Int]]
       var j = 0
       for ((x, i) <- parent.underlying.zipWithIndex) {
         val y = f(x)
         val yl = y.toList
         buf ++= yl
-        map(i) = j to j + yl.size
+        map = map.updated(i, j to j + yl.size)
         j += y.size
       }
-      (buf.toSeq, map.toMap)
+      (buf.toSeq, map)
     }
     lazy val fromDelta: SeqDelta[V, V] = startDelta(underlying)
 
@@ -131,7 +129,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
         val buf = prev.underlying.toBuffer
         def applyDelta(d: SingleDelta[T, T]): Unit = d match {
           case Remove(i, _) => // convert a remove on parent.prev to a remove on prev  (parent == parentUpdated)
-            val prevFlatmappedIndices = map(i).init
+            val prevFlatmappedIndices = map(i) dropRight 1
             map = map - i map {
               case (j, xs) if j > i => (j - 1, xs map (_ - prevFlatmappedIndices.size))
               case other            => other
@@ -159,18 +157,14 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
             applyDelta(Include(i, e))
         }
         SeqDelta flatten List(parentUpdated.fromDelta) foreach { d =>
-          val beforeMsg = "Delta: "+d+"\n>buf: "+buf+"\n>map: "+map+"\n>ds: "+ds
-          try {
+//          val beforeMsg = "Delta: "+d+"\n>buf: "+buf+"\n>map: "+map+"\n>ds: "+ds
+//          try {
             applyDelta(d)
-          } catch {
-            case e =>
-//              println("parentUpdated.fromDelta: "+parentUpdated.fromDelta)
-//              println(beforeMsg)
+//          } finally {
 //              println("<buf: "+buf)
 //              println("<map: "+map)
 //              println("<ds: "+ds)
-              throw e
-          }
+//          }
         }
         (Batch(ds.toSeq: _*), map, buf.toSeq)
       }
@@ -549,6 +543,17 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
   def iterator = underlying.iterator
   override def toString = "DeltaSeq("+underlying.toString+"("+fromDelta+"))"
 
+  private def immutableCopy = underlying match {
+    case _: scala.collection.immutable.Seq[_] =>
+      this
+    case xs =>
+      new DeltaSeq[T] {
+        val underlying = xs.toList
+        def fromDelta = DeltaSeq.this.fromDelta
+        def signal = DeltaSeq.this.signal
+      }
+  }
+
   def ifDS[U, That](res: => DeltaSeq[U], sup: => That)(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]) =
     if (!bf.isInstanceOf[DeltaSeq.DeltaSeqCBF[T]]) sup else {
       val ret = res
@@ -556,28 +561,28 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
     }
 
   override def map[U, That](f: T => U)(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
-    ifDS(new FlatMapped[T, U](this, x => List(f(x))), super.map(f))
+    ifDS(new FlatMapped[T, U](immutableCopy, x => List(f(x))), super.map(f))
   override def flatMap[U, That](f: T => GTraversableOnce[U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
-    ifDS(new FlatMapped[T, U](this, x => f(x)), super.flatMap(f))
-  override def filter(p: T => Boolean): DeltaSeq[T] = new FlatMapped[T, T](this, x => List(x) filter p)
+    ifDS(new FlatMapped[T, U](immutableCopy, x => f(x)), super.flatMap(f))
+  override def filter(p: T => Boolean): DeltaSeq[T] = new FlatMapped[T, T](immutableCopy, x => List(x) filter p)
   override def withFilter(p: T => Boolean) = filter(p)
   override def partition(p: T => Boolean) = (filter(p), filter(!p(_)))
   override def collect[U, That](pf: PartialFunction[T, U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
     ifDS(
-      new FlatMapped[T, U](this, x => if (pf.isDefinedAt(x)) List(pf(x)) else Nil),
+      new FlatMapped[T, U](immutableCopy, x => if (pf.isDefinedAt(x)) List(pf(x)) else Nil),
       super.collect(pf)
     )
   override def slice(from: Int, until: Int): DeltaSeq[T] =
-    new Sliced[T](this map (x => x), from max 0, until)
+    new Sliced[T](immutableCopy, from max 0, until)
   override def init = slice(0, underlying.size - 1)
   override def drop(n: Int) = slice(n max 0, underlying.size + 1)
   override def take(n: Int) = slice(0, n)
   override def splitAt(n: Int) = (take(n), drop(n))
-  override def takeWhile(p: T => Boolean): DeltaSeq[T] = new TakenWhile(this map (x => x), p)
-  override def dropWhile(p: T => Boolean): DeltaSeq[T] = new DroppedWhile(this map (x => x), p)
+  override def takeWhile(p: T => Boolean): DeltaSeq[T] = new TakenWhile(immutableCopy, p)
+  override def dropWhile(p: T => Boolean): DeltaSeq[T] = new DroppedWhile(immutableCopy, p)
   override def ++[U >: T, That](xs: TraversableOnce[U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
     ifDS(
-      new Appended[U](this, xs.toSeq),
+      new Appended[U](immutableCopy, xs.toSeq),
       super.++(xs)
     )
   override def :+[U >: T, That](elem: U)(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =

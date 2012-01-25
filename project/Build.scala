@@ -33,7 +33,7 @@ object ReactiveBuild extends Build {
     (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
     }),
-    crossScalaVersions := List("2.8.1", /*"2.9.0-1",*/ "2.9.1"),
+    crossScalaVersions := List("2.8.1", "2.9.0-1", "2.9.1"),
     testOptions in Test += Tests.Argument("-oF")
   )
   val publishingDefaults = defaults ++ Seq(
