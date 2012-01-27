@@ -161,6 +161,7 @@ trait Signal[+T] extends Forwardable[T] {
    * for((v, isSuperseded) <- signal.zipWithStaleness) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
    */
   //TODO does this belong in Signal? Maybe only in EventStream? After all, it makes no sense for 'now' to include the staleness function; now._2() will always be false
+  //TODO maybe a better solution is takeUntil(s: Signal[_] | EventStream[_]), as in Rx for .NET
   def zipWithStaleness: Signal[(T, () => Boolean)] = new ChildSignal[T, WithVolatility[T], WithVolatility[T]](this, (now, new Volatility), identity) {
     override def debugName = parent.debugName+".zipWithStaleness"
     def parentHandler = {
@@ -172,6 +173,31 @@ trait Signal[+T] extends Forwardable[T] {
         v
     }
   }
+
+  /**
+   * Only available if this is a Signal[Seq[Signal[B]]] for some B, or a subtype thereof.
+   * Merges all the signals (including this one) into a single Signal[List[B]].
+   * @return a signal whose value is a List of all the values of the signals contained
+   *         in this signal, updated whenever either this signal changes or any
+   *         of the contained signals change.
+   * @example {{{
+   * val prices = BufferSignal(Var(2.50), Var(3.75), Var(99.99))
+   * val totalCost = prices.mergeAll map (_.sum)
+   * }}}
+   * @usecase def mergeAll[B]: Signal[List[B]]
+   */
+  def mergeAll[B](implicit ev: T <:< Seq[Signal[B]]): Signal[List[B]] = {
+    def cont(remaining: List[Signal[B]])(agg: List[B]): B => Signal[List[B]] = remaining match {
+      case Nil          => x => Val(x :: agg) // should only be called if remaining is originally Nil
+      case one :: Nil   => x => one map { _ :: x :: agg }
+      case next :: rest => x => next flatMap cont(rest)(x :: agg)
+    }
+    this flatMap {
+      case seq if seq.isEmpty => Val(Nil)
+      case seq                => seq.head flatMap cont(seq.tail.toList)(Nil)
+    }
+  }
+
   def debugName = "(%s: %s #%s)".format(toString, getClass(), System.identityHashCode(this))
 }
 

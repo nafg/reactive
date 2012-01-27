@@ -45,6 +45,20 @@ EventStream.prototype = {
         filtered.fire(v);
     });
     return filtered;
+  },
+  throttle : function(period) {
+    var throttled = new EventStream();
+    var last = undefined;
+    var onTimer = function() {
+      if(last !== undefined) throttled.fire(last);
+      last = undefined
+    }
+    var to = window.setTimeout(onTimer, period)
+    this.addListener(function(v) {
+      window.clearTimeout(to)
+      last = v
+      to = window.setTimeout(onTimer, period)
+    })
   }
 };
 JSON.stringify = JSON.stringify || function(v) {

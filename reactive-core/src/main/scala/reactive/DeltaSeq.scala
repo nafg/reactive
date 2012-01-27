@@ -142,7 +142,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
           case Include(i, e) =>
             val startIndex = map get i map (_.head) getOrElse buf.length
             val res = f(e)
-            val resSeq = res.toList
+            val resSeq: List[V] = res.toList
             resSeq.zipWithIndex foreach {
               case (v, j) =>
                 buf.insert(startIndex + j, v)

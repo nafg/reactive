@@ -35,7 +35,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   private var ajaxQueued = false
   def queueAjax = synchronized {
     init
-    if(!ajaxQueued) {
+    if (!ajaxQueued) {
       ajaxQueued = true
       foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax("+id+")"))
     }
@@ -119,6 +119,13 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * from the original javascript event stream with a filtering function.
    */
   def filter[F <% JsExp[JsFunction1[T, JsBoolean]]](f: F): JsEventStream[T] = child(JsExp.render(parent)+".filter("+JsExp.render(f)+")")
+
+  /**
+   * Returns a JsEventStream proxying a new javascript event stream, derived from this one,
+   * that only fires the events that are not followed by another event within ''period'' milliseconds.
+   */
+  def throttle(period: Long): JsEventStream[T] = child(JsExp.render(parent)+".throttle("+period.toString+")")
+
   //  def takeWhile(p: T=>Boolean): EventStream[T]
   //  def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U]
   //  def |[U>:T](that: EventStream[U]): EventStream[U]

@@ -3,10 +3,15 @@ package reactive
 import java.util.{Timer => juTimer, TimerTask}
 
 
-private object _timer extends juTimer {
+private object _timer extends juTimer("reactive-core timer thread", true) {
   def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit): TimerTask = {
     val tt = new java.util.TimerTask {def run = p}
     super.scheduleAtFixedRate(tt, delay, interval)
+    tt
+  }
+  def schedule(delay: Long)(p: =>Unit): TimerTask = {
+    val tt = new java.util.TimerTask {def run = p}
+    super.schedule(tt, delay)
     tt
   }
 }
@@ -18,7 +23,7 @@ private object _timer extends juTimer {
  * Events are fired on a java.util.Timer thread
  * @param startValue the value this signal counts up from. Defaults to 0.
  * @param interval the frequency at which to update the signal's value. Defaults to 1 second.
- * @param until a function called with each tick that should return true to terminate the timer. By default it will never termintate.
+ * @param until a function called with each tick that should return true to terminate the timer. By default it will never terminate.
  */
 class Timer(
   private val startValue: Long = 0,
@@ -38,7 +43,6 @@ class Timer(
     }
   }
 }
-
 
 
 /**

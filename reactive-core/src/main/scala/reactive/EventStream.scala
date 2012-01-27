@@ -168,6 +168,16 @@ trait EventStream[+T] extends Forwardable[T] {
    */
   def zipWithStaleness: EventStream[(T, () => Boolean)]
 
+  /**
+   * Returns an EventStream that only fires events that are not
+   * followed by another event within ''period'' milliseconds.
+   * For instance, if you want to display some results in response to
+   * the user typing, and you do not want to perform more work than
+   * necessary, you may want to wait until the user has not typed
+   * anything for a full second.
+   */
+  def throttle(period: Long): EventStream[T]
+  
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
 
@@ -216,6 +226,25 @@ class EventSource[T] extends EventStream[T] with Logger {
       val newES = Some(f(parentEvent))
       newES foreach { _ addListener thunk }
       newES
+    }
+  }
+
+  class Throttled(delay: Long) extends ChildEventSource[T, (Option[T], Long)](None -> System.currentTimeMillis) {
+    override def debugName = EventSource.this.debugName+".throttle("+delay+")"
+    private def onTimer {
+      val t1 = System.currentTimeMillis
+      state._1 match {
+        case Some(e) => fire(e)
+        case _       =>
+      }
+      state = None -> t1
+    }
+    var tt = _timer.schedule(delay)(onTimer)
+    def handler = {
+      case (event, _) =>
+        tt.cancel()
+        tt = _timer.schedule(delay)(onTimer)
+        Some(event) -> System.currentTimeMillis
     }
   }
 
@@ -383,6 +412,8 @@ class EventSource[T] extends EventStream[T] with Logger {
         Some(volatility)
     }
   }
+
+  def throttle(period: Long): EventStream[T] = new Throttled(period)
 
   def nonblocking: EventStream[T] = new ActorEventStream
 

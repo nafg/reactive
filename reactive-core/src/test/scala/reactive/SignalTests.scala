@@ -2,8 +2,11 @@ package reactive
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.prop.PropertyChecks
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
 
-class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
+class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with PropertyChecks {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -152,6 +155,35 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents {
     val nr = check(v.nonrecursive)
     val nb = check(v.nonblocking)
     v () = 20
+  }
+
+  test("mergeAll") {
+    val bufSig = BufferSignal(Var(1), Var(2), Var(3), Var(4))
+
+    val agg = bufSig.mergeAll map (_.sum)
+    agg.now should equal (10)
+    bufSig.value(2) () = 6
+    agg.now should equal (13)
+    bufSig.value += Var(20)
+    agg.now should equal (33)
+    bufSig.value remove 0
+    agg.now should equal (32)
+
+    // inserts and removes, i.e., containing signal change
+    forAll(Arbitrary.arbitrary[List[Int]], maxSize(10)) { xs =>
+      bufSig () = xs.map(Var(_))
+      agg.now should equal (xs.sum)
+
+      if (bufSig.value nonEmpty) {
+        // updates to member signals
+        forAll(Gen.choose(0, bufSig.value.length - 1), Arbitrary.arbitrary[Int]){
+          case (i, x) =>
+            bufSig.value(i) () = x
+            agg.now should equal (bufSig.now map (_.now) sum)
+        }
+      }
+    }
+
   }
 }
 

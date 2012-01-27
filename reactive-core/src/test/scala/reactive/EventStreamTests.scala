@@ -2,6 +2,7 @@ package reactive
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.ParallelTestExecution
 
 object CollectEvents extends CollectEvents
 //TODO fold trait into singleton, and change inheritance to imports
@@ -34,7 +35,7 @@ class LoggerTests extends FunSuite with ShouldMatchers with Observing {
   }
 }
 
-class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
+class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents with ParallelTestExecution {
   implicit val observing = new Observing {}
 
   test("hasListeners") {
@@ -63,7 +64,6 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
       childESs(1).fire(3)
       childESs(1).fire(4)
     } should equal (List(3, 4))
-
   }
 
   test("map") {
@@ -218,6 +218,23 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents {
       es fire 3
       es fire 2
     } should equal (List(0, 1, 2, 3, 2))
+  }
+
+  test("throttle") {
+    val es = new EventSource[Int]
+    val t = new es.Throttled(100)
+    collecting(t) {
+      es fire 7
+      Thread sleep 50
+      es fire 4
+      Thread sleep 50
+      es fire 9
+      Thread sleep 50
+      es fire 13
+      Thread sleep 110
+      es fire 6
+      Thread sleep 110
+    } should equal (List(13, 6))
   }
 }
 

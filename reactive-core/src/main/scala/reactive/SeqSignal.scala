@@ -43,7 +43,7 @@ object SeqSignal {
   }
 
   /**
-   * Given a Signal[Seq[A]], return an EventStream that fires the diff represeting every change.
+   * Given a Signal[Seq[A]], return an EventStream that fires the diff representing every change.
    */
   def diffStream[A](orig: Signal[Seq[A]],
                     diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc,
