@@ -2,6 +2,7 @@ package reactive
 
 import scala.ref.WeakReference
 import scala.util.DynamicVariable
+import scala.annotation.tailrec
 
 object EventSource {
   @deprecated("Use Logger.defaultLevel, this does nothing anymore")
@@ -177,7 +178,7 @@ trait EventStream[+T] extends Forwardable[T] {
    * anything for a full second.
    */
   def throttle(period: Long): EventStream[T]
-  
+
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
 
@@ -206,6 +207,11 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   @deprecated("Use logLevel or setLogLevel, this does nothing anymore")
   var debug = EventSource.debug
+
+  /**
+   * When n empty WeakReferences are found, purge them
+   */
+  protected val purgeThreshold = 10
 
   abstract class ChildEventSource[U, S](protected var state: S) extends EventSource[U] {
     private val parent = EventSource.this
@@ -313,7 +319,16 @@ class EventSource[T] extends EventStream[T] with Logger {
       )
     )
     trace(HasListeners(listeners))
-    listeners.foreach{ _.get.foreach(_(event)) }
+    var empty = 0
+    @tailrec def next(ls: List[WeakReference[T => Unit]]): Unit = ls match {
+      case Nil =>
+      case xs =>
+        val l = xs.head.get
+        if (l.isDefined) l.get apply event else empty += 1
+        next(ls.tail)
+    }
+    next(listeners)
+    if (empty >= purgeThreshold) listeners = listeners.filter(_.get.isDefined)
   }
 
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
@@ -419,7 +434,7 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
     trace(AddingListener(f))
-    listeners = listeners.filter(_.get.isDefined) :+ new WeakReference(f)
+    listeners :+= new WeakReference(f)
   }
   private[reactive] def removeListener(f: (T) => Unit): Unit = synchronized {
     //remove the last listener that is identical to f
