@@ -128,23 +128,7 @@ trait Signal[+T] extends Forwardable[T] {
    * The implementation delegates propagation to an actor (scala standard library), so
    * values are handled sequentially.
    */
-  def nonblocking: Signal[T] = new ChildSignal[T, T, Unit](this, now, _ => now) {
-    override def debugName = parent.debugName+".nonblocking"
-    import scala.actors.Actor._
-    private val delegate = actor {
-      loop {
-        receive {
-          case x: T =>
-            current = x
-            change.fire(x)
-        }
-      }
-    }
-    def parentHandler = {
-      case (x, _) =>
-        delegate ! x
-    }
-  }
+  def nonblocking: Signal[T] = new NonBlockingSignal[T](this)
 
   /**
    * Returns a tuple-valued Signal whose value includes a function for testing staleness.
@@ -228,6 +212,24 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
     val u = f(x)
     current = u
     change.fire(u)
+  }
+}
+
+protected class NonBlockingSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
+  override def debugName = parent.debugName+".nonblocking"
+  import scala.actors.Actor._
+  private val delegate = actor {
+    loop {
+      receive {
+        case x: T =>
+          current = x
+          change.fire(x)
+      }
+    }
+  }
+  def parentHandler = {
+    case (x, _) =>
+      delegate ! x
   }
 }
 
