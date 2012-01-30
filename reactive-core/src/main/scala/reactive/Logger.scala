@@ -22,12 +22,12 @@ object Logger {
   }
 
   private[reactive] val allES = new EventSource[(Levels.Value, Logger#LogEvent)] {}
-  private val eventStreams = Levels.values.map(level => (level -> allES.collect{case (`level`,e) => e})).toMap
+  private val eventStreams = Levels.values.map(level => (level -> allES.collect{ case (`level`, e) => e })).toMap
 
   /**
    * Fires all semantic events, as a level -> LogEvent tuple
    */
-  def all: EventStream[(Levels.Value,Logger#LogEvent)] = allES
+  def all: EventStream[(Levels.Value, Logger#LogEvent)] = allES
   /**
    * Fires all trace LogEvents
    */
@@ -53,12 +53,9 @@ object Logger {
  * event streams in the Logger singleton
  */
 trait Logger {
-  /**
-   * Logger implementations should define case class subclasses of LogEventPredicate
-   * for each semantic event, containing the relevant information
-   */
+  @deprecated("No longer needed; predicates can be Any")
   trait LogEventPredicate
-  case class LogEvent(subject: AnyRef, predicate: LogEventPredicate)
+  case class LogEvent(subject: AnyRef, predicate: Any)
 
   var logLevel: Logger.Levels.Value = Logger.defaultLevel
   /**
@@ -79,20 +76,20 @@ trait Logger {
   /**
    * Log a semantic event at the specified level
    */
-  def log(level: Logger.Levels.Value, pred: =>LogEventPredicate): Unit =
-    if(logLevel != null && logLevel.id <= level.id)
+  def log(level: Logger.Levels.Value, pred: => Any): Unit =
+    if (logLevel != null && logLevel.id <= level.id)
       Logger.allES fire level -> LogEvent(subject, pred)
 
   /**
    * Log a semantic event at the trace level
    */
-  def trace(pred: =>LogEventPredicate) = log(Logger.Levels.Trace, pred)
+  def trace(pred: => Any) = log(Logger.Levels.Trace, pred)
   /**
    * Log a semantic event at the warning level
    */
-  def warn(pred: =>LogEventPredicate) = log(Logger.Levels.Warn, pred)
+  def warn(pred: => Any) = log(Logger.Levels.Warn, pred)
   /**
    * Log a semantic event at the error level
    */
-  def error(pred: =>LogEventPredicate) = log(Logger.Levels.Error, pred)
+  def error(pred: => Any) = log(Logger.Levels.Error, pred)
 }
