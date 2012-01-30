@@ -17,26 +17,19 @@ import scala.collection.mutable.WeakHashMap
  */
 //TODO better name? It is not an EventSource; only wraps a JsEventStream
 class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[T] with Logger with JsForwardable[JsObj] {
-  class Renderer(implicit page: Page) extends (NodeSeq => NodeSeq) {
-    /**
-     * Adds asAttribute to an Elem.
-     * If an attribute exists with the same name, combine the two values,
-     * separated by a semicolon.
-     */
-    def apply(elem: Elem): Elem = {
+  /**
+   * Adds asAttribute to an Elem.
+   * If an attribute exists with the same name, combine the two values,
+   * separated by a semicolon.
+   */
+  class Renderer(implicit page: Page)
+    extends ElemFuncWrapper({ elem =>
       val a = asAttribute
       elem.attribute(a.key) match {
-        case None     => elem % asAttribute
+        case None     => elem % a
         case Some(ns) => elem % new xml.UnprefixedAttribute(a.key, ns.text+";"+a.value.text, xml.Null)
       }
-    }
-    /**
-     * Like apply(Elem). Needed to extend NodeSeq=>NodeSeq, for use with binding/css selectors.
-     * Forces `in` to an Elem by calling nodeSeqToElem (in the package object)
-     */
-    def apply(in: NodeSeq): NodeSeq = apply(nodeSeqToElem(in))
-
-  }
+    })
 
   /**
    * The JsEventStream that fires the primary event data

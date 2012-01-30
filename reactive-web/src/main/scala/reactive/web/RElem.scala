@@ -11,6 +11,22 @@ import net.liftweb.actor._
 import scala.xml._
 
 /**
+ * Wraps an `Elem=>Elem` as a `NodeSeq=>NodeSeq` for compatibility
+ * with Lift binding / css selectors.
+ * You can also use it as an `Elem=>Elem` by explicitly calling
+ * the `apply(Elem): Elem` overload.
+ */
+class ElemFuncWrapper(renderer: Elem => Elem) extends (NodeSeq => NodeSeq) {
+  def apply(elem: Elem): Elem = renderer(elem)
+  /**
+   * Like `apply(Elem)`. Needed to implement `(NodeSeq=>NodeSeq)`,
+   * as required by Lift's binding/css selectors.
+   * Forces `ns` to an `Elem` by calling `nodeSeqToElem` (in the reactive.web package object)
+   */
+  def apply(ns: NodeSeq): NodeSeq = apply(nodeSeqToElem(ns))
+}
+
+/**
  * This singleton provides some useful things, including factories for creating RElems from standard Scala types.
  */
 object RElem {
@@ -133,13 +149,13 @@ trait RElem extends PageIds {
    * children and attributes, as well as attributes for the
    * properties and events.
    */
-  def toNSFunc(implicit page: Page) = new Renderer(this)(renderer)(page)
+  def toNSFunc(implicit page: Page) = new ElemFuncWrapper(renderer(page))
 
   protected def renderer(implicit page: Page): Elem => Elem = e => {
-    val elem = baseElem.copy(
+    val elem = addPage(baseElem.copy(
       child = e.child ++ baseElem.child,
       attributes = e.attributes append baseElem.attributes
-    )
+    ))
     val withProps = properties.foldLeft(elem) {
       case (e, prop) => prop.render(e)(page)
     }

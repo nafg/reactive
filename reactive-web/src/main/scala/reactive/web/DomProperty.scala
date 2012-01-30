@@ -15,15 +15,15 @@ import scala.ref.WeakReference
  */
 class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig) extends PageIds {
   class PropertyRenderer(attributeValue: String => Option[String] = _ => None)(implicit page: Page)
-    extends Renderer(this)(elem => includedEvents.foldLeft(
-      elem %
+    extends ElemFuncWrapper(elem => includedEvents.foldLeft(
+      addPage(elem) %
         attributeValue(attributeName).map(
           new UnprefixedAttribute(attributeName, _, Null)
         ).getOrElse(Null)
     ) { (e, es) =>
         es.render(page)(e)
       }
-    )(page)
+    )
 
   /**
    * The name when this property is rendered as an attribute.
