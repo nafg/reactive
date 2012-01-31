@@ -6,9 +6,15 @@ import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
 import javascript._
 
 /**
- * Instances of this trait specify how to transport element property values to and from the client.
+ * Instances of this trait specify how to encode element property values to the client
+ * and decode them from the client.
+ * There should be one instance for each DOM attribute data type.
+ * PropertyCodec is not for general purpose type conversions. For example,
+ * if you want to edit numerical ranges such as "2,5-7" in a text field,
+ * you would not have a PropertyVar and PropertyCodec of some custom type.
+ * Rather, you would use a PropertyVar[String] and the provided PropertyCodec[String],
+ * and then externally synchronize the PropertyVar with your custom representation.
  * @tparam T the Scala type representation
- * @tparam C the context --- used to distinguish between several PropertyCodecs of the same type
  */
 trait PropertyCodec[T] {
   /**
@@ -57,31 +63,93 @@ object PropertyCodec {
 
 object PropertyVar {
   /**
-   * Wrap a DomProperty as a type-safe Var.
-   * @param dom the DomProperty to wrap
-   * @param init the initial value (rendered in the attribute)
+   * Intermediate step in creating a PropertyVar.
+   * The PropertVarFactory has the underlying stateless DomProperty
+   * and provides several apply methods to instantiate a PropertyVar that wraps it.
    */
-  def apply[T](dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](dom)(init)(codec, observing)
+  class PropertyVarFactory(dom: DomProperty) {
+    /**
+     * A `PropertyVar` synced from a `Signal`
+     * @tparam A        The type of the `Signal` and the returned `PropertyVar`
+     * @param  signal   A signal whose value the `PropertyVar` should reflect
+     * @return          A `PropertyVar[A]` with the specified time-varying value
+     * @example {{{PropertyVar.value fromSignal mySignal}}}
+     */
+    def fromSignal[A](signal: Signal[A])(implicit codec: PropertyCodec[A], observing: Observing): PropertyVar[A] = new PropertyVar[A](dom)(signal.now) <<: signal
+
+    /**
+     * A function that renders a `PropertyVar` synced from a `Signal` based on the attribute's initial value
+     * @tparam A        The type of the attribute/property for which an (implicit) `PropertyCodec` is available
+     * @param  f        A function from the optional current attribute value (at the time of rendering) to the desired time-varying value
+     * @return          An `ElemFuncWrapper` (which extends `NodeSeq=>NodeSeq`) that renders a `PropertyVar` according to `f`.
+     * @example {{{
+     *  // See also PropertyVar.appendClass, which is a convenient shortcut for the following
+     *  PropertyVar.className transform { s: Option[String] =>
+     *    valid.map(if(_) s.getOrElse("") else s.getOrElse("")+" invalid")  // add 'invalid' class to existing class attribute value
+     *  }
+     * }}}
+     */
+    def transform[A](f: Option[A] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
+      val s = f(elem.attributes.asAttrMap get dom.attributeName map codec.fromString)
+      new PropertyVar[A](dom)(s.now) <<: s render elem
+    })
+
+    /**
+     * A PropertyVar initialized with a plain value
+     * @tparam T   The type of the PropertyVar and PropertyCodec
+     * @tparam A   The type of init
+     * @param init The initial value to apply the PropertyVarInit to.
+     * @return     A PropertyVar with the specified constant value.
+     * @example {{{PropertyVar("size")(80)}}}
+     */
+    def apply[A](init: A)(implicit codec: PropertyCodec[A], observing: Observing): PropertyVar[A] = new PropertyVar[A](dom)(init)
+  }
 
   /**
-   * Wrap a new DomProperty as a type-safe Var.
-   * @param name the name of the DomProperty to create and wrap
-   * @param init the initial value (rendered in the attribute)
+   * Returns a PropertyVarFactory.
+   * @example PropertyVar(dom)(init)
+   * @param dom the DomProperty to wrap
    */
-  def apply[T](name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] = new PropertyVar[T](name)(init)(codec, observing)
+  def apply(dom: DomProperty) = new PropertyVarFactory(dom)
+
   /**
-   * Wraps a new DomProperty as a type-safe Var.
-   * @param name the name of the DomProperty to create and wrap
-   * @param attributeName the name of the attribute rendered by the DomProperty
-   * @param init the initial value (rendered in the attribute)
+   * Returns a PropertVarFactory.
+   * @example PropertyVar(name)(init)
+   * @param name the attribute and property name of the DomProperty
    */
-  def apply[T](name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing): PropertyVar[T] =
-    new PropertyVar[T](name, attributeName)(init)(codec, observing)
+  def apply[T](name: String) = new PropertyVarFactory(DomProperty(name))
+  /**
+   * Returns a PropertyVarFactory.
+   * @example PropertyVar(name, attrName)(init)
+   * @param name the property name of the DomProperty (used for javascript reads and writes)
+   * @param attributeName the attribute name of the DomProperty (used for initial rendering of element)
+   */
+  def apply[T](name: String, attributeName: String) = new PropertyVarFactory(DomProperty(name, attributeName))
 
   /**
    * An implicit conversion from PropertyVar to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
   implicit def toNodeSeqFunc(dp: PropertyVar[_])(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
+
+  /**
+   * Convenience shortcut for PropertyVar("value"), i.e., returns a PropertyVarFactory for the value attribute/property
+   */
+  def value = apply("value")
+
+  /**
+   * Convenience shortcut for PropertyVar("className", "class"), i.e., returns a PropertyVarFactory for the className property / class attribute
+   */
+  def className = apply("className", "class")
+
+  /**
+   * Convenience shortcut to append optional text to the class attribute based on a Signal[String].
+   * Note that multiple invocations of appendClass for the same element will override each other,
+   * so you should unify all the classes you may want to add in one appendClass invocation.
+   * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) })
+   */
+  def appendClass(s: Signal[Option[String]])(implicit observing: Observing, page: Page) = className transform { cs: Option[String] =>
+    s map { _ map { c => cs.filter(_.nonEmpty) map (_+" "+c) getOrElse c } getOrElse cs.getOrElse(""): String }
+  }
 }
 
 /**
@@ -99,6 +167,7 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * @param name the name of the DomProperty to create and wrap
    * @param init the initial value (rendered in the attribute)
    */
+  @deprecated("Use the factory: PropertyVar(name)(init)")
   def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) = this(DomProperty(name))(init)(codec, observing)
   /**
    * Wraps a new DomProperty as a type-safe Var.
@@ -106,6 +175,7 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * @param attributeName the name of the attribute rendered by the DomProperty
    * @param init the initial value (rendered in the attribute)
    */
+  @deprecated("Use the factory: PropertyVar(name, attributeName)(init)")
   def this(name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) =
     this(DomProperty(name, attributeName))(init)(codec, observing)
 
