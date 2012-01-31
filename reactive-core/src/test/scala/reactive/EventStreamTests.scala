@@ -223,18 +223,31 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
   test("throttle") {
     val es = new EventSource[Int]
     val t = new es.Throttled(100)
-    collecting(t) {
-      es fire 7
-      Thread sleep 50
-      es fire 4
-      Thread sleep 50
-      es fire 9
-      Thread sleep 50
-      es fire 13
-      Thread sleep 110
-      es fire 6
-      Thread sleep 110
-    } should equal (List(13, 6))
+    def pause(idealTime: Long, test: Long => Boolean)(cont: => Boolean): Boolean = {
+      val t = System.currentTimeMillis
+      Thread sleep idealTime
+      test(System.currentTimeMillis() - t) && cont
+    }
+    var done = false
+    do {
+      val collected = collecting(t) {
+        es fire 7
+        done = pause(50, _ < 100) {
+          es fire 4
+          pause(50, _ < 100) {
+            es fire 9
+            pause(50, _ < 100) {
+              es fire 13
+              pause(110, _ > 100) {
+                es fire 6
+                pause(110, _ > 100) (true)
+              }
+            }
+          }
+        }
+      }
+      if (done) collected should equal (List(13, 6))
+    } while (!done)
   }
 }
 
