@@ -4,6 +4,7 @@ import scala.xml.{ Elem, Group, Node, NodeSeq }
 import net.liftweb.http.{ js, SHtml, S }
 import js.JE.{ JsRaw, Str }
 import js.JsCmds
+import web.javascript.{ JsExp, JsTypes, =|> }
 
 /**
  * reactive-web package
@@ -55,6 +56,37 @@ package object web {
    */
   def alert(message: String)(implicit page: Page) = javascript.Javascript {
     javascript.window.alert(message)
+  }
+
+  /**
+   * Add a javascript event handler
+   * @tparam e the event type (must be written explicitly)
+   * @param f the javascript function expression (can be implicity converted via the javascript dsl; see example)
+   * @return a DomEventSource
+   * @example
+   * {{{
+   *   on[Click]{ x: JsExp[JsObj] =>
+   *     Return(false)
+   *   }
+   * }}}
+   */
+  def on[E <: DomEvent](f: JsExp[JsTypes.JsObj =|> JsTypes.JsVoid])(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing) = {
+    val des = new DomEventSource[E]
+    des foreach f
+    des
+  }
+  /**
+   * Add a server (ajax) event handler
+   * @tparam e the event type (note that this can be inferred from the type of ''f'')
+   * @param f the function that handles the event
+   * @return a DomEventSource
+   * @example
+   * {{{ onServer { _: Click => save() } }}}
+   */
+  def onServer[E <: DomEvent](f: E => Unit)(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing) = {
+    val des = new DomEventSource[E]
+    des foreach f
+    des
   }
 
   private[web] def trimNodeSeq(ns: NodeSeq): NodeSeq = {

@@ -84,11 +84,13 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[
    * such as by calling DomEventSource#eventStream),
    * propagate the event to the server
    */
-  def propagateJS(implicit page: Page): String = {
+  def js(implicit page: Page): String = {
     (getEventObjectData(page) :: eventData.getOrElse(page, Nil)).map{
       case EventData(enc, es) => JsExp render es.fireExp(enc)
     }.mkString(";")+";reactive.doAjax()"
   }
+  @deprecated("Use js")
+  final def propagateJS(implicit page: Page) = js
 
   /**
    * Returns an attribute that will register a handler with the event.
@@ -96,7 +98,7 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[
    */
   def asAttribute(implicit page: Page): MetaData = new UnprefixedAttribute(
     attributeName,
-    propagateJS,
+    js,
     xml.Null
   )
 
