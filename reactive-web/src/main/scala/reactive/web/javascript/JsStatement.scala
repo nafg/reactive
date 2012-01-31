@@ -11,6 +11,21 @@ object Javascript {
   }
 }
 
+object Ajax {
+  def apply[J <: JsAny, S](f: S => Unit)(implicit fromJs: FromJs[J, S], page: Page): $[J =|> JsVoid] = {
+    val id = page.nextNumber
+    page.ajaxEvents ?>> {
+      case (_id, json) if _id == id.toString =>
+        f(fromJs.parser(json))
+    }
+    JsRaw(
+      "function(arg){reactive.queueAjax("+id+")("+
+        JsExp.render(fromJs.encoder(JsRaw[J]("arg"))+
+          ");reactive.doAjax()}")
+    )
+  }
+}
+
 /**
  * A scala representation of a javascript statement.
  * On instantiation, puts itself on the current JsStatement stack.
@@ -42,7 +57,7 @@ object JsStatement {
   def indentStr = indent.value.map(" " * _).getOrElse("")
   def nl = indent.value.map(_ => "\n") getOrElse ""
   private val renderMatch: Match[_] => String = m =>
-    "case "+JsExp.render(m.against)+":"+nl+m.code.map(indentAndRender).mkString(";"+nl)+";"+nl
+    "case "+JsExp.render(m.against)+":"+nl + m.code.map(indentAndRender).mkString(";"+nl)+";"+nl
   private def varsFirst(stmts: Seq[JsStatement]) = {
     val (vars, others) = stmts partition (_.isInstanceOf[JsVar[_]])
     vars ++ others
@@ -58,10 +73,10 @@ object JsStatement {
     case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+JsExp.render(ei.cond)+") "+render(ei.body)
     case s: Apply1[_, _]                 => s.render
     case s: ApplyProxyMethod[_]          => s.render
-    case b: Block                        => if(b.body.isEmpty) "{}" else varsFirst(b.body).map(indentAndRender).mkString("{"+nl, ";"+nl, nl + indentStr+"}")
+    case b: Block                        => if (b.body.isEmpty) "{}" else varsFirst(b.body).map(indentAndRender).mkString("{"+nl, ";"+nl, nl + indentStr+"}")
     case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
     case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+JsExp.render(dw.cond)+")"
-    case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl+s.matches.map(renderMatch).mkString+"}"
+    case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl + s.matches.map(renderMatch).mkString+"}"
     case b: Break                        => "break"
     case v: JsVar[_]                     => "var "+v.ident.name
     case a: Assignable[_]#Assignment     => a.ident+"="+JsExp.render(a.init)

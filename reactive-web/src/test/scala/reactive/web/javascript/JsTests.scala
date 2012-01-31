@@ -36,9 +36,9 @@ class JsTests extends FunSuite with ShouldMatchers {
   test("JsStub") {
     sealed trait obj extends JsStub {
       def method(s: $[JsString]): $[JsString]
-      def self: obj
-      def nullary(): $[JsVoid]
-      val prop: Assignable[JsNumber]
+      var self: obj
+      def nullary: $[JsVoid]
+      def prop: Assignable[JsNumber]
     }
     val obj = $$[obj]
     Page.withPage(new Page) {
@@ -46,19 +46,18 @@ class JsTests extends FunSuite with ShouldMatchers {
         Javascript {
           obj.method(obj.method("This is a scala string"))
           val v = JsVar[JsObj] := obj.self
-          obj.nullary()
+          obj.nullary
           obj.prop := 2
           obj.get("otherProp") := "xyz"
         }
-      }.js.map(_.toJsCmd) should equal (List(
-
+      }.js.map(_.toJsCmd) zip List(
         "obj.method(obj.method(\"This is a scala string\"))",
         "var x$0",
         "x$0=obj.self",
         "obj.nullary()",
         "obj.prop=2",
         """obj["otherProp"]="xyz""""
-      ))
+      ) foreach { case (a, b) => a should equal (b) }
     }
   }
 
@@ -119,8 +118,12 @@ class JsTests extends FunSuite with ShouldMatchers {
       myFunc(10)
       Page.withPage(new Page) {
         val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
+
+        val myAjax = Ajax{ x: String => println("Got "+x) }
+        myAjax("Hello server!")
       }
     }
+    val rendered = theStatements map JsStatement.render
 //    theStatements map JsStatement.render foreach println
     val target = List(
       """if(true) {window.alert("True")} else if(false) {window.alert("False")} else {if(true) {} else {}}""",
@@ -134,8 +137,10 @@ class JsTests extends FunSuite with ShouldMatchers {
       """try {throw "message"} catch(x$2) {} finally {}""",
       """function myFunc(arg0){if((arg0>10)) {window.alert("Greater")} else {window.alert("Small")}}""",
       "myFunc(10)",
-      "function f$0(arg0){return (arg0>10)}"
+      "function f$0(arg0){return (arg0>10)}",
+      """function(arg){reactive.queueAjax(1)((window.JSON.stringify(arg)+");reactive.doAjax()}")("Hello server!")"""
     )
-    theStatements map JsStatement.render zip target foreach { case (s, t) => s should equal (t) }
+    rendered.length should equal (target.length)
+    rendered zip target foreach { case (s, t) => s should equal (t) }
   }
 }

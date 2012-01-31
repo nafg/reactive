@@ -61,6 +61,7 @@ object RElem {
    * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
    * runs the provided function in the client scope. Exceptions are intercepted.
    */
+  @deprecated("Not supported, to be removed in the future")
   def ajaxFunc(f: String => Unit): S.AFuncHolder = S.LFuncHolder {
     case Nil => JsCmds.Noop
     case s :: _ => Reactions.inLocalScope {

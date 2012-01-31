@@ -2,6 +2,8 @@ package reactive
 package web
 package javascript
 
+import net.liftweb.json._
+
 /**
  * Contains types that model javascript types.
  * These classes cannot be instantiated.
@@ -33,7 +35,7 @@ object JsExp extends ToJsHigh {
    */
   def render(e: JsExp[_]): String = e match {
     case null => "null"
-    case e => e.render
+    case e    => e.render
   }
 }
 
@@ -183,6 +185,28 @@ object ToJs {
   }
   class To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] {
     type From[S] = ToJs[S, J, E]
+  }
+}
+
+/**
+ * A typeclass to convert a JsExp to a scala value
+ * @param encoder a scala function that provides a
+ *                JsExp[JsString] for the desired JsExp
+ *                in JSON format.
+ *                For instance the default implicit instance calls JSON.stringify.
+ * @param parser a scala function that converts the lift-json JValue a scala
+ *               object of the desired type. For instance the default implicit instance
+ *               calls extract on it, with whichever Formats and manifest are
+ *               pulled from the implicit scope.
+ */
+class FromJs[-J <: JsAny, S](val encoder: JsExp[J] => JsExp[JsString], val parser: JsonAST.JValue => S)
+object FromJs {
+  implicit def parseJson[J <: JsAny, S](implicit formats: Formats = DefaultFormats, m: Manifest[S]): FromJs[J, S] = new FromJs[J, S](
+    window.JSON.stringify,
+    _.extract(formats, m)
+  )
+  trait From[J <: JsAny] {
+    type To[S] = FromJs[J, S]
   }
 }
 

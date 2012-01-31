@@ -56,29 +56,26 @@ package object javascript {
         ident
       else {
         findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
-          if (classOf[JsStub] isAssignableFrom method.getReturnType()) {
-            val id = ident+"."+method.getName()
-            val ih = new StubInvocationHandler(id) {
+          val proxy =
+            if (args.isEmpty && (
+              classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
+              clazz.getMethods.exists(_.getName == method.getName+"_$eq")
+            )) {
+              new ProxyField(ident, method.getName)
+            } else {
+              new ApplyProxyMethod(ident, method, clazz, args)
+            }
+
+          if (!(classOf[JsStub] isAssignableFrom method.getReturnType())) proxy
+          else java.lang.reflect.Proxy.newProxyInstance(
+            getClass.getClassLoader,
+            method.getReturnType().getInterfaces :+ method.getReturnType(),
+            new StubInvocationHandler(proxy.render) {
               override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
                 super.invoke(proxy, method, args)
               }
             }
-            java.lang.reflect.Proxy.newProxyInstance(
-              getClass.getClassLoader,
-              method.getReturnType().getInterfaces :+ method.getReturnType(),
-              ih
-            )
-          } else {
-            def hasField = try {
-              clazz.getField(method.getName); true
-            } catch {
-              case _: NoSuchFieldException => false
-            }
-            if (args.isEmpty && classOf[Assignable[_]].isAssignableFrom(method.getReturnType()))
-              new ProxyField(ident, method.getName)
-            else
-              new ApplyProxyMethod(ident, method, clazz, args)
-          }
+          )
         }
       }
     }
