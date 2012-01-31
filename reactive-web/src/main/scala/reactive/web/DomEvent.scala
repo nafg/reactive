@@ -3,69 +3,80 @@ package web
 
 import javascript._
 import net.liftweb.http.S
+import JsTypes._
+import net.liftweb.json.Serialization
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.DefaultFormats
 
 /**
  * Implicit instances of EventEncoder are associated with DomEvents
  * to provide a javascript object initializer expression
  * that consists of the relevant data in the browser's Event object.
  */
-class EventEncoder[T <: DomEvent](val encodeExp: $[JsTypes.JsObj])
+//TODO just use FromJs
+class EventEncoder[T <: DomEvent](val encodeExp: $[JsObj] => $[JsObj])
 
 object EventEncoder {
   val empty = Map.empty.$
-  implicit val blur = new EventEncoder[Blur](empty)
-  implicit val change = new EventEncoder[Change](empty)
-  implicit val error = new EventEncoder[Error](empty)
-  implicit val focus = new EventEncoder[Focus](empty)
-  implicit val resize = new EventEncoder[Resize](empty)
-  implicit val unload = new EventEncoder[Unload](empty)
+  implicit val blur = new EventEncoder[Blur](_ => empty)
+  implicit val change = new EventEncoder[Change](_ => empty)
+  implicit val error = new EventEncoder[Error](_ => empty)
+  implicit val focus = new EventEncoder[Focus](_ => empty)
+  implicit val resize = new EventEncoder[Resize](_ => empty)
+  implicit val unload = new EventEncoder[Unload](_ => empty)
 
-  val modifiers = Map[String, $[JsTypes.JsAny]](
-    "alt" -> ('event.$ -> 'altKey.$),
-    "ctrl" -> ('event.$ -> 'ctrlKey.$),
-    "shift" -> ('event.$ -> 'shiftKey.$),
-    "meta" -> ('event.$ -> 'metaKey.$)
+  def modifiers(event: $[JsObj]) = Map[String, $[JsAny]](
+    "alt" -> (event -> 'altKey.$),
+    "ctrl" -> (event -> 'ctrlKey.$),
+    "shift" -> (event -> 'shiftKey.$),
+    "meta" -> (event -> 'metaKey.$)
   )
-  val modifiersOnly = Map[String, $[JsTypes.JsAny]]("modifiers" -> modifiers.$)
-  implicit val click = new EventEncoder[Click](modifiersOnly.$)
-  implicit val dblClick = new EventEncoder[DblClick](modifiersOnly.$)
-  implicit val selectText = new EventEncoder[SelectText](modifiersOnly.$)
+  def modifiersOnly(event: $[JsObj]) = Map[String, $[JsAny]]("modifiers" -> modifiers(event))
+  implicit val click = new EventEncoder[Click](modifiersOnly)
+  implicit val dblClick = new EventEncoder[DblClick](modifiersOnly)
+  implicit val selectText = new EventEncoder[SelectText](modifiersOnly)
 
-  val key = Map[String, $[JsTypes.JsAny]](
-    "code" -> (('event.$ -> 'keyCode.$) || ('event.$ -> 'charCode.$)),
-    "modifiers" -> modifiers.$
+  def key(event: $[JsObj]) = Map[String, $[JsAny]](
+    "code" -> ((event -> 'keyCode.$) || (event -> 'charCode.$)),
+    "modifiers" -> modifiers(event)
   )
-  implicit val keyDown = new EventEncoder[KeyDown](key.$)
-  implicit val keyUp = new EventEncoder[KeyUp](key.$)
-  implicit val keyPress = new EventEncoder[KeyPress](key.$)
+  implicit val keyDown = new EventEncoder[KeyDown](key)
+  implicit val keyUp = new EventEncoder[KeyUp](key)
+  implicit val keyPress = new EventEncoder[KeyPress](key)
 
-  def buttons: Map[String, $[JsTypes.JsAny]] = if (S.request.dmap(false)(_.isIE)) Map(
-    "left" -> (('event.$ -> 'buttons.$) & 1.$ !== 0.$),
-    "middle" -> (('event.$ -> 'buttons.$) & 4.$ !== 0.$),
-    "right" -> (('event.$ -> 'buttons.$) & 2.$ !== 0.$),
-    "modifiers" -> modifiers.$
+  def buttons(event: $[JsObj]): Map[String, $[JsAny]] = if (S.request.dmap(false)(_.isIE)) Map(
+    "left" -> ((event -> 'buttons.$) & 1 !== 0),
+    "middle" -> ((event -> 'buttons.$) & 4 !== 0),
+    "right" -> ((event -> 'buttons.$) & 2 !== 0),
+    "modifiers" -> modifiers(event)
   )
   else Map(
-    "left" -> (('event.$ -> 'buttons.$) === 0.$),
-    "middle" -> (('event.$ -> 'buttons.$) === 1.$),
-    "right" -> (('event.$ -> 'buttons.$) === 2.$),
-    "modifiers" -> modifiers.$
+    "left" -> ((event -> 'buttons.$) === 0),
+    "middle" -> ((event -> 'buttons.$) === 1),
+    "right" -> ((event -> 'buttons.$) === 2),
+    "modifiers" -> modifiers(event)
   )
-  def mouse: Map[String, $[JsTypes.JsAny]] = Map(
-    "buttons" -> buttons.$,
-    "pos" -> Map[String, $[JsTypes.JsAny]](
-      "x" -> ('event.$ -> 'clientX.$),
-      "y" -> ('event.$ -> 'clientY.$)
+  def mouse(event: $[JsObj]): Map[String, $[JsAny]] = Map(
+    "buttons" -> buttons(event),
+    "pos" -> Map[String, $[JsAny]](
+      "x" -> (event -> 'clientX.$),
+      "y" -> (event -> 'clientY.$)
     ).$
   )
-  implicit def mouseDown = new EventEncoder[MouseDown](mouse.$)
-  implicit def mouseUp = new EventEncoder[MouseUp](mouse.$)
-  implicit def mouseMove = new EventEncoder[MouseMove](mouse.$)
+  implicit def mouseDown = new EventEncoder[MouseDown](mouse)
+  implicit def mouseUp = new EventEncoder[MouseUp](mouse)
+  implicit def mouseMove = new EventEncoder[MouseMove](mouse)
 
-  implicit def mouseOut = new EventEncoder[MouseOut](mouse.$) //TODO related 
-  implicit def mouseOver = new EventEncoder[MouseOver](mouse.$) //TODO related
+  implicit def mouseOut = new EventEncoder[MouseOut](mouse) //TODO related
+  implicit def mouseOver = new EventEncoder[MouseOver](mouse) //TODO related
 }
 
+object DomEvent {
+  implicit def fromJs[E <: DomEvent: Manifest: EventEncoder]: FromJs[JsObj, E] = new FromJs[JsObj, E](
+    e => window.JSON.stringify(implicitly[EventEncoder[E]].encodeExp(e)),
+    _.extract(DefaultFormats, manifest[E])
+  )
+}
 /**
  * The base class for all events
  */
