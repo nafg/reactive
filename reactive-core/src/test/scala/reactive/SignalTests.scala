@@ -157,10 +157,10 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
     v () = 20
   }
 
-  test("mergeAll") {
+  test("sequence") {
     val bufSig = BufferSignal(Var(1), Var(2), Var(3), Var(4))
 
-    val agg = bufSig.mergeAll map (_.sum)
+    val agg = bufSig.sequence map (_.sum)
     agg.now should equal (10)
     bufSig.value(2) () = 6
     agg.now should equal (13)

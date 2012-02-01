@@ -166,11 +166,11 @@ trait Signal[+T] extends Forwardable[T] {
    *         of the contained signals change.
    * @example {{{
    * val prices = BufferSignal(Var(2.50), Var(3.75), Var(99.99))
-   * val totalCost = prices.mergeAll map (_.sum)
+   * val totalCost = prices.sequence map (_.sum)
    * }}}
-   * @usecase def mergeAll[B]: Signal[List[B]]
+   * @usecase def sequence[B]: Signal[List[B]]
    */
-  def mergeAll[B](implicit ev: T <:< Seq[Signal[B]]): Signal[List[B]] = {
+  def sequence[B](implicit ev: T <:< Seq[Signal[B]]): Signal[List[B]] = {
     def cont(remaining: List[Signal[B]])(agg: List[B]): B => Signal[List[B]] = remaining match {
       case Nil          => x => Val(x :: agg) // should only be called if remaining is originally Nil
       case one :: Nil   => x => one map { _ :: x :: agg }
