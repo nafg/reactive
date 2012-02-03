@@ -1,5 +1,5 @@
 {
-  val liftVersion = "2.4-SNAPSHOT"
+  val liftVersion = "2.5-SNAPSHOT"
   libraryDependencies ++= Seq(
     "javax.servlet" % "servlet-api" % "2.5" % "test",
     "net.liftweb" %% "lift-testkit" % liftVersion withSources,
