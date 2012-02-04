@@ -1,7 +1,4 @@
-package reactive
-package web
-package html
-package components
+package reactive.web.html.widgets
 
 import scala.xml._
 import reactive._
@@ -18,7 +15,7 @@ import net.liftweb.util._
 import Helpers._
 import scala.annotation.tailrec
 
-class Autocomplete[T](
+class AutoComplete[T](
   updateItems: String => Seq[T],
   renderItem: T => String = { t: T => t.toString })(implicit observing: Observing,
     config: CanRenderDomMutationConfig) extends RElem with Logger {
@@ -41,7 +38,7 @@ class Autocomplete[T](
 
   protected val style = <style type="text/css">{
     "." + autocompleteCssClass + " ." + emptyCssClass + " {display: none;}\n" +
-    "." + autocompleteCssClass + " {position: relative; width: 30%;}\n" +
+      "." + autocompleteCssClass + " {position: relative; width: 30%;}\n" +
       "." + inputCssClass + " {width: 100%; margin-bottom: 0 !important;}\n" +
       "." + selectedCssClass + " {background-color: " + selectedColor + ";}\n" +
       "." + candidatesContCssClass + """ {
@@ -55,70 +52,47 @@ class Autocomplete[T](
 
   protected lazy val items = BufferSignal[T]()
 
-  protected val input = new TextInput {
+  val input = new TextInput {
     override def baseElem =
       <input type="text" autocomplete="off" class={ inputCssClass }/>
   }
   input.value.updateOn(input.keyUp)
   input.value.change foreach { str => items() = updateItems(str) }
-  chooseCandidate(input.keyUp, true)
-
-  protected val selectedItem: Var[Option[T]] = Var(None)
-
-  protected val repeat: Repeater = new Repeater {
-    def renderer = config.domMutationRenderer
-    def baseElem = <div />
-    val cssClass = PropertyVar("className", "class")(
-      candidatesContCssClass + " " + emptyCssClass)
-    items.change ->> {
-      if (items.now.size > 0) cssClass() = (cssClass.now split " ")
-        .filterNot(_ == emptyCssClass) mkString " "
-      else cssClass() = candidatesContCssClass + " " + emptyCssClass
-    }
-    def properties = List(cssClass)
-    def events = Nil
-    val children = items map {
-      _ map (item => candidate(item))
+  input.keyUp.foreach { (x: $[JsObj]) =>
+    Return(x)
+  }.$
+  input.keyUp.eventStream ?>> {
+    case KeyUp(40, _) if repeat.children.now.size > 0 => Javascript {
+      repeat.children.now.head.focus()
     }
   }
 
-  protected def chooseCandidate(evSrc: DomEventSource[KeyUp], inInput: Boolean) {
-    evSrc ?>> {
-      case KeyUp(38, _) if !inInput => evSrc.jsEventStream fire {
-        JsRaw("""function(){
-      selected = $('.""" + selectedCssClass + """');
-      prev = selected.prev();
-      if (prev.size() == 0)
-        $('.""" + inputCssClass + """').focus();
-      else
-        prev.focus();
-    }()""")
-      }
-      case KeyUp(40, _) => evSrc.jsEventStream fire {
-        JsRaw("""function(){
-      selected = $('.""" + selectedCssClass + """');
-      next = selected.next();
-      if (next.size() == 0)
-        $('.""" + candidateCssClass + """:first').focus();
-      else
-        next.focus();
-    }()""")
-      }
-      case KeyUp(code, _) if (!inInput &&
-        List(9, 13, 39).exists(_ == code)) =>
-        val selOpt = selectedItem.now filterNot (_ => selectedItem.now.isEmpty)
-        input.value() = renderItem(selOpt.get)
-        evSrc.jsEventStream fire {
-          JsRaw("""function(){
-            $('.""" + inputCssClass + """').focus();
-          }()""")
-        }
+  protected val selectedItem: Var[Option[T]] = Var(None)
+
+  val repeat: Repeater = new Repeater {
+    def renderer = config.domMutationRenderer
+    def baseElem = <div/>
+    val cssClass = PropertyVar("className", "class")(
+      candidatesContCssClass + " " + emptyCssClass)
+    items.change ->> {
+      cssClass() =
+        if (items.now.size > 0) (cssClass.now split " ")
+          .filterNot(_ == emptyCssClass) mkString " "
+        else candidatesContCssClass + " " + emptyCssClass
     }
+    def properties = List(cssClass)
+    def events = Nil
+    lazy val children = SeqSignal(items map {
+      _ map (item => Candidate(item): RElem)
+    })
+    children.change ->> { alert(children.now mkString(" || "))}
   }
 
   // private values
 
-  private def candidate(item: T): RElem = new RElem {
+  private val selectedCandidate: Var[Option[Candidate[T]]] = Var(None)
+
+  private case class Candidate[U <: T](item: U) extends RElem {
     val focus = new DomEventSource[Focus]
     val blur = new DomEventSource[Blur]
     val keyup = DomEventSource.keyUp
@@ -128,23 +102,34 @@ class Autocomplete[T](
       <div tabindex="0">{ renderItem(item) }</div>
     override def events = List(focus, blur, keyup)
     override def properties = List(className)
-    chooseCandidate(keyup, false)
-    focus ->> {
-      if (!className.now.contains(selectedCssClass)) {
-        className() = selectedCssClass + " " + className.now
-        selectedItem() = Some(item)
-      }
+    lazy val rchildren = repeat.children.now
+    lazy val idx = rchildren.indexWhere(_.id == this.id)
+    focus.eventStream ->> {
+      className() = selectedCssClass + " " + className.now
+      selectedItem() = Some(item)
     }
-    blur ->> {
-      if (items.now.size > 0) {
-        className() = (className.now split " ")
-          .filterNot(_ == selectedCssClass) mkString " "
-        selectedItem() = None
-      }
+    blur.eventStream ->> {
+      className() = (className.now split " ")
+        .filterNot(_ == selectedCssClass) mkString " "
+      selectedItem() = None
+    }
+    keyup ?>> {
+      case KeyUp(38, _) =>
+        Javascript {
+          (if (rchildren isDefinedAt (idx - 1)) rchildren(idx - 1)
+          else input).focus()
+        }
+      case KeyUp(40, _) =>
+        Javascript {
+          (if (rchildren isDefinedAt (idx + 1)) rchildren(idx + 1)
+          else rchildren.head).focus()
+        }
+      case KeyUp(code, _) if (List(9, 13, 39) contains code) =>
+        val selOpt = selectedItem.now filterNot (_ => selectedItem.now.isEmpty)
+        input.value() = renderItem(selOpt.get)
+        Javascript { input.focus() }
     }
   }
-
-  // redefined values
 
   override def renderer(implicit p: Page) =
     e => super.renderer(p)(e).copy(child = style :+ input.render :+ repeat.render)
@@ -154,7 +139,7 @@ class Autocomplete[T](
   def events = Nil
 }
 
-object Autocomplete {
+object AutoComplete {
   /**
    * Creates an Autocomplete
    * @tparam T the type of the items
@@ -166,8 +151,8 @@ object Autocomplete {
     updateItems: String => Seq[T],
     renderItem: T => String)(
       implicit observing: Observing,
-      config: CanRenderDomMutationConfig): Autocomplete[T] =
-    new Autocomplete[T](updateItems, renderItem)(observing, config)
+      config: CanRenderDomMutationConfig): AutoComplete[T] =
+    new AutoComplete[T](updateItems, renderItem)(observing, config)
 
   /**
    * Creates an Autocomplete that uses the items' toString method to render them
@@ -178,7 +163,8 @@ object Autocomplete {
   def apply[T](
     updateItems: String => Seq[T])(
       implicit observing: Observing,
-      config: CanRenderDomMutationConfig): Autocomplete[T] =
-    new Autocomplete[T](updateItems)(observing, config)
+      config: CanRenderDomMutationConfig): AutoComplete[T] =
+    new AutoComplete[T](updateItems)(observing, config)
 
 }
+
