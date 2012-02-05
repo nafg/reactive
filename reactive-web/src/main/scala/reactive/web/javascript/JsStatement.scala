@@ -19,9 +19,9 @@ object Ajax {
         f(fromJs.parser(json))
     }
     JsRaw(
-      "function(arg){reactive.queueAjax("+id+")("+
+      "function(arg){reactive.queueAjax("+id+")(window.JSON.stringify("+
         JsExp.render(fromJs.encoder(JsRaw[J]("arg")))+
-        ");reactive.doAjax()}"
+        "));reactive.doAjax()}"
     )
   }
 }

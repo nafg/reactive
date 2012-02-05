@@ -73,10 +73,11 @@ object EventEncoder {
 
 object DomEvent {
   implicit def fromJs[E <: DomEvent: Manifest: EventEncoder]: FromJs[JsObj, E] = new FromJs[JsObj, E](
-    e => window.JSON.stringify(implicitly[EventEncoder[E]].encodeExp(e)),
+    e => implicitly[EventEncoder[E]].encodeExp(e),
     _.extract(DefaultFormats, manifest[E])
   )
 }
+
 /**
  * The base class for all events
  */
