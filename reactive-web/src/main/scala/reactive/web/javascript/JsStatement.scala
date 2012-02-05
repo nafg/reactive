@@ -20,8 +20,8 @@ object Ajax {
     }
     JsRaw(
       "function(arg){reactive.queueAjax("+id+")("+
-        JsExp.render(fromJs.encoder(JsRaw[J]("arg"))+
-          ");reactive.doAjax()}")
+        JsExp.render(fromJs.encoder(JsRaw[J]("arg")))+
+        ");reactive.doAjax()}"
     )
   }
 }
