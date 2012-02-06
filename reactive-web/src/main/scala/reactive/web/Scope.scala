@@ -52,7 +52,7 @@ class LocalScope extends Scope {
  * even during initial page render.
  */
 case object DefaultScope extends Scope {
-  def queue[T](renderable: T)(implicit canRender: CanRender[T]) = S.appendJs(Run(canRender(renderable)))
+  def queue[T](renderable: T)(implicit canRender: CanRender[T]) = S.appendGlobalJs(Run(canRender(renderable)))
 }
 
 /**
