@@ -47,13 +47,13 @@ object TextInput {
    * The value DOM attribute/property. The contents of the input field.
    * @param v the Var[String] to synchronize with the property
    */
-  def value(init: String = "")(implicit observing: Observing) = PropertyVar("value")(init)(PropertyCodec.string, observing)
+  def value(init: String = "")(implicit observing: Observing) = PropertyVar("value")(init)
 
   /**
    * The size DOM attribute/property. The width, in characters, of the input.
    * @param v the Var[String] to synchronize with the property
    */
-  def size(init: Option[Int] = None)(implicit observing: Observing) = PropertyVar("size")(init)(PropertyCodec.intOption, observing)
+  def size(init: Option[Int] = None)(implicit observing: Observing) = PropertyVar("size")(init)
 
   /**
    * Create a TextInput whose value property is kept in a Var.

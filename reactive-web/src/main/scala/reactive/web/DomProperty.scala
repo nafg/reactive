@@ -177,13 +177,13 @@ object DomProperty {
   /**
    * DomProperty factory. Just calls the constructor.
    */
-  def apply(name: String) = new DomProperty(name)
+  def apply(name: String)(implicit config: CanRenderDomMutationConfig) = new DomProperty(name)(config)
   /**
    * DomProperty factory. Calls the constructor and overrides attributeName.
    */
-  def apply(name: String, attributeName: String) = {
+  def apply(name: String, attributeName: String)(implicit config: CanRenderDomMutationConfig) = {
     def tmp = attributeName
-    new DomProperty(name) {
+    new DomProperty(name)(config) {
       override def attributeName = tmp
     }
   }

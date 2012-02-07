@@ -67,7 +67,9 @@ object PropertyVar {
    * The PropertVarFactory has the underlying stateless DomProperty
    * and provides several apply methods to instantiate a PropertyVar that wraps it.
    */
-  class PropertyVarFactory(dom: DomProperty) {
+  class PropertyVarFactory(name: String, attributeName: String) {
+    private def dom(implicit config: CanRenderDomMutationConfig) = DomProperty(name, attributeName)(config)
+
     /**
      * A `PropertyVar` synced from a `Signal`
      * @tparam A        The type of the `Signal` and the returned `PropertyVar`
@@ -75,7 +77,7 @@ object PropertyVar {
      * @return          A `PropertyVar[A]` with the specified time-varying value
      * @example {{{PropertyVar.value fromSignal mySignal}}}
      */
-    def fromSignal[A](signal: Signal[A])(implicit codec: PropertyCodec[A], observing: Observing): PropertyVar[A] = new PropertyVar[A](dom)(signal.now) <<: signal
+    def fromSignal[A](signal: Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): PropertyVar[A] = new PropertyVar[A](dom(config))(signal.now) <<: signal
 
     /**
      * A function that renders a `PropertyVar` synced from a `Signal` based on the attribute's initial value
@@ -89,9 +91,9 @@ object PropertyVar {
      *  }
      * }}}
      */
-    def transform[A](f: Option[A] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
+    def transform[A](f: Option[A] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
       val s = f(elem.attributes.asAttrMap get dom.attributeName map codec.fromString)
-      new PropertyVar[A](dom)(s.now) <<: s render elem
+      new PropertyVar[A](dom(config))(s.now) <<: s render elem
     })
 
     /**
@@ -102,29 +104,22 @@ object PropertyVar {
      * @return     A PropertyVar with the specified constant value.
      * @example {{{PropertyVar("size")(80)}}}
      */
-    def apply[A](init: A)(implicit codec: PropertyCodec[A], observing: Observing): PropertyVar[A] = new PropertyVar[A](dom)(init)
+    def apply[A](init: A)(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): PropertyVar[A] = new PropertyVar[A](dom(config))(init)
   }
-
-  /**
-   * Returns a PropertyVarFactory.
-   * @example PropertyVar(dom)(init)
-   * @param dom the DomProperty to wrap
-   */
-  def apply(dom: DomProperty) = new PropertyVarFactory(dom)
 
   /**
    * Returns a PropertVarFactory.
    * @example PropertyVar(name)(init)
    * @param name the attribute and property name of the DomProperty
    */
-  def apply[T](name: String) = new PropertyVarFactory(DomProperty(name))
+  def apply[T](name: String) = new PropertyVarFactory(name, name)
   /**
    * Returns a PropertyVarFactory.
    * @example PropertyVar(name, attrName)(init)
    * @param name the property name of the DomProperty (used for javascript reads and writes)
    * @param attributeName the attribute name of the DomProperty (used for initial rendering of element)
    */
-  def apply[T](name: String, attributeName: String) = new PropertyVarFactory(DomProperty(name, attributeName))
+  def apply[T](name: String, attributeName: String) = new PropertyVarFactory(name, attributeName)
 
   /**
    * An implicit conversion from PropertyVar to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
@@ -168,7 +163,7 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * @param init the initial value (rendered in the attribute)
    */
   @deprecated("Use the factory: PropertyVar(name)(init)")
-  def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) = this(DomProperty(name))(init)(codec, observing)
+  def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing, config: CanRenderDomMutationConfig) = this(DomProperty(name)(config))(init)(codec, observing)
   /**
    * Wraps a new DomProperty as a type-safe Var.
    * @param name the name of the DomProperty to create and wrap
@@ -176,8 +171,8 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * @param init the initial value (rendered in the attribute)
    */
   @deprecated("Use the factory: PropertyVar(name, attributeName)(init)")
-  def this(name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) =
-    this(DomProperty(name, attributeName))(init)(codec, observing)
+  def this(name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing, config: CanRenderDomMutationConfig) =
+    this(DomProperty(name, attributeName)(config))(init)(codec, observing)
 
   /**
    * Returns a NodeSeq=>NodeSeq that will attach this property
