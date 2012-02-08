@@ -134,6 +134,10 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   //  def nonrecursive: EventStream[T]
 
 }
+/**
+ * Typeclass for types that values can be forwarded to
+ * via javascript.
+ */
 trait CanForwardJs[-T, V <: JsAny] {
   def forward(s: JsForwardable[V], t: T)
 }
@@ -147,6 +151,8 @@ object CanForwardJs {
 /**
  * The client-side complement to Forwardable.
  * Defines a convenience method for common foreach invocations.
+ * Implementations of this trait produce values that can be forwarded in javascript
+ * to a type that has a CanForwardJs typeclass available.
  */
 trait JsForwardable[T <: JsAny] {
   def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F)
