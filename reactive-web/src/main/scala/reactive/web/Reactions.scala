@@ -28,7 +28,6 @@ object Reactions extends Logger {
 
   net.liftweb.http.ResourceServer.allow {
     case "reactive-web.js" :: Nil          => true
-    case "reactive-web-default.css" :: Nil => true
   }
 
   @deprecated("Use init(comet=true) instead")
