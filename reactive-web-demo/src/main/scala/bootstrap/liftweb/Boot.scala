@@ -29,7 +29,7 @@ class Boot {
       )
     }
 
-    // where to search snippet
+    // where to search snippets
     LiftRules.addToPackages("reactive.web.demo")
 
     reactive.web.Reactions.init(comet = true)

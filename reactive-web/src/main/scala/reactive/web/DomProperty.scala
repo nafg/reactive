@@ -87,7 +87,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
       for (es <- eventSources)
         es.addEventData(readJS(id), jses)(page)
 
-      // Register setFromAjax with all linked event streams,
+      // Register propagate with all linked event streams,
       // for the lifetime of the page
       jses.toServer(_.values.toString).foreach(propagate)(page)
       jses
