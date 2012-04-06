@@ -35,8 +35,8 @@ and one that takes two parameter lists, one with the initial value as a
 
 <pre class="brush: scala">
 val checked = Var(false)
-val check1 = TextInput(checked)
-val check2 = TextInput(checked.now)(v =&gt; checked ()= v) // basically same as above
+val check1 = CheckboxInput(checked)
+val check2 = CheckboxInput(checked.now)(v =&gt; checked ()= v) // basically same as above
 
 check1.checked.value foreach {_ =&gt; println("check1 changed")}
 
