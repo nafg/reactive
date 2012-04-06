@@ -1,3 +1,7 @@
+name := "reactive-web"
+
+description := "FRP-based abstractions for Ajax and Comet"
+
 resolvers += ScalaToolsSnapshots
 
 {

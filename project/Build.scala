@@ -14,8 +14,6 @@ object ReactiveBuild extends Build {
     </scm>
     <developers><developer><id>nafg</id></developer></developers>
   </xml:group>
-  def pom(name: String, desc: String) =
-    <name>{name}</name> ++ <description>{desc}</description> ++ pomCommon
 
   val sonatypeSnapshots = "http://oss.sonatype.org/content/repositories/snapshots/"
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
@@ -53,14 +51,14 @@ object ReactiveBuild extends Build {
     "reactive-core",
     file("reactive-core"),
     settings = publishingDefaults ++ Seq(
-      pomExtra := pom("reactive-core", "An FRP framework")
+      pomExtra := pomCommon
     )
   )
   lazy val reactive_web = Project(
     "reactive-web",
     file("reactive-web"),
     settings = publishingDefaults ++ Seq(
-      pomExtra := pom("reactive-web", "FRP-based abstractions for Ajax and Comet")
+      pomExtra := pomCommon
     )
   ) dependsOn(reactive_core) aggregate(reactive_core)
   lazy val reactive_web_demo = Project(
