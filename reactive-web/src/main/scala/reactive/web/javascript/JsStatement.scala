@@ -158,15 +158,20 @@ case class Apply1[P <: JsAny, +R <: JsAny](f: $[P =|> R], arg0: $[P]) extends Js
 class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {
   def render = ident+"."+name
 }
-class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, clazz: Class[_], args: Seq[_]) extends JsStatement with JsExp[R] {
-  def toReplace = args.toList.collect{ case s: JsStatement => s }
-  def render =
-    ident+"."+method.getName + {
-      if (method.getParameterTypes.forall(classOf[JsExp[_]].isAssignableFrom))
-        args.map(JsExp render _.asInstanceOf[JsExp[_]]).mkString("(", ",", ")")
-      else
-        args.map(_.toString).mkString("(", ",", ")")
-    }
+class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[_], oldToReplace: List[JsStatement]) extends JsStatement with JsExp[R] {
+  // TODO detect varargs better
+  lazy val flat =
+    if (method.getParameterTypes.toList == List(classOf[scala.collection.Seq[_]]) && args.length == 1) args.collect{ case x: Seq[_] => x }.head else args
+
+  lazy val toReplace = oldToReplace ++ flat.toList.collect{ case s: JsStatement => s }
+
+  lazy val render = ident+"."+method.getName + {
+    flat map {
+      case x: JsExp[_] => JsExp render x
+      case null        => "null"
+      case x           => x.toString
+    } mkString ("(", ",", ")")
+  }
 }
 
 object If {

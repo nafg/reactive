@@ -39,7 +39,14 @@ class JsTests extends FunSuite with ShouldMatchers {
       var self: obj
       def nullary: $[JsVoid]
       def prop: Assignable[JsNumber]
+      def takeCallback(fn: JsExp[JsTypes.JsVoid =|> JsTypes.JsAny]): JsExp[JsTypes.JsNumber]
+      def getSelf(i: $[JsNumber]): obj
     }
+    trait extendObj extends JsStub {
+      def takeCallback2(fn: JsExp[JsTypes.JsVoid =|> JsTypes.JsAny]): JsExp[JsTypes.JsNumber]
+      def getSelf2(i: $[JsNumber]): obj
+    }
+    implicit object ext extends Extend[obj, extendObj]
     val obj = $$[obj]
     Page.withPage(new Page) {
       Reactions.inScope(new LocalScope) {
@@ -49,15 +56,74 @@ class JsTests extends FunSuite with ShouldMatchers {
           obj.nullary
           obj.prop := 2
           obj.get("otherProp") := "xyz"
+          obj.getSelf(1).getSelf(2)
+          obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
+            obj.takeCallback2{ _: JsExp[JsTypes.JsVoid] =>
+              obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)
+            }
+          }
         }
-      }.js.map(_.toJsCmd) zip List(
+      }.js.map(_.toJsCmd) zipAll (List(
         "obj.method(obj.method(\"This is a scala string\"))",
         "var x$0",
         "x$0=obj.self",
         "obj.nullary()",
         "obj.prop=2",
-        """obj["otherProp"]="xyz""""
-      ) foreach { case (a, b) => a should equal (b) }
+        """obj["otherProp"]="xyz"""",
+        "obj.getSelf(1).getSelf(2)",
+        "obj.takeCallback((function(arg){return obj.takeCallback2((function(arg){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)}))}))"
+      ), "", "") foreach { case (a, b) => a should equal (b) }
+    }
+  }
+
+  test("JsStub+Extend"){
+    import JsTypes._
+    trait JQuery extends JsStub
+    trait JQueryElem extends JsStub {
+      def bind(eventName: JsExp[JsString])(handler: JsExp[JsTypes.JsObj =|> JsTypes.JsAny]): JQueryElem
+    }
+    trait Window2 extends JsStub {
+      def jQuery(sel: JsExp[JsTypes.JsString]): JQueryElem
+      def jQueryReady(fn: JsExp[JsTypes.JsVoid =|> JsTypes.JsAny]): JsExp[JsTypes.JsVoid]
+    }
+    trait JQueryJsTreeElem extends JsStub {
+      def jstree(args: JsExp[JsTypes.JsAny]*): JQueryElem
+    }
+    implicit object extendWindow extends Extend[Window, Window2]
+    implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
+
+    Page.withPage(new Page) {
+      val res = Reactions.inScope(new LocalScope) {
+        Javascript {
+          window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
+            window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
+              //TODO not chained
+              window.jQuery(".items").jstree("create",
+                JsRaw[JsTypes.JsString](null),
+                "last"
+              ).bind("rename.jstree"){ _: JsExp[JsObj] =>
+                  Ajax{ x: Int => println("Got rename "+x+"!") } apply 10
+                }
+            }, 1000)
+          }
+        }
+      }.js.map(_.toJsCmd)
+      res foreach println
+      res.length should equal (1)
+      res zipAll (List(
+        "window.jQueryReady("+
+          "(function(arg){"+
+          "return window.setTimeout("+
+          "(function(arg){"+
+          "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
+          "\"rename.jstree\","+
+          "(function (arg0){(function(arg){reactive.queueAjax(0)(arg);reactive.doAjax()})(10)})"+
+          ")"+"}),"+
+          "1000"+
+          ")"+
+          "})"+
+          ")"
+      ), "", "") foreach { case (a, b) => a should equal (b) }
     }
   }
 
@@ -124,7 +190,7 @@ class JsTests extends FunSuite with ShouldMatchers {
       }
     }
     val rendered = theStatements map JsStatement.render
-//    theStatements map JsStatement.render foreach println
+    //    theStatements map JsStatement.render foreach println
     val target = List(
       """if(true) {window.alert("True")} else if(false) {window.alert("False")} else {if(true) {} else {}}""",
       """while(true) {window.alert("Again!")}""",

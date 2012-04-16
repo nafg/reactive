@@ -343,10 +343,10 @@ class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New)
   val cache = new scala.collection.mutable.WeakHashMap[Old, New]
 
   def apply(old: Old): New = cache.getOrElseUpdate(old,
-    if (!Proxy.isProxyClass(old.getClass)) jsProxy[New](old.render)
+    if (!Proxy.isProxyClass(old.getClass)) jsProxy[New](old.render, Nil)
     else Proxy.getInvocationHandler(old) match {
       case sih: StubInvocationHandler[Old] =>
-        jsProxy[New](sih.ident)
+        jsProxy[New](sih.ident, sih.toReplace)
     }
   )
 }

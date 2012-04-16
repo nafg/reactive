@@ -30,7 +30,7 @@ package object javascript {
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-  private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String) extends InvocationHandler {
+  private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
     def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
       val args = args0 match { case null => scala.Array.empty case x => x }
       val clazz: Class[_] = classManifest[T].erasure
@@ -56,21 +56,24 @@ package object javascript {
         ident
       else {
         findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
-          val proxy =
+          //It's a field if: (1) no args, and (2) either it's type is Assignable or it's a var
+          val (proxy, toReplace2) =
             if (args.isEmpty && (
               classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
               clazz.getMethods.exists(_.getName == method.getName+"_$eq")
             )) {
-              new ProxyField(ident, method.getName)
+              (new ProxyField(ident, method.getName), Nil)
             } else {
-              new ApplyProxyMethod(ident, method, clazz, args)
+              val p = new ApplyProxyMethod(ident, method, args, toReplace)
+              (p, p :: Nil)
             }
 
+          // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
           if (!(classOf[JsStub] isAssignableFrom method.getReturnType())) proxy
           else java.lang.reflect.Proxy.newProxyInstance(
             getClass.getClassLoader,
             method.getReturnType().getInterfaces :+ method.getReturnType(),
-            new StubInvocationHandler(proxy.render)
+            new StubInvocationHandler(proxy.render, toReplace2)(Manifest.classType(method.getReturnType()))
           )
         }
       }
@@ -90,8 +93,8 @@ package object javascript {
    * with the specified identifier for the instance.
    */
   def jsProxy[T <: JsStub: ClassManifest](ident: Symbol): T = jsProxy[T](ident.name)
-  def jsProxy[T <: JsStub: ClassManifest](ident: String): T = {
-    val ih = new StubInvocationHandler[T](ident)
+  def jsProxy[T <: JsStub: ClassManifest](ident: String, toReplace: List[JsStatement] = Nil): T = {
+    val ih = new StubInvocationHandler[T](ident, toReplace)
     java.lang.reflect.Proxy.newProxyInstance(
       getClass.getClassLoader,
       classManifest[T].erasure.getInterfaces :+ classManifest[T].erasure,
