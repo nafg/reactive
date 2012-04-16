@@ -4,10 +4,15 @@ package javascript
 
 import JsTypes._
 
+/**
+ * Statements written with the JsStatement DSL, within a Javascript { ... } block
+ * will be sent to the browser.
+ */
 object Javascript {
-  def apply(f: => Unit)(implicit page: Page): Unit = Reactions.inAnyScope(page){
-    val js = JsStatement.inScope(f)
+  def apply[A](f: => A)(implicit page: Page): A = Reactions.inAnyScope(page){
+    val (ret, js) = JsStatement.inScope(f)
     js foreach { s => Reactions.queue(s) }
+    ret
   }
 }
 
@@ -121,9 +126,8 @@ object JsStatement {
    * Evaluates p in a new scope, and returns the top of the stack
    * (JsStatements pushed during evaluation of p)
    */
-  def inScope(p: => Unit): List[JsStatement] = stack.withValue(Nil :: stack.value){
-    p
-    currentScope.reverse
+  def inScope[A](p: => A): (A, List[JsStatement]) = stack.withValue(Nil :: stack.value){
+    (p, currentScope.reverse)
   }
 
   def push(s: JsStatement) = {
@@ -138,7 +142,7 @@ object JsStatement {
 }
 
 final private class Block(block: => Unit) extends JsStatement {
-  lazy val body = JsStatement.inScope(block)
+  lazy val (_, body) = JsStatement.inScope(block)
   def toReplace = Nil
 }
 
@@ -206,7 +210,7 @@ sealed trait Match[+T <: JsAny] {
 }
 class Matchable[+T <: JsAny](against: $[T]) { matchable =>
   def :>(code: => Unit) = {
-    lazy val block = JsStatement.inScope(code)
+    lazy val (_, block) = JsStatement.inScope(code)
     new Match[T] {
       def against = matchable.against
       def code = block :+ Break

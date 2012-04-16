@@ -145,19 +145,29 @@ trait ToJs[-S, J <: JsAny, +E[K <: JsAny] <: JsExp[K]] extends (S => E[J])
 class ToJsExp[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsExp] {
   def apply(s: S) = JsRaw[J](renderer(s))
 }
-class ToJsLit[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsLiteral] {
-  def apply(s: S) = new JsLiteral[J] { def render = renderer(s) }
+class ToJsLit[-S, J <: JsAny](f: S => JsLiteral[J]) extends ToJs[S, J, JsLiteral] {
+  def this(renderer: S => String, dummy: Unit*) = this({ s: S =>
+    val r = renderer(s)
+    new JsRaw[J](r) with JsLiteral[J]
+  })
+  def apply(s: S) = f(s)
 }
 
+class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends JsLiteral[P =|> R] {
+  lazy val (exp, statements) = JsStatement.inScope {
+    f(JsIdent('arg))
+  }
+  def render = "(function(arg){return "+JsExp.render(exp)+"})"
+}
 trait ToJsLow { // make sure Map has a higher priority than a regular function
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
-    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]](f => "function(arg){return "+JsExp.render(f('arg $))+"}")
+    new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]((f: JsExp[P] => JsExp[R]) => new Func1Lit(f))
 }
 trait ToJsMedium extends ToJsLow {
-  implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] = new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]({ f =>
-    JsStatement.render(new Function[P](x => f(x)) {
+  implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] = new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]({ f: (JsExp[P] => JsStatement) =>
+    "("+JsStatement.render(new Function[P](x => f(x)) {
       override val ident = Symbol("")
-    })
+    })+")"
   })
 }
 /**
@@ -165,14 +175,15 @@ trait ToJsMedium extends ToJsLow {
  * Extended by object JsExp
  */
 trait ToJsHigh extends ToJsMedium {
-  implicit val double: ToJs.From[Double]#To[JsNumber, JsLiteral] = new ToJsLit[Double, JsNumber](_.toString)
-  implicit val int: ToJsLit[Int, JsNumber] = new ToJsLit[Int, JsNumber](_.toString)
-  implicit val bool = new ToJsLit[Boolean, JsBoolean](_.toString)
-  implicit val string: ToJsLit[String, JsString] = new ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs)
-  implicit val date = new ToJsLit[java.util.Date, JsDate]("new Date(\""+_.toString+"\")")
-  implicit val regex = new ToJsLit[scala.util.matching.Regex, JsRegex]("/"+_.toString+"/")
-  implicit val obj = new ToJsLit[Map[String, JsExp[_]], JsObj](_.map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
-  implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]](_.map(JsExp.render).mkString("[", ",", "]"))
+  implicit object double extends ToJsLit[Double, JsNumber]((_: Double).toString)
+  implicit object int extends ToJsLit[Int, JsNumber]((_: Int).toString)
+  implicit object long extends ToJsLit[Long, JsNumber]((_: Long).toString)
+  implicit object bool extends ToJsLit[Boolean, JsBoolean]((_: Boolean).toString)
+  implicit object string extends ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs(_: String))
+  implicit object date extends ToJsLit[java.util.Date, JsDate]("new Date(\""+(_: java.util.Date).toString+"\")")
+  implicit object regex extends ToJsLit[scala.util.matching.Regex, JsRegex]("/"+(_: scala.util.matching.Regex).toString+"/")
+  implicit object obj extends ToJsLit[Map[String, JsExp[_]], JsObj]((_: Map[String, JsExp[_]]).map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
+  implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]]((_: List[JsExp[T]]).map(JsExp.render).mkString("[", ",", "]"))
 }
 
 /**

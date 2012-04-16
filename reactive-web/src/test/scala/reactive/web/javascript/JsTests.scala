@@ -20,7 +20,7 @@ class JsTests extends FunSuite with ShouldMatchers {
   }
 
   test("Functions") {
-    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("function(arg){return (arg+1)}")
+    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("(function(arg){return (arg+1)})")
 
     { x: $[JsNumber] =>
       If(x > 10) {
@@ -29,7 +29,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "function (arg0){if((arg0>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}}"
+      "(function (arg0){if((arg0>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}})"
     )
   }
 
@@ -65,7 +65,7 @@ class JsTests extends FunSuite with ShouldMatchers {
     window.alert(window.encodeURIComponent("Message"))
     JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"))")
 
-    val theStatements = JsStatement.inScope{
+    val (_, theStatements) = JsStatement.inScope{
       If(true) {
         window.alert("True")
       }.ElseIf (false){
