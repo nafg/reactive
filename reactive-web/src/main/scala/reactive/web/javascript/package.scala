@@ -30,9 +30,9 @@ package object javascript {
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-  private class StubInvocationHandler[T <: JsStub: ClassManifest](ident: String) extends InvocationHandler {
-    def invoke(proxy: AnyRef, method: Method, args0: Array[AnyRef]): AnyRef = {
-      val args = args0 match { case null => Array.empty case x => x }
+  private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String) extends InvocationHandler {
+    def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
+      val args = args0 match { case null => scala.Array.empty case x => x }
       val clazz: Class[_] = classManifest[T].erasure
 
       // look for static forwarder --- that means the method has a scala method body, so invoke it
@@ -70,11 +70,7 @@ package object javascript {
           else java.lang.reflect.Proxy.newProxyInstance(
             getClass.getClassLoader,
             method.getReturnType().getInterfaces :+ method.getReturnType(),
-            new StubInvocationHandler(proxy.render) {
-              override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
-                super.invoke(proxy, method, args)
-              }
-            }
+            new StubInvocationHandler(proxy.render)
           )
         }
       }

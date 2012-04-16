@@ -3,6 +3,7 @@ package web
 package javascript
 
 import net.liftweb.json._
+import java.lang.reflect.Proxy
 
 /**
  * Contains types that model javascript types.
@@ -99,6 +100,15 @@ trait JsExp[+T <: JsAny] {
   def <=[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<=")(this, that)
 
   def unary_!(implicit ev: T <:< JsBoolean): $[JsBoolean] = new JsRaw[JsBoolean]("(!"+JsExp.render(this)+")")
+}
+
+trait Array[J <: JsAny] extends JsStub {
+  def push(x: JsExp[J]): JsExp[JsNumber]
+  var length: JsExp[JsNumber]
+}
+
+object Array {
+  implicit def fromJsType[J <: JsAny] = new Extend[JsExp[JsTypes.JsArray[J]], Array[J]]
 }
 
 /**
@@ -317,4 +327,26 @@ class CanOrder[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: String => $[L] => $[R] 
  * Traits that extends JsStub can have proxy instances vended
  * whose methods result in calls to javascript methods
  */
-trait JsStub extends NamedIdent[JsObj]
+trait JsStub extends NamedIdent[JsObj] {
+  override def hashCode() = System.identityHashCode(this)
+}
+
+/**
+ * A function that converts one JsStub type to another. Preserves JsStatement stack info.
+ * Use as an implicit conversion.
+ * Caches in a WeakHashMap
+ * @example {{{
+ *   implicit object addWindowFunctions extends Extend[Window, MyWindow]
+ * }}}
+ */
+class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New) {
+  val cache = new scala.collection.mutable.WeakHashMap[Old, New]
+
+  def apply(old: Old): New = cache.getOrElseUpdate(old,
+    if (!Proxy.isProxyClass(old.getClass)) jsProxy[New](old.render)
+    else Proxy.getInvocationHandler(old) match {
+      case sih: StubInvocationHandler[Old] =>
+        jsProxy[New](sih.ident)
+    }
+  )
+}
