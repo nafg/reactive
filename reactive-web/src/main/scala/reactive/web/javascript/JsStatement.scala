@@ -300,6 +300,6 @@ object Function {
   }
 }
 
-case class Return[T <: JsAny](exp: JsExp[T]) extends JsStatement {
+case class Return[T <: JsAny](exp: JsExp[T] = JsRaw("")) extends JsStatement {
   def toReplace = Nil
 }
