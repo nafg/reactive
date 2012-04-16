@@ -30,10 +30,10 @@ package object javascript {
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-  private class StubInvocationHandler[T <: JsStub: Manifest](ident: String) extends InvocationHandler {
+  private class StubInvocationHandler[T <: JsStub: ClassManifest](ident: String) extends InvocationHandler {
     def invoke(proxy: AnyRef, method: Method, args0: Array[AnyRef]): AnyRef = {
       val args = args0 match { case null => Array.empty case x => x }
-      val clazz: Class[_] = manifest[T].erasure
+      val clazz: Class[_] = classManifest[T].erasure
 
       // look for static forwarder --- that means the method has a scala method body, so invoke it
       def findAndInvokeForwarder(clazz: Class[_]): Option[Method] = try {
@@ -86,19 +86,19 @@ package object javascript {
    * type. Assumes T's type is the also
    * the name of the instance in the browser.
    */
-  def $$[T <: JsStub: Manifest]: T =
-    jsProxy[T](scalaClassName(manifest[T].erasure))
+  def $$[T <: JsStub: ClassManifest]: T =
+    jsProxy[T](scalaClassName(classManifest[T].erasure))
 
   /**
    * Returns a JsStub proxy for the specified type,
    * with the specified identifier for the instance.
    */
-  def jsProxy[T <: JsStub: Manifest](ident: Symbol): T = jsProxy[T](ident.name)
-  def jsProxy[T <: JsStub: Manifest](ident: String): T = {
-    val ih = new StubInvocationHandler(ident)
+  def jsProxy[T <: JsStub: ClassManifest](ident: Symbol): T = jsProxy[T](ident.name)
+  def jsProxy[T <: JsStub: ClassManifest](ident: String): T = {
+    val ih = new StubInvocationHandler[T](ident)
     java.lang.reflect.Proxy.newProxyInstance(
       getClass.getClassLoader,
-      manifest.erasure.getInterfaces :+ manifest.erasure,
+      classManifest[T].erasure.getInterfaces :+ classManifest[T].erasure,
       ih
     ).asInstanceOf[T]
   }
