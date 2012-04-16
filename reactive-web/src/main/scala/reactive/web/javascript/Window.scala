@@ -39,4 +39,6 @@ sealed trait Window extends JsStub {
     def stringify(v: $[JsAny]): $[JsString]
   }
   var JSON: JSON
+
+  def setTimeout(fn: JsExp[JsTypes.JsVoid =|> JsTypes.JsAny], timeout: JsExp[JsTypes.JsNumber]): JsExp[JsTypes.JsNumber]
 }
