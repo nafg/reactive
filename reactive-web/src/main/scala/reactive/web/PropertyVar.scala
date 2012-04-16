@@ -77,7 +77,7 @@ object PropertyVar {
      * @return          A `PropertyVar[A]` with the specified time-varying value
      * @example {{{PropertyVar.value fromSignal mySignal}}}
      */
-    def fromSignal[A](signal: Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): PropertyVar[A] = new PropertyVar[A](dom(config))(signal.now) <<: signal
+    def fromSignal[A](signal: Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): PropertyVar[A] = new PropertyVar[A](dom(config))(signal.now) <<: signal.change
 
     /**
      * A function that renders a `PropertyVar` synced from a `Signal` based on the attribute's initial value
