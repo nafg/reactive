@@ -138,9 +138,9 @@ class JsTests extends FunSuite with ShouldMatchers {
       """function myFunc(arg0){if((arg0>10)) {window.alert("Greater")} else {window.alert("Small")}}""",
       "myFunc(10)",
       "function f$0(arg0){return (arg0>10)}",
-      """function(arg){reactive.queueAjax(1)(window.JSON.stringify(arg));reactive.doAjax()}("Hello server!")"""
+      """(function(arg){reactive.queueAjax(1)(arg);reactive.doAjax()})("Hello server!")"""
     )
     rendered.length should equal (target.length)
-    rendered zip target foreach { case (s, t) => s should equal (t) }
+    rendered.zipAll(target, "", "") foreach { case (s, t) => s should equal (t) }
   }
 }

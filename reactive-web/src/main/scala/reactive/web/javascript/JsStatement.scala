@@ -11,6 +11,16 @@ object Javascript {
   }
 }
 
+/**
+ * Wrap a scala function in Ajax(...) to get a javascript function that will
+ * call the scala function via ajax.
+ * @example {{{
+ *   val func = Ajax{x: String => println("Got "+x+"!")}
+ *   Javascript {
+ *     func("10")
+ *   }
+ * }}}
+ */
 object Ajax {
   def apply[J <: JsAny, S](f: S => Unit)(implicit fromJs: FromJs[J, S], page: Page): $[J =|> JsVoid] = {
     val id = page.nextNumber
@@ -19,9 +29,9 @@ object Ajax {
         f(fromJs.parser(json))
     }
     JsRaw(
-      "function(arg){reactive.queueAjax("+id+")(window.JSON.stringify("+
+      "(function(arg){reactive.queueAjax("+id+")("+
         JsExp.render(fromJs.encoder(JsRaw[J]("arg")))+
-        "));reactive.doAjax()}"
+        ");reactive.doAjax()})"
     )
   }
 }
