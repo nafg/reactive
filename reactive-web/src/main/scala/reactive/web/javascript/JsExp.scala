@@ -3,7 +3,8 @@ package web
 package javascript
 
 import net.liftweb.json._
-import java.lang.reflect.Proxy
+
+import java.lang.reflect.{ InvocationHandler, Proxy, Method }
 
 /**
  * Contains types that model javascript types.
@@ -167,18 +168,30 @@ class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends JsLite
   lazy val (exp, statements) = JsStatement.inScope {
     f(JsIdent('arg))
   }
-  def render = "(function(arg){return "+JsExp.render(exp)+"})"
+  def render = {
+    // if the last statement is a return statement, disregard the expression value
+    object MIH {
+      def unapply(x: JsExp[_]) =
+        if (!Proxy.isProxyClass(x.getClass)) None
+        else Some(Proxy.getInvocationHandler(x)).collect{ case mih: MethodInvocationHandler[_] => mih }
+    }
+    "(function(arg)"+JsStatement.renderBlock(
+      (statements.lastOption, exp) match {
+        case (Some(_: Return[_]), _)             => statements
+        case (Some(s), e) if s eq e              => statements.dropRight(1) ++ JsStatement.inScope(Return(exp))._2
+        case (Some(s), MIH(mih)) if mih.apm eq s => statements.dropRight(1) ++ JsStatement.inScope(Return(exp))._2
+        case _                                   => statements ++ JsStatement.inScope(Return(exp))._2
+      }
+    )+")"
+  }
 }
 trait ToJsLow { // make sure Map has a higher priority than a regular function
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]((f: JsExp[P] => JsExp[R]) => new Func1Lit(f))
 }
 trait ToJsMedium extends ToJsLow {
-  implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] = new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]({ f: (JsExp[P] => JsStatement) =>
-    "("+JsStatement.render(new Function[P](x => f(x)) {
-      override val ident = Symbol("")
-    })+")"
-  })
+  implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] =
+    new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]((f: JsExp[P] => JsStatement) => new Func1Lit({ x: JsExp[P] => f(x); JsRaw("") }))
 }
 /**
  * Contains implicit conversions from scala values to javascript literals.
@@ -327,9 +340,7 @@ class CanOrder[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: String => $[L] => $[R] 
  * Traits that extends JsStub can have proxy instances vended
  * whose methods result in calls to javascript methods
  */
-trait JsStub extends NamedIdent[JsObj] {
-  override def hashCode() = System.identityHashCode(this)
-}
+trait JsStub extends NamedIdent[JsObj]
 
 /**
  * A function that converts one JsStub type to another. Preserves JsStatement stack info.
@@ -350,3 +361,59 @@ class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New)
     }
   )
 }
+
+private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
+  def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
+    val args = args0 match { case null => scala.Array.empty case x => x }
+    val clazz: Class[_] = classManifest[T].erasure
+
+    // look for static forwarder --- that means the method has a scala method body, so invoke it
+    def findAndInvokeForwarder(clazz: Class[_]): Option[Method] = try {
+      Some(
+        Class.
+          forName(clazz.getName+"$class").
+          getMethod(method.getName, clazz +: method.getParameterTypes: _*)
+      )
+    } catch {
+      case _: NoSuchMethodException | _: ClassNotFoundException =>
+        clazz.getInterfaces().map(findAndInvokeForwarder).find(_.isDefined) getOrElse (
+          clazz.getSuperclass match {
+            case null => None
+            case c    => findAndInvokeForwarder(c)
+          }
+        )
+    }
+    //TODO hack
+
+    findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
+      if (method.getName == "render" && method.getReturnType == classOf[String] && args.isEmpty)
+        ident
+      else if (method.getName == "ident" && method.getReturnType == classOf[Symbol] && args.isEmpty)
+        Symbol(ident)
+      else if (method.getName == "hashCode" && method.getReturnType == classOf[Int] && args.isEmpty)
+        System.identityHashCode(proxy): java.lang.Integer
+      else {
+        //It's a field if: (1) no args, and (2) either it's type is Assignable or it's a var
+        val (proxy, toReplace2) =
+          if (args.isEmpty && (
+            classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
+            clazz.getMethods.exists(_.getName == method.getName+"_$eq")
+          )) {
+            (new ProxyField(ident, method.getName), Nil)
+          } else {
+            val p = new ApplyProxyMethod(ident, method, args, toReplace)
+            (p, p :: Nil)
+          }
+
+        // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
+        if (!(classOf[JsStub] isAssignableFrom method.getReturnType())) proxy
+        else java.lang.reflect.Proxy.newProxyInstance(
+          getClass.getClassLoader,
+          method.getReturnType().getInterfaces :+ method.getReturnType(),
+          new MethodInvocationHandler(proxy, toReplace2)(Manifest.classType(method.getReturnType()))
+        )
+      }
+    }
+  }
+}
+private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_], tr: List[JsStatement]) extends StubInvocationHandler(JsExp.render(apm), tr)

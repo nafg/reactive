@@ -29,7 +29,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "(function (arg0){if((arg0>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")}})"
+      "(function(arg){if((arg>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
     )
   }
 
@@ -117,7 +117,7 @@ class JsTests extends FunSuite with ShouldMatchers {
           "(function(arg){"+
           "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
           "\"rename.jstree\","+
-          "(function (arg0){(function(arg){reactive.queueAjax(0)(arg);reactive.doAjax()})(10)})"+
+          "(function(arg){(function(arg){reactive.queueAjax(0)(arg);reactive.doAjax()})(10);return })"+
           ")"+"}),"+
           "1000"+
           ")"+
@@ -125,6 +125,32 @@ class JsTests extends FunSuite with ShouldMatchers {
           ")"
       ), "", "") foreach { case (a, b) => a should equal (b) }
     }
+  }
+
+  test("Function bodies do not get repeated") {
+    def isClean = window.get("isClean").asInstanceOf[Assignable[JsTypes.JsBoolean]]
+    val stmts = JsStatement.inScope{
+      // This does not create a  statement
+      { e: $[JsTypes.JsObj] =>
+        Return()
+      }: JsExp[JsObj =|> JsAny]
+      // This does
+      window.onbeforeunload := { e: $[JsTypes.JsObj] =>
+        If(!isClean) {
+          object reply extends JsVar[JsTypes.JsString]
+          reply := "You have unsaved changes!"
+          object evt extends JsVar[JsTypes.JsObj]
+          evt := e
+          If (evt === null) { evt := window.event }
+          If (evt !== null) { evt.get("returnValue") := reply }
+          Return(reply)
+        }
+      }
+    }._2.map(JsStatement.render)
+    stmts foreach println
+    stmts.zipAll(List(
+      """window.onbeforeunload=(function(arg){if((!window["isClean"])) {var reply;var evt;reply="You have unsaved changes!";evt=arg;if((evt==null)) {evt=window.event};if((evt!=null)) {evt["returnValue"]=reply};return reply};return })"""
+    ), "", "") foreach { case (a, b) => a should equal (b) }
   }
 
   test("Statements") {

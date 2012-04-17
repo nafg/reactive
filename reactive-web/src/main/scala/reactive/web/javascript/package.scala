@@ -1,8 +1,6 @@
 package reactive
 package web
 
-import java.lang.reflect.{ InvocationHandler, Proxy, Method }
-
 package object javascript {
   import JsTypes._
 
@@ -30,55 +28,6 @@ package object javascript {
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-  private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
-    def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
-      val args = args0 match { case null => scala.Array.empty case x => x }
-      val clazz: Class[_] = classManifest[T].erasure
-
-      // look for static forwarder --- that means the method has a scala method body, so invoke it
-      def findAndInvokeForwarder(clazz: Class[_]): Option[Method] = try {
-        Some(
-          Class.
-            forName(clazz.getName+"$class").
-            getMethod(method.getName, clazz +: method.getParameterTypes: _*)
-        )
-      } catch {
-        case _: NoSuchMethodException | _: ClassNotFoundException =>
-          clazz.getInterfaces().map(findAndInvokeForwarder).find(_.isDefined) getOrElse (
-            clazz.getSuperclass match {
-              case null => None
-              case c    => findAndInvokeForwarder(c)
-            }
-          )
-      }
-      //TODO hack
-      if (method.getName == "render" && method.getReturnType == classOf[String] && args.isEmpty)
-        ident
-      else {
-        findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
-          //It's a field if: (1) no args, and (2) either it's type is Assignable or it's a var
-          val (proxy, toReplace2) =
-            if (args.isEmpty && (
-              classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
-              clazz.getMethods.exists(_.getName == method.getName+"_$eq")
-            )) {
-              (new ProxyField(ident, method.getName), Nil)
-            } else {
-              val p = new ApplyProxyMethod(ident, method, args, toReplace)
-              (p, p :: Nil)
-            }
-
-          // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
-          if (!(classOf[JsStub] isAssignableFrom method.getReturnType())) proxy
-          else java.lang.reflect.Proxy.newProxyInstance(
-            getClass.getClassLoader,
-            method.getReturnType().getInterfaces :+ method.getReturnType(),
-            new StubInvocationHandler(proxy.render, toReplace2)(Manifest.classType(method.getReturnType()))
-          )
-        }
-      }
-    }
-  }
 
   /**
    * Returns a JsStub proxy for the specified

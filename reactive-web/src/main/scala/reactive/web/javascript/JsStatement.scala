@@ -82,13 +82,14 @@ object JsStatement {
     case _       => renderImpl(statement)
   }
   private def indentAndRender(statement: JsStatement) = indent.withValue(indent.value map (2+))(indentStr + render(statement))
+  private[javascript] def renderBlock(statements: List[JsStatement]): String = if (statements.isEmpty) "{}" else varsFirst(statements).map(indentAndRender).mkString("{"+nl, ";"+nl, nl + indentStr+"}")
   private def renderImpl(statement: JsStatement): String = statement match {
     case i: If.If                        => "if("+JsExp.render(i.cond)+") "+renderImpl(i.body)
     case e: If.Elseable#Else             => render(e.outer)+" else "+render(e.body)
     case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+JsExp.render(ei.cond)+") "+render(ei.body)
     case s: Apply1[_, _]                 => s.render
     case s: ApplyProxyMethod[_]          => s.render
-    case b: Block                        => if (b.body.isEmpty) "{}" else varsFirst(b.body).map(indentAndRender).mkString("{"+nl, ";"+nl, nl + indentStr+"}")
+    case b: Block                        => renderBlock(b.body)
     case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
     case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+JsExp.render(dw.cond)+")"
     case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl + s.matches.map(renderMatch).mkString+"}"
