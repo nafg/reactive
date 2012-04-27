@@ -410,7 +410,7 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val 
         else java.lang.reflect.Proxy.newProxyInstance(
           getClass.getClassLoader,
           method.getReturnType().getInterfaces :+ method.getReturnType(),
-          new MethodInvocationHandler(proxy, toReplace2)(Manifest.classType(method.getReturnType()))
+          new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(method.getReturnType()))
         )
       }
     }
