@@ -22,7 +22,6 @@ object ReactiveBuild extends Build {
     organization := "cc.co.scala-reactive",
     version := "0.2-SNAPSHOT",
     resolvers ++= List(
-      ScalaToolsSnapshots,
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),

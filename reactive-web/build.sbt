@@ -2,8 +2,6 @@ name := "reactive-web"
 
 description := "FRP-based abstractions for Ajax and Comet"
 
-resolvers += ScalaToolsSnapshots
-
 {
   val liftVersion = "2.5-SNAPSHOT"
   libraryDependencies ++= Seq(
