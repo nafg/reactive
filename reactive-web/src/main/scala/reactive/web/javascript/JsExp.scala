@@ -103,6 +103,10 @@ trait JsExp[+T <: JsAny] {
   def unary_!(implicit ev: T <:< JsBoolean): $[JsBoolean] = new JsRaw[JsBoolean]("(!"+JsExp.render(this)+")")
 }
 
+/**
+ * Adds javascript Array API to JsExp[JsArray[J]]
+ * @tparam J the member type
+ */
 trait Array[J <: JsAny] extends JsStub {
   def push(x: JsExp[J]): JsExp[JsNumber]
   var length: JsExp[JsNumber]
@@ -110,6 +114,39 @@ trait Array[J <: JsAny] extends JsStub {
 
 object Array {
   implicit def fromJsType[J <: JsAny] = new Extend[JsExp[JsTypes.JsArray[J]], Array[J]]
+
+  /**
+   * DSL to create a JsExp[JsArray[_]]
+   */
+  def apply[A, J <: JsAny](elems: A*)(implicit conv: ToJsLit[A, J]): JsExp[JsArray[J]] = JsRaw(
+    elems.map(conv(_).render).mkString("[", ",", "]")
+  )
+}
+/**
+ * DSL to create a JsExp[JsObj]
+ */
+object Object {
+  def apply(props: JsProp*): JsExp[JsObj] = JsRaw[JsObj](
+    props.map{ p =>
+      "\""+p.key+"\":"+p.renderValue
+    }.mkString("{", ",", "}")
+  )
+}
+class JsProp(val key: String, v: => JsExp[JsAny]) {
+  lazy val (value, statements) = JsStatement.inScope(v)
+  def renderValue = {
+    val rendered = statements.map(JsStatement.render) :+ JsExp.render(value)
+    val noDup = rendered.splitAt(rendered.length - 2) match {
+      case (pre, a :: b :: Nil) if a == b => pre :+ a
+      case _                              => rendered
+    }
+    if (noDup.length == 1) noDup.head
+    else noDup.mkString("{", ";", "}")
+  }
+}
+object JsProp {
+  implicit def pair2prop[A](pair: => (String, A))(implicit conv: ToJsLit[A, _ <: JsAny]): JsProp = new JsProp(pair._1, conv(pair._2))
+  implicit def jspair2prop(pair: (String, JsExp[JsAny])): JsProp = new JsProp(pair._1, pair._2)
 }
 
 /**
