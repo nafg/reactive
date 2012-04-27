@@ -20,7 +20,23 @@ class JsTests extends FunSuite with ShouldMatchers {
   }
 
   test("Functions") {
-    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("(function(arg){return (arg+1)})")
+    { () => 1.$ }.$.render should equal ("(function(){return 1})")
+
+    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("(function(arg0){return (arg0+1)})")
+
+    { (x: JsExp[JsNumber], y: JsExp[JsNumber]) => x + y }.$.render should equal (
+      "(function(arg0,arg1){return (arg0+arg1)})"
+    )
+
+    { () =>
+      If(true) {
+        window alert "Greater"
+      } Else {
+        window alert "Small"
+      }
+    }.$.render should equal (
+      "(function(){if(true) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
+    )
 
     { x: $[JsNumber] =>
       If(x > 10) {
@@ -29,7 +45,17 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "(function(arg){if((arg>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
+      "(function(arg0){if((arg0>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
+    )
+
+    { (x: JsExp[JsNumber], y: JsExp[JsNumber]) =>
+      If(x > y) {
+        window alert "Greater"
+      } Else {
+        window alert "Small"
+      }
+    }.$.render should equal (
+      "(function(arg0,arg1){if((arg0>arg1)) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
     )
   }
 
@@ -71,7 +97,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         "obj.prop=2",
         """obj["otherProp"]="xyz"""",
         "obj.getSelf(1).getSelf(2)",
-        "obj.takeCallback((function(arg){return obj.takeCallback2((function(arg){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)}))}))"
+        "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)}))}))"
       ), "", "") foreach { case (a, b) => a should equal (b) }
     }
   }
@@ -112,12 +138,12 @@ class JsTests extends FunSuite with ShouldMatchers {
       res.length should equal (1)
       res zipAll (List(
         "window.jQueryReady("+
-          "(function(arg){"+
+          "(function(arg0){"+
           "return window.setTimeout("+
-          "(function(arg){"+
+          "(function(arg0){"+
           "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
           "\"rename.jstree\","+
-          "(function(arg){(function(arg){reactive.queueAjax(0)(arg);reactive.doAjax()})(10);return })"+
+          "(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax()})(10);return })"+
           ")"+"}),"+
           "1000"+
           ")"+
@@ -149,7 +175,7 @@ class JsTests extends FunSuite with ShouldMatchers {
     }._2.map(JsStatement.render)
     stmts foreach println
     stmts.zipAll(List(
-      """window.onbeforeunload=(function(arg){if((!window["isClean"])) {var reply;var evt;reply="You have unsaved changes!";evt=arg;if((evt==null)) {evt=window.event};if((evt!=null)) {evt["returnValue"]=reply};return reply};return })"""
+      """window.onbeforeunload=(function(arg0){if((!window["isClean"])) {var reply;var evt;reply="You have unsaved changes!";evt=arg0;if((evt==null)) {evt=window.event};if((evt!=null)) {evt["returnValue"]=reply};return reply};return })"""
     ), "", "") foreach { case (a, b) => a should equal (b) }
   }
 
@@ -230,7 +256,7 @@ class JsTests extends FunSuite with ShouldMatchers {
       """function myFunc(arg0){if((arg0>10)) {window.alert("Greater")} else {window.alert("Small")}}""",
       "myFunc(10)",
       "function f$0(arg0){return (arg0>10)}",
-      """(function(arg){reactive.queueAjax(1)(arg);reactive.doAjax()})("Hello server!")"""
+      """(function(arg0){reactive.queueAjax(1)(arg0);reactive.doAjax()})("Hello server!")"""
     )
     rendered.length should equal (target.length)
     rendered.zipAll(target, "", "") foreach { case (s, t) => s should equal (t) }

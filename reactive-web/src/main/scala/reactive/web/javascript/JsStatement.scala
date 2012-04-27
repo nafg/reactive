@@ -33,9 +33,10 @@ object Ajax {
       case (_id, json) if _id == id.toString =>
         f(fromJs.parser(json))
     }
+    //TODO reactive should be a JsStub
     JsRaw(
-      "(function(arg){reactive.queueAjax("+id+")("+
-        JsExp.render(fromJs.encoder(JsRaw[J]("arg")))+
+      "(function(arg0){reactive.queueAjax("+id+")("+
+        JsExp.render(fromJs.encoder(JsRaw[J]("arg0")))+
         ");reactive.doAjax()})"
     )
   }

@@ -20,7 +20,9 @@ object JsTypes {
   final class JsRegex private extends JsAny
   final class JsObj private extends JsAny
   final class JsArray[+T <: JsAny] private extends JsAny
+  final class JsFunction0[+R <: JsAny] private extends JsAny
   final class JsFunction1[-P <: JsAny, +R <: JsAny] private extends JsAny
+  final class JsFunction2[-P1 <: JsAny, -P2 <: JsAny, +R <: JsAny] private extends JsAny
   final class JsVoid private extends JsAny
 }
 
@@ -201,10 +203,9 @@ class ToJsLit[-S, J <: JsAny](f: S => JsLiteral[J]) extends ToJs[S, J, JsLiteral
   def apply(s: S) = f(s)
 }
 
-class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends JsLiteral[P =|> R] {
-  lazy val (exp, statements) = JsStatement.inScope {
-    f(JsIdent('arg))
-  }
+abstract class FuncXLit[+R <: JsAny, +J <: JsAny](num: Int) extends JsLiteral[J] {
+  def exp: JsExp[R]
+  def statements: List[JsStatement]
   def render = {
     // if the last statement is a return statement, disregard the expression value
     object MIH {
@@ -212,7 +213,8 @@ class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends JsLite
         if (!Proxy.isProxyClass(x.getClass)) None
         else Some(Proxy.getInvocationHandler(x)).collect{ case mih: MethodInvocationHandler[_] => mih }
     }
-    "(function(arg)"+JsStatement.renderBlock(
+    val args = (0 until num).map("arg"+).mkString("(", ",", ")")
+    "(function"+args + JsStatement.renderBlock(
       (statements.lastOption, exp) match {
         case (Some(_: Return[_]), _)             => statements
         case (Some(s), e) if s eq e              => statements.dropRight(1) ++ JsStatement.inScope(Return(exp))._2
@@ -222,13 +224,36 @@ class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends JsLite
     )+")"
   }
 }
+class Func0Lit[+R <: JsAny](f: () => JsExp[R]) extends FuncXLit[R, JsFunction0[R]](0) {
+  lazy val (exp, statements) = JsStatement.inScope { f() }
+}
+class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends FuncXLit[R, P =|> R](1) {
+  lazy val (exp, statements) = JsStatement.inScope {
+    f(JsIdent('arg0))
+  }
+}
+class Func2Lit[-P1 <: JsAny, -P2 <: JsAny, +R <: JsAny](f: (JsExp[P1], JsExp[P2]) => JsExp[R]) extends FuncXLit[R, JsFunction2[P1, P2, R]](2) {
+  lazy val (exp, statements) = JsStatement.inScope {
+    f(JsIdent('arg0), JsIdent('arg1))
+  }
+}
 trait ToJsLow { // make sure Map has a higher priority than a regular function
+  implicit def func0[R <: JsAny]: ToJsLit[() => JsExp[R], JsFunction0[R]] =
+    new ToJsLit[() => JsExp[R], JsFunction0[R]]((f: () => JsExp[R]) => new Func0Lit(f))
   implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]((f: JsExp[P] => JsExp[R]) => new Func1Lit(f))
+  implicit def func2[P1 <: JsAny, P2 <: JsAny, R <: JsAny]: ToJsLit[(JsExp[P1], JsExp[P2]) => JsExp[R], JsFunction2[P1, P2, R]] =
+    new ToJsLit[(JsExp[P1], JsExp[P2]) => JsExp[R], JsFunction2[P1, P2, R]]((f: (JsExp[P1], JsExp[P2]) => JsExp[R]) => new Func2Lit(f))
 }
 trait ToJsMedium extends ToJsLow {
+  implicit val voidFunc0: ToJsLit[() => JsStatement, JsFunction0[JsVoid]] =
+    new ToJsLit[() => JsStatement, JsFunction0[JsVoid]]((f: () => JsStatement) => new Func0Lit(() => { f(); JsRaw("") }))
   implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] =
     new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]((f: JsExp[P] => JsStatement) => new Func1Lit({ x: JsExp[P] => f(x); JsRaw("") }))
+  implicit def voidFunc2[P1 <: JsAny, P2 <: JsAny]: ToJsLit[(JsExp[P1], JsExp[P2]) => JsStatement, JsFunction2[P1, P2, JsVoid]] =
+    new ToJsLit[(JsExp[P1], JsExp[P2]) => JsStatement, JsFunction2[P1, P2, JsVoid]](
+      (f: (JsExp[P1], JsExp[P2]) => JsStatement) => new Func2Lit({ (arg0: JsExp[P1], arg1: JsExp[P2]) => f(arg0, arg1); JsRaw("") })
+    )
 }
 /**
  * Contains implicit conversions from scala values to javascript literals.
