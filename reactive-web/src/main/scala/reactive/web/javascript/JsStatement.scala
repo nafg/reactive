@@ -27,16 +27,40 @@ object Javascript {
  * }}}
  */
 object Ajax {
+  def apply(f: () => Unit)(implicit page: Page): JsExp[JsFunction0[JsVoid]] = {
+    val id = page.nextNumber
+    page.ajaxEvents ?>> {
+      case (_id, _) if _id == id.toString =>
+        f()
+    }
+    //TODO reactive should be a JsStub, so this could be scala code
+    JsRaw(
+      "(function(){reactive.queueAjax("+id+")();reactive.doAjax()})"
+    )
+  }
   def apply[J <: JsAny, S](f: S => Unit)(implicit fromJs: FromJs[J, S], page: Page): $[J =|> JsVoid] = {
     val id = page.nextNumber
     page.ajaxEvents ?>> {
       case (_id, json) if _id == id.toString =>
         f(fromJs.parser(json))
     }
-    //TODO reactive should be a JsStub
+    //TODO reactive should be a JsStub, so this could be scala code
     JsRaw(
       "(function(arg0){reactive.queueAjax("+id+")("+
         JsExp.render(fromJs.encoder(JsRaw[J]("arg0")))+
+        ");reactive.doAjax()})"
+    )
+  }
+  def apply[J1 <: JsAny, S1, J2 <: JsAny, S2](f: (S1, S2) => Unit)(implicit fromJs1: FromJs[J1, S1], fromJs2: FromJs[J2, S2], page: Page): JsExp[JsFunction2[J1, J2, JsVoid]] = {
+    val id = page.nextNumber
+    page.ajaxEvents ?>> {
+      case (_id, net.liftweb.json.JArray(List(json1, json2))) if _id == id.toString =>
+        f(fromJs1.parser(json1), fromJs2.parser(json2))
+    }
+    //TODO reactive should be a JsStub, so this could be scala code
+    JsRaw(
+      "(function(arg0,arg1){reactive.queueAjax("+id+")("+
+        JsExp.render(List(fromJs1.encoder(JsRaw[J1]("arg0")), fromJs2.encoder(JsRaw[J2]("arg1"))))+
         ");reactive.doAjax()})"
     )
   }
@@ -88,7 +112,7 @@ object JsStatement {
     case i: If.If                        => "if("+JsExp.render(i.cond)+") "+renderImpl(i.body)
     case e: If.Elseable#Else             => render(e.outer)+" else "+render(e.body)
     case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+JsExp.render(ei.cond)+") "+render(ei.body)
-    case s: Apply1[_, _]                 => s.render
+    case s: Apply[_]                     => s.render
     case s: ApplyProxyMethod[_]          => s.render
     case b: Block                        => renderBlock(b.body)
     case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
@@ -152,9 +176,9 @@ sealed class HasBody(block: => Unit) {
   private[javascript] lazy val body = new Block(block)
 }
 
-case class Apply1[P <: JsAny, +R <: JsAny](f: $[P =|> R], arg0: $[P]) extends JsStatement with JsExp[R] {
-  def toReplace = List(arg0).collect{ case s: JsStatement => s }
-  def render = JsExp.render(f)+"("+JsExp.render(arg0)+")"
+case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*) extends JsStatement with JsExp[R] {
+  def toReplace = args.toList.collect { case s: JsStatement => s }
+  def render = JsExp.render(f) + args.map(JsExp.render).mkString("(", ",", ")")
 }
 
 class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {

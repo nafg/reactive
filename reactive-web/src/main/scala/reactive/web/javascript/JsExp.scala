@@ -53,7 +53,15 @@ trait JsExp[+T <: JsAny] {
   /**
    * Returns a JsExp that represents function application of this JsExp
    */
-  def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply1[T, P, R]): JsExp[R] with JsStatement = canApply(this, p)
+  def apply[R <: JsAny]()(implicit canApply: CanApply[T, Unit, R]): JsExp[R] with JsStatement = canApply(this, ())
+  /**
+   * Returns a JsExp that represents function application of this JsExp
+   */
+  def apply[P <: JsAny, R <: JsAny](p: JsExp[P])(implicit canApply: CanApply[T, JsExp[P], R]): JsExp[R] with JsStatement = canApply(this, p)
+  /**
+   * Returns a JsExp that represents function application of this JsExp
+   */
+  def apply[P1 <: JsAny, P2 <: JsAny, R <: JsAny](p1: JsExp[P1], p2: JsExp[P2])(implicit canApply: CanApply[T, (JsExp[P1], JsExp[P2]), R]): JsExp[R] with JsStatement = canApply(this, (p1, p2))
 
   /**
    * Array access
@@ -364,13 +372,14 @@ class CanOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) exte
   def apply(left: $[L], right: $[R]) = f(left, right)
 }
 
-object CanApply1 {
-  implicit def canApply1[P <: JsAny, R <: JsAny]: CanApply1[P =|> R, P, R] = new CanApply1[P =|> R, P, R](
-    f => p => new Apply1(f, p)
-  )
+object CanApply {
+  implicit def canApply0[R <: JsAny]: CanApply[JsFunction0[R], Unit, R] = new CanApply[JsFunction0[R], Unit, R](f => _ => Apply(f))
+  implicit def canApply1[P <: JsAny, R <: JsAny]: CanApply[P =|> R, JsExp[P], R] = new CanApply[P =|> R, JsExp[P], R](f => p => Apply(f, p))
+  implicit def canApply2[P1 <: JsAny, P2 <: JsAny, R <: JsAny]: CanApply[JsFunction2[P1, P2, R], (JsExp[P1], JsExp[P2]), R] =
+    new CanApply[JsFunction2[P1, P2, R], (JsExp[P1], JsExp[P2]), R](f => ps => Apply(f, ps._1, ps._2))
 }
-class CanApply1[-T <: JsAny, -P <: JsAny, +R <: JsAny](r: JsExp[T] => JsExp[P] => (JsExp[R] with JsStatement)) {
-  def apply(f: JsExp[T], p: JsExp[P]): JsExp[R] with JsStatement = r(f)(p)
+class CanApply[-T <: JsAny, -P, +R <: JsAny](r: JsExp[T] => P => (JsExp[R] with JsStatement)) {
+  def apply(f: JsExp[T], p: P): JsExp[R] with JsStatement = r(f)(p)
 }
 
 object CanGet {
