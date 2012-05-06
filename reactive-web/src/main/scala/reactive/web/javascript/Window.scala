@@ -41,4 +41,8 @@ sealed trait Window extends JsStub {
   var JSON: JSON
 
   def setTimeout(fn: JsExp[JsTypes.JsVoid =|> JsTypes.JsAny], timeout: JsExp[JsTypes.JsNumber]): JsExp[JsTypes.JsNumber]
+
+  def confirm(message: JsExp[JsString]): JsExp[JsBoolean]
+
+  def prompt(message: JsExp[JsString], default: JsExp[JsString] = ""): JsExp[JsString]
 }

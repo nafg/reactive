@@ -110,7 +110,10 @@ trait JsExp[+T <: JsAny] {
   def <[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<")(this, that)
   def <=[T2 <: JsAny](that: $[T2])(implicit canOrder: CanOrder[T, T2, JsBoolean]): $[JsBoolean] = canOrder("<=")(this, that)
 
-  def unary_!(implicit ev: T <:< JsBoolean): $[JsBoolean] = new JsRaw[JsBoolean]("(!"+JsExp.render(this)+")")
+  def unary_! : JsExp[JsBoolean] = new JsRaw[JsBoolean]("(!"+JsExp.render(this)+")")
+  def unary_-(implicit ev: T <:< JsNumber): JsExp[JsNumber] = new JsRaw[JsNumber]("(-"+JsExp.render(this)+")")
+  def unary_~(implicit ev: T <:< JsNumber): JsExp[JsNumber] = new JsRaw[JsNumber]("(~"+JsExp.render(this)+")")
+  def unary_+ : JsExp[JsNumber] = new JsRaw[JsNumber]("(+"+JsExp.render(this)+")")
 }
 
 /**
