@@ -5,24 +5,22 @@ import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.ParallelTestExecution
 
 object CollectEvents extends CollectEvents
-//TODO fold trait into singleton, and change inheritance to imports
+//TODO add collecting method to EventStream
 trait CollectEvents {
-  val observing1 = new Observing {}
-  def collecting[T](es: EventStream[T])(f: => Unit) /*(implicit observing1: Observing)*/ : List[T] = {
-    //    val observing1 = new Observing {
-    //      override def finalize = "println Observing gc'ed!"
-    //    }
+  private val observing1 = new Observing {}
+
+  def collectingReturning[T, R](es: EventStream[T])(f: =>R): (List[T], R) = {
     var log = List[T]()
     var executing = true
-    es.takeWhile{ _ =>
-      executing
-    }.foreach{ e =>
-      log :+= e
-    }(observing1)
-    f
+    es
+      .takeWhile(_ => executing)
+      .foreach(log :+= _)(observing1)
+    val ret = f
     executing = false
-    log
+    (log, ret)
   }
+
+  def collecting[A](es: EventStream[A])(f: =>Unit): List[A] = collectingReturning[A, Unit](es)(f)._1
 }
 
 class LoggerTests extends FunSuite with ShouldMatchers with Observing {
@@ -223,31 +221,29 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
   test("throttle") {
     val es = new EventSource[Int]
     val t = new es.Throttled(100)
-    def pause(idealTime: Long, test: Long => Boolean)(cont: => Boolean): Boolean = {
+    def fireAndPause(e: Int, idealTime: Long, p: Long => Boolean): Boolean = {
       val t = System.currentTimeMillis
+      es fire e
       Thread sleep idealTime
-      test(System.currentTimeMillis() - t) && cont
+      p(System.currentTimeMillis() - t)
     }
-    var done = false
-    do {
-      val collected = collecting(t) {
-        es fire 7
-        done = pause(50, _ < 100) {
-          es fire 4
-          pause(50, _ < 100) {
-            es fire 9
-            pause(50, _ < 100) {
-              es fire 13
-              pause(110, _ > 100) {
-                es fire 6
-                pause(110, _ > 100) (true)
-              }
-            }
-          }
+    Iterator
+      .continually {
+        val (collected, done) = collectingReturning(t) {
+          fireAndPause(7, 50, _ < 100) &
+            fireAndPause(4,  50,  _ < 100) &
+            fireAndPause(9,  50,  _ < 100) &
+            fireAndPause(13, 110, _ > 100) &
+            fireAndPause(6,  110, _ > 100)
         }
+        if (done)
+          collected should equal (List(13, 6))
+        else
+          info("Missed the boat, retrying")
+        done
       }
-      if (done) collected should equal (List(13, 6))
-    } while (!done)
+      .dropWhile(_ == false)
+      .next
   }
 }
 
