@@ -1,52 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output="target/scala-2.8.1.final/classes" path="src/main/scala"/>
-	<classpathentry kind="src" output="target/scala-2.8.1.final/classes" path="src/main/resources"/>
-	<classpathentry kind="src" output="target/scala-2.8.1.final/test-classes" path="src/test/scala"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scalatest/scalatest_2.8.1/jars/scalatest_2.8.1-1.5.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-testkit_2.8.1/jars/lift-testkit_2.8.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-httpclient/commons-httpclient/jars/commons-httpclient-3.1.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.0.4.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-util_2.8.1/jars/lift-util_2.8.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/nu.validator.htmlparser/htmlparser/jars/htmlparser-1.2.1.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/javax.mail/mail/jars/mail-1.4.1.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/javax.activation/activation/jars/activation-1.1.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/joda-time/joda-time/jars/joda-time-1.6.2.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-codec/commons-codec/jars/commons-codec-1.4.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-actor_2.8.1/jars/lift-actor_2.8.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.6.1.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-json_2.8.1/jars/lift-json_2.8.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/com.thoughtworks.paranamer/paranamer/jars/paranamer-2.3.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scala-lang/scalap/jars/scalap-2.8.1.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/dev/reactive/project/boot/scala-2.8.1/lib/scala-compiler.jar"/>
-	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-fileupload/commons-fileupload/jars/commons-fileupload-1.2.2.jar"/>
+	<classpathentry kind="src" output=".target/scala-2.9.1/classes" path="src/main/scala"/>
+	<classpathentry kind="src" output=".target/scala-2.9.1/classes" path="src/main/resources"/>
+	<classpathentry kind="src" output=".target/scala-2.9.1/test-classes" path="src/test/scala"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-testkit_2.9.1/jars/lift-testkit_2.9.1-2.5-SNAPSHOT.jar" sourcepath="/home/naftoli/.ivy2/cache/net.liftweb/lift-testkit_2.9.1/srcs/lift-testkit_2.9.1-2.5-SNAPSHOT-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-util_2.9.1/2.5-SNAPSHOT/jars/lift-util_2.9.1.jar" sourcepath="/home/naftoli/.ivy2/local/net.liftweb/lift-util_2.9.1/2.5-SNAPSHOT/jars/lift-util_2.9.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-codec/commons-codec/jars/commons-codec-1.4.jar" sourcepath="/home/naftoli/.ivy2/cache/commons-codec/commons-codec/srcs/commons-codec-1.4-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/joda-time/joda-time/jars/joda-time-1.6.2.jar" sourcepath="/home/naftoli/.ivy2/cache/joda-time/joda-time/srcs/joda-time-1.6.2-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/nu.validator.htmlparser/htmlparser/jars/htmlparser-1.2.1.jar" sourcepath="/home/naftoli/.ivy2/cache/nu.validator.htmlparser/htmlparser/srcs/htmlparser-1.2.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/javax.mail/mail/jars/mail-1.4.4.jar" sourcepath="/home/naftoli/.ivy2/cache/javax.mail/mail/srcs/mail-1.4.4-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/javax.activation/activation/jars/activation-1.1.jar" sourcepath="/home/naftoli/.ivy2/cache/javax.activation/activation/srcs/activation-1.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-actor_2.9.1/2.5-SNAPSHOT/jars/lift-actor_2.9.1.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-actor_2.9.1/2.5-SNAPSHOT/jars/lift-actor_2.9.1-sources.jar" sourcepath="/home/naftoli/.ivy2/local/net.liftweb/lift-actor_2.9.1/2.5-SNAPSHOT/jars/lift-actor_2.9.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-common_2.9.1/2.5-SNAPSHOT/jars/lift-common_2.9.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-common_2.9.1/2.5-SNAPSHOT/jars/lift-common_2.9.1.jar" sourcepath="/home/naftoli/.ivy2/local/net.liftweb/lift-common_2.9.1/2.5-SNAPSHOT/jars/lift-common_2.9.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.6.4.jar" sourcepath="/home/naftoli/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.6.4-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/net.liftweb/lift-json_2.9.1/jars/lift-json_2.9.1-2.5-SNAPSHOT.jar" sourcepath="/home/naftoli/.ivy2/cache/net.liftweb/lift-json_2.9.1/srcs/lift-json_2.9.1-2.5-SNAPSHOT-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scala-lang/scalap/jars/scalap-2.9.1.jar" sourcepath="/home/naftoli/.ivy2/cache/org.scala-lang/scalap/srcs/scalap-2.9.1-sources.jar"/>
+	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/com.thoughtworks.paranamer/paranamer/jars/paranamer-2.4.1.jar" sourcepath="/home/naftoli/.ivy2/cache/com.thoughtworks.paranamer/paranamer/srcs/paranamer-2.4.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/log4j/log4j/bundles/log4j-1.2.16.jar" sourcepath="/home/naftoli/.ivy2/cache/log4j/log4j/srcs/log4j-1.2.16-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/ch.qos.logback/logback-core/jars/logback-core-1.0.0.jar" sourcepath="/home/naftoli/.ivy2/cache/ch.qos.logback/logback-core/srcs/logback-core-1.0.0-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-httpclient/commons-httpclient/jars/commons-httpclient-3.1.jar" sourcepath="/home/naftoli/.ivy2/cache/commons-httpclient/commons-httpclient/srcs/commons-httpclient-3.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.0.4.jar" sourcepath="/home/naftoli/.ivy2/cache/commons-logging/commons-logging/srcs/commons-logging-1.0.4-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-webkit_2.9.1/2.5-SNAPSHOT/jars/lift-webkit_2.9.1-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/local/net.liftweb/lift-webkit_2.9.1/2.5-SNAPSHOT/jars/lift-webkit_2.9.1.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/commons-fileupload/commons-fileupload/jars/commons-fileupload-1.2.2.jar" sourcepath="/home/naftoli/.ivy2/cache/commons-fileupload/commons-fileupload/srcs/commons-fileupload-1.2.2-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/javax.servlet/servlet-api/jars/servlet-api-2.5.jar" sourcepath="/home/naftoli/.ivy2/cache/javax.servlet/servlet-api/srcs/servlet-api-2.5-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scalatest/scalatest_2.9.1/jars/scalatest_2.9.1-1.6.1.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scala-tools.testing/scalacheck_2.9.1/jars/scalacheck_2.9.1-1.9.jar" sourcepath="/home/naftoli/.ivy2/cache/org.scala-tools.testing/scalacheck_2.9.1/srcs/scalacheck_2.9.1-1.9-sources.jar"/>
+	<classpathentry kind="lib" path="/home/naftoli/.ivy2/cache/org.scala-tools.testing/test-interface/jars/test-interface-0.5.jar"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/reactive"/>
-	<classpathentry kind="output" path="target/classes"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/javax.activation-activation-1.1.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-codec-commons-codec-1.4.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-fileupload-commons-fileupload-1.2.2.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-httpclient-commons-httpclient-3.1.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/commons-logging-commons-logging-1.0.4.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/nu.validator.htmlparser-htmlparser-1.2.1.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/joda-time-joda-time-1.6.2.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-actor_2.9.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-common_2.9.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-json_2.9.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-testkit_2.9.1-2.4-SNAPSHOT.jar" sourcepath="/home/naftoli/.esbt/jars/net.liftweb-lift-testkit_2.9.1-2.4-SNAPSHOT-sources.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-util_2.9.1-2.4-SNAPSHOT.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/net.liftweb-lift-webkit_2.9.1-2.4-SNAPSHOT.jar" sourcepath="/home/naftoli/.esbt/jars/net.liftweb-lift-webkit_2.9.1-2.4-SNAPSHOT-sources.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/javax.mail-mail-1.4.4.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/com.thoughtworks.paranamer-paranamer-2.3.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-lang-scala-compiler.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-tools.testing-scalacheck_2.9.1-1.9.jar" sourcepath="/home/naftoli/.esbt/jars/org.scala-tools.testing-scalacheck_2.9.1-1.9-sources.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-lang-scalap-2.9.1.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scalatest-scalatest_2.9.1-1.6.1.jar" sourcepath="/home/naftoli/.esbt/jars/org.scalatest-scalatest_2.9.1-1.6.1-sources.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/javax.servlet-servlet-api-2.5.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.slf4j-slf4j-api-1.6.4.jar"/>
-	<classpathentry from="sbt" kind="lib" path="/home/naftoli/.esbt/jars/org.scala-tools.testing-test-interface-0.5.jar"/>
-	<classpathentry from="sbt" kind="src" path="src/main/scala/"/>
-	<classpathentry from="sbt" kind="src" path="src/main/resources/"/>
-	<classpathentry from="sbt" kind="src" path="src/test/scala/"/>
+	<classpathentry kind="output" path=".target/scala-2.9.1/classes"/>
 </classpath>
