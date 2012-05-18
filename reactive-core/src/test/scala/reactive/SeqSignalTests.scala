@@ -135,6 +135,19 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
     val flatMapped = check(SeqSignal(v.flatMap(x => BufferSignal(40, 50))))
     v () = List(60, 70)
   }
+
+  test("fromDeltas") {
+    println("begin")
+    val es = new EventSource[SeqDelta[Int, Int]]
+    val sig = SeqSignal.fromDeltas(1 :: 2 :: 3 :: Nil, es)
+    val sig2 = sig.now.map(_.toString).signal
+    collecting(sig2.change) {
+      es fire Include(1, 10)
+    }.map(_.toList) should equal (List(
+      List("1", "10", "2", "3")
+    ))
+    println("end")
+  }
 }
 
 class BufferSignalTests extends FunSuite with ShouldMatchers with Observing {

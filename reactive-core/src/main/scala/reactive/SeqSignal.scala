@@ -42,6 +42,18 @@ object SeqSignal {
     override def toString = "SeqSignal("+now+")"
   }
 
+  def fromDeltas[A](orig: Seq[A], deltas0: EventStream[SeqDelta[A, A]]): SeqSignal[A] = new SeqSignal[A] { owner =>
+    override lazy val deltas = deltas0
+    val origDS = new DeltaSeq[A] {
+      val underlying = orig
+      val fromDelta = DeltaSeq startDelta orig
+      val signal = owner
+    }
+    val underlying = deltas0.foldLeft[DeltaSeq[A]](origDS)(DeltaSeq.updatedByDeltas) hold origDS
+    def change = underlying.change
+    def now = underlying.now
+  }
+
   /**
    * Given a Signal[Seq[A]], return an EventStream that fires the diff representing every change.
    */
