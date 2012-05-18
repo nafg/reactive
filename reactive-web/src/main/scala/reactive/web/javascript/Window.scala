@@ -45,4 +45,6 @@ sealed trait Window extends JsStub {
   def confirm(message: JsExp[JsString]): JsExp[JsBoolean]
 
   def prompt(message: JsExp[JsString], default: JsExp[JsString] = ""): JsExp[JsString]
+
+  def open(url: JsExp[JsString], target: JsExp[JsString], params: JsExp[JsString]): JsExp[JsObj]
 }
