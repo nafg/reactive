@@ -219,16 +219,21 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
   }
 
   test("throttle") {
-    val es = new EventSource[Int]
-    val t = new es.Throttled(100)
-    def fireAndPause(e: Int, idealTime: Long, p: Long => Boolean): Boolean = {
-      val t = System.currentTimeMillis
-      es fire e
-      Thread sleep idealTime
-      p(System.currentTimeMillis() - t)
-    }
     Iterator
       .continually {
+        val es = new EventSource[Int]
+        val t = new es.Throttled(100)
+        val start = System.currentTimeMillis
+        es foreach { e =>
+          info("Fired " + e + " at " + (System.currentTimeMillis - start))
+        }
+        def fireAndPause(e: Int, idealTime: Long, p: Long => Boolean): Boolean = {
+          val a = System.currentTimeMillis
+          es fire e
+          while(System.currentTimeMillis - a < idealTime)
+            Thread sleep 10
+          p(System.currentTimeMillis - a)
+        }
         val (collected, done) = collectingReturning(t) {
           fireAndPause(7, 50, _ < 100) &
             fireAndPause(4,  50,  _ < 100) &
@@ -236,6 +241,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
             fireAndPause(13, 110, _ > 100) &
             fireAndPause(6,  110, _ > 100)
         }
+        info("Finished collecting at " + (System.currentTimeMillis - start))
         if (done)
           collected should equal (List(13, 6))
         else
