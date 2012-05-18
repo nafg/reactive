@@ -16,11 +16,11 @@ import net.liftweb.util.{ Helpers, ThreadGlobal }
  * This singleton is used to enable reactive-web's features and to send javascript to the browser
  */
 object Reactions extends Logger {
-  case class QueueingJS[T: CanRender](pageId: Option[String], data: T) extends LogEventPredicate {
+  case class QueueingJS[T: CanRender](pageId: Option[String], data: T) {
     def js: String = implicitly[CanRender[T]] apply data
   }
-  case class FinishedServerScope(pageId: String, comet: ReactionsComet) extends LogEventPredicate
-  case class ReusingScope(scope: Scope) extends LogEventPredicate
+  case class FinishedServerScope(pageId: String, comet: ReactionsComet)
+  case class ReusingScope(scope: Scope)
 
   private val _currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
 

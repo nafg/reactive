@@ -18,8 +18,8 @@ class Select[T](
   renderer: T => String = { t: T => t.toString },
   val size: Int = 1)(implicit observing: Observing, config: CanRenderDomMutationConfig) extends Repeater with Logger {
 
-  case class UpdatedItemFromIndex(item: Option[T]) extends LogEventPredicate
-  case class UpdatedIndexFromItem(item: Option[Int]) extends LogEventPredicate
+  case class UpdatedItemFromIndex(item: Option[T])
+  case class UpdatedIndexFromItem(item: Option[Int])
 
   def renderer = config.domMutationRenderer
 

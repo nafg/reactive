@@ -11,7 +11,7 @@ import web.javascript.{ JsExp, JsTypes, =|> }
  */
 package object web {
   object packageLogger extends Logger {
-    case class WrappedNonElemInSpan(xml: NodeSeq) extends LogEventPredicate
+    case class WrappedNonElemInSpan(xml: NodeSeq)
   }
 
   @deprecated("Use DomEventSource")
