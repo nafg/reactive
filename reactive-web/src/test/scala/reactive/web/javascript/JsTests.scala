@@ -81,6 +81,7 @@ class JsTests extends FunSuite with ShouldMatchers {
           val v = JsVar[JsObj] := obj.self
           obj.nullary
           obj.prop := 2
+          obj.self.prop := 3
           obj.get("otherProp") := "xyz"
           obj.getSelf(1).getSelf(2)
           obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
@@ -95,6 +96,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         "x$0=obj.self",
         "obj.nullary()",
         "obj.prop=2",
+        "obj.self.prop=3",
         """obj["otherProp"]="xyz"""",
         "obj.getSelf(1).getSelf(2)",
         "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)}))}))"
