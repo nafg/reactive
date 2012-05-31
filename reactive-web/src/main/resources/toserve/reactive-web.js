@@ -202,11 +202,22 @@ window.reactive = {
   updateProperty : function(parentId, propertyName, value) {
     try {
       var p = document.getElementById(parentId);
+      var st_func = function(pair) {
+        var res = pair.split(":");
+        //console.log('current pair: '+ res[0] + ' and ' + res[1])
+        p['style'][res[0]]=res[1]
+      };
       if (!p)
         this.error("Error in updateProperty('" + parentId + "','"
             + propertyName + "'," + value + "): no element " + parentId);
-      else
-        p[propertyName] = value;
+      else {
+        if (propertyName == 'style') {
+          var elements = value.split(';');
+          //console.log('elements are ' + elements);
+          elements.forEach (st_func);
+        } else 
+          p[propertyName] = value;
+      }
     } catch (e) {
       this.error(e);
     }
