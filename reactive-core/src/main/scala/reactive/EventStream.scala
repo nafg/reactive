@@ -46,7 +46,9 @@ object EventStream {
  * @tparam T the type of values fired as events
  * @see EventSource
  */
-trait EventStream[+T] extends Forwardable[T] {
+trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
+  def self = this
+
   /**
    * Registers a listener function to run whenever
    * an event is fired. The function is held with a WeakReference
@@ -199,7 +201,7 @@ object NamedFunction {
  * adds fire method.
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
-class EventSource[T] extends EventStream[T] with Logger {
+class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] with Logger {
   case class HasListeners(listeners: List[WeakReference[T => Unit]])
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
   case class AddingListener(listener: T => Unit)
@@ -207,6 +209,8 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   @deprecated("Use logLevel or setLogLevel, this does nothing anymore")
   var debug = EventSource.debug
+
+  override def self = this
 
   /**
    * When n empty WeakReferences are found, purge them

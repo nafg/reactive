@@ -14,7 +14,9 @@ object Signal {
  * @param T the type of value this signal contains
  */
 //TODO provide change veto (cancel) support
-trait Signal[+T] extends Forwardable[T] {
+trait Signal[+T] extends Forwardable[T, Signal[T]] {
+  def self = this
+
   /**
    * Represents the current value. Often, this value does not need to be
    * (or should not be) used explicitly from the outside; instead you can pass functions
@@ -345,7 +347,9 @@ object Var {
 /**
  * A signal whose value can be changed directly
  */
-class Var[T](initial: T) extends Signal[T] {
+class Var[T](initial: T) extends Signal[T] with Forwardable[T, Var[T]] {
+  override def self = this
+
   override def debugName = "Var(%s)" format now
   private var _value = initial
 

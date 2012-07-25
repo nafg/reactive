@@ -10,13 +10,31 @@ import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
 
 import scala.collection.mutable.WeakHashMap
 
+
+class DomEventSourceCanForeach[T <: DomEvent: Manifest: EventEncoder](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
+  def self = domEventSource
+
+  /**
+   * Calls eventStream.foreach
+   */
+  def foreach(f: T => Unit)(implicit o: Observing) = domEventSource.eventStream(page).foreach(f)(o)
+  /**
+   * Calls jsEventStream.foreach
+   */
+  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F) = domEventSource.jsEventStream(page).foreach(f)
+  /**
+   * Calls jsEventStream.foreach
+   */
+  def foreach(f: $[JsObj =|> JsVoid]) = domEventSource.jsEventStream(page).foreach(f)
+}
+
 /**
  * Represents a DOM event type and related JsEventStreams.
  * Generates the javascript necessary to fire JsEventStreams
  * in response to events.
  */
 //TODO better name? It is not an EventSource; only wraps a JsEventStream
-class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[T] with Logger with JsForwardable[JsObj] {
+class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Logger {
   /**
    * Adds asAttribute to an Elem.
    * If an attribute exists with the same name, combine the two values,
@@ -104,19 +122,6 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[
 
   def render(implicit page: Page) = new Renderer()(page)
 
-  /**
-   * Calls eventStream.foreach
-   */
-  def foreach(f: T => Unit)(implicit o: Observing) = eventStream.foreach(f)(o)
-  /**
-   * Calls jsEventStream.foreach
-   */
-  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F) = jsEventStream.foreach(f)
-  /**
-   * Calls jsEventStream.foreach
-   */
-  def foreach(f: $[JsObj =|> JsVoid]) = jsEventStream.foreach(f)
-
   override def toString = "DomEventSource["+manifest[T]+"]"
 }
 
@@ -125,6 +130,11 @@ object DomEventSource {
    * An implicit conversion from DomEventSource to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
   implicit def toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
+
+  /**
+   *
+   */
+  implicit def canForeach[T <: DomEvent](des: DomEventSource[T])(implicit m: Manifest[T], ee: EventEncoder[T], page: Page) = new DomEventSourceCanForeach(des)(page)
 
   /**
    * Creates a new Click DomEventSource
