@@ -1,4 +1,7 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
 
 import scala.xml.NodeSeq

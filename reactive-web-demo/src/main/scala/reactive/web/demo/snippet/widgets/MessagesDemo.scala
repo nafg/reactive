@@ -1,4 +1,7 @@
-package reactive.web.demo.snippet.widgets
+package reactive
+package web
+package demo
+package snippet.widgets
 
 import scala.xml.Text
 import scala.xml.NodeSeq
@@ -10,7 +13,7 @@ import reactive.web.DomEventSource
 import reactive.web.widgets.Messages
 import reactive.web.html.Button
 
-class MessagesDemo extends Observing {
+class MessagesDemo extends PageSnippet {
   def render = "button" #> (DomEventSource.click ->> {
     Messages += "This is a string"
     var counter = 1

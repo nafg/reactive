@@ -1,8 +1,9 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-import web._
-import html._
+import reactive.web.html._
 
 import net.liftweb.util.Helpers._
 
@@ -30,7 +31,7 @@ object Contacts {
   }
 }
 
-class ContactsPage extends Observing {
+class ContactsPage extends PageSnippet {
   def render = "tbody" #> Repeater {
     Contacts.contacts.now.map{ contact =>
       val name = TextInput.value(contact.name) withEvents DomEventSource.change

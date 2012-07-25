@@ -1,7 +1,7 @@
-package reactive.web.demo.snippet
-
-import reactive._
-
+package reactive
+package web
+package demo
+package snippet
 
 class EventStream_filter extends EventStreamDemo {
   // Only allow short events
