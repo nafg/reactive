@@ -166,7 +166,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * Simulate typing in a text field.
      * Currently only fires KeyUp events, no modifiers, and a Change event.
      */
-    def sendKeys(text: String): PowerNode = {
+    def sendKeys(text: String)(implicit page: Page): PowerNode = {
       text.foldLeft(node){
         case (n, '\b') =>
           val v = n.value
@@ -183,8 +183,8 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * Currently on handles Change, Click, and KeyUp.
      * @return this PowerNode
      */
-    def fire[T <: DomEvent: Manifest](event: T): this.type = {
-      for (eventAttr <- attr.get("on"+scalaClassName(manifest[T].erasure).toLowerCase)) {
+    def fire[T <: DomEvent](event: T)(implicit page: Page, eventType: Manifest[T]): this.type = {
+      for (eventAttr <- attr.get("on"+scalaClassName(eventType.erasure).toLowerCase)) {
         val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
         val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(window.document.getElementById\(\"([^\"]*)\"\)\[\"([^\)\"]*)\"\]\)""".r
 
@@ -216,14 +216,12 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
               //TODO other events
             }
             val jvalue = Serialization.read(eventValue)(DefaultFormats, manifest[JValue])
-            val page = Page.currentPage
             logger.trace(FiringAjaxEvent(page, jvalue))
             page.ajaxEvents.fire((es, jvalue))
         }
         props foreach {
           case Regex.Groups(es, id, prop) =>
             val e = if (PowerNode.this.id == id) node else TestScope.this(id)
-            val page = Page.currentPage
             val jvalue = JString(e.attr(prop))
             logger.trace(FiringAjaxEvent(page, jvalue))
             page.ajaxEvents.fire((es, jvalue))

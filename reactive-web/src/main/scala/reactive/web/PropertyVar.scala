@@ -91,9 +91,10 @@ object PropertyVar {
      *  }
      * }}}
      */
-    def transform[A](f: Option[String] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
+    def transform[A](f: Option[String] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig, page: Page): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
       val s = f(elem.attributes.asAttrMap get dom.attributeName)
-      new PropertyVar[A](dom(config))(s.now) <<: s render elem
+      val pv = new PropertyVar[A](dom(config))(s.now) <<: s
+      pv.render(elem)
     })
 
     /**
