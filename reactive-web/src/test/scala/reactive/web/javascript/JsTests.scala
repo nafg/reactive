@@ -7,7 +7,7 @@ import JsTypes._
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
-class JsTests extends FunSuite with ShouldMatchers {
+class JsTests extends FunSuite with ShouldMatchers with Observing {
   test("Operators") {
     (1.$ + 2 render) should equal (new JsOp(1, 2, "+").render)
     (1.$ & 2 render) should equal (new JsOp(1, 2, "&").render)
@@ -74,7 +74,8 @@ class JsTests extends FunSuite with ShouldMatchers {
     }
     implicit object ext extends Extend[obj, extendObj]
     val obj = $$[obj]
-    Page.withPage(new Page) {
+    implicit val page = new Page
+    Page.withPage(page) {
       Reactions.inScope(new LocalScope) {
         Javascript {
           obj.method(obj.method("This is a scala string"))
@@ -120,7 +121,8 @@ class JsTests extends FunSuite with ShouldMatchers {
     implicit object extendWindow extends Extend[Window, Window2]
     implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
 
-    Page.withPage(new Page) {
+    implicit val page = new Page
+    Page.withPage(page) {
       val res = Reactions.inScope(new LocalScope) {
         Javascript {
           window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
@@ -210,22 +212,22 @@ class JsTests extends FunSuite with ShouldMatchers {
       object i extends JsVar[JsNumber]
       For(List(i := 1), i < 10, List(i := i + 1)) {}
 
-      Page.withPage(new Page){
-        for (j <- List(1.$, 2.$, 3.$)$) {
-          If(j > 1) {
-            window.alert("Greater"$)
-          }
+      implicit val page = new Page  // needed to generate fresh ids
+
+      for (j <- List(1.$, 2.$, 3.$)$) {
+        If(j > 1) {
+          window.alert("Greater"$)
         }
-        for (j <- Each(List(1.$, 2.$, 3.$))) {
-          If(j > 1) {
-            window.alert("Greater")
-          }
+      }
+      for (j <- Each(List(1.$, 2.$, 3.$))) {
+        If(j > 1) {
+          window.alert("Greater")
         }
-        Try {
-          Throw("message")
-        } Catch { c =>
-        } Finally {
-        }
+      }
+      Try {
+        Throw("message")
+      } Catch { c =>
+      } Finally {
       }
 
       object myFunc extends Function({ x: $[JsNumber] =>
@@ -236,12 +238,10 @@ class JsTests extends FunSuite with ShouldMatchers {
         }
       })
       myFunc(10)
-      Page.withPage(new Page) {
-        val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
+      val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
 
-        val myAjax = Ajax{ x: String => println("Got "+x) }
-        myAjax("Hello server!")
-      }
+      val myAjax = Ajax { x: String => println("Got " + x) }
+      myAjax("Hello server!")
     }
     val rendered = theStatements map JsStatement.render
     //    theStatements map JsStatement.render foreach println
@@ -257,10 +257,9 @@ class JsTests extends FunSuite with ShouldMatchers {
       """try {throw "message"} catch(x$2) {} finally {}""",
       """function myFunc(arg0){if((arg0>10)) {window.alert("Greater")} else {window.alert("Small")}}""",
       "myFunc(10)",
-      "function f$0(arg0){return (arg0>10)}",
-      """(function(arg0){reactive.queueAjax(1)(arg0);reactive.doAjax()})("Hello server!")"""
-    )
-    rendered.length should equal (target.length)
-    rendered.zipAll(target, "", "") foreach { case (s, t) => s should equal (t) }
+      "function f$3(arg0){return (arg0>10)}",
+      """(function(arg0){reactive.queueAjax(4)(arg0);reactive.doAjax()})("Hello server!")""")
+    rendered.length should equal(target.length)
+    rendered.zipAll(target, "", "") foreach { case (s, t) => s should equal(t) }
   }
 }

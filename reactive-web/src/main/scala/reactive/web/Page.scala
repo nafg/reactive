@@ -24,8 +24,14 @@ object CurrentPage extends RequestVar(new Page)
  * An RElem can be associated with multiple Pages. The corresponding
  * element will be kept in sync in both places.
  */
-class Page extends Observing {
+class Page {
+  /**
+   * Use if you need to tie a listener's lifespan to the lifetime of the Page
+   */
+  implicit object observing extends Observing
+
   val id = randomString(20)
+
   @deprecated("Use id")
   def cometName = id
 
@@ -138,10 +144,15 @@ object Page {
 
   /**
    * Makes the current Page available implicitly.
+   */
+  @deprecated("Relying on the thread-local currentPage will break updates coming from outside that page's thread.")
+  implicit def implicitCurrentPage = currentPage
+
+  /**
    * Must be called when S.request.isDefined or there is
    * a dynamically-scoped current Page.
    */
-  implicit def currentPage: Page = {
+  def currentPage: Page = {
     require(dynamicScope.value.isDefined || S.request.isDefined, "no current request, page undefined")
     dynamicScope.value getOrElse CurrentPage.is
   }

@@ -27,7 +27,7 @@ object Javascript {
  * }}}
  */
 object Ajax {
-  def apply(f: () => Unit)(implicit page: Page): JsExp[JsFunction0[JsVoid]] = {
+  def apply(f: () => Unit)(implicit observing: Observing, page: Page): JsExp[JsFunction0[JsVoid]] = {
     val id = page.nextNumber
     page.ajaxEvents ?>> {
       case (_id, _) if _id == id.toString =>
@@ -38,7 +38,7 @@ object Ajax {
       "(function(){reactive.queueAjax("+id+")();reactive.doAjax()})"
     )
   }
-  def apply[J <: JsAny, S](f: S => Unit)(implicit fromJs: FromJs[J, S], page: Page): $[J =|> JsVoid] = {
+  def apply[J <: JsAny, S](f: S => Unit)(implicit fromJs: FromJs[J, S], observing: Observing, page: Page): $[J =|> JsVoid] = {
     val id = page.nextNumber
     page.ajaxEvents ?>> {
       case (_id, json) if _id == id.toString =>
@@ -51,7 +51,7 @@ object Ajax {
         ");reactive.doAjax()})"
     )
   }
-  def apply[J1 <: JsAny, S1, J2 <: JsAny, S2](f: (S1, S2) => Unit)(implicit fromJs1: FromJs[J1, S1], fromJs2: FromJs[J2, S2], page: Page): JsExp[JsFunction2[J1, J2, JsVoid]] = {
+  def apply[J1 <: JsAny, S1, J2 <: JsAny, S2](f: (S1, S2) => Unit)(implicit fromJs1: FromJs[J1, S1], fromJs2: FromJs[J2, S2], observing: Observing, page: Page): JsExp[JsFunction2[J1, J2, JsVoid]] = {
     val id = page.nextNumber
     page.ajaxEvents ?>> {
       case (_id, net.liftweb.json.JArray(List(json1, json2))) if _id == id.toString =>
@@ -327,7 +327,7 @@ object Try {
   def apply(block: => Unit) = new Try(block)
   private[javascript] class Try(block: => Unit) extends HasBody(block) with Finallyable with JsStatement {
     def toReplace = Nil
-    def Catch(b: JsIdent[JsAny] => Unit) = {
+    def Catch(b: JsIdent[JsAny] => Unit)(implicit page: Page) = {
       val v = JsVar[JsAny]()
       new Catch(v)(b(v))
     }

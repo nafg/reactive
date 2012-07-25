@@ -44,9 +44,9 @@ trait TableView[A] {
     /**
      * The css selector expression that renders this column.
      */
-    def render(row: RowType): CssSel = selector #> renderer(row)
+    def render(row: RowType)(implicit page: Page): CssSel = selector #> renderer(row)
 
-    override def toString = "Col{"+selector+"}"
+    override def toString = "Col{" + selector + "}"
   }
 
   /**
@@ -75,6 +75,8 @@ trait TableView[A] {
    * The actual subtype of Row used
    */
   type RowType <: Row
+
+  implicit def page: Page
 
   implicit def observing: Observing
 

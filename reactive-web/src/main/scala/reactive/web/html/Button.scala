@@ -65,7 +65,7 @@ object Button {
    * @param content The contents of the button. Default is empty
    * @param action the callback to invoke when the button is clicked
    */
-  def apply(content: Signal[NodeSeq])(action: => Unit)(implicit observing: Observing, config: CanRenderDomMutationConfig): Button with Cell = {
+  def apply(content: Signal[NodeSeq])(action: => Unit)(implicit observing: Observing, config: CanRenderDomMutationConfig, page: Page): Button with Cell = {
     val ret = apply(ButtonType.Button, content)(config)
     ret.click.eventStream foreach {_=>action}
     ret
@@ -77,8 +77,8 @@ object Button {
    * @param label The text of the button
    * @param action the callback to invoke when the button is clicked
    */
-  def apply(label: String)(action: => Unit)(implicit observing: Observing, config: CanRenderDomMutationConfig): Button with Cell =
-    apply(Val(Text(label)))(action)(observing, config)
+  def apply(label: String)(action: => Unit)(implicit observing: Observing, config: CanRenderDomMutationConfig, page: Page): Button with Cell =
+    apply(Val(Text(label)))(action)(observing, config, page)
 }
 /**
  * Enumerates the types of buttons (the type attribute of the button tag)

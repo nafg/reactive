@@ -89,7 +89,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
 
       // Register propagate with all linked event streams,
       // for the lifetime of the page
-      jses.toServer(_.values.toString).foreach(propagate)(page)
+      jses.toServer(_.values.toString).foreach(propagate)(page.observing)
       jses
     })
 

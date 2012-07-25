@@ -60,9 +60,9 @@ package object web {
    *   }
    * }}}
    */
-  def on[E <: DomEvent](f: JsExp[JsTypes.JsObj =|> JsTypes.JsVoid])(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing) = {
+  def on[E <: DomEvent](f: JsExp[JsTypes.JsObj =|> JsTypes.JsVoid])(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing, p: Page) = {
     val des = new DomEventSource[E]
-    des foreach f
+    des.jsEventStream(p) foreach f
     des
   }
   /**
@@ -73,9 +73,9 @@ package object web {
    * @example
    * {{{ onServer { _: Click => save() } }}}
    */
-  def onServer[E <: DomEvent](f: E => Unit)(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing) = {
+  def onServer[E <: DomEvent](f: E => Unit)(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing, p: Page) = {
     val des = new DomEventSource[E]
-    des foreach f
+    des.eventStream(p) foreach f
     des
   }
 

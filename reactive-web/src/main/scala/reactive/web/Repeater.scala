@@ -82,6 +82,7 @@ trait Repeater extends RElem {
 
   override protected def addPage(elem: Elem)(implicit page: Page): Elem = {
     val ret = super.addPage(elem)(page)
+    import page.observing
     manager.createPageStream(id(page)) foreach { dms =>
       Reactions.inAnyScope(page) {
         dms foreach { dm => Reactions.queue(dm) }
