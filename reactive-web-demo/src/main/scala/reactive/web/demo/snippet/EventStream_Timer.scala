@@ -1,9 +1,9 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-
-
-class EventStream_Timer extends Observing {
+class EventStream_Timer extends PageSnippet {
   // Create a timer that fires every 2 seconds, starting at 0,
   // for 30 seconds
   val timer = new Timer(0, 2000, {t =>  t >= 32000})

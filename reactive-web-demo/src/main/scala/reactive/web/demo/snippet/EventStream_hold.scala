@@ -1,8 +1,10 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
 
-class EventStream_hold extends Observing {
+class EventStream_hold extends PageSnippet {
   val eventSource = new EventSource[String] {}
   val signal = eventSource.hold("(initial value of signal)")
   

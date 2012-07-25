@@ -1,9 +1,10 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
 
-
-class Signal_flatMap extends Observing {
+class Signal_flatMap extends PageSnippet {
   val var1 = Var("This is a Var")
   val var2 = Var("This is also a Var")
   

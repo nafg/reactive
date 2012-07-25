@@ -1,13 +1,14 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
 import net.liftweb.util._
 import Helpers._
 
-import reactive._
-import web._
-import html._
+import reactive.web.html._
 
-class RepeaterDemo extends Observing {
+class RepeaterDemo extends PageSnippet {
   val signal = BufferSignal[Person]()
 
   def render =

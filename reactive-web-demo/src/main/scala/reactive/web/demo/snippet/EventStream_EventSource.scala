@@ -1,7 +1,7 @@
-package reactive.web.demo.snippet
-
-import reactive._
-
+package reactive
+package web
+package demo
+package snippet
 
 
 class EventStream_EventSource extends EventStreamDemo {
@@ -20,7 +20,7 @@ class EventStream_EventSource extends EventStreamDemo {
 
 }
 
-trait EventStreamDemo extends Observing {
+trait EventStreamDemo extends PageSnippet {
   lazy val eventSource = new EventSource[String] {}
   lazy val eventStream: EventStream[String] = eventSource
   

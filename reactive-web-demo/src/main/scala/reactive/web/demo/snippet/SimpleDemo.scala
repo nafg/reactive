@@ -1,8 +1,9 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-import web._
-import html._
+import reactive.web.html._
 
 import scala.xml._
 
@@ -13,7 +14,7 @@ import net.liftweb.http._
 
 // Extends Observing so any listeners we have can be garbage collected
 // once the snippet is garbage collected, and not before.
-class SimpleDemo extends Observing {
+class SimpleDemo extends PageSnippet {
   //////////////////////////////////////////////////////////////////
   // DEMONSTRATE REACTIONS TO CLIENT EVENTS
   //////////////////////////////////////////////////////////////////

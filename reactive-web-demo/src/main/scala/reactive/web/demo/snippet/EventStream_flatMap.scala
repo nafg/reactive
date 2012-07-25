@@ -1,7 +1,7 @@
-package reactive.web.demo.snippet
-
-import reactive._
-
+package reactive
+package web
+package demo
+package snippet
 
 //lazy, singleton; never stops, and shared by all
 object timer extends Timer(System.currentTimeMillis, 2000)
