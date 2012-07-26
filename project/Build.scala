@@ -31,6 +31,18 @@ object ReactiveBuild extends Build {
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
     }),
     crossScalaVersions := List("2.8.1", "2.9.1"),
+    libraryDependencies <++= (scalaVersion) { v => List(
+        "org.scalatest" %% "scalatest" % (
+          if(v startsWith "2.8") "1.5"
+          else if(v startsWith "2.9") "1.6.1"
+          else "1.9-2.10.0-M5-B2"
+        ) % "test",
+        "org.scalacheck" %% "scalacheck" % (
+          if(v startsWith "2.8") "1.8"
+          else "1.10.1-SNAPSHOT"
+        ) % "test"
+      )
+    },
     testOptions in Test += Tests.Argument("-oF"),
     unmanagedClasspath in Compile += Attributed.blank(new java.io.File("doesnotexist"))
   )
@@ -44,7 +56,6 @@ object ReactiveBuild extends Build {
     publishMavenStyle := true,
     credentials += Credentials(file("/private/nafg/.credentials"))
   )
-
 
   lazy val reactive_core = Project(
     "reactive-core",
