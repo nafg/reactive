@@ -94,6 +94,20 @@ trait Signal[+T] extends Forwardable[T] {
   }
 
   /**
+   * Return a new Signal whose initial value is parent.now.
+   * Whenever the parent's value changes, the signal's value changes to f(previous, parent.now)
+   */
+  def reduceLeft[U >: T](f: (U, T) => U): Signal[U] = new ChildSignal[T, U, U](this, now, identity) {
+    override def debugName = Signal.this.debugName+".reduceLeft("+f+")"
+    def parentHandler = (x, last) => {
+      val next = f(last, x)
+      current = next
+      change.fire(next)
+      next
+    }
+  }
+
+  /**
    * Returns a Tuple2-valued Signal that contains the values of this Signal and another Signal
    * @param that the other Signal
    * @return the Tuple2-valued Signal
