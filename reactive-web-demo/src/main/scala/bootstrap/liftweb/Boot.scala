@@ -23,7 +23,7 @@ class Boot {
 
     def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".co.cc") &&
       r.request.serverName != "localhost"
-    LiftRules.statelessDispatchTable.append {
+    LiftRules.statelessDispatch.append {
       case r if shouldRedirect(r) => () => Full(
         PermRedirectResponse("http://reactive-web.co.cc"+r.uri, r, r.cookies: _*)
       )

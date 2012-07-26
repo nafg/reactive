@@ -8,7 +8,6 @@ import org.scalatest.matchers.ShouldMatchers
 import net.liftweb.mockweb._
 
 class SelectTests extends FunSuite with ShouldMatchers with Observing {
-  def withNewPage[T](p: => T): T = Page.withPage(new Page)(p)
   implicit val config = Config.defaults
 
   test("Selection should initally be defined") {

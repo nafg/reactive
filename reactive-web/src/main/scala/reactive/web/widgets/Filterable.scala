@@ -174,7 +174,7 @@ class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit
  * Base mixin for TableView/TableEditor that adds filters -- the ability to manage
  * signals that parameterize the data store fetch, or that perform some
  * post processing on the rows.
- * Do not mix in `Filterable` directly. Instead use `PreFilterable` and/or `PostFilterable`.
+ * Do not mix in `Filterable` directly (it's sealed). Instead use `PreFilterable` and/or `PostFilterable`.
  */
 sealed trait Filterable[A] extends TableView[A] {
   /**
