@@ -76,14 +76,40 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
    */
   def apply(id: String): Node = this / ("#"+id)
 
+  private var confirms: List[(String, Boolean => Unit)] = Nil
+  private val ajaxRE = """\(function\(arg0\)\{reactive\.queueAjax\((\d+)\)\(arg0\);reactive.doAjax\(\)\}\)""".r
+  private val confirmRE = """window\.confirm\(\"(.*)\"\)""".r
+
+  private object rendered {
+    def unapply(a: JsExp[_]) = Some(a.render)
+  }
+
   override def queue[T: CanRender](renderable: T): Unit = {
     renderable match {
       case dm: DomMutation => synchronized {
         _xml = dm(xml)
       }
+      case Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg))) => synchronized {
+        val page = Page.currentPage //FIXME
+        confirms ::= (msg, b => page.ajaxEvents.fire((id, JBool(b))))
+      }
       case _ =>
     }
     super.queue(renderable)
+  }
+
+  /**
+   * Takes a confirm box handler off the stack and returns
+   * it, as an optional pair consisting of the
+   * message and a callback function.
+  */
+  def takeConfirm = synchronized {
+    confirms.headOption match {
+      case Some(hd) =>
+        confirms = confirms.tail
+        Some(hd)
+      case None => None
+    }
   }
 
   class PowerNode(val node: Node) {

@@ -4,7 +4,7 @@ import scala.xml.{ Elem, Group, Node, NodeSeq }
 import net.liftweb.http.{ js, SHtml, S }
 import js.JE.{ JsRaw, Str }
 import js.JsCmds
-import web.javascript.{ JsExp, JsTypes, =|> }
+import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
 
 /**
  * reactive-web package
@@ -35,27 +35,17 @@ package object web {
    */
   //TODO should we optimize so ajax call is only made for response.isDefinedAt case?
   //  down side is that a nondeterministic PF (e.g. {case _ if random>.5 => } etc.) won't work
-  def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page): Unit = {
-    val funcWrapper: String => Unit = {
-      case "true"  => if (response.isDefinedAt(true)) response(true)
-      case "false" => if (response.isDefinedAt(false)) response(false)
-    }
-    val js = S.fmapFunc(S.contextFuncBuilder(RElem.ajaxFunc(funcWrapper))) { funcId =>
-      SHtml.makeAjaxCall(
-        JsRaw("'"+funcId+"='+confirm("+Str(message).toJsCmd+")")
-      ).toJsCmd
-    }
-    Reactions.inAnyScope(page){
-      Reactions queue JsCmds.Run(js)
-    }
+  def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page, observing: Observing): Unit = Javascript {
+    Ajax { response.orElse[Boolean, Unit] { case _ => } } apply window.confirm(message)
   }
+
   /**
    * Queues a JavaScript alert dialog in the current scope, or, if none
    * exist, in the server scope of the implicit page parameter.
    * @param message the text to display
    */
   def alert(message: String)(implicit page: Page) = javascript.Javascript {
-    javascript.window.alert(message)
+    window.alert(message)
   }
 
   /**

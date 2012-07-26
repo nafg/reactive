@@ -213,6 +213,32 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
       value.now should equal ("newValue")
     }
   }
+
+  test("Confirm") {
+    val ts = new TestScope(<xml/>)
+    import ts._
+    implicit val page = new Page
+    println(page.id)
+    Reactions.logLevel = Logger.Levels.Trace
+    Logger.traces ?>> {
+      case Reactions.LogEvent(_, q @ Reactions.QueueingJS(p, _)) =>
+        println(p + ": " + q.js)
+    }
+    Reactions.inScope(ts) {
+      var result: Option[Boolean] = None
+      Page.withPage(page) { //FIXME
+        confirm("Are you sure?") { case b => result = Some(b) }
+      }
+      ts.takeConfirm match {
+        case Some((msg, f)) =>
+          msg should equal("Are you sure?")
+          f(true)
+          result should equal(Some(true))
+          f(false)
+          result should equal(Some(false))
+      }
+    }
+  }
 }
 
 class DomMutationTests extends FunSuite with ShouldMatchers {
