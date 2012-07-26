@@ -223,7 +223,7 @@ trait PreFilterable[A] extends Filterable[A] {
    */
   val preFilters: SeqSignal[Filter[_] with PreFilter]
 
-  override protected lazy val params: Signal[List[FetchParam]] = preFilters.now.map(_.param).signal.sequence
+  override protected lazy val params: Signal[Seq[FetchParam]] = preFilters.now.map(_.param).signal.sequence
 
   override def render = super.render &
     preFilters.now.collect{ case ui: FilterUI => ui }.foldLeft("thisbetternotexist" #> PassThru)(_ & _.render)
@@ -241,7 +241,7 @@ trait PostFilterable[A] extends Filterable[A] {
    */
   val postFilters: SeqSignal[PostFilter]
 
-  protected lazy val mergedPostFilters: Signal[List[Seq[RowType] => Seq[RowType]]] = postFilters.now.map(_.filter).signal.sequence
+  protected lazy val mergedPostFilters: Signal[Seq[Seq[RowType] => Seq[RowType]]] = postFilters.now.map(_.filter).signal.sequence
 
   override def filterRows: Signal[Seq[RowType]] => Signal[Seq[RowType]] = super.filterRows andThen {
     for {

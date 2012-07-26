@@ -83,7 +83,7 @@ trait TableView[A] {
    */
   def cols: List[Col]
 
-  protected lazy val params: Signal[List[FetchParam]] = Val(Nil)
+  protected lazy val params: Signal[Seq[FetchParam]] = Val(Nil)
 
   /**
    * Get the items from the data source
