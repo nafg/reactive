@@ -70,19 +70,19 @@ object ReactiveBuild extends Build {
     settings = publishingDefaults ++ Seq(
       pomExtra := pomCommon
     )
-  ) dependsOn(reactive_core) aggregate(reactive_core)
+  ) dependsOn(reactive_core)
   lazy val reactive_web_demo = Project(
     "reactive-web-demo",
     file("reactive-web-demo"),
     settings = defaults ++ Seq(
       publishArtifact := false
     )
-  ) dependsOn(reactive_web) aggregate(reactive_web)
+  ) dependsOn(reactive_web)
   lazy val root = Project(
     "root",
     file("."),
     settings = defaults ++ Seq(
       publishArtifact := false
     )
-  ) dependsOn(reactive_web_demo) aggregate(reactive_web_demo)
+  ) aggregate(reactive_core, reactive_web, reactive_web_demo)
 }
