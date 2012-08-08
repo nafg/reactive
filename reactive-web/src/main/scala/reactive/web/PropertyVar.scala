@@ -153,8 +153,10 @@ object PropertyVar {
  * @param dom the DomProperty to wrap
  * @param init the initial value (rendered in the attribute)
  */
-class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) {
+class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) with Forwardable[T, PropertyVar[T]] {
   (this >> dom) <<: dom.values.map(codec.fromString)
+
+  override def self = this
 
   override def debugName = "PropertyVar(%s)(%s)" format (dom, now)
 
