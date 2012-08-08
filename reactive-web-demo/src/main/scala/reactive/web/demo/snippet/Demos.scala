@@ -30,7 +30,7 @@ object Demos {
   }
 
   def signalOutput(signal: Signal[String]): NodeSeq = Span {
-    signal map Text
+    signal map Text.apply
   }.render
 }
 

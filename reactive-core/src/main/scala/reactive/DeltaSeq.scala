@@ -425,7 +425,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
                * If the parent insertion occurred within the prefix and it passes the predicate, the prefix grew by one.
                * If it occurred within the prefix and it fails the predicate, the prefix now ends there.
                * If it occurred immediately after the prefix and it passes the predicate, we have to recalculate the prefix length.
-               * If it occurred immediately after the prefix and it fails the predicate, or if it occurred further, the prefix length has not changed. 
+               * If it occurred immediately after the prefix and it fails the predicate, or if it occurred further, the prefix length has not changed.
                */
               if (i < prefixLength) {
                 if (v) prefixLength += 1 else prefixLength = i
@@ -580,9 +580,9 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
   override def splitAt(n: Int) = (take(n), drop(n))
   override def takeWhile(p: T => Boolean): DeltaSeq[T] = new TakenWhile(immutableCopy, p)
   override def dropWhile(p: T => Boolean): DeltaSeq[T] = new DroppedWhile(immutableCopy, p)
-  override def ++[U >: T, That](xs: TraversableOnce[U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
+  override def ++[B >: T, That](xs: GTraversableOnce[B])(implicit bf: CanBuildFrom[DeltaSeq[T], B, That]): That =
     ifDS(
-      new Appended[U](immutableCopy, xs.toSeq),
+      new Appended[B](immutableCopy, xs.toList),
       super.++(xs)
     )
   override def :+[U >: T, That](elem: U)(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =

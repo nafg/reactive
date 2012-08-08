@@ -37,7 +37,7 @@ object JsExp extends ToJsHigh {
   /**
    * Returns the javascript representation of the expression in a String
    */
-  def render(e: JsExp[_]): String = e match {
+  def render(e: JsExp[_ <: JsAny]): String = e match {
     case null => "null"
     case e    => e.render
   }
@@ -278,7 +278,7 @@ trait ToJsHigh extends ToJsMedium {
   implicit object string extends ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs(_: String))
   implicit object date extends ToJsLit[java.util.Date, JsDate]("new Date(\""+(_: java.util.Date).toString+"\")")
   implicit object regex extends ToJsLit[scala.util.matching.Regex, JsRegex]("/"+(_: scala.util.matching.Regex).toString+"/")
-  implicit object obj extends ToJsLit[Map[String, JsExp[_]], JsObj]((_: Map[String, JsExp[_]]).map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
+  implicit object obj extends ToJsLit[Map[String, JsExp[_ <: JsAny]], JsObj]((_: Map[String, JsExp[_ <: JsAny]]).map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
   implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]]((_: List[JsExp[T]]).map(JsExp.render).mkString("[", ",", "]"))
 }
 
@@ -490,4 +490,4 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val 
     }
   }
 }
-private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_], tr: List[JsStatement]) extends StubInvocationHandler(JsExp.render(apm), tr)
+private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler(JsExp.render(apm), tr)

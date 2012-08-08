@@ -58,7 +58,7 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Forwardable[
    */
   case class EventData[T <: JsAny](encode: $[T], es: JsEventStream[T])
 
-  private val eventData = WeakHashMap[Page, List[EventData[_]]]()
+  private val eventData = WeakHashMap[Page, List[EventData[_ <: JsAny]]]()
   private def getEventObjectData(implicit p: Page) = eventObjectData.getOrElseUpdate(p, EventData(implicitly[EventEncoder[T]].encodeExp(Symbol("event").$), new JsEventStream[JsObj]))
   private val eventObjectData = WeakHashMap[Page, EventData[JsObj]]()
 

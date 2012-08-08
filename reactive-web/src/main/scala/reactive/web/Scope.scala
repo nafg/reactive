@@ -187,7 +187,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
         val events = (eventRE findAllIn eventAttr).matchData.toList
         val props = (propRE findAllIn eventAttr).matchData.toList
 
-        def replace(replacements: (String, JsExp[_])*) = { s: String =>
+        def replace(replacements: (String, JsExp[_ <: JsTypes.JsAny])*) = { s: String =>
           replacements.foldLeft(s){ case (s, (m, e)) => s.replace(m, JsExp render e) }
         }
         def replaceModifiers: Modifiers => String => String = {

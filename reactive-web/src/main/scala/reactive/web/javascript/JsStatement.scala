@@ -96,7 +96,7 @@ object JsStatement {
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
   def indentStr = indent.value.map(" " * _).getOrElse("")
   def nl = indent.value.map(_ => "\n") getOrElse ""
-  private val renderMatch: Match[_] => String = m =>
+  private val renderMatch: Match[_ <: JsAny] => String = m =>
     "case "+JsExp.render(m.against)+":"+nl + m.code.map(indentAndRender).mkString(";"+nl)+";"+nl
   private def varsFirst(stmts: Seq[JsStatement]) = {
     val (vars, others) = stmts partition (_.isInstanceOf[JsVar[_]])
@@ -121,7 +121,7 @@ object JsStatement {
     case b: Break                        => "break"
     case v: JsVar[_]                     => "var "+v.ident.name
     case a: Assignable[_]#Assignment     => a.ident+"="+JsExp.render(a.init)
-    case f: For.For                      => "for("+f.init.map(renderImpl).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderImpl).mkString(",")+") "+render(f.body)
+    case f: For.For                      => "for("+f.init.map(renderImpl _).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderImpl _).mkString(",")+") "+render(f.body)
     case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+JsExp.render(fi.exp)+") "+render(fi.body)
     case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+JsExp.render(fei.exp)+") "+render(fei.body)
     case Throw(e)                        => "throw "+JsExp.render(e)
@@ -184,10 +184,13 @@ case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*) ex
 class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {
   def render = ident+"."+name
 }
-class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[_], oldToReplace: List[JsStatement]) extends JsStatement with JsExp[R] {
+class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[Any], oldToReplace: List[JsStatement]) extends JsStatement with JsExp[R] {
   // TODO detect varargs better
   lazy val flat =
-    if (method.getParameterTypes.toList == List(classOf[scala.collection.Seq[_]]) && args.length == 1) args.collect{ case x: Seq[_] => x }.head else args
+    if (method.getParameterTypes.toList == List(classOf[scala.collection.Seq[_]]) && args.length == 1)
+      args.collect{ case x: Seq[Any] => x }.head
+    else
+      args
 
   lazy val toReplace = oldToReplace ++ flat.toList.collect{ case s: JsStatement => s }
 
