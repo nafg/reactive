@@ -12,7 +12,7 @@ class SeqVar[A](init: A*) extends Var(DeltaSeq.fromSeq(init)) with SeqSignal[A]
  * to be fired.
  */
 class BufferSignal[T] extends SeqSignal[T] {
-  val underlying = new ObservableBuffer[T]
+  lazy val underlying = new ObservableBuffer[T]
   val change = new EventSource[DeltaSeq[T]]
   private val dl: SeqDelta[T, T] => Unit = { d =>
     change fire now
