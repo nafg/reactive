@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="scala" name="Scala">
+      <configuration>
+        <option name="compilerLibraryLevel" value="Project" />
+        <option name="compilerLibraryName" value="scala-2.9.1" />
+        <option name="fsc" value="true" />
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/../reactive-web/target/scala-2.9.1/classes" />
+    <output-test url="file://$MODULE_DIR$/../reactive-web/target/scala-2.9.1/test-classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../reactive-web">
+      <sourceFolder url="file://$MODULE_DIR$/../reactive-web/src/main/scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../reactive-web/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../reactive-web/src/main/resources" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../reactive-web/src/test/scala" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../reactive-web/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../reactive-web/src/test/resources" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/../reactive-web/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="org.scala-lang_scala-library_2.9.1" level="project" />
+    <orderEntry type="library" name="net.liftweb_lift-testkit_2.9.1_2.5-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="net.liftweb_lift-util_2.9.1_2.5-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="net.liftweb_lift-actor_2.9.1_2.5-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="net.liftweb_lift-common_2.9.1_2.5-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="org.slf4j_slf4j-api_1.6.4" level="project" />
+    <orderEntry type="library" name="net.liftweb_lift-json_2.9.1_2.5-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="org.scala-lang_scalap_2.9.1" level="project" />
+    <orderEntry type="library" name="org.scala-lang_scala-compiler_2.9.1" level="project" />
+    <orderEntry type="library" name="com.thoughtworks.paranamer_paranamer_2.4.1" level="project" />
+    <orderEntry type="library" name="joda-time_joda-time_1.6.2" level="project" />
+    <orderEntry type="library" name="commons-codec_commons-codec_1.6" level="project" />
+    <orderEntry type="library" name="javax.mail_mail_1.4.4" level="project" />
+    <orderEntry type="library" name="javax.activation_activation_1.1" level="project" />
+    <orderEntry type="library" name="nu.validator.htmlparser_htmlparser_1.4" level="project" />
+    <orderEntry type="library" name="commons-httpclient_commons-httpclient_3.1" level="project" />
+    <orderEntry type="library" name="commons-logging_commons-logging_1.0.4" level="project" />
+    <orderEntry type="library" name="net.liftweb_lift-webkit_2.9.1_2.5-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="commons-fileupload_commons-fileupload_1.2.2" level="project" />
+    <orderEntry type="library" scope="TEST" name="javax.servlet_servlet-api_2.5" level="project" />
+    <orderEntry type="library" scope="TEST" name="org.scalatest_scalatest_2.9.1_1.6.1" level="project" />
+    <orderEntry type="library" scope="TEST" name="org.scala-tools.testing_scalacheck_2.9.1_1.9" level="project" />
+    <orderEntry type="library" scope="TEST" name="org.scala-tools.testing_test-interface_0.5" level="project" />
+    <orderEntry type="library" name="doesnotexist" level="project" />
+    <orderEntry type="module" module-name="reactive-core" exported="" />
+  </component>
+</module>
+

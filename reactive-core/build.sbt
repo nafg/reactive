@@ -1,5 +1,9 @@
 name := "reactive-core"
 
+organization := "cc.co.scala-reactive"
+
+version := "0.2-SNAPSHOT"
+
 description := "An FRP framework"
 
 libraryDependencies <++= (scalaVersion) { v => List(

@@ -1,5 +1,7 @@
 target/
 lib/
+.idea/
+.idea_module/
 .scala_dependencies
 project/boot/
 */project/boot/

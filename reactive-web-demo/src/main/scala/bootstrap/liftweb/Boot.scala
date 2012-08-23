@@ -2,7 +2,6 @@ package bootstrap.liftweb
 
 import net.liftweb.common._
 import net.liftweb.util._
-import Helpers._
 import net.liftweb.http._
 import net.liftweb.sitemap._
 import Loc._
@@ -73,6 +72,13 @@ class Boot {
       case Req("reactive-web-api" :: _, _, _)  => false
     }
     LiftRules.useXhtmlMimeType = false
+
+    LiftRules.htmlProperties.default.set( (r: Req) =>
+      new Html5Properties(r.userAgent)
+    )
+
+    LiftRules.early.append( _.setCharacterEncoding("UTF-8") )
+
   }
 }
 
