@@ -1,61 +1,79 @@
-<html xmlns="http://www.w3.org/1999/xhtml"
-  xmlns:lift="http://liftweb.net/">
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<meta name="description" content="" />
-<meta name="keywords" content="" />
+    <meta charset="utf-8" />
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
 
-<title>reactive-web</title>
+    <title>reactive-web</title>
 
-<script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="/vendors/bootstrap/css/bootstrap-combined.min.css" />
+    <link rel="stylesheet" href="/vendors/bootstrap/css/docs.css" />
+    <link rel="stylesheet" href="/vendors/rails/css/main.css" />
 
-<script type="text/javascript" src="/xregexp-min.js"></script>
-<!-- Syntax Highlighter -->
-<script type="text/javascript" src="/scripts/shCore.js"></script>
-<script type="text/javascript" src="/scripts/shBrushScala.js"></script>
-<script type="text/javascript" src="/scripts/shBrushXml.js"></script>
+    <link rel="stylesheet" href="/vendors/CodeMirror2/codemirror.css" />
+    <link rel="stylesheet" href="/vendors/CodeMirror2/solarized.css" />
 
-<link href="/styles/shCore.css" rel="stylesheet" type="text/css" />
-<link href="/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
+    <script src="/vendors/modernizr/modernizr.min.js"></script>
+    <script type="text/javascript" src="/vendors/jquery/jquery-1.7.2.min.js" id="jquery"></script>
 
-<script type="text/javascript">
-  SyntaxHighlighter.all()
-  function showdemo(demo) {
-    window.open('/showdemo/'+demo, '_blank', 'height=500')
-  }
-</script>
-<link href="/menu.css" rel="stylesheet" type="text/css" />
-<style type="text/css">
-h1 {
-  font-style: italic;
-}
-</style>
+
+    <link href="/styles/shCore.css" rel="stylesheet" type="text/css" />
+    <link href="/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
+
+    <link href="/menu.css" rel="stylesheet" type="text/css" />
+    <link href="/styles/doc.css" rel="stylesheet" type="text/css" />
+
 </head>
 <body>
-<div class="lift:reactive"></div>
-<div style="float: right; width: 72px"><g:plusone href="http://reactive-web.tk"></g:plusone></div>
-<h1>reactive-web: Simplify Your Lift</h1>
-<div class="menu">
-<div class="lift:Menu.builder?expandAll=true"></div>
-</div>
-<div><lift:bind name="content" /></div>
-<lift:msgs />
 
-<script defer="defer" type="text/javascript">
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-21467136-1']);
-  _gaq.push(['_trackPageview']);
-  jQuery(document).ready(function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  });
-</script>
-<script defer="defer" type="text/javascript" src="http://apis.google.com/js/plusone.js"></script>
-<script type="text/javascript">//<![CDATA[
-ch_width = 160;ch_height = 160;ch_type = "mpu";ch_sid = "Chitika Default";ch_client = "naftoligug";ch_color_site_link = "8888FF";ch_color_title = "8888FF";ch_color_border = "D1D1D1";ch_color_text = "666666";ch_color_bg = "F0F0F0";
+    <div class="lift:reactive">
+    </div>
+
+    <div style="float: right; width: 72px">
+        <g:plusone href="http://reactive-web.tk"></g:plusone>
+    </div>
+
+    <h1>reactive-web: Simplify Your Lift</h1>
+    <div class="menu">
+        <div class="lift:Menu.builder?expandAll=true"></div>
+    </div>
+
+
+
+    <div class="container">
+        <lift:bind name="content" />
+    </div>
+
+    <lift:msgs />
+
+    <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
+
+    <script type="text/javascript" src="/xregexp-min.js"></script>
+    <!-- Syntax Highlighter -->
+    <script type="text/javascript" src="/scripts/shCore.js"></script>
+    <script type="text/javascript" src="/scripts/shBrushScala.js"></script>
+    <script type="text/javascript" src="/scripts/shBrushXml.js"></script>
+
+    <script defer="defer" type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-21467136-1']);
+      _gaq.push(['_trackPageview']);
+      jQuery(document).ready(function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      });
+    </script>
+    <script defer="defer" type="text/javascript" src="http://apis.google.com/js/plusone.js"></script>
+    <script type="text/javascript">//<![CDATA[
+    ch_width = 160;ch_height = 160;ch_type = "mpu";ch_sid = "Chitika Default";ch_client = "naftoligug";ch_color_site_link = "8888FF";ch_color_title = "8888FF";ch_color_border = "D1D1D1";ch_color_text = "666666";ch_color_bg = "F0F0F0";
 //]]></script>
-<script src="http://scripts.chitika.net/eminimalls/amm.js" type="text/javascript">
-</script>
+    <script src="http://scripts.chitika.net/eminimalls/amm.js" type="text/javascript">
+    </script>
 </body>
 </html>
