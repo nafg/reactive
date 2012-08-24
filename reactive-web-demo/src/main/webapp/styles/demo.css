@@ -3,7 +3,12 @@ body
     padding-top: 0;
 }
 
-.CodeMirror-scroll
+.code .snippet .CodeMirror-scroll
 {
     height: 600px;
+}
+
+.code .template .CodeMirror-scroll
+{
+    height: 100px;
 }
