@@ -30,10 +30,19 @@ object DemoPane {
         htmlPath = ( "/templates-hidden/" + snippetName.toLowerCase )
         layout <- Templates(List("templates-hidden", "demopanelayout"))
         template = Templates( htmlPath.split("/").toList ) openOr html
+        templateHtmlTransform = CodeInjection.render( htmlPath + ".html" ).
+          map( ".template *" #> _ ).
+          openOr(
+            "#template-code" #> NodeSeq.Empty &                          // remove place for html
+            "#demo [class!]" #> "span6" &                                // if not found
+            "#demo [class+]" #> "span12"
+          )
+
         bind = ".demo [class]" #> ("lift:" + snippetName) &
           ".demo *" #> template &
           ".snippet *" #> CodeInjection.render( codePath ) &
-          ".template *" #> CodeInjection.render( htmlPath + ".html" )
+          templateHtmlTransform
+
       } yield bind(layout)
     ) openOr NodeSeq.Empty
   }
