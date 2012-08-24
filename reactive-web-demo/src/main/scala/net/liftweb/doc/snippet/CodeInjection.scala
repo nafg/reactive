@@ -18,29 +18,17 @@ object CodeInjection
 {
 
   def render( path: String ) = {
-    openTemplate( path ) match {
-      case Full( ( code, fileName, fileExtension ) ) => {
+
+    for {
+      ( code, fileName, fileExtension ) <- openTemplate( path )
+      out = (
         fileExtension match {
           case "scala" => renderCodeMirror( code, fileName, fileExtension )
           case "html" => renderCodeMirror( code, fileName, fileExtension )
           case _ => <pre> { code } </pre>
         }
-      }
-      case Failure( msg, _, _ ) => {
-        <div class="template-error">
-          <i class="icon-exclamation-sign"></i>
-          {
-          msg
-          }
-        </div>
-      }
-      case _ => {
-        <div class="template-error">
-          <i class="icon-exclamation-sign"></i>
-          Empty
-        </div>
-      }
-    }
+      )
+    } yield out
   }
 
   def openTemplate( path: String ) =
