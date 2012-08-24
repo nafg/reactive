@@ -1,0 +1,9 @@
+body
+{
+    padding-top: 0;
+}
+
+.CodeMirror-scroll
+{
+    height: 600px;
+}
