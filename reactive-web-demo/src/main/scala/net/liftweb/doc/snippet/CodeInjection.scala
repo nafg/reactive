@@ -7,24 +7,18 @@ https://github.com/MasseGuillaume/lift-doc
 */
 
 import net.liftweb.util.Helpers._
-import net.liftweb.http.{LiftRules, S, DispatchSnippet}
-import net.liftweb.common.{Empty, Failure, Full}
+import net.liftweb.http.LiftRules
+import net.liftweb.common.{ Failure, Full }
 
-import xml.{Elem, Text}
+import xml.{NodeSeq, Elem}
 import net.liftweb.util.Helpers
 
 
-object CodeInjection extends DispatchSnippet
+object CodeInjection
 {
-  val attr = "what"
 
-  def dispatch = {
-    case _ => render
-  }
-
-  def render = {
-
-    "*" #> { openTemplate match {
+  def render( path: String ) = {
+    openTemplate( path ) match {
       case Full( ( code, fileName, fileExtension ) ) => {
         fileExtension match {
           case "scala" => renderCodeMirror( code, fileName, fileExtension )
@@ -46,13 +40,12 @@ object CodeInjection extends DispatchSnippet
           Empty
         </div>
       }
-    }}
+    }
   }
 
-  def openTemplate =
+  def openTemplate( path: String ) =
   {
     for {
-      path <- S.attr( attr ) ?~ ( "attr: " + attr + " is not defined" )
       fileName <- Full( path.split('/').last ) ?~ ( "cannot parse a filename: " + path )
       fileExtension <- Full( fileName.split('.').last ) ?~ ( "cannot parse a file extension: " + fileName )
       code <- LiftRules.loadResourceAsString( path ) ?~ ( "template: " + path + " not found" )
