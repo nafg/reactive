@@ -28,8 +28,9 @@ object DemoPane {
       template = Templates(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
       bind = ".demo [class]" #> ("lift:" + snippetName) &
         ".demo *" #> template &
-        ".template *" #> <pre class="brush: xml">{template.toString}</pre> &
-        ".snippet *" #> <pre class="brush: scala">{scalaSource.getLines().mkString("\n")}</pre>
+        ".snippet *" #> <pre class="brush: scala">{scalaSource.getLines().mkString("\n")}</pre> &
+        ".template *" #> <pre class="brush: xml">{template.toString}</pre>
+
     } yield bind(layout)
   ) openOr NodeSeq.Empty
 }

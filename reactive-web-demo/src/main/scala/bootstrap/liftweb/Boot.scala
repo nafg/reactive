@@ -21,10 +21,10 @@ class Boot {
     }
 
     def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".co.cc") &&
-    (
-      r.request.serverName != "localhost" ||
-      r.request.serverName != "reactive.masgui.cloudbees.net" ||
-      r.request.serverName != "reactive.scalakata.com"
+    ! (
+      r.request.serverName == "localhost" ||
+      r.request.serverName == "reactive.masgui.cloudbees.net" ||
+      r.request.serverName == "reactive.scalakata.com"
     )
     LiftRules.statelessDispatch.append {
       case r if shouldRedirect(r) => () => Full(
