@@ -33,7 +33,7 @@ object DemoPane {
         bind = ".demo [class]" #> ("lift:" + snippetName) &
           ".demo *" #> template &
           ".snippet *" #> CodeInjection.render( codePath ) &
-          ".template *" #> CodeInjection.render( template )
+          ".template *" #> CodeInjection.render( htmlPath + ".html" )
       } yield bind(layout)
     ) openOr NodeSeq.Empty
   }
