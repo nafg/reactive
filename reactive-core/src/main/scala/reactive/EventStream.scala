@@ -200,10 +200,10 @@ object NamedFunction {
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
 class EventSource[T] extends EventStream[T] with Logger {
-  case class HasListeners(listeners: List[WeakReference[T => Unit]]) extends LogEventPredicate
-  case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int) extends LogEventPredicate
-  case class AddingListener(listener: T => Unit) extends LogEventPredicate
-  case class AddedForeachListener(listener: T => Unit) extends LogEventPredicate
+  case class HasListeners(listeners: List[WeakReference[T => Unit]])
+  case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
+  case class AddingListener(listener: T => Unit)
+  case class AddedForeachListener(listener: T => Unit)
 
   @deprecated("Use logLevel or setLogLevel, this does nothing anymore")
   var debug = EventSource.debug
