@@ -4,10 +4,11 @@ package web
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.http.{ RequestVar, S }
 import net.liftweb.http.js.JsCmds
+import net.liftweb.json.{ render => jrender, _ }
 
 import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
 
-import net.liftweb.json._
+import scala.concurrent.DelayedLazyVal
 
 /**
  * A RequestVar to generate a maximum of one Page instance
@@ -43,28 +44,58 @@ class Page extends Observing {
    * Rendered by lift:reactive snippet invocations when Reactions.init was
    * called with comet=true
    */
-  def renderComet = render ++ xml.Comment("comet "+id) ++
+  def renderComet = render ++ xml.Comment("comet " + id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ id }/>
 
+  private val inProgress =
+    collection.JavaConversions.JConcurrentMapWrapper[Long, DelayedLazyVal[LocalScope]](
+      new java.util.concurrent.ConcurrentHashMap
+    )
+  private val completed = new java.util.concurrent.ConcurrentLinkedQueue[java.lang.Long]
+
+  private val handler = S.SFuncHolder { s =>
+    Iterator
+      .continually(completed.poll)
+      .takeWhile(null != _)
+      .foreach(inProgress remove _)
+    parse(s) match {
+      case JObject(List(JField("unique", JInt(unique)), JField("events", JArray(events)))) =>
+        val key = unique.toLong
+        val scope = new LocalScope
+        val dlv = inProgress.getOrElseUpdate(
+          key,
+          new DelayedLazyVal(() => scope, {
+            Reactions.inScope(scope){
+              for (event <- events)
+                event match {
+                  case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
+                    try {
+                      ajaxEvents.fire((jsEventStreamId, eventJson))
+                    } catch {
+                      case e: Exception =>
+                        e.printStackTrace
+                    } finally {
+                      completed.add(key)
+                    }
+                  case _ =>
+                    sys.error("Invalid reactive event: " + compact(jrender(event)))
+                }
+            }
+          })
+        )
+        while (!dlv.isDone) Thread.sleep(30)
+        dlv().js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
+      case _ =>
+        sys.error("Invalid reactive event json: " + s)
+    }
+
+  }
   Page.withPage(this) {
     Reactions.inAnyScope(this) {
-      val handler = S.SFuncHolder { s =>
-        Reactions.inLocalScope {
-          try {
-            for {
-              maps <- Serialization.read(s)(DefaultFormats, manifest[List[Map[String, JValue]]])
-              map <- maps
-            } ajaxEvents fire map
-          } catch {
-            case e: Exception =>
-              e.printStackTrace
-          }
-        }
-      }
       Reactions.queue(
         if (S.inStatefulScope_?) {
           S.fmapFunc(S.contextFuncBuilder(handler)){ funcId =>
-            JsCmds.Run("reactive.funcId='"+funcId+"'")
+            JsCmds.Run("reactive.funcId='" + funcId + "'")
           }
         } else
           JsCmds.Run("reactive.funcId='noStatefulScope'")
@@ -83,7 +114,7 @@ class Page extends Observing {
   }
 
   private[web] val ajaxEvents = new EventSource[(String, JValue)] {
-    override def debugName = Page.this.toString+".ajaxEvents"
+    override def debugName = Page.this.toString + ".ajaxEvents"
   }
 }
 
@@ -115,7 +146,7 @@ object Page {
   def currentPageOption: Option[Page] = dynamicScope.value orElse
     S.request.map(_ => CurrentPage.is).toOption
 
-  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_"+randomString(7)
+  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_" + randomString(7)
 }
 
 /**
