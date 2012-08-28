@@ -47,45 +47,52 @@ class Page extends Observing {
   def renderComet = render ++ xml.Comment("comet " + id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ id }/>
 
-  private val inProgress =
-    collection.JavaConversions.JConcurrentMapWrapper[Long, DelayedLazyVal[LocalScope]](
-      new java.util.concurrent.ConcurrentHashMap
-    )
-  private val completed = new java.util.concurrent.ConcurrentLinkedQueue[java.lang.Long]
+  class AjaxTask(key: Int, events: List[JValue]) {
+    @volatile var done = false
+    val scope = new LocalScope
+    def run = Reactions.inScope(scope){
+      try {
+        for (event <- events)
+          event match {
+            case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
+              try {
+                ajaxEvents.fire((jsEventStreamId, eventJson))
+              } catch {
+                case e: Exception => e.printStackTrace
+              }
+            case _ =>
+              sys.error("Invalid reactive event: " + compact(jrender(event)))
+          }
+      } finally {
+        done = true
+        completed ::= (System.currentTimeMillis(), key)
+      }
+    }
+    def js = scope.js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
+  }
+  private val inProgress = new java.util.concurrent.ConcurrentHashMap[Int, AjaxTask]
+
+  @volatile
+  private var completed = List.empty[(Long, Int)]
 
   private val handler = S.SFuncHolder { s =>
-    Iterator
-      .continually(completed.poll)
-      .takeWhile(null != _)
-      .foreach(inProgress remove _)
+    val (oldCompleted, recentCompleted) = completed partition (System.currentTimeMillis - _._1 > 60000)
+    completed = recentCompleted
+    oldCompleted foreach (inProgress remove _._2)
     parse(s) match {
       case JObject(List(JField("unique", JInt(unique)), JField("events", JArray(events)))) =>
-        val key = unique.toLong
-        val scope = new LocalScope
-        import Compat.executionContext
-        val dlv = inProgress.getOrElseUpdate(
-          key,
-          new DelayedLazyVal(() => scope, {
-            Reactions.inScope(scope){
-              for (event <- events)
-                event match {
-                  case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
-                    try {
-                      ajaxEvents.fire((jsEventStreamId, eventJson))
-                    } catch {
-                      case e: Exception =>
-                        e.printStackTrace
-                    } finally {
-                      completed.add(key)
-                    }
-                  case _ =>
-                    sys.error("Invalid reactive event: " + compact(jrender(event)))
-                }
-            }
-          })
-        )
-        while (!dlv.isDone) Thread.sleep(30)
-        dlv().js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
+        val key = unique.toInt
+        inProgress.get(key) match {
+          case null =>
+            val task = new AjaxTask(key, events)
+            inProgress.put(key, task)
+            task.run
+            task.js
+          case task =>
+            while (!task.done) Thread.sleep(30)
+            task.js
+        }
+
       case _ =>
         sys.error("Invalid reactive event json: " + s)
     }

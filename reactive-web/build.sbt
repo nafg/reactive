@@ -11,6 +11,3 @@ description := "FRP-based abstractions for Ajax and Comet"
     "cc.co.scala-reactive" %% "reactive-core" % "0.2-SNAPSHOT" withSources
   )
 }
-
-unmanagedSourceDirectories in Compile <++= (scalaBinaryVersion, baseDirectory) { (sv, bd) => Seq(bd / "src" / "main" / ("scala-"+sv)) }
-
