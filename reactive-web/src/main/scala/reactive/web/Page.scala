@@ -62,6 +62,7 @@ class Page extends Observing {
       case JObject(List(JField("unique", JInt(unique)), JField("events", JArray(events)))) =>
         val key = unique.toLong
         val scope = new LocalScope
+        import Compat.executionContext
         val dlv = inProgress.getOrElseUpdate(
           key,
           new DelayedLazyVal(() => scope, {

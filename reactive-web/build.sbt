@@ -12,3 +12,5 @@ description := "FRP-based abstractions for Ajax and Comet"
   )
 }
 
+unmanagedSourceDirectories in Compile <++= (scalaBinaryVersion, baseDirectory) { (sv, bd) => Seq(bd / "src" / "main" / ("scala-"+sv)) }
+
