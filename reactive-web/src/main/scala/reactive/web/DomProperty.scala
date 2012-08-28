@@ -43,9 +43,9 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   private val jsEventStreams = new scala.collection.mutable.WeakHashMap[Page, JsEventStream[_]]
 
   /**
-   * The Page whose ajax event for this property the current thread is responding to, if any
+   * The Page and value whose ajax event for this property the current thread is responding to, if any
    */
-  private[web] val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
+  private[web] val currentPropagateSource = new scala.util.DynamicVariable[Option[(Page, String)]](None)
 
   /**
    * The javascript expression that evaluates to the value of this property
@@ -76,7 +76,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
      * the value Var is updated.
      */
     def propagate(v: String) {
-      ajaxPage.withValue(Some(page)) {
+      currentPropagateSource.withValue(Some((page, v))) {
         valuesES fire v
         update(v)
       }
@@ -147,10 +147,15 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    */
   def update[T: PropertyCodec](value: T) {
     // Send to all other pages javascript to apply
-    // the new value, other than the page on which this property started this ajax call.
+    // the new value, other than the page on which this property started this ajax call, if it's the same value that was sent to us.
+    // That is because the browser already has that value.
+    def shouldUpdate(page: Page) = currentPropagateSource.value match {
+      case Some((`page`, `value`)) => false
+      case _                       => true
+    }
     for {
       (page, id) <- pageIds
-      if ajaxPage.value.map(page!=) getOrElse true
+      if shouldUpdate(page)
     } Reactions.inAnyScope(page) {
       Reactions queue DomMutation.UpdateProperty(id, name, attributeName, value)
     }
