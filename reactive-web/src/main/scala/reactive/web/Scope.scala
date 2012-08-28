@@ -61,6 +61,9 @@ case object DefaultScope extends Scope {
  * @param _xml the initial NodeSeq (such as a processed template)
  */
 class TestScope(private var _xml: NodeSeq) extends LocalScope {
+  object logger extends Logger
+  case class FiringAjaxEvent(page: Page, event: JValue)
+
   /**
    * The current xml
    */
@@ -212,12 +215,17 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
               //TODO other events
             }
             val jvalue = Serialization.read(eventValue)(DefaultFormats, manifest[JValue])
-            Page.currentPage.ajaxEvents.fire((es, jvalue))
+            val page = Page.currentPage
+            logger.trace(FiringAjaxEvent(page, jvalue))
+            page.ajaxEvents.fire((es, jvalue))
         }
         props foreach {
           case Regex.Groups(es, id, prop) =>
             val e = if (PowerNode.this.id == id) node else TestScope.this(id)
-            Page.currentPage.ajaxEvents.fire((es, JString(e.attr(prop))))
+            val page = Page.currentPage
+            val jvalue = JString(e.attr(prop))
+            logger.trace(FiringAjaxEvent(page, jvalue))
+            page.ajaxEvents.fire((es, jvalue))
         }
       }
       this
