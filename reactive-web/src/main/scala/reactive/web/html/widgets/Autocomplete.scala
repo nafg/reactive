@@ -15,7 +15,31 @@ import net.liftweb.util._
 import Helpers._
 import scala.annotation.tailrec
 
-class AutoComplete[T](
+class AutocompleteCss {
+  def autocomplete = "reactive-autocomplete"
+  def empty = "reactive-empty"
+  def input = "reactive-autocomplete-input"
+  def candidatesCont = "reactive-autocomplete-candidates"
+  def candidate = "reactive-autocomplete-candidate"
+  def selected = "reactive-autocomplete-selected"
+  def selectedColor = "yellow"
+
+  protected val style = <style type="text/css">{
+    "." + css.autocomplete + " ." + css.empty + " {display: none;}\n" +
+      "." + css.autocomplete + " {position: relative; width: 30%;}\n" +
+      "." + css.input + " {width: 100%; margin-bottom: 0 !important;}\n" +
+      "." + css.selected + " {background-color: " + selectedColor + ";}\n" +
+      "." + css.candidatesCont + """ {
+      width: 99%;
+      border-left:1px solid #BBB;
+      border-right: 1px solid #BBB;
+      border-bottom: 1px solid #BBB;
+      padding: 0.1em;
+    }"""
+  }</style>
+}
+
+class Autocomplete[T](
   updateItems: String => Seq[T],
   renderItem: T => String = { t: T => t.toString })(implicit observing: Observing,
     config: CanRenderDomMutationConfig) extends RElem with Logger {
@@ -26,35 +50,15 @@ class AutoComplete[T](
 
   lazy val value = selectedItem
 
-  var autocompleteCssClass = "reactive-autocomplete"
-  var emptyCssClass = "reactive-empty"
-  var inputCssClass = "reactive-autocomplete-input"
-  var candidatesContCssClass = "reactive-autocomplete-candidates"
-  var candidateCssClass = "reactive-autocomplete-candidate"
-  var selectedCssClass = "reactive-autocomplete-selected"
-  var selectedColor = "yellow"
+  def css = new AutocompleteCss
 
   // protected values
-
-  protected val style = <style type="text/css">{
-    "." + autocompleteCssClass + " ." + emptyCssClass + " {display: none;}\n" +
-      "." + autocompleteCssClass + " {position: relative; width: 30%;}\n" +
-      "." + inputCssClass + " {width: 100%; margin-bottom: 0 !important;}\n" +
-      "." + selectedCssClass + " {background-color: " + selectedColor + ";}\n" +
-      "." + candidatesContCssClass + """ {
-      width: 99%;
-      border-left:1px solid #BBB;
-      border-right: 1px solid #BBB;
-      border-bottom: 1px solid #BBB;
-      padding: 0.1em;
-    }"""
-  }</style>
 
   protected lazy val items = BufferSignal[T]()
 
   val input = new TextInput {
     override def baseElem =
-      <input type="text" autocomplete="off" class={ inputCssClass }/>
+      <input type="text" autocomplete="off" class={ css.input }/>
   }
   input.value.updateOn(input.keyUp)
   input.value.change foreach { str => items() = updateItems(str) }
@@ -73,19 +77,19 @@ class AutoComplete[T](
     def renderer = config.domMutationRenderer
     def baseElem = <div/>
     val cssClass = PropertyVar("className", "class")(
-      candidatesContCssClass + " " + emptyCssClass)
+      css.candidatesCont + " " + css.empty)
     items.change ->> {
       cssClass() =
         if (items.now.size > 0) (cssClass.now split " ")
-          .filterNot(_ == emptyCssClass) mkString " "
-        else candidatesContCssClass + " " + emptyCssClass
+          .filterNot(_ == css.empty) mkString " "
+        else css.candidatesCont + " " + css.empty
     }
     def properties = List(cssClass)
     def events = Nil
     lazy val children = SeqSignal(items map {
       _ map (item => Candidate(item): RElem)
     })
-    children.change ->> { alert(children.now mkString(" || "))}
+    children.change ->> { alert(children.now mkString (" || ")) }
   }
 
   // private values
@@ -97,7 +101,7 @@ class AutoComplete[T](
     val blur = new DomEventSource[Blur]
     val keyup = DomEventSource.keyUp
     val className =
-      PropertyVar("className", "class")(candidateCssClass)
+      PropertyVar("className", "class")(css.candidate)
     override def baseElem =
       <div tabindex="0">{ renderItem(item) }</div>
     override def events = List(focus, blur, keyup)
@@ -105,12 +109,12 @@ class AutoComplete[T](
     lazy val rchildren = repeat.children.now
     lazy val idx = rchildren.indexWhere(_.id == this.id)
     focus.eventStream ->> {
-      className() = selectedCssClass + " " + className.now
+      className() = css.selected + " " + className.now
       selectedItem() = Some(item)
     }
     blur.eventStream ->> {
       className() = (className.now split " ")
-        .filterNot(_ == selectedCssClass) mkString " "
+        .filterNot(_ == css.selected) mkString " "
       selectedItem() = None
     }
     keyup ?>> {
@@ -132,9 +136,9 @@ class AutoComplete[T](
   }
 
   override def renderer(implicit p: Page) =
-    e => super.renderer(p)(e).copy(child = style :+ input.render :+ repeat.render)
+    e => super.renderer(p)(e).copy(child = css.style :+ input.render :+ repeat.render)
 
-  def baseElem = <div class={ autocompleteCssClass }/>
+  def baseElem = <div class={ css.autocomplete }/>
   def properties = Nil
   def events = Nil
 }
