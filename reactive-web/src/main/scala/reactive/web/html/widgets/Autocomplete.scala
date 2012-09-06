@@ -24,7 +24,7 @@ class AutocompleteCss {
   def selected = "reactive-autocomplete-selected"
   def selectedColor = "yellow"
 
-  def style = <style type="text/css">{
+  def style = <head><style type="text/css">{
     "." + autocomplete + " ." + empty + " {display: none;}\n" +
       "." + autocomplete + " {position: relative; width: 30%;}\n" +
       "." + input + " {width: 100%; margin-bottom: 0 !important;}\n" +
@@ -36,7 +36,7 @@ class AutocompleteCss {
       border-bottom: 1px solid #BBB;
       padding: 0.1em;
     }"""
-  }</style>
+  }</style></head>
 }
 
 class Autocomplete[T](
@@ -50,88 +50,73 @@ class Autocomplete[T](
 
   lazy val value = selectedItem
 
+  //TODO should this be a Config?
   def css = new AutocompleteCss
 
   // protected values
 
-  protected lazy val items = BufferSignal[T]()
+  protected lazy val items = BufferSignal[T]() <<: input.value.map(updateItems)
 
-  val input = new TextInput {
+  object input extends TextInput {
     override def baseElem =
       <input type="text" autocomplete="off" class={ css.input }/>
-  }
-  input.value.updateOn(input.keyUp)
-  input.value.change foreach { str => items() = updateItems(str) }
-  input.keyUp.foreach { (x: $[JsObj]) =>
-    Return(x)
-  }.$
-  input.keyUp.eventStream ?>> {
-    case KeyUp(40, _) if repeat.children.now.size > 0 => Javascript {
-      repeat.children.now.head.focus()
+    value updateOn keyUp
+    keyUp.eventStream ?>> {
+      case KeyUp(downArrow, _) if repeat.children.now.size > 0 => Javascript {
+        repeat.children.now.head.focus()
+      }
     }
   }
 
   protected val selectedItem: Var[Option[T]] = Var(None)
 
-  val repeat: Repeater = new Repeater {
+  object repeat extends Repeater {
     def renderer = config.domMutationRenderer
     def baseElem = <div/>
-    val cssClass = PropertyVar("className", "class")(
-      css.candidatesCont + " " + css.empty)
-    items.change ->> {
-      cssClass() =
-        if (items.now.size > 0) (cssClass.now split " ")
-          .filterNot(_ == css.empty) mkString " "
-        else css.candidatesCont + " " + css.empty
+    val className = PropertyVar.className.fromSignal{
+      items map { xs => css.candidatesCont + (if (xs.isEmpty) " " + css.empty else "") }
     }
-    def properties = List(cssClass)
+    val properties = List(className)
     def events = Nil
-    lazy val children = SeqSignal(items map {
-      _ map (item => Candidate(item): RElem)
-    })
-    children.change ->> { alert(children.now mkString (" || ")) }
+    lazy val children = SeqSignal[RElem](items.now.map(Candidate(_)).signal)
   }
 
   // private values
 
-  private val selectedCandidate: Var[Option[Candidate[T]]] = Var(None)
+  private val selectedCandidate = Var(Option.empty[Candidate])
 
-  private case class Candidate[U <: T](item: U) extends RElem {
+  private val (downArrow, upArrow, tabKey, enterKey, rightArrow) = (40, 38, 9, 13, 39)
+
+  private case class Candidate(item: T) extends RElem {
     val focus = new DomEventSource[Focus]
     val blur = new DomEventSource[Blur]
     val keyup = DomEventSource.keyUp
-    val className =
-      PropertyVar("className", "class")(css.candidate)
-    override def baseElem =
-      <div tabindex="0">{ renderItem(item) }</div>
-    override def events = List(focus, blur, keyup)
-    override def properties = List(className)
+
+    lazy val focusState = (focus.eventStream map (_ => true)) | (blur.eventStream map (_ => false)) hold false
+    val className = PropertyVar.className.fromSignal(focusState map { b => css.candidate + (if (b) " " + css.selected else "") })
+
+    override def baseElem = <div tabindex="0">{ renderItem(item) }</div>
+    override val events = List(focus, blur, keyup)
+    override val properties = List(className)
     lazy val rchildren = repeat.children.now
     lazy val idx = rchildren.indexWhere(_.id == this.id)
-    focus.eventStream ->> {
-      className() = css.selected + " " + className.now
-      selectedItem() = Some(item)
-    }
-    blur.eventStream ->> {
-      className() = (className.now split " ")
-        .filterNot(_ == css.selected) mkString " "
-      selectedItem() = None
-    }
-    keyup ?>> {
-      case KeyUp(38, _) =>
+
+    selectedItem <<: focusState.map(b => Some(item).filter(_ => b))
+
+    keyup.eventStream ?>> {
+      case KeyUp(`upArrow`, _) =>
         Javascript {
-          (if (rchildren isDefinedAt (idx - 1)) rchildren(idx - 1)
-          else input).focus()
+          (rchildren lift (idx - 1) getOrElse input).focus()
         }
-      case KeyUp(40, _) =>
+      case KeyUp(`downArrow`, _) =>
         Javascript {
-          (if (rchildren isDefinedAt (idx + 1)) rchildren(idx + 1)
-          else rchildren.head).focus()
+          (rchildren lift (idx + 1) getOrElse rchildren.head).focus()
         }
-      case KeyUp(code, _) if (List(9, 13, 39) contains code) =>
-        val selOpt = selectedItem.now filterNot (_ => selectedItem.now.isEmpty)
-        input.value() = renderItem(selOpt.get)
-        Javascript { input.focus() }
+      case KeyUp(`tabKey` | `enterKey` | `rightArrow`, _) =>
+        input.value() = selectedItem.now map renderItem getOrElse ""
+        Javascript {
+          input.focus()
+        }
     }
   }
 
