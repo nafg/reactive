@@ -143,7 +143,7 @@ class Autocomplete[T](
   def events = Nil
 }
 
-object AutoComplete {
+object Autocomplete {
   /**
    * Creates an Autocomplete
    * @tparam T the type of the items
@@ -155,8 +155,8 @@ object AutoComplete {
     updateItems: String => Seq[T],
     renderItem: T => String)(
       implicit observing: Observing,
-      config: CanRenderDomMutationConfig): AutoComplete[T] =
-    new AutoComplete[T](updateItems, renderItem)(observing, config)
+      config: CanRenderDomMutationConfig): Autocomplete[T] =
+    new Autocomplete[T](updateItems, renderItem)(observing, config)
 
   /**
    * Creates an Autocomplete that uses the items' toString method to render them
@@ -167,8 +167,8 @@ object AutoComplete {
   def apply[T](
     updateItems: String => Seq[T])(
       implicit observing: Observing,
-      config: CanRenderDomMutationConfig): AutoComplete[T] =
-    new AutoComplete[T](updateItems)(observing, config)
+      config: CanRenderDomMutationConfig): Autocomplete[T] =
+    new Autocomplete[T](updateItems)(observing, config)
 
 }
 
