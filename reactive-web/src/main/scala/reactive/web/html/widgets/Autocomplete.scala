@@ -24,12 +24,12 @@ class AutocompleteCss {
   def selected = "reactive-autocomplete-selected"
   def selectedColor = "yellow"
 
-  protected val style = <style type="text/css">{
-    "." + css.autocomplete + " ." + css.empty + " {display: none;}\n" +
-      "." + css.autocomplete + " {position: relative; width: 30%;}\n" +
-      "." + css.input + " {width: 100%; margin-bottom: 0 !important;}\n" +
-      "." + css.selected + " {background-color: " + selectedColor + ";}\n" +
-      "." + css.candidatesCont + """ {
+  def style = <style type="text/css">{
+    "." + autocomplete + " ." + empty + " {display: none;}\n" +
+      "." + autocomplete + " {position: relative; width: 30%;}\n" +
+      "." + input + " {width: 100%; margin-bottom: 0 !important;}\n" +
+      "." + selected + " {background-color: " + selectedColor + ";}\n" +
+      "." + candidatesCont + """ {
       width: 99%;
       border-left:1px solid #BBB;
       border-right: 1px solid #BBB;
