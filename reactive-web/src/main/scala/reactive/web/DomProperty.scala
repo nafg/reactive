@@ -50,7 +50,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS(id: String): $[JsTypes.JsAny] = JsRaw("document.getElementById('"+id+"')."+name)
+  def readJS(id: String): $[JsTypes.JsAny] = window.document.getElementById(id).get(name)
 
   /**
    * Registers a Page with this JSProperty.
