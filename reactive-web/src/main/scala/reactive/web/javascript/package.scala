@@ -56,6 +56,6 @@ package object javascript {
    */
   val window = jsProxy[Window]('window)
 
-  implicit def relem2HTMLElement(relem: RElem)(implicit page: Page): HTMLElement =
-    jsProxy[HTMLElement]("document.getElementById('" + relem.id + "')")
+  implicit def relem2HTMLElement(relem: RElem)(implicit page: Page): Window#HTMLElement =
+    window.document.getElementById(relem.id)
 }
