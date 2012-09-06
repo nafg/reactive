@@ -53,5 +53,8 @@ object BufferSignal {
   def apply[T](init: T*): BufferSignal[T] = new BufferSignal[T] {
     value = init
   }
+  implicit def canForward[A]: CanForward[BufferSignal[A], Seq[A]] = new CanForward[BufferSignal[A], Seq[A]] {
+    def forward(s: Forwardable[Seq[A]], t: => BufferSignal[A])(implicit o: Observing) = s foreach NamedFunction(">>"+t.debugName)(t.update)
+  }
 }
 
