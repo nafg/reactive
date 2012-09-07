@@ -534,9 +534,10 @@ trait Batchable[A, B] extends EventSource[SeqDelta[A, B]] {
  * An EventStream that is implemented by delegating everything to another EventStream
  */
 trait EventStreamProxy[T] extends EventStream[T] {
-  def self: EventStream[T]
+  protected[this] def self: EventStream[T]
 
   def debugString = self.debugString
+  def debugName = self.debugName
   def flatMap[U](f: T => EventStream[U]): EventStream[U] = self.flatMap[U](f)
   def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = self.foldLeft[U](z)(f)
   def map[U](f: T => U): EventStream[U] = self.map[U](f)
@@ -550,6 +551,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def distinct: EventStream[T] = self.distinct
   def nonblocking: EventStream[T] = self.nonblocking
   def zipWithStaleness: EventStream[(T, () => Boolean)] = self.zipWithStaleness
+  def throttle(period: Long): EventStream[T] = self.throttle(period)
   private[reactive] def addListener(f: (T) => Unit): Unit = self.addListener(f)
   private[reactive] def removeListener(f: (T) => Unit): Unit = self.removeListener(f)
 
