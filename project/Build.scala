@@ -35,7 +35,7 @@ object ReactiveBuild extends Build {
          "org.scalatest" %% "scalatest" % (
            if(v startsWith "2.8") "1.5"
            else if(v startsWith "2.9") "1.6.1"
-           else "1.9-2.10.0-M7-B2"
+           else "2.0.M4-2.10.0-M7-B1"
          ) % "test" cross CrossVersion.full,
          "org.scalacheck" %% "scalacheck" % (
            if(v startsWith "2.8") "1.8"
