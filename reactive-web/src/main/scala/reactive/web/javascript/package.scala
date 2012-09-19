@@ -9,6 +9,8 @@ package object javascript {
   implicit def toJsIdentable(s: Symbol): JsIdentable = JsIdentable(s)
   implicit def toMatchable[T <: JsAny](against: $[T]) = new Matchable(against)
 
+  implicit def jsExpMethods[T <: JsAny](exp: JsExp[T]): JsExpMethods[T] = new JsExpMethods(exp)
+
   /**
    * A type alias for JsExp
    */

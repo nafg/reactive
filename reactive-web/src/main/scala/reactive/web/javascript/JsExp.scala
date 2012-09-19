@@ -64,11 +64,6 @@ trait JsExp[+T <: JsAny] {
   def apply[P1 <: JsAny, P2 <: JsAny, R <: JsAny](p1: JsExp[P1], p2: JsExp[P2])(implicit canApply: CanApply[T, (JsExp[P1], JsExp[P2]), R]): JsExp[R] with JsStatement = canApply(this, (p1, p2))
 
   /**
-   * Array access
-   */
-  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]): Assignable[R] = canGet(this, i)
-
-  /**
    * Returns a JsExp that represents member selection (the period) of this JsExp.
    * A better solution is to use JsStub
    */
@@ -114,6 +109,13 @@ trait JsExp[+T <: JsAny] {
   def unary_-(implicit ev: T <:< JsNumber): JsExp[JsNumber] = new JsRaw[JsNumber]("(-"+JsExp.render(this)+")")
   def unary_~(implicit ev: T <:< JsNumber): JsExp[JsNumber] = new JsRaw[JsNumber]("(~"+JsExp.render(this)+")")
   def unary_+ : JsExp[JsNumber] = new JsRaw[JsNumber]("(+"+JsExp.render(this)+")")
+}
+
+class JsExpMethods[+T <: JsAny](self: JsExp[T]) {
+  /**
+   * Array access
+   */
+  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]): Assignable[R] = canGet(self, i)
 }
 
 /**
