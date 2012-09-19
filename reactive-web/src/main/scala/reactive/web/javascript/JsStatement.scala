@@ -184,7 +184,7 @@ case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*) ex
 class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {
   def render = ident+"."+name
 }
-class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[Any], oldToReplace: List[JsStatement]) extends JsStatement with JsExp[R] {
+class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[Any], oldToReplace: List[JsStatement]) extends JsStatement with Assignable[R] {
   // TODO detect varargs better
   lazy val flat =
     if (method.getParameterTypes.toList == List(classOf[scala.collection.Seq[_]]) && args.length == 1)

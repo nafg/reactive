@@ -66,7 +66,7 @@ trait JsExp[+T <: JsAny] {
   /**
    * Array access
    */
-  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]) = canGet(this, i)
+  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]): Assignable[R] = canGet(this, i)
 
   /**
    * Returns a JsExp that represents member selection (the period) of this JsExp.
