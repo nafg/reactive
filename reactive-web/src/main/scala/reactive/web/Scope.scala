@@ -107,11 +107,12 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
    * message and a callback function.
   */
   def takeConfirm = synchronized {
-    confirms.headOption match {
-      case Some(hd) =>
-        confirms = confirms.tail
+    confirms match {
+      case hd :: tl =>
+        confirms = tl
         Some(hd)
-      case None => None
+      case Nil =>
+        None
     }
   }
 
@@ -185,7 +186,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
     def fire[T <: DomEvent: Manifest](event: T): this.type = {
       for (eventAttr <- attr.get("on"+scalaClassName(manifest[T].erasure).toLowerCase)) {
         val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
-        val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(document.getElementById\(\'([^\']*)\'\)\.([^\)]*)\)""".r
+        val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(window.document.getElementById\(\"([^\"]*)\"\)\[\"([^\)\"]*)\"\]\)""".r
 
         val events = (eventRE findAllIn eventAttr).matchData.toList
         val props = (propRE findAllIn eventAttr).matchData.toList
