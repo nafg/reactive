@@ -65,8 +65,11 @@ trait JsExp[+T <: JsAny] {
 
   /**
    * Returns a JsExp that represents member selection (the period) of this JsExp.
-   * A better solution is to use JsStub
+   * A better solution, when the member name is known at compile time, is to use JsStub
    */
+  def >>(name: Symbol)(implicit ev: T <:< JsObj) = new JsRaw[JsAny](JsExp.render(this) + "." + name.name) with Assignable[JsAny]
+
+  @deprecated("Will be removed for numerous reasons", "0.2")
   def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T, T2]): JsExp[T2] = canSelect(this, exp)
 
   /**
