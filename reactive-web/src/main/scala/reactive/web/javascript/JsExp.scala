@@ -443,6 +443,7 @@ class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New)
 
 private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
   def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
+    val retType = method.getReturnType
     val args = args0 match { case null => scala.Array.empty case x => x }
     val clazz: Class[_] = classManifest[T].erasure
 
@@ -465,34 +466,32 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val 
     //TODO hack
 
     findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
-      if (method.getName == "render" && method.getReturnType == classOf[String] && args.isEmpty)
-        ident
-      else if (method.getName == "ident" && method.getReturnType == classOf[Symbol] && args.isEmpty)
-        Symbol(ident)
-      else if (method.getName == "hashCode" && method.getReturnType == classOf[Int] && args.isEmpty)
-        System.identityHashCode(proxy): java.lang.Integer
-      else {
-        //It's a field if: (1) no args, and (2) either its type is Assignable or it's a var
-        val (proxy, toReplace2) =
-          if (args.isEmpty && (
-            classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
-            clazz.getMethods.exists(_.getName == method.getName+"_$eq")
-          )) {
-            (new ProxyField(ident, method.getName), Nil)
-          } else {
-            val p = new ApplyProxyMethod(ident, method, args, toReplace)
-            (p, p :: Nil)
-          }
+      (method.getName, args.toSeq) match {
+        case ("render", Seq()) if retType == classOf[String] => ident
+        case ("ident", Seq())  if retType == classOf[Symbol] => Symbol(ident)
+        case ("hashCode", Seq())  if retType == classOf[Int] => java.lang.Integer.valueOf(System.identityHashCode(proxy))
+        case (name, _) =>
+          //It's a field if: (1) no args, and (2) either its type is Assignable or it's a var
+          val (proxy, toReplace2) =
+            if (args.isEmpty && (
+              classOf[Assignable[_]].isAssignableFrom(retType) ||
+              clazz.getMethods.exists(_.getName == name+"_$eq")
+            )) {
+              (new ProxyField(ident, name), Nil)
+            } else {
+              val p = new ApplyProxyMethod(ident, method, args, toReplace)
+              (p, p :: Nil)
+            }
 
-        // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
-        if (!(classOf[JsStub] isAssignableFrom method.getReturnType())) proxy
-        else java.lang.reflect.Proxy.newProxyInstance(
-          getClass.getClassLoader,
-          method.getReturnType().getInterfaces :+ method.getReturnType(),
-          new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(method.getReturnType()))
-        )
+          // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
+          if (!(classOf[JsStub] isAssignableFrom retType)) proxy
+          else java.lang.reflect.Proxy.newProxyInstance(
+            getClass.getClassLoader,
+            retType.getInterfaces :+ retType,
+            new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(retType))
+          )
       }
     }
   }
 }
-private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler(JsExp.render(apm), tr)
+private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler[A](JsExp.render(apm), tr)
