@@ -92,8 +92,6 @@ sealed trait DomMutation {
         xformId(id)(f)(ns.head)
       else
         ns
-    case other =>
-      other
   }
   def apply(in: NodeSeq): NodeSeq = xformId(parentId)(updateElem)(in)
 }
