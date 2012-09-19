@@ -467,7 +467,7 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val 
       else if (method.getName == "hashCode" && method.getReturnType == classOf[Int] && args.isEmpty)
         System.identityHashCode(proxy): java.lang.Integer
       else {
-        //It's a field if: (1) no args, and (2) either it's type is Assignable or it's a var
+        //It's a field if: (1) no args, and (2) either its type is Assignable or it's a var
         val (proxy, toReplace2) =
           if (args.isEmpty && (
             classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
