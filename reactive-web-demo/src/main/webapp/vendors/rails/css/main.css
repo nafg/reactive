@@ -1,0 +1,35 @@
+/* from guides.rubyonrails.org */
+.wip {
+    background-image:  url(../images/tab_yellow.gif);
+    background-color: #fff9d8;
+}
+
+.warn {
+    background-color: #f9d9d8;
+    background-image: url(../images/tab_red.gif);
+}
+
+.code {
+    background-color: #eeeeee;
+    background-image: url(../images/tab_grey.gif);
+}
+
+.note {
+    background-color: #fff9d8;
+    background-image: url(../images/tab_note.gif);
+}
+
+.info {
+    background-color: #d5e9f6;
+    background-image: url(../images/tab_info.gif);
+}
+
+.wip, .warn, .code, .note, .info
+{
+    padding: 1.25em 1.25em 1.25em 48px;
+    background-position: left top;
+    background-repeat: no-repeat;
+
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
