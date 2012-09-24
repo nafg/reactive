@@ -157,7 +157,7 @@ it allows you to create a <code>Tuple2</code>-valued <code>Signal</code> from tw
 def nameAndAge(name: Signal[String], age: Signal[Int]): Signal[(String,Int)] = name zip age
 </pre>
 
-<h3>Preventing infinite loops</h3>
+<h3>Preventing infinite loops: <code>distinct</code>, <code>nonrecursive</code></h3>
 <p>When you have two interdependent signals, you need a way to prevent infinite loops
 (signal A caused signal B to change which causes signal A to change). <code>Signal</code>
 has two methods that return a new <code>Signal</code> identical to the parent <code>Signal</code>
@@ -168,6 +168,13 @@ to change signal A, it sets to another value, infinitely? A silly illustration:<
 <p>Another example is where rounding errors are not symmetric. For such scenarios, call <code>nonrecursive</code>, which
 uses a <code>DynamicVariable</code> (Scala's <code>ThreadLocal</code>) to prevent recursion.</p>
 
-<h3>Time-consuming handling of values</h3>
+<h3>Time-consuming handling of values: <code>nonblocking</code>, <code>zipWithStaleness</code></h3>
 <p>Similar to <code>EventStream</code>, <code>Signal</code> has <code>nonblocking</code> and <code>zipWithStaleness</code> methods.</p>
+
+<h3>Merging a variable number of signals: <code>sequence</code></h3>
+<p>How can you keep the total cost of several orders up to date? If you store it as a <code>Signal[Seq[Signal[Order]]]</code>, you can use <code>sequence</code>:</p>
+<pre class="brush:scala">
+orders.sequence.map(_.sum)
+</pre>
+
 </div>
