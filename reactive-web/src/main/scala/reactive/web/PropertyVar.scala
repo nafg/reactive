@@ -140,7 +140,7 @@ object PropertyVar {
    * Convenience shortcut to append optional text to the class attribute based on a Signal[String].
    * Note that multiple invocations of appendClass for the same element will override each other,
    * so you should unify all the classes you may want to add in one appendClass invocation.
-   * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) })
+   * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) }) }}}
    */
   def appendClass(s: Signal[Option[String]])(implicit observing: Observing, page: Page) = className transform { cs: Option[String] =>
     s map { _ map { c => cs.filter(_.nonEmpty) map (_+" "+c) getOrElse c } getOrElse cs.getOrElse(""): String }
