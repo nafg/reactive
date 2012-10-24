@@ -44,7 +44,7 @@ class SimpleDemo extends PageSnippet {
   //////////////////////////////////////////////////////////////////
 
   // Create an EventStream that fires timer ticks for up to 10 minutes
-  val clockES = new Timer(0, 2000, { t => this; t > (10 minutes) })
+  val clockES = new Timer(0, 2000, _ > (10 minutes))
 
   // Create a signal from the EventStream whose value, until
   // the first tick is received, is 0L
