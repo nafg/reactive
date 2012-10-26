@@ -97,38 +97,46 @@ object JsStatement {
   def indentStr = indent.value.map(" " * _).getOrElse("")
   def nl = indent.value.map(_ => "\n") getOrElse ""
   private val renderMatch: Match[_ <: JsAny] => String = m =>
-    "case "+JsExp.render(m.against)+":"+nl + m.code.map(indentAndRender).mkString(";"+nl)+";"+nl
+    "case "+JsExp.render(m.against)+":"+nl + m.code.map(indentAndRender).mkString(nl)+nl
+
   private def varsFirst(stmts: Seq[JsStatement]) = {
     val (vars, others) = stmts partition (_.isInstanceOf[JsVar[_]])
     vars ++ others
   }
+
   def render(statement: JsStatement) = indent.value match {
     case Some(i) => renderImpl(statement)
     case _       => renderImpl(statement)
   }
+
   private def indentAndRender(statement: JsStatement) = indent.withValue(indent.value map (2+))(indentStr + render(statement))
-  private[javascript] def renderBlock(statements: List[JsStatement]): String = if (statements.isEmpty) "{}" else varsFirst(statements).map(indentAndRender).mkString("{"+nl, ";"+nl, nl + indentStr+"}")
+
+  private[javascript] def renderBlock(statements: List[JsStatement]): String = if (statements.isEmpty) "{}" else varsFirst(statements).map(indentAndRender).mkString("{"+nl, nl, nl + indentStr+"}")
+
+  private def renderAssigment[J <: JsAny] = { a: Assignable[J]#Assignment => a.ident + "=" + JsExp.render(a.init) }
+  private def renderVar[J <: JsAny] = { v: JsVar[J] => "var "+v.ident.name }
+
   private def renderImpl(statement: JsStatement): String = statement match {
     case i: If.If                        => "if("+JsExp.render(i.cond)+") "+renderImpl(i.body)
     case e: If.Elseable#Else             => render(e.outer)+" else "+render(e.body)
     case ei: If.Elseable#ElseIf          => render(ei.outer)+" else if("+JsExp.render(ei.cond)+") "+render(ei.body)
-    case s: Apply[_]                     => s.render
-    case s: ApplyProxyMethod[_]          => s.render
+    case s: Apply[_]                     => s.render+";"
+    case s: ApplyProxyMethod[_]          => s.render+";"
     case b: Block                        => renderBlock(b.body)
     case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
     case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+JsExp.render(dw.cond)+")"
     case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl + s.matches.map(renderMatch).mkString+"}"
-    case b: Break                        => "break"
-    case v: JsVar[_]                     => "var "+v.ident.name
-    case a: Assignable[_]#Assignment     => a.ident+"="+JsExp.render(a.init)
-    case f: For.For                      => "for("+f.init.map(renderImpl _).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderImpl _).mkString(",")+") "+render(f.body)
-    case fi: ForInable[_]#ForIn          => "for("+render(fi.v)+" in "+JsExp.render(fi.exp)+") "+render(fi.body)
-    case fei: ForEachInable[_]#ForEachIn => "for each("+render(fei.v)+" in "+JsExp.render(fei.exp)+") "+render(fei.body)
-    case Throw(e)                        => "throw "+JsExp.render(e)
+    case b: Break                        => "break;"
+    case v: JsVar[_]                     => renderVar(v)+";"
+    case a: Assignable[_]#Assignment     => renderAssigment(a)+";"
+    case f: For.For                      => "for("+f.init.map(renderAssigment).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderAssigment).mkString(",")+") "+render(f.body)
+    case fi: ForInable[_]#ForIn          => "for("+renderVar(fi.v)+" in "+JsExp.render(fi.exp)+") "+render(fi.body)
+    case fei: ForEachInable[_]#ForEachIn => "for each("+renderVar(fei.v)+" in "+JsExp.render(fei.exp)+") "+render(fei.body)
+    case Throw(e)                        => "throw "+JsExp.render(e)+";"
     case t: Try.Try                      => "try "+render(t.body)
     case c: Try.Try#Catch                => render(c.outer)+" catch("+c.v.ident.name+") "+render(c.body)
     case f: Try.Finallyable#Finally      => render(f.outer)+" finally "+render(f.body)
-    case Return(e)                       => "return "+JsExp.render(e)
+    case Return(e)                       => "return "+JsExp.render(e)+";"
     case f: Function[_]                  => "function "+f.ident.name+"(arg0)"+render(f.body)
   }
 
