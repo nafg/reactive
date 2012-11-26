@@ -30,7 +30,8 @@ object ReactiveBuild extends Build {
     (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
     }),
-    crossScalaVersions := List("2.10.0-RC1", "2.9.2"),
+    crossScalaVersions := List("2.10.0-RC2", "2.9.2"),
+    scalaBinaryVersion <<= scalaVersion,
     libraryDependencies <++= (scalaVersion) { v => List(
          "org.scalatest" %% "scalatest" % (
            if(v startsWith "2.8") "1.5"
