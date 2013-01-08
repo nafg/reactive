@@ -170,7 +170,7 @@ object JsProp {
 /**
  * A JsExp that represents a reference to an existing, named identifier
  */
-trait JsIdent[T <: JsAny] extends JsExp[T] {
+trait JsIdent[+T <: JsAny] extends JsExp[T] {
   def ident: Symbol
   def render = ident.name
 }
@@ -325,7 +325,7 @@ object FromJs {
 /**
  * A JsIdent whose javascript name is the scala type
  */
-trait NamedIdent[T <: JsAny] extends JsIdent[T] {
+trait NamedIdent[+T <: JsAny] extends JsIdent[T] {
   val ident = Symbol(scalaClassName(getClass))
 }
 

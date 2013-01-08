@@ -113,7 +113,7 @@ object JsStatement {
 
   private[javascript] def renderBlock(statements: List[JsStatement]): String = if (statements.isEmpty) "{}" else varsFirst(statements).map(indentAndRender).mkString("{"+nl, nl, nl + indentStr+"}")
 
-  private def renderAssigment[J <: JsAny] = { a: Assignable[J]#Assignment => a.ident + "=" + JsExp.render(a.init) }
+  private def renderAssignment = { a: Assignment[_ <: JsAny, _] => a.ident + "=" + JsExp.render(a.init) }
   private def renderVar[J <: JsAny] = { v: JsVar[J] => "var "+v.ident.name }
 
   private def renderImpl(statement: JsStatement): String = statement match {
@@ -128,8 +128,8 @@ object JsStatement {
     case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl + s.matches.map(renderMatch).mkString+"}"
     case b: Break                        => "break;"
     case v: JsVar[_]                     => renderVar(v)+";"
-    case a: Assignable[_]#Assignment     => renderAssigment(a)+";"
-    case f: For.For                      => "for("+f.init.map(renderAssigment).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderAssigment).mkString(",")+") "+render(f.body)
+    case a: Assignment[_, _]             => renderAssignment(a)+";"
+    case f: For.For                      => "for("+f.init.map(renderAssignment).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderAssignment).mkString(",")+") "+render(f.body)
     case fi: ForInable[_]#ForIn          => "for("+renderVar(fi.v)+" in "+JsExp.render(fi.exp)+") "+render(fi.body)
     case fei: ForEachInable[_]#ForEachIn => "for each("+renderVar(fei.v)+" in "+JsExp.render(fei.exp)+") "+render(fei.body)
     case Throw(e)                        => "throw "+JsExp.render(e)+";"
@@ -272,13 +272,15 @@ object Switch {
 }
 
 trait Assignable[T <: JsAny] extends JsExp[T] {
-  def :=(exp: $[T]) = new Assignment(exp)
-  class Assignment(private[javascript] val init: $[T]) extends JsStatement {
-    lazy val ident: String = JsExp.render(Assignable.this)
-    def toReplace = List(init) collect { case s: JsStatement => s }
-  }
+  def :=(exp: $[T]): Assignment[T, Assignable[T]] = new Assignment(this, exp)
 }
+class Assignment[T <: JsAny, +A <: Assignable[T]](assignable: A, private[javascript] val init: JsExp[T]) extends JsStatement {
+  lazy val ident: String = JsExp.render(assignable)
+  def toReplace = List(init) collect { case s: JsStatement => s }
+}
+
 class JsVar[T <: JsAny] extends NamedIdent[T] with Assignable[T] with JsStatement {
+  override def :=(exp: $[T]): Assignment[T, JsVar[T]] = new Assignment(this, exp)
   def toReplace = Nil
 }
 
@@ -293,12 +295,17 @@ object JsVar {
 
 object For {
   class For(
-    private[javascript] val init: Seq[JsVar[_ <: JsAny]#Assignment],
+    private[javascript] val init: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]],
     private[javascript] val cond: $[JsBoolean],
-    private[javascript] val inc: Seq[JsVar[_ <: JsAny]#Assignment])(block: => Unit) extends HasBody(block) with JsStatement {
+    private[javascript] val inc: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]]
+  )(block: => Unit) extends HasBody(block) with JsStatement {
     def toReplace = inc ++ init toList
   }
-  def apply(init: Seq[JsVar[_ <: JsAny]#Assignment], cond: $[JsBoolean], inc: Seq[JsVar[_ <: JsAny]#Assignment])(block: => Unit) = new For(init, cond, inc)(block)
+  def apply(
+    init: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]],
+    cond: $[JsBoolean],
+    inc: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]]
+  )(block: => Unit) = new For(init, cond, inc)(block)
 }
 
 case class ForInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
