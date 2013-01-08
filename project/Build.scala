@@ -54,7 +54,11 @@ object ReactiveBuild extends Build {
         Some("staging" at sonatypeStaging)
     },
     publishMavenStyle := true,
-    credentials += Credentials(file("/private/nafg/.credentials"))
+    credentials ++= {
+      val f = file("/private/nafg/.credentials")
+      if(f.exists) Seq(Credentials(f))
+      else Nil
+    }
   )
 
   lazy val reactive_core = Project(
