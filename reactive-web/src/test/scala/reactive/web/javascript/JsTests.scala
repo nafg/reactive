@@ -74,7 +74,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     }
     implicit object ext extends Extend[obj, extendObj]
     val obj = $$[obj]
-    implicit val page = new Page
+    implicit val page: Page = new Page
     Page.withPage(page) {
       Reactions.inScope(new LocalScope) {
         Javascript {
@@ -121,7 +121,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     implicit object extendWindow extends Extend[Window, Window2]
     implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
 
-    implicit val page = new Page
+    implicit val page: Page = new Page
     Page.withPage(page) {
       val res = Reactions.inScope(new LocalScope) {
         Javascript {
@@ -212,7 +212,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       object i extends JsVar[JsNumber]
       For(List(i := 1), i < 10, List(i := i + 1)) {}
 
-      implicit val page = new Page  // needed to generate fresh ids
+      implicit val page: Page = new Page  // needed to generate fresh ids
 
       for (j <- List(1.$, 2.$, 3.$)$) {
         If(j > 1) {
