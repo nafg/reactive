@@ -16,3 +16,5 @@ hs_err*.log
 jrockit.*.dump
 *.orig
 .settings
+/.idea/
+/.idea_modules/
