@@ -73,7 +73,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       def getSelf2(i: $[JsNumber]): obj
     }
     implicit object ext extends Extend[obj, extendObj]
-    val obj = $$[obj]
+    val obj = jsProxy[obj](())
     implicit val page: Page = new Page
     Page.withPage(page) {
       Reactions.inScope(new LocalScope) {

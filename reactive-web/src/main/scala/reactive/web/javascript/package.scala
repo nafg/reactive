@@ -30,22 +30,19 @@ package object javascript {
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-
-  /**
-   * Returns a JsStub proxy for the specified
-   * type. Assumes T's type is the also
-   * the name of the instance in the browser.
-   */
-  def $$[T <: JsStub: ClassManifest]: T =
-    jsProxy[T](scalaClassName(classManifest[T].erasure))
+  class ProxyName[T : ClassManifest](val value: String)
+  object ProxyName {
+    implicit def fromString[T : ClassManifest](s: String): ProxyName[T] = new ProxyName(s)
+    implicit def fromSymbol[T : ClassManifest](s: Symbol): ProxyName[T] = new ProxyName(s.name)
+    implicit def fromUnit[T : ClassManifest](s: Unit): ProxyName[T] = new ProxyName(scalaClassName(classManifest[T].erasure))
+  }
 
   /**
    * Returns a JsStub proxy for the specified type,
    * with the specified identifier for the instance.
    */
-  def jsProxy[T <: JsStub: ClassManifest](ident: Symbol): T = jsProxy[T](ident.name)
-  def jsProxy[T <: JsStub: ClassManifest](ident: String, toReplace: List[JsStatement] = Nil): T = {
-    val ih = new StubInvocationHandler[T](ident, toReplace)
+  def jsProxy[T <: JsStub: ClassManifest](ident: ProxyName[T], toReplace: List[JsStatement] = Nil): T = {
+    val ih = new StubInvocationHandler[T](ident.value, toReplace)
     java.lang.reflect.Proxy.newProxyInstance(
       getClass.getClassLoader,
       classManifest[T].erasure.getInterfaces :+ classManifest[T].erasure,
