@@ -33,10 +33,9 @@ object ReactiveBuild extends Build {
     crossScalaVersions := List("2.10.0", "2.9.2"),
     libraryDependencies <++= (scalaVersion) { v => List(
          "org.scalatest" %% "scalatest" % (
-           if(v startsWith "2.8") "1.5"
-           else if(v startsWith "2.9") "1.6.1"
-           else "2.0.M4"
-         ) % "test" cross CrossVersion.full,
+           if(v startsWith "2.9") "2.0.M6-SNAP3"
+           else "2.0.M6-SNAP5"
+         ) % "test",
          "org.scalacheck" %% "scalacheck" % (
            if(v startsWith "2.8") "1.8"
            else "1.10.1-SNAPSHOT"
