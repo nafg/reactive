@@ -8,9 +8,9 @@ class EventStreamProxyTests {
 
   // Asserts:
   //   * all EventStream members should be implemented by EventStreamProxy
-  //   * self doesn't have to be public
+  //   * underlying doesn't have to be public
   def proxy[A] = new EventStreamProxy[A] {
-    protected[this] def self = sys.error("???"): EventStream[A]
+    protected[this] def underlying = sys.error("???"): EventStream[A]
   }
 
 }

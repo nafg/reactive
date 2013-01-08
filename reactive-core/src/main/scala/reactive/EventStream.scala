@@ -538,25 +538,25 @@ trait Batchable[A, B] extends EventSource[SeqDelta[A, B]] {
  * An EventStream that is implemented by delegating everything to another EventStream
  */
 trait EventStreamProxy[T] extends EventStream[T] {
-  protected[this] def self: EventStream[T]
+  protected[this] def underlying: EventStream[T]
 
-  def debugString = self.debugString
-  def debugName = self.debugName
-  def flatMap[U](f: T => EventStream[U]): EventStream[U] = self.flatMap[U](f)
-  def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = self.foldLeft[U](z)(f)
-  def map[U](f: T => U): EventStream[U] = self.map[U](f)
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit = self.foreach(f)(observing)
-  def |[U >: T](that: EventStream[U]): EventStream[U] = self.|(that)
-  def filter(f: T => Boolean): EventStream[T] = self.filter(f)
-  def collect[U](pf: PartialFunction[T, U]): EventStream[U] = self.collect(pf)
-  def takeWhile(p: T => Boolean): EventStream[T] = self.takeWhile(p)
-  def hold[U >: T](init: U): Signal[U] = self.hold(init)
-  def nonrecursive: EventStream[T] = self.nonrecursive
-  def distinct: EventStream[T] = self.distinct
-  def nonblocking: EventStream[T] = self.nonblocking
-  def zipWithStaleness: EventStream[(T, () => Boolean)] = self.zipWithStaleness
-  def throttle(period: Long): EventStream[T] = self.throttle(period)
-  private[reactive] def addListener(f: (T) => Unit): Unit = self.addListener(f)
-  private[reactive] def removeListener(f: (T) => Unit): Unit = self.removeListener(f)
+  def debugString = underlying.debugString
+  def debugName = underlying.debugName
+  def flatMap[U](f: T => EventStream[U]): EventStream[U] = underlying.flatMap[U](f)
+  def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = underlying.foldLeft[U](z)(f)
+  def map[U](f: T => U): EventStream[U] = underlying.map[U](f)
+  def foreach(f: T => Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
+  def |[U >: T](that: EventStream[U]): EventStream[U] = underlying.|(that)
+  def filter(f: T => Boolean): EventStream[T] = underlying.filter(f)
+  def collect[U](pf: PartialFunction[T, U]): EventStream[U] = underlying.collect(pf)
+  def takeWhile(p: T => Boolean): EventStream[T] = underlying.takeWhile(p)
+  def hold[U >: T](init: U): Signal[U] = underlying.hold(init)
+  def nonrecursive: EventStream[T] = underlying.nonrecursive
+  def distinct: EventStream[T] = underlying.distinct
+  def nonblocking: EventStream[T] = underlying.nonblocking
+  def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
+  def throttle(period: Long): EventStream[T] = underlying.throttle(period)
+  private[reactive] def addListener(f: (T) => Unit): Unit = underlying.addListener(f)
+  private[reactive] def removeListener(f: (T) => Unit): Unit = underlying.removeListener(f)
 
 }
