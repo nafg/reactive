@@ -392,10 +392,11 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
       case (Nil, e)      => e :: Nil
       case (old :: _, e) => e :: old :: Nil
     })
-    new folded.Collected({
+    val pf: PartialFunction[List[T], T] = {
       case e :: Nil                  => e
       case e :: old :: _ if e != old => e
-    }) {
+    }
+    new folded.Collected(pf) {
       override def debugName = EventSource.this.debugName+".distinct"
     }
   }
