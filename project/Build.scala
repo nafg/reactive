@@ -43,8 +43,7 @@ object ReactiveBuild extends Build {
       ) ++
       List("org.scala-lang" % "scala-actors" % v).filter(_ => v startsWith "2.10")
     },
-    testOptions in Test += Tests.Argument("-oF"),
-    unmanagedClasspath in Compile += Attributed.blank(new java.io.File("doesnotexist"))
+    testOptions in Test += Tests.Argument("-oF")
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
