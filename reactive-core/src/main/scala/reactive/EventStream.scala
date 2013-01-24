@@ -41,9 +41,7 @@ object EventStream {
  * @tparam T the type of values fired as events
  * @see EventSource
  */
-trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
-  def self = this
-
+trait EventStream[+T] extends Foreachable[T] {
   /**
    * Registers a listener function to run whenever
    * an event is fired. The function is held with a WeakReference
@@ -191,18 +189,17 @@ object NamedFunction {
   def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
 }
 
+
 /**
  * A basic implementation of EventStream,
  * adds fire method.
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
-class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] with Logger {
+class EventSource[T] extends EventStream[T] with Logger {
   case class HasListeners(listeners: List[WeakReference[T => Unit]])
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
   case class AddingListener(listener: T => Unit)
   case class AddedForeachListener(listener: T => Unit)
-
-  override def self = this
 
   /**
    * When n empty WeakReferences are found, purge them

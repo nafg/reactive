@@ -16,10 +16,14 @@ object CanForwardTo {
   }
 }
 
+trait Foreachable[+A] {
+  def foreach(f: A => Unit)(implicit observing: Observing): Unit
+}
+
 /**
  * Something from which values can be forwarded
  */
-trait Forwardable[+T, +Self] {
+trait Forwardable[+T, +Self] extends Any {
   def self: Self
 
   def foreach(thunk: T => Unit)(implicit observing: Observing): Unit

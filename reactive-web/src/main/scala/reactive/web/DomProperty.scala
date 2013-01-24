@@ -184,7 +184,7 @@ object DomProperty {
   /**
    * An implicit `CanForwardJs` instance for `DomProperty`s.
    */
-  implicit def canForwardJs[A <: JsTypes.JsAny](implicit page: Page) = new CanForwardJs[DomProperty, A] {
+  implicit def canForwardJs[A <: JsTypes.JsAny](implicit page: Page): CanForwardJs[DomProperty, A] = new CanForwardJs[DomProperty, A] {
     def forward(s: JsForwardable[A], t: DomProperty) =
       s.foreach{ x: JsExp[A] => t.readJS(t.id).asInstanceOf[Assignable[A]] := x }
   }
