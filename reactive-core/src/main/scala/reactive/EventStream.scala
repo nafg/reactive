@@ -85,6 +85,8 @@ trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
    * be fired by the new EventStream.
    */
   def filter(f: T => Boolean): EventStream[T]
+  
+  def once: EventStream[T]
   /**
    * Filter and map in one step. Takes a PartialFunction.
    * Whenever an event is received, if the PartialFunction
@@ -266,6 +268,17 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
       next
     }
   }
+  
+  class Once extends ChildEventSource[T, Boolean](true) {
+    override def debugName = "%s.once" format (EventSource.this.debugName)
+    def handler = (event, last) => {
+      if (last)
+        fire(event)
+      else
+        EventSource.this.removeListener(listener)
+      false
+    }
+  }
 
   class Collected[U](pf: PartialFunction[T, U]) extends ChildEventSource[U, Unit] {
     override def debugName = "%s.collect(%s)" format (EventSource.this.debugName, pf)
@@ -345,6 +358,8 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
     }
 
   def collect[U](pf: PartialFunction[T, U]): EventStream[U] = new Collected(pf)
+  
+  def once: EventStream[T] = new Once
 
   def map[U](f: T => U): EventStream[U] = {
     new ChildEventSource[U, Unit] {
@@ -376,7 +391,7 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
       else
         EventSource.this.removeListener(listener)
   }
-
+  
   def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new FoldedLeft(initial, f)
 
   def nonrecursive: EventStream[T] = new ChildEventSource[T, Unit] {
@@ -555,6 +570,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def nonrecursive: EventStream[T] = underlying.nonrecursive
   def distinct: EventStream[T] = underlying.distinct
   def nonblocking: EventStream[T] = underlying.nonblocking
+  def once: EventStream[T] = underlying.once
   def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
   def throttle(period: Long): EventStream[T] = underlying.throttle(period)
   private[reactive] def addListener(f: (T) => Unit): Unit = underlying.addListener(f)
