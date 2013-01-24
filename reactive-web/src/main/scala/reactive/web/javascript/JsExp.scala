@@ -229,7 +229,7 @@ abstract class FuncXLit[+R <: JsAny, +J <: JsAny](num: Int) extends JsLiteral[J]
         if (!Proxy.isProxyClass(x.getClass)) None
         else Some(Proxy.getInvocationHandler(x)).collect{ case mih: MethodInvocationHandler[_] => mih }
     }
-    val args = (0 until num).map("arg"+).mkString("(", ",", ")")
+    val args = (0 until num).map("arg" + _).mkString("(", ",", ")")
     "(function"+args + JsStatement.renderBlock(
       (statements.lastOption, exp) match {
         case (Some(_: Return[_]), _)             => statements

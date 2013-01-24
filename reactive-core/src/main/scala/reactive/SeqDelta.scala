@@ -88,7 +88,7 @@ case class Remove[+A](index: Int, old: A) extends IncludeOrRemove[A, Nothing] {
  * @param messages the messages contained in the batch
  */
 case class Batch[+A, +B](messages: SeqDelta[A, B]*) extends SeqDelta[A, B] {
-  def inverse = Batch(messages map { _.inverse } reverse: _*)
+  def inverse = Batch(messages.map{ _.inverse }.reverse: _*)
   /**
    * Returns the messages as a Seq of SeqDeltas that does not contain
    * any batches.

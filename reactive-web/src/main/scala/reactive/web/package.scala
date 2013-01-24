@@ -119,6 +119,8 @@ package object web {
   private[web] def scalaClassName(c: Class[_]) = {
     val name = c.getSimpleName
     val dropEnd = name.replaceAll("""(\$\d*)*\z""", "")
-    dropEnd.toList.reverse.takeWhile('$'!=).reverse.mkString
+    dropEnd.toList.reverse.takeWhile('$' != _).reverse.mkString
   }
+
+//  implicit def toForwardable[A : CanForwardFrom]
 }

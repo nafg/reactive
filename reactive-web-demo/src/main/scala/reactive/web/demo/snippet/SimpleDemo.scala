@@ -44,7 +44,7 @@ class SimpleDemo extends PageSnippet {
   //////////////////////////////////////////////////////////////////
 
   // Create an EventStream that fires timer ticks for up to 10 minutes
-  val clockES = new Timer(0, 2000, _ > (10 minutes))
+  val clockES = new Timer(0, 2000, _ > (10.minutes))
 
   // Create a signal from the EventStream whose value, until
   // the first tick is received, is 0L
@@ -87,7 +87,7 @@ class SimpleDemo extends PageSnippet {
       numbers = numbers.tail
     } else {
       // Remove a random element from items
-      items.value.remove(math.random * items.now.length toInt)
+      items.value.remove((math.random * items.now.length).toInt)
     }
   }
 
@@ -111,9 +111,9 @@ class SimpleDemo2 extends SimpleDemo {
         field.value map { v => "*" #> Text(v) }
       } &
       "#clock" #> Span {
-        clockSig map { t => Text(t / 1000 toString) }
+        clockSig map { t => Text((t / 1000).toString) }
       } &
       "#div" #> Repeater {
-        items.now map { i => ("#number" #> i): (NodeSeq => NodeSeq) } signal
+        items.now.map{ i => ("#number" #> i): (NodeSeq => NodeSeq) }.signal
       }
 }
