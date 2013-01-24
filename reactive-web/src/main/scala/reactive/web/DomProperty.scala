@@ -171,11 +171,11 @@ object DomProperty {
   implicit def toNodeSeqFunc(dp: DomProperty)(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
 
   /**
-   * An implicit `CanForward` instance for `DomProperty`s (does not need to be imported).
+   * An implicit `CanForwardTo` instance for `DomProperty`s (does not need to be imported).
    * Requires an implicit `Page` and `PropertyCodec`.
    * Values are forwarded by calling DomProperty#update with the return value of codec.toJS applied to the value.
    */
-  implicit def canForward[T](implicit codec: PropertyCodec[T]): CanForward[DomProperty, T] = new CanForward[DomProperty, T] {
+  implicit def canForwardTo[T](implicit codec: PropertyCodec[T]): CanForwardTo[DomProperty, T] = new CanForwardTo[DomProperty, T] {
     def forward(f: Forwardable[T, _], d: => DomProperty)(implicit o: Observing) = {
       f foreach { v => d.update(v) }
     }
