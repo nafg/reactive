@@ -216,12 +216,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
     val ts = new TestScope(<xml/>)
     import ts._
     implicit val page = new Page
-    println(page.id)
     Reactions.logLevel = Logger.Levels.Trace
-    Logger.traces ?>> {
-      case Reactions.LogEvent(_, q @ Reactions.QueueingJS(p, _)) =>
-        println(p + ": " + q.js)
-    }
     Reactions.inScope(ts) {
       var result: Option[Boolean] = None
       Page.withPage(page) { //FIXME
