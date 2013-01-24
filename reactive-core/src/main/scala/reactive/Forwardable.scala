@@ -1,5 +1,9 @@
 package reactive
 
+/**
+ * This typeclass witness the ability of a target
+ * to have values forwarded to it.
+ */
 trait CanForward[-Target, Value] {
   def forward(s: Forwardable[Value, _], t: => Target)(implicit o: Observing)
 }
