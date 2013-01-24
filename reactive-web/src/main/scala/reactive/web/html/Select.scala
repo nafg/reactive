@@ -66,7 +66,7 @@ class Select[T](
    * Call this to select another (or no) item.
    */
   //TODO what about multiple selections? Use another class?
-  @deprecated("Use selectedItem ()= value instead")
+  @deprecated("Use selectedItem ()= value instead", "0.2")
   def selectItem(item: Option[T]) {
     selectedIndex() = item.map(items.now.indexOf(_)).filter(_ != -1)
   }

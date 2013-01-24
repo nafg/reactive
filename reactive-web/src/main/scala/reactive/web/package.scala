@@ -14,15 +14,15 @@ package object web {
     case class WrappedNonElemInSpan(xml: NodeSeq)
   }
 
-  @deprecated("Use DomEventSource")
+  @deprecated("Use DomEventSource", "0.2")
   val DOMEventSource = DomEventSource
-  @deprecated("Use DomEventSource")
+  @deprecated("Use DomEventSource", "0.2")
   type DOMEventSource[T <: DomEvent] = DomEventSource[T]
-  @deprecated("Use DomProperty")
+  @deprecated("Use DomProperty", "0.2")
   val DOMProperty = DomProperty
-  @deprecated("Use DomProperty")
+  @deprecated("Use DomProperty", "0.2")
   type DOMProperty = DomProperty
-  @deprecated("Use DomEvent")
+  @deprecated("Use DomEvent", "0.2")
   type DOMEvent = DomEvent
 
   /**

@@ -330,7 +330,7 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
     new FlatMapped(None)(f)
 
-  @deprecated("Use eventStream.hold(initial).flatMap(f)")
+  @deprecated("Use eventStream.hold(initial).flatMap(f)", "0.2")
   def flatMap[U](initial: T)(f: T => EventStream[U]): EventStream[U] =
     new FlatMapped(Some(initial))(f) {
       override def debugName = "%s.flatMap(%s)(%s)" format (EventSource.this.debugName, initial, f)

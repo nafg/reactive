@@ -66,7 +66,7 @@ object RElem {
    * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
    * runs the provided function in the client scope. Exceptions are intercepted.
    */
-  @deprecated("Not supported, to be removed in the future")
+  @deprecated("Not supported, to be removed in the future", "0.2")
   def ajaxFunc(f: String => Unit): S.AFuncHolder = S.LFuncHolder {
     case Nil => JsCmds.Noop
     case s :: _ => Reactions.inLocalScope {
@@ -174,6 +174,6 @@ trait RElem extends PageIds {
   /**
    * Calls render with the value of the CurrentPage RequestVar
    */
-  @deprecated("Use render instead")
+  @deprecated("Use render instead", "0.2")
   def asHtml: Elem = render(CurrentPage.is)
 }
