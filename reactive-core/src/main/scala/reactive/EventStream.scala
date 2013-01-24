@@ -4,11 +4,6 @@ import scala.ref.WeakReference
 import scala.util.DynamicVariable
 import scala.annotation.tailrec
 
-object EventSource {
-  @deprecated("Use Logger.defaultLevel, this does nothing anymore")
-  var debug = false
-}
-
 object EventStream {
   private object empty0 extends EventSource[Nothing] {
     override def debugName = "EventStream.empty"
@@ -206,9 +201,6 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
   case class AddingListener(listener: T => Unit)
   case class AddedForeachListener(listener: T => Unit)
-
-  @deprecated("Use logLevel or setLogLevel, this does nothing anymore")
-  var debug = EventSource.debug
 
   override def self = this
 
