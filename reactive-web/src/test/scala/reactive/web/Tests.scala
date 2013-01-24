@@ -49,7 +49,7 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
                   (ts.xml >+ "span" length) should equal (signal.now.length)
                   (ts.xml >+ "span" map (_.text)) should equal (signal.now)
                 } catch {
-                  case e =>
+                  case e: Exception =>
                     println(Console.RED + e)
                     println("X" * 25 + Console.RESET)
                     throw e
@@ -99,7 +99,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
         println(this + " ok")
         exc.put(None)
       } catch {
-        case e =>
+        case e: Exception =>
           println(this + ":")
           e.printStackTrace()
           exc.put(Some(e))
@@ -229,6 +229,8 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
           result should equal(Some(true))
           f(false)
           result should equal(Some(false))
+        case _ =>
+          fail("No confirm function found.")
       }
     }
   }
