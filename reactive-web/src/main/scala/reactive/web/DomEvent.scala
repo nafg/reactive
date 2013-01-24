@@ -26,10 +26,10 @@ object EventEncoder {
   implicit val unload = new EventEncoder[Unload](_ => empty)
 
   def modifiers(event: $[JsObj]) = javascript.Object(
-    "alt" -> (event -> 'altKey.$),
-    "ctrl" -> (event -> 'ctrlKey.$),
-    "shift" -> (event -> 'shiftKey.$),
-    "meta" -> (event -> 'metaKey.$)
+    "alt" -> (event >> 'altKey),
+    "ctrl" -> (event >> 'ctrlKey),
+    "shift" -> (event >> 'shiftKey),
+    "meta" -> (event >> 'metaKey)
   )
   def modifiersOnly(event: $[JsObj]) = javascript.Object("modifiers" -> modifiers(event))
   implicit val click = new EventEncoder[Click](modifiersOnly)
@@ -37,7 +37,7 @@ object EventEncoder {
   implicit val selectText = new EventEncoder[SelectText](modifiersOnly)
 
   def key(event: $[JsObj]) = javascript.Object(
-    "code" -> ((event -> 'keyCode.$) || (event -> 'charCode.$)),
+    "code" -> ((event >> 'keyCode) || (event >> 'charCode)),
     "modifiers" -> modifiers(event)
   )
   implicit val keyDown = new EventEncoder[KeyDown](key)
@@ -45,22 +45,22 @@ object EventEncoder {
   implicit val keyPress = new EventEncoder[KeyPress](key)
 
   def buttons(event: $[JsObj]) = if (S.request.dmap(false)(_.isIE)) javascript.Object(
-    "left" -> ((event -> 'buttons.$) & 1 !== 0),
-    "middle" -> ((event -> 'buttons.$) & 4 !== 0),
-    "right" -> ((event -> 'buttons.$) & 2 !== 0),
+    "left" -> ((event >> 'buttons) & 1 !== 0),
+    "middle" -> ((event >> 'buttons) & 4 !== 0),
+    "right" -> ((event >> 'buttons) & 2 !== 0),
     "modifiers" -> modifiers(event)
   )
   else javascript.Object(
-    "left" -> ((event -> 'buttons.$) === 0),
-    "middle" -> ((event -> 'buttons.$) === 1),
-    "right" -> ((event -> 'buttons.$) === 2),
+    "left" -> ((event >> 'buttons) === 0),
+    "middle" -> ((event >> 'buttons) === 1),
+    "right" -> ((event >> 'buttons) === 2),
     "modifiers" -> modifiers(event)
   )
   def mouse(event: $[JsObj]) = javascript.Object(
     "buttons" -> buttons(event),
     "pos" -> javascript.Object(
-      "x" -> (event -> 'clientX.$),
-      "y" -> (event -> 'clientY.$)
+      "x" -> (event >> 'clientX),
+      "y" -> (event >> 'clientY)
     )
   )
   implicit def mouseDown = new EventEncoder[MouseDown](mouse)
