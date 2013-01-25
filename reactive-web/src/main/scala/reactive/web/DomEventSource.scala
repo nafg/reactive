@@ -17,7 +17,11 @@ class DomEventSourceCanForeach[T <: DomEvent: Manifest: EventEncoder](domEventSo
   /**
    * Calls eventStream.foreach
    */
-  def foreach(f: T => Unit)(implicit o: Observing) = domEventSource.eventStream(page).foreach(f)(o)
+  def foreach(f: T => Unit)(implicit o: Observing) = {
+    domEventSource.eventStream(page).foreach(f)(o)
+    self
+  }
+
   /**
    * Calls jsEventStream.foreach
    */

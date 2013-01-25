@@ -8,8 +8,7 @@ import JsTypes._
 
 object JsEventStream {
   implicit def canForwardTo[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]): CanForwardTo[JsEventStream[J], T] = new CanForwardTo[JsEventStream[J], T] {
-    def forward(source: Forwardable[T, _], target: => JsEventStream[J])(implicit o: Observing) =
-      source foreach { v => target.fire(conv(v)) }
+    def forwarder(target: => JsEventStream[J]) = v => target.fire(conv(v))
   }
 }
 

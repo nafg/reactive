@@ -176,9 +176,7 @@ object DomProperty {
    * Values are forwarded by calling DomProperty#update with the return value of codec.toJS applied to the value.
    */
   implicit def canForwardTo[T](implicit codec: PropertyCodec[T]): CanForwardTo[DomProperty, T] = new CanForwardTo[DomProperty, T] {
-    def forward(f: Forwardable[T, _], d: => DomProperty)(implicit o: Observing) = {
-      f foreach { v => d.update(v) }
-    }
+    def forwarder(d: => DomProperty) = d.update
   }
 
   /**
