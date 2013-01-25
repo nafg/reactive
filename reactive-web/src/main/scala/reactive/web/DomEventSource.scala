@@ -11,7 +11,7 @@ import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
 import scala.collection.mutable.WeakHashMap
 
 
-class DomEventSourceCanForeach[T <: DomEvent: Manifest: EventEncoder](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
+class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
   def self = domEventSource
 
   /**
@@ -138,7 +138,7 @@ object DomEventSource {
   /**
    *
    */
-  implicit def canForeach[T <: DomEvent](des: DomEventSource[T])(implicit m: Manifest[T], ee: EventEncoder[T], page: Page) = new DomEventSourceCanForeach(des)(page)
+  implicit def canForeach[T <: DomEvent](des: DomEventSource[T])(implicit page: Page) = new DomEventSourceCanForeach(des)(page)
 
   /**
    * Creates a new Click DomEventSource
@@ -156,5 +156,4 @@ object DomEventSource {
    * Creates a new Change DomEventSource
    */
   def change = new DomEventSource[Change]
-
 }
