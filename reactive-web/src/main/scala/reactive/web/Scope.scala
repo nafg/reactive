@@ -184,7 +184,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * @return this PowerNode
      */
     def fire[T <: DomEvent](event: T)(implicit page: Page, eventType: Manifest[T]): this.type = {
-      for (eventAttr <- attr.get("on"+scalaClassName(eventType.erasure).toLowerCase)) {
+      for (eventAttr <- attr.get("on"+scalaClassName(eventType.runtimeClass).toLowerCase)) {
         val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
         val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(window.document.getElementById\(\"([^\"]*)\"\)\[\"([^\)\"]*)\"\]\)""".r
 

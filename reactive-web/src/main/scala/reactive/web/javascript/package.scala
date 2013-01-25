@@ -1,6 +1,8 @@
 package reactive
 package web
 
+import scala.reflect.{ classTag, ClassTag }
+
 package object javascript {
   import JsTypes._
 
@@ -30,11 +32,11 @@ package object javascript {
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
 
-  class ProxyName[T : ClassManifest](val value: String)
+  class ProxyName[T : ClassTag](val value: String)
   object ProxyName {
-    implicit def fromString[T : ClassManifest](s: String): ProxyName[T] = new ProxyName(s)
-    implicit def fromSymbol[T : ClassManifest](s: Symbol): ProxyName[T] = new ProxyName(s.name)
-    implicit def fromUnit[T : ClassManifest](s: Unit): ProxyName[T] = new ProxyName(scalaClassName(classManifest[T].erasure))
+    implicit def fromString[T : ClassTag](s: String): ProxyName[T] = new ProxyName(s)
+    implicit def fromSymbol[T : ClassTag](s: Symbol): ProxyName[T] = new ProxyName(s.name)
+    implicit def fromUnit[T : ClassTag](s: Unit): ProxyName[T] = new ProxyName(scalaClassName(classTag[T].runtimeClass))
   }
 
   /**
@@ -44,11 +46,11 @@ package object javascript {
    * @usecase jsProxy[MyStub]('myStub)  // use myStub as the javascript identifier
    * @usecase jsProxy[MyStub]("xx.myStub")  // use xx.myStub as the javascript identifier
    */
-  def jsProxy[T <: JsStub: ClassManifest](ident: ProxyName[T], toReplace: List[JsStatement] = Nil): T = {
+  def jsProxy[T <: JsStub: ClassTag](ident: ProxyName[T], toReplace: List[JsStatement] = Nil): T = {
     val ih = new StubInvocationHandler[T](ident.value, toReplace)
     java.lang.reflect.Proxy.newProxyInstance(
       getClass.getClassLoader,
-      classManifest[T].erasure.getInterfaces :+ classManifest[T].erasure,
+      classTag[T].runtimeClass.getInterfaces :+ classTag[T].runtimeClass,
       ih
     ).asInstanceOf[T]
   }

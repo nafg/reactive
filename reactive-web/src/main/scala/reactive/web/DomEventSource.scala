@@ -9,6 +9,7 @@ import JsTypes._
 import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
 
 import scala.collection.mutable.WeakHashMap
+import scala.reflect.{ classTag, ClassTag }
 
 
 class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
@@ -38,7 +39,7 @@ class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])
  * in response to events.
  */
 //TODO better name? It is not an EventSource; only wraps a JsEventStream
-class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Logger {
+class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
   /**
    * Adds asAttribute to an Elem.
    * If an attribute exists with the same name, combine the two values,
@@ -62,12 +63,12 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Logger {
    * Calls toServer on jsEventStream.
    */
   def eventStream(implicit page: Page): EventStream[T] =
-    jsEventStream(page).toServer
+    jsEventStream(page).toServer[T](manifest = scala.reflect.Manifest.classType[T](classTag[T].runtimeClass))
 
   /**
    * The name of the event
    */
-  def eventName = scalaClassName(manifest[T].erasure).toLowerCase
+  def eventName = scalaClassName(classTag[T].runtimeClass).toLowerCase
 
   /**
    * The name of the attribute to add the handler to
@@ -126,7 +127,7 @@ class DomEventSource[T <: DomEvent: Manifest: EventEncoder] extends Logger {
 
   def render(implicit page: Page) = new Renderer()(page)
 
-  override def toString = "DomEventSource["+manifest[T]+"]"
+  override def toString = "DomEventSource["+classTag[T]+"]"
 }
 
 object DomEventSource {
