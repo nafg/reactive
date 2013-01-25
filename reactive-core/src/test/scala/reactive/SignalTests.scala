@@ -6,6 +6,9 @@ import org.scalatest.prop.PropertyChecks
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
+import scala.concurrent.future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with PropertyChecks {
   implicit val observing = new Observing {}
   test("map") {
@@ -107,7 +110,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
   test("flatMap(value => EventStream)") {
     val s = Var(10)
     val es = new EventSource[Int]
-    val fm = s.flatMap(x => es.map(x*))
+    val fm = s.flatMap(x => es.map(x * _))
     collecting(fm){ es fire 3 } should equal(List(30))
     collecting(fm){ s () = 20 } should equal (Nil)
     collecting(fm){ es fire 4 } should equal (List(80))
@@ -138,8 +141,8 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
       n -= 1
     }
 
-    for (a <- 1 to 10 toList) {
-      scala.concurrent.ops.spawn {
+    for (a <- (1 to 10).toList) {
+      future {
         for (b <- 1 to 10)
           v () = v.now + 1
       }
@@ -174,12 +177,12 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
       bufSig () = xs.map(Var(_))
       agg.now should equal (xs.sum)
 
-      if (bufSig.value nonEmpty) {
+      if (bufSig.value.nonEmpty) {
         // updates to member signals
         forAll(Gen.choose(0, bufSig.value.length - 1), Arbitrary.arbitrary[Int]){
           case (i, x) =>
             bufSig.value(i) () = x
-            agg.now should equal (bufSig.now map (_.now) sum)
+            agg.now should equal (bufSig.now.map(_.now).sum)
         }
       }
     }

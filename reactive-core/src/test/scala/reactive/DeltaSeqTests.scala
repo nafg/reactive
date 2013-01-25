@@ -110,7 +110,7 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
     try {
       Console.withOut(new PrintStream(baos)) { p }
     } catch {
-      case e =>
+      case e: Exception =>
         Console.print(new String(baos.toByteArray()))
         println(Console.RED + e + Console.RESET)
         println
@@ -160,7 +160,7 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
     forAll(for (list1 <- Gen.listOf1(Gen.listOf1(arbitrary[Int])); list2 <- arbitrary[List[Int]]) yield (list1, list2), maxSize(10)) {
       case (head :: xss, toAppend) =>
         val s = BufferSignal(head: _*)
-        val appended = (s.now ++ toAppend signal)
+        val appended = (s.now ++ toAppend).signal
         iter(s, xss)(xs => appended.now should equal (xs ++ toAppend))
       case _ => whenever(false) {}
     }

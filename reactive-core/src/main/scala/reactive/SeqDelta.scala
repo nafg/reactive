@@ -40,10 +40,9 @@ object SeqDelta {
     case (s, Update(n, _, e)) => s.patch(n, List(e), 1)
   }
 
-  final class Batchable[A, B](source: Seq[SeqDelta[A, B]]) {
+  final implicit class Batchable[A, B](source: Seq[SeqDelta[A, B]]) {
     def toBatch: Batch[A, B] = Batch(source: _*)
   }
-  implicit def seqToBatchable[A, B](source: Seq[SeqDelta[A, B]]): Batchable[A, B] = new Batchable(source)
 }
 sealed trait SeqDelta[+A, +B] {
   /**
