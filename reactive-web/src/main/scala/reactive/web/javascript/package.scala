@@ -40,6 +40,9 @@ package object javascript {
   /**
    * Returns a JsStub proxy for the specified type,
    * with the specified identifier for the instance.
+   * @usecase jsProxy[MyStub](())  // use MyStub as the javascript identifier
+   * @usecase jsProxy[MyStub]('myStub)  // use myStub as the javascript identifier
+   * @usecase jsProxy[MyStub]("xx.myStub")  // use xx.myStub as the javascript identifier
    */
   def jsProxy[T <: JsStub: ClassManifest](ident: ProxyName[T], toReplace: List[JsStatement] = Nil): T = {
     val ih = new StubInvocationHandler[T](ident.value, toReplace)
