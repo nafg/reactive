@@ -137,7 +137,7 @@ object DomEventSource {
   implicit def toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
 
   /**
-   *
+   * Implicitly provides the `foreach` method and `Forwardable` methods.
    */
   implicit def canForeach[T <: DomEvent](des: DomEventSource[T])(implicit page: Page) = new DomEventSourceCanForeach(des)(page)
 
