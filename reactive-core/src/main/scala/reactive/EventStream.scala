@@ -288,10 +288,9 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  class TakeUntil(stream: EventStream[Any], obs: Observing) extends ChildEventSource[T, Boolean](true) {
-    implicit val observing = obs
+  class TakeUntil(stream: EventStream[Any], observing: Observing) extends ChildEventSource[T, Boolean](true) {
     override def debugName = "%s.takeUntil" format (EventSource.this.debugName)
-    stream.once.foreach(_ => state = false)
+    stream.once.foreach(_ => state = false)(observing)
     def handler = (event, _) => {
       if (state)
         fire(event)
