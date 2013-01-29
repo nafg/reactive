@@ -85,9 +85,16 @@ trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
    * be fired by the new EventStream.
    */
   def filter(f: T => Boolean): EventStream[T]
-  
+  /**
+   * Return a new EventStream that will propagate only one event from 
+   * this EventStream
+   */
   def once: EventStream[T]
-
+  /**
+   * Returns a new EventStream that propagates this EventStream's events
+   * until the provided EventStream stream fires first event.
+   * @param stream the stream, that will shut down this EventStream
+   */
   def takeUntil(stream: EventStream[Any])(implicit observing: Observing): EventStream[T]
   /**
    * Filter and map in one step. Takes a PartialFunction.
