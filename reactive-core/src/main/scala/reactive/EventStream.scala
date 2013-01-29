@@ -86,8 +86,14 @@ trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
    */
   def filter(f: T => Boolean): EventStream[T]
   /**
-   * Return a new EventStream that will propagate only one event from 
-   * this EventStream
+   * Returns a new EventStream that propagates only first n events
+   * of this EventStream
+   * @param n number of first events to propagate
+   */
+  def take(n: Int): EventStream[T]
+  /**
+   * Returns a new EventStream that propagates only first event
+   * of this EventStream
    */
   def once: EventStream[T]
   /**
@@ -95,7 +101,7 @@ trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
    * until the provided EventStream stream fires first event.
    * @param stream the stream, that will shut down this EventStream
    */
-  def takeUntil(stream: EventStream[Any])(implicit observing: Observing): EventStream[T]
+  def until(stream: EventStream[Any])(implicit observing: Observing): EventStream[T]
   /**
    * Filter and map in one step. Takes a PartialFunction.
    * Whenever an event is received, if the PartialFunction
@@ -278,19 +284,19 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
     }
   }
   
-  class Once extends ChildEventSource[T, Boolean](true) {
-    override def debugName = "%s.once" format (EventSource.this.debugName)
+  class Take(n: Int) extends ChildEventSource[T, Int](0) {
+    override def debugName = "%s.take(%d)" format (EventSource.this.debugName, n)
     def handler = (event, last) => {
-      if (last)
+      if (last < n)
         fire(event)
       else
         EventSource.this.removeListener(listener)
-      false
+      last + 1
     }
   }
 
-  class TakeUntil(stream: EventStream[Any], observing: Observing) extends ChildEventSource[T, Boolean](true) {
-    override def debugName = "%s.takeUntil" format (EventSource.this.debugName)
+  class Until(stream: EventStream[Any], observing: Observing) extends ChildEventSource[T, Boolean](true) {
+    override def debugName = "%s.until(%s)" format (EventSource.this.debugName, stream)
     stream.once.foreach(_ => state = false)(observing)
     def handler = (event, _) => {
       if (state)
@@ -380,8 +386,11 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
 
   def collect[U](pf: PartialFunction[T, U]): EventStream[U] = new Collected(pf)
   
-  def once: EventStream[T] = new Once
-  def takeUntil(es: EventStream[Any])(implicit observing: Observing): EventStream[T] = new TakeUntil(es, observing)
+  def once: EventStream[T] = new Take(1)
+  
+  def take(n: Int) = new Take(n)
+  
+  def until(es: EventStream[Any])(implicit observing: Observing): EventStream[T] = new Until(es, observing)
 
   def map[U](f: T => U): EventStream[U] = {
     new ChildEventSource[U, Unit] {
@@ -593,7 +602,8 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def distinct: EventStream[T] = underlying.distinct
   def nonblocking: EventStream[T] = underlying.nonblocking
   def once: EventStream[T] = underlying.once
-  def takeUntil(es: EventStream[Any])(implicit observing: Observing): EventStream[T] = underlying.takeUntil(es)(observing)
+  def take(n: Int): EventStream[T] = underlying.take(n)
+  def until(es: EventStream[Any])(implicit observing: Observing): EventStream[T] = underlying.until(es)(observing)
   def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
   def throttle(period: Long): EventStream[T] = underlying.throttle(period)
   private[reactive] def addListener(f: (T) => Unit): Unit = underlying.addListener(f)

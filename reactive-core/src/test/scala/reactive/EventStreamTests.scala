@@ -113,6 +113,45 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
       es fire 2
     } should equal (List(2, 1))
   }
+  
+  test("take") {
+    val es = new EventSource[Int] {}
+    val n = 3
+    val take = es take n
+    collecting(take){
+      es fire 2
+      es fire 1
+      es fire 4
+      es fire 2
+      es fire 42
+    } should equal (List(2, 1, 4))
+  }
+  
+  test("once") {
+    val es = new EventSource[Int] {}
+    val onced = es.once
+    collecting(onced){
+      es fire 2
+      es fire 1
+      es fire 4
+      es fire 2
+      es fire 42
+    } should equal (List(2))
+  }
+  
+  test("until") {
+    val es = new EventSource[Int] {}
+    val killer = new EventSource[Unit] {}
+    val res = es.until(killer)
+    collecting(res){
+      es fire 2
+      es fire 1
+      es fire 4
+      killer fire()
+      es fire 2
+      es fire 42
+    } should equal (List(2, 1, 4))
+  }
 
   test("foldLeft") {
     val es = new EventSource[Int] {}
