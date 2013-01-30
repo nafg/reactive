@@ -104,6 +104,23 @@ however there's nothing stopping you from doing so if you so desire.</p>
 
 <button onclick="showdemo('EventStream_takeWhile')">Live Example</button>
 
+<h3><code>take</code> and <code>once</code></h3>
+<p>When you just want to receive only first <code>n</code> events
+you can use <code>take</code> method. It takes <code>n</code> as parameter
+and return you <code>EventStream</code>. You should think about this method 
+as the similar one in collection framework. </p>
+<p> <code>once</code> is special case when you only need first event 
+of the <code>EventStream</code> and it actually equals <code>take(1)</code></p>
+
+<h3><code>until</code></h3>
+<p>In some cases you need to shut down one <code>EventStream</code>
+by some event from another <code>EventStream</code>.
+So lets think about it that way: You want to take all events until some other event happens.
+In terms of reactive those events are provided by two <code>EventStream</code>s.
+So for that case you can use <code>one.until(another)</code> method, where <code>another</code> 
+is <code>EventStream</code> that shut down <code>one</code> after its first event.
+</p>
+
 <h3>What's the point?</h3>
 <p>At this point you may be wondering why go through all these
 hoops? Why not use the regular listener pattern directly, like Swing
