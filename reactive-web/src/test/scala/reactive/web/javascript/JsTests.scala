@@ -79,7 +79,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       Reactions.inScope(new LocalScope) {
         Javascript {
           obj.method(obj.method("This is a scala string"))
-          val v = JsVar[JsObj] := obj.self
+          JsVar[JsObj] := obj.self
           obj.nullary
           obj.prop := 2
           obj.self.prop := 3
