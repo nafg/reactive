@@ -47,6 +47,8 @@ object EventStream {
  * @see EventSource
  */
 trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
+  type Runner = ( =>Unit)=>Unit
+  
   def self = this
 
   /**
@@ -171,6 +173,16 @@ trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
    * events are handled sequentially.
    */
   def nonblocking: EventStream[T]
+
+  /**
+   * Returns a derived event stream in which event propagation does not happen on the thread firing it and block it.
+   * This is helpful when handling events can be time consuming.
+   * The implementation delegates propagation to runner function, that can handle events in different context,
+   * not accessable from EventStream (Android UI thread, thread pools, etc.)
+   * @param runner function of type ( =>Unit)=>Unit to be passed from outside context
+   * to run inner function in different context
+   */
+  def withRunner(implicit runner: Runner): EventStream[T]
 
   /**
    * Returns an EventStream whose tuple-valued events include a function for testing staleness.
@@ -482,6 +494,14 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
   def throttle(period: Long): EventStream[T] = new Throttled(period)
 
   def nonblocking: EventStream[T] = new ActorEventStream
+  
+  def withRunner(implicit runner: Runner): EventStream[T] = new ChildEventSource[T, Unit](()) {
+    override def debugName = "%s.runnedOn(%s)" format (EventSource.this.debugName, runner)
+    def handler = {
+      case (parentEvent, _) =>
+        runner(parentEvent, fire(parentEvent))
+    }
+  }
 
   private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
     trace(AddingListener(f))
@@ -601,6 +621,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def nonrecursive: EventStream[T] = underlying.nonrecursive
   def distinct: EventStream[T] = underlying.distinct
   def nonblocking: EventStream[T] = underlying.nonblocking
+  def withRunner(implicit runner: Runner): EventStream[T] = underlying.withRunner(runner)
   def once: EventStream[T] = underlying.once
   def take(n: Int): EventStream[T] = underlying.take(n)
   def until(es: EventStream[Any])(implicit observing: Observing): EventStream[T] = underlying.until(es)(observing)
