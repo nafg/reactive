@@ -61,6 +61,31 @@ object ReactiveBuild extends Build {
     }
   )
 
+  /** If `rawF` is a symlink, return the directory it points to.
+    * If it is a readable file, read its lines and treat them as
+    * relative paths, returning the directories that they point to.
+    * Only directories will be returned.
+    */
+  def resolveDirs(rawF: File): List[File] = {
+    // resolve symlinks and/or relative paths
+    val f = rawF.getCanonicalFile
+
+    // base case: yield the directory
+    if(f.isDirectory) List(f)
+
+    // read a file with relative paths (links) on each line
+    else if(f.canRead) {
+      val d = f.getParentFile
+      val relPaths = IO.readLines(f)
+      relPaths flatMap { path =>
+        resolveDirs(d / path)
+      }
+    }
+
+    // unreadable, non-directory is a failure
+    else Nil
+  }
+  
   lazy val reactive_core = Project(
     "core",
     file("reactive-core"),
