@@ -1,8 +1,7 @@
-package reactive.web.demo.snippet
-
-import reactive._
-
-
+package reactive
+package web
+package demo
+package snippet
 
 class EventStream_foldLeft extends EventStreamDemo {
   case class AvgState(total: Double, count: Int)

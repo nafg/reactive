@@ -22,7 +22,7 @@ object Logger {
   }
 
   private[reactive] val allES = new EventSource[(Levels.Value, Logger#LogEvent)] {}
-  private val eventStreams = Levels.values.map(level => (level -> allES.collect{ case (`level`, e) => e })).toMap
+  private val eventStreams = Levels.values.toList.map(level => (level -> allES.collect{ case (`level`, e) => e })).toMap
 
   /**
    * Fires all semantic events, as a level -> LogEvent tuple

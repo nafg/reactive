@@ -7,7 +7,7 @@ import JsTypes._
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
-class JsTests extends FunSuite with ShouldMatchers {
+class JsTests extends FunSuite with ShouldMatchers with Observing {
   test("Operators") {
     (1.$ + 2 render) should equal (new JsOp(1, 2, "+").render)
     (1.$ & 2 render) should equal (new JsOp(1, 2, "&").render)
@@ -20,12 +20,12 @@ class JsTests extends FunSuite with ShouldMatchers {
   }
 
   test("Functions") {
-    { () => 1.$ }.$.render should equal ("(function(){return 1})")
+    { () => 1.$ }.$.render should equal ("(function(){return 1;})")
 
-    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("(function(arg0){return (arg0+1)})")
+    { x: $[JsNumber] => x + 1.$ }.$.render should equal ("(function(arg0){return (arg0+1);})")
 
     { (x: JsExp[JsNumber], y: JsExp[JsNumber]) => x + y }.$.render should equal (
-      "(function(arg0,arg1){return (arg0+arg1)})"
+      "(function(arg0,arg1){return (arg0+arg1);})"
     )
 
     { () =>
@@ -35,7 +35,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "(function(){if(true) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
+      "(function(){if(true) {window.alert(\"Greater\");} else {window.alert(\"Small\");}return ;})"
     )
 
     { x: $[JsNumber] =>
@@ -45,7 +45,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "(function(arg0){if((arg0>10)) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
+      "(function(arg0){if((arg0>10)) {window.alert(\"Greater\");} else {window.alert(\"Small\");}return ;})"
     )
 
     { (x: JsExp[JsNumber], y: JsExp[JsNumber]) =>
@@ -55,7 +55,7 @@ class JsTests extends FunSuite with ShouldMatchers {
         window alert "Small"
       }
     }.$.render should equal (
-      "(function(arg0,arg1){if((arg0>arg1)) {window.alert(\"Greater\")} else {window.alert(\"Small\")};return })"
+      "(function(arg0,arg1){if((arg0>arg1)) {window.alert(\"Greater\");} else {window.alert(\"Small\");}return ;})"
     )
   }
 
@@ -73,8 +73,9 @@ class JsTests extends FunSuite with ShouldMatchers {
       def getSelf2(i: $[JsNumber]): obj
     }
     implicit object ext extends Extend[obj, extendObj]
-    val obj = $$[obj]
-    Page.withPage(new Page) {
+    val obj = jsProxy[obj](())
+    implicit val page: Page = new Page
+    Page.withPage(page) {
       Reactions.inScope(new LocalScope) {
         Javascript {
           obj.method(obj.method("This is a scala string"))
@@ -91,15 +92,15 @@ class JsTests extends FunSuite with ShouldMatchers {
           }
         }
       }.js.map(_.toJsCmd) zipAll (List(
-        "obj.method(obj.method(\"This is a scala string\"))",
-        "var x$0",
-        "x$0=obj.self",
-        "obj.nullary()",
-        "obj.prop=2",
-        "obj.self.prop=3",
-        """obj["otherProp"]="xyz"""",
-        "obj.getSelf(1).getSelf(2)",
-        "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)}))}))"
+        "obj.method(obj.method(\"This is a scala string\"));",
+        "var x$0;",
+        "x$0=obj.self;",
+        "obj.nullary();",
+        "obj.prop=2;",
+        "obj.self.prop=3;",
+        """obj["otherProp"]="xyz";""",
+        "obj.getSelf(1).getSelf(2);",
+        "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4);}));}));"
       ), "", "") foreach { case (a, b) => a should equal (b) }
     }
   }
@@ -120,7 +121,8 @@ class JsTests extends FunSuite with ShouldMatchers {
     implicit object extendWindow extends Extend[Window, Window2]
     implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
 
-    Page.withPage(new Page) {
+    implicit val page: Page = new Page
+    Page.withPage(page) {
       val res = Reactions.inScope(new LocalScope) {
         Javascript {
           window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
@@ -145,12 +147,12 @@ class JsTests extends FunSuite with ShouldMatchers {
           "(function(arg0){"+
           "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
           "\"rename.jstree\","+
-          "(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax()})(10);return })"+
-          ")"+"}),"+
+          "(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax()})(10);return ;})"+
+          ");"+"}),"+
           "1000"+
-          ")"+
+          ");"+
           "})"+
-          ")"
+          ");"
       ), "", "") foreach { case (a, b) => a should equal (b) }
     }
   }
@@ -177,13 +179,13 @@ class JsTests extends FunSuite with ShouldMatchers {
     }._2.map(JsStatement.render)
     stmts foreach println
     stmts.zipAll(List(
-      """window.onbeforeunload=(function(arg0){if((!window["isClean"])) {var reply;var evt;reply="You have unsaved changes!";evt=arg0;if((evt==null)) {evt=window.event};if((evt!=null)) {evt["returnValue"]=reply};return reply};return })"""
+      """window.onbeforeunload=(function(arg0){if((!window["isClean"])) {var reply;var evt;reply="You have unsaved changes!";evt=arg0;if((evt==null)) {evt=window.event;}if((evt!=null)) {evt["returnValue"]=reply;}return reply;}return ;});"""
     ), "", "") foreach { case (a, b) => a should equal (b) }
   }
 
   test("Statements") {
     window.alert(window.encodeURIComponent("Message"))
-    JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"))")
+    JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"));")
 
     val (_, theStatements) = JsStatement.inScope{
       If(true) {
@@ -210,22 +212,22 @@ class JsTests extends FunSuite with ShouldMatchers {
       object i extends JsVar[JsNumber]
       For(List(i := 1), i < 10, List(i := i + 1)) {}
 
-      Page.withPage(new Page){
-        for (j <- List(1.$, 2.$, 3.$)$) {
-          If(j > 1) {
-            window.alert("Greater"$)
-          }
+      implicit val page: Page = new Page  // needed to generate fresh ids
+
+      for (j <- List(1.$, 2.$, 3.$)$) {
+        If(j > 1) {
+          window.alert("Greater"$)
         }
-        for (j <- Each(List(1.$, 2.$, 3.$))) {
-          If(j > 1) {
-            window.alert("Greater")
-          }
+      }
+      for (j <- Each(List(1.$, 2.$, 3.$))) {
+        If(j > 1) {
+          window.alert("Greater")
         }
-        Try {
-          Throw("message")
-        } Catch { c =>
-        } Finally {
-        }
+      }
+      Try {
+        Throw("message")
+      } Catch { c =>
+      } Finally {
       }
 
       object myFunc extends Function({ x: $[JsNumber] =>
@@ -236,29 +238,27 @@ class JsTests extends FunSuite with ShouldMatchers {
         }
       })
       myFunc(10)
-      Page.withPage(new Page) {
-        val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
+      val myFunc2 = Function({ x: $[JsNumber] => Return(x > 10) })
 
-        val myAjax = Ajax{ x: String => println("Got "+x) }
-        myAjax("Hello server!")
-      }
+      val myAjax = Ajax { x: String => println("Got " + x) }
+      myAjax("Hello server!")
     }
     val rendered = theStatements map JsStatement.render
     //    theStatements map JsStatement.render foreach println
     val target = List(
-      """if(true) {window.alert("True")} else if(false) {window.alert("False")} else {if(true) {} else {}}""",
-      """while(true) {window.alert("Again!")}""",
-      """do {window.alert("Hello!")} while(false)""",
+      """if(true) {window.alert("True");} else if(false) {window.alert("False");} else {if(true) {} else {}}""",
+      """while(true) {window.alert("Again!");}""",
+      """do {window.alert("Hello!");} while(false)""",
       """switch(1) {case 0:window.alert("No");break;case 1:window.alert("Yes");break;}""",
-      """var i""",
+      """var i;""",
       """for(i=1;(i<10);i=(i+1)) {}""",
-      """for(var x$0 in [1,2,3]) {if((x$0>1)) {window.alert("Greater")}}""",
-      """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater")}}""",
-      """try {throw "message"} catch(x$2) {} finally {}""",
-      """function myFunc(arg0){if((arg0>10)) {window.alert("Greater")} else {window.alert("Small")}}""",
-      "myFunc(10)",
-      "function f$0(arg0){return (arg0>10)}",
-      """(function(arg0){reactive.queueAjax(1)(arg0);reactive.doAjax()})("Hello server!")"""
+      """for(var x$0 in [1,2,3]) {if((x$0>1)) {window.alert("Greater");}}""",
+      """for each(var x$1 in [1,2,3]) {if((x$1>1)) {window.alert("Greater");}}""",
+      """try {throw "message";} catch(x$2) {} finally {}""",
+      """function myFunc(arg0){if((arg0>10)) {window.alert("Greater");} else {window.alert("Small");}}""",
+      """myFunc(10);""",
+      """function f$3(arg0){return (arg0>10);}""",
+      """(function(arg0){reactive.queueAjax(4)(arg0);reactive.doAjax()})("Hello server!");"""
     )
     rendered.length should equal (target.length)
     rendered.zipAll(target, "", "") foreach { case (s, t) => s should equal (t) }

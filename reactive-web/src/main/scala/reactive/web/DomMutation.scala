@@ -24,17 +24,17 @@ object DomMutation extends HtmlFixer {
     }
   val defaultDomMutationRenderer: CanRender[DomMutation] = CanRender {
     case InsertChildBefore(parentId, child, prevId) =>
-      createElem(parentId, child)("reactive.insertChild('%s',%s,'%s')".format(parentId, _, prevId))
+      createElem(parentId, child)("reactive.insertChild('%s',%s,'%s');".format(parentId, _, prevId))
     case AppendChild(parentId, child) =>
-      createElem(parentId, child)("reactive.appendChild('%s',%s)".format(parentId, _))
+      createElem(parentId, child)("reactive.appendChild('%s',%s);".format(parentId, _))
     case RemoveChild(parentId, oldId) =>
-      "reactive.removeChild('%s','%s')".format(parentId, oldId)
+      "reactive.removeChild('%s','%s');".format(parentId, oldId)
     case ReplaceChild(parentId, child, oldId) =>
-      createElem(parentId, child)("reactive.replaceChild('%s',%s,'%s')".format(parentId, _, oldId))
+      createElem(parentId, child)("reactive.replaceChild('%s',%s,'%s');".format(parentId, _, oldId))
     case ReplaceAll(parentId, child) =>
-      fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s)".format(parentId, _))
+      fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s);".format(parentId, _))
     case up@UpdateProperty(parentId, pname, aname, v) =>
-      "reactive.updateProperty('%s','%s',%s)".format(parentId, pname, JsExp render up.codec.toJS(v))
+      "reactive.updateProperty('%s','%s',%s);".format(parentId, pname, JsExp render up.codec.toJS(v))
   }
 
   //TODO should be written with DSL: JsStub for reactive object
@@ -92,8 +92,6 @@ sealed trait DomMutation {
         xformId(id)(f)(ns.head)
       else
         ns
-    case other =>
-      other
   }
   def apply(in: NodeSeq): NodeSeq = xformId(parentId)(updateElem)(in)
 }

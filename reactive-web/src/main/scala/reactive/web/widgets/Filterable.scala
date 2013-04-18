@@ -24,6 +24,7 @@ trait Filter[P] {
  * A filter that mixes this in can be rendered
  */
 trait FilterUI {
+  implicit def page: Page
   /**
    * Render the UI for the filter,
    * to allow users to interact with the filter's value
@@ -38,7 +39,7 @@ trait FilterUI {
  * @param rows        A function-valued signal, where the function returns the total number of rows.
  *                    You can have the signal depend on other filters that affect the number of rows.
  */
-class Paginator(val rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing) extends Filter[Int] with FilterUI {
+class Paginator(val rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, val page: Page) extends Filter[Int] with FilterUI {
   /**
    * The page number
    */
@@ -108,24 +109,24 @@ class Paginator(val rowsPerPage: Int, rows: Signal[() => Int])(implicit observin
         rs / rowsPerPage + (rs % rowsPerPage min 1)
       }
       page0 <- value
-      page = page0 min pages - 1
+      curPage = page0 min pages - 1
     } yield {
-      val is = pagesToDisplay(page, pages)
+      val is = pagesToDisplay(curPage, pages)
 
-      (firstSelector+" [class+]") #> (if (page > 0) "" else disabledClass) andThen
+      (firstSelector+" [class+]") #> (if (curPage > 0) "" else disabledClass) andThen
         (firstSelector+" *") #> (linkSelector #> onServer { _: Click => value() = 0 }) andThen
-        (prevSelector+" [class+]") #> (if (page > 0) "" else disabledClass) andThen
-        (prevSelector+" *") #> (linkSelector #> onServer { _: Click => value() = page - 1 max 0 }) andThen
+        (prevSelector+" [class+]") #> (if (curPage > 0) "" else disabledClass) andThen
+        (prevSelector+" *") #> (linkSelector #> onServer { _: Click => value() = curPage - 1 max 0 }) andThen
         pagesSelector #> is.map { i =>
-          (pagesSelector+" [class+]") #> (if (i == page) activeClass else "") andThen
+          (pagesSelector+" [class+]") #> (if (i == curPage) activeClass else "") andThen
             (pagesSelector+" *") #> (
               linkSelector #> onServer { _: Click => value() = i } andThen
               (linkSelector+" *") #> (i + 1)
             )
         } andThen
-        (nextSelector+" [class+]") #> (if (page < pages - 1) "" else disabledClass) andThen
-        (nextSelector+" *") #> (linkSelector #> onServer { _: Click => value() = page + 1 min pages - 1 }) andThen
-        (lastSelector+" [class+]") #> (if (page < pages - 1) "" else disabledClass) andThen
+        (nextSelector+" [class+]") #> (if (curPage < pages - 1) "" else disabledClass) andThen
+        (nextSelector+" *") #> (linkSelector #> onServer { _: Click => value() = curPage + 1 min pages - 1 }) andThen
+        (lastSelector+" [class+]") #> (if (curPage < pages - 1) "" else disabledClass) andThen
         (lastSelector+" *") #> (linkSelector #> onServer { _: Click => value() = pages - 1 })
     }
   }
@@ -166,7 +167,7 @@ trait PostFilter[RowType] { this: Filter[_] =>
 /**
  * A subclass of `Paginator` that works in memory
  */
-class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing) extends Paginator(rowsPerPage, rows) with PostFilter[RowType] {
+class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, page: Page) extends Paginator(rowsPerPage, rows) with PostFilter[RowType] {
   lazy val filter = first map { f => { (_: Seq[RowType]) drop f take rowsPerPage } }
 }
 
@@ -174,7 +175,7 @@ class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit
  * Base mixin for TableView/TableEditor that adds filters -- the ability to manage
  * signals that parameterize the data store fetch, or that perform some
  * post processing on the rows.
- * Do not mix in `Filterable` directly. Instead use `PreFilterable` and/or `PostFilterable`.
+ * Do not mix in `Filterable` directly (it's sealed). Instead use `PreFilterable` and/or `PostFilterable`.
  */
 sealed trait Filterable[A] extends TableView[A] {
   /**
@@ -188,7 +189,7 @@ sealed trait Filterable[A] extends TableView[A] {
    * A `Filter` that lets you click column headers to sort the rows by that column.
    * Clicking the column that the rows are already sorted by will reverse the sort direction.
    */
-  class SortHeaders(initial: Option[SortState] = None) extends Filter[Option[SortState]] with FilterUI {
+  class SortHeaders(initial: Option[SortState] = None)(implicit val page: Page) extends Filter[Option[SortState]] with FilterUI {
     val value = Var(initial)
 
     protected def sortStateForCol(c: Col) = SortState(c, true)
@@ -223,7 +224,7 @@ trait PreFilterable[A] extends Filterable[A] {
    */
   val preFilters: SeqSignal[Filter[_] with PreFilter]
 
-  override protected lazy val params: Signal[List[FetchParam]] = preFilters.now.map(_.param).signal.sequence
+  override protected lazy val params: Signal[Seq[FetchParam]] = preFilters.now.map(_.param).signal.sequence
 
   override def render = super.render &
     preFilters.now.collect{ case ui: FilterUI => ui }.foldLeft("thisbetternotexist" #> PassThru)(_ & _.render)
@@ -241,7 +242,7 @@ trait PostFilterable[A] extends Filterable[A] {
    */
   val postFilters: SeqSignal[PostFilter]
 
-  protected lazy val mergedPostFilters: Signal[List[Seq[RowType] => Seq[RowType]]] = postFilters.now.map(_.filter).signal.sequence
+  protected lazy val mergedPostFilters: Signal[Seq[Seq[RowType] => Seq[RowType]]] = postFilters.now.map(_.filter).signal.sequence
 
   override def filterRows: Signal[Seq[RowType]] => Signal[Seq[RowType]] = super.filterRows andThen {
     for {
@@ -282,7 +283,7 @@ trait PostFilterable[A] extends Filterable[A] {
   /**
    * A subclass of `SortHeaders` that sorts the rows in memory. Normally only works for `OrderedCol`s
    */
-  class PostSortHeaders(initial: Option[SortState] = None) extends SortHeaders(initial) with PostFilter {
+  class PostSortHeaders(initial: Option[SortState] = None)(implicit page: Page) extends SortHeaders(initial) with PostFilter {
     override def sortStateForCol(c: Col) = c match {
       case c: OrderedCol => SortState(c, true, Option(c.rowOrdering))
       case c             => SortState(c, true, None)

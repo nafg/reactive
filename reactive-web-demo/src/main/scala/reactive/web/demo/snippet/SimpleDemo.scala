@@ -1,8 +1,9 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-import web._
-import html._
+import reactive.web.html._
 
 import scala.xml._
 
@@ -13,7 +14,7 @@ import net.liftweb.http._
 
 // Extends Observing so any listeners we have can be garbage collected
 // once the snippet is garbage collected, and not before.
-class SimpleDemo extends Observing {
+class SimpleDemo extends PageSnippet {
   //////////////////////////////////////////////////////////////////
   // DEMONSTRATE REACTIONS TO CLIENT EVENTS
   //////////////////////////////////////////////////////////////////
@@ -43,7 +44,7 @@ class SimpleDemo extends Observing {
   //////////////////////////////////////////////////////////////////
 
   // Create an EventStream that fires timer ticks for up to 10 minutes
-  val clockES = new Timer(0, 2000, { t => this; t > (10 minutes) })
+  val clockES = new Timer(0, 2000, _ > (10 minutes))
 
   // Create a signal from the EventStream whose value, until
   // the first tick is received, is 0L

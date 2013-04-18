@@ -43,14 +43,14 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   private val jsEventStreams = new scala.collection.mutable.WeakHashMap[Page, JsEventStream[_]]
 
   /**
-   * The Page whose ajax event for this property the current thread is responding to, if any
+   * The Page and value whose ajax event for this property the current thread is responding to, if any
    */
-  private[web] val ajaxPage = new scala.util.DynamicVariable[Option[Page]](None)
+  private[web] val currentPropagateSource = new scala.util.DynamicVariable[Option[(Page, String)]](None)
 
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS(id: String): $[JsTypes.JsAny] = JsRaw("document.getElementById('"+id+"')."+name)
+  def readJS(id: String): $[JsTypes.JsAny] = window.document.getElementById(id).get(name)
 
   /**
    * Registers a Page with this JSProperty.
@@ -76,7 +76,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
      * the value Var is updated.
      */
     def propagate(v: String) {
-      ajaxPage.withValue(Some(page)) {
+      currentPropagateSource.withValue(Some((page, v))) {
         valuesES fire v
         update(v)
       }
@@ -89,7 +89,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
 
       // Register propagate with all linked event streams,
       // for the lifetime of the page
-      jses.toServer(_.values.toString).foreach(propagate)(page)
+      jses.toServer(_.values.toString).foreach(propagate)(page.observing)
       jses
     })
 
@@ -147,10 +147,15 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
    */
   def update[T: PropertyCodec](value: T) {
     // Send to all other pages javascript to apply
-    // the new value, other than the page on which this property started this ajax call.
+    // the new value, other than the page on which this property started this ajax call, if it's the same value that was sent to us.
+    // That is because the browser already has that value.
+    def shouldUpdate(page: Page) = currentPropagateSource.value match {
+      case Some((`page`, `value`)) => false
+      case _                       => true
+    }
     for {
       (page, id) <- pageIds
-      if ajaxPage.value.map(page!=) getOrElse true
+      if shouldUpdate(page)
     } Reactions.inAnyScope(page) {
       Reactions queue DomMutation.UpdateProperty(id, name, attributeName, value)
     }
@@ -166,14 +171,24 @@ object DomProperty {
   implicit def toNodeSeqFunc(dp: DomProperty)(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
 
   /**
-   * An implicit CanForward instance for DomProperty's (does not need to be imported). Requires an implicit Page and PropertyCodec.
+   * An implicit `CanForward` instance for `DomProperty`s (does not need to be imported).
+   * Requires an implicit `Page` and `PropertyCodec`.
    * Values are forwarded by calling DomProperty#update with the return value of codec.toJS applied to the value.
    */
   implicit def canForward[T](implicit codec: PropertyCodec[T]): CanForward[DomProperty, T] = new CanForward[DomProperty, T] {
-    def forward(f: Forwardable[T], d: => DomProperty)(implicit o: Observing) = {
+    def forward(f: Forwardable[T, _], d: => DomProperty)(implicit o: Observing) = {
       f foreach { v => d.update(v) }
     }
   }
+
+  /**
+   * An implicit `CanForwardJs` instance for `DomProperty`s.
+   */
+  implicit def canForwardJs[A <: JsTypes.JsAny](implicit page: Page) = new CanForwardJs[DomProperty, A] {
+    def forward(s: JsForwardable[A], t: DomProperty) =
+      s.foreach{ x: JsExp[A] => t.readJS(t.id).asInstanceOf[Assignable[A]] := x }
+  }
+
   /**
    * DomProperty factory. Just calls the constructor.
    */

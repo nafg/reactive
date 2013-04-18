@@ -30,6 +30,11 @@ class ElemFuncWrapper(renderer: Elem => Elem) extends (NodeSeq => NodeSeq) {
  * This singleton provides some useful things, including factories for creating RElems from standard Scala types.
  */
 object RElem {
+  /**
+   * Given an `Elem`, if it doesn't have an id attribute, add one
+   * by calling [[reactive.web.Page.newId]], and return the
+   * new `Elem`.
+   */
   def withId(elem: Elem): Elem = elem.attributes get "id" match {
     case Some(id) => elem
     case None     => elem % new UnprefixedAttribute("id", Page.newId, Null)

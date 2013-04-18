@@ -94,6 +94,7 @@ window.reactive = {
       console.error(e);
   },
   queuedAjaxEvents : [],
+  unique: 0,
   eventStreams : {},
   fire : function(es, value) {
     if (!this.eventStreams[es])
@@ -110,7 +111,7 @@ window.reactive = {
   doAjax : function() {
     var q = this.queuedAjaxEvents;
     this.queuedAjaxEvents = [];
-    var s = JSON.stringify(q);
+    var s = JSON.stringify( { unique: this.unique++, events: q } );
     liftAjax.lift_ajaxHandler(this.funcId + "=" + encodeURIComponent(s), null,
         null, null);
   },

@@ -4,10 +4,11 @@ package web
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.http.{ RequestVar, S }
 import net.liftweb.http.js.JsCmds
+import net.liftweb.json.{ render => jrender, _ }
 
 import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
 
-import net.liftweb.json._
+import scala.concurrent.DelayedLazyVal
 
 /**
  * A RequestVar to generate a maximum of one Page instance
@@ -23,8 +24,14 @@ object CurrentPage extends RequestVar(new Page)
  * An RElem can be associated with multiple Pages. The corresponding
  * element will be kept in sync in both places.
  */
-class Page extends Observing {
+class Page {
+  /**
+   * Use if you need to tie a listener's lifespan to the lifetime of the Page
+   */
+  implicit object observing extends Observing
+
   val id = randomString(20)
+
   @deprecated("Use id")
   def cometName = id
 
@@ -43,28 +50,66 @@ class Page extends Observing {
    * Rendered by lift:reactive snippet invocations when Reactions.init was
    * called with comet=true
    */
-  def renderComet = render ++ xml.Comment("comet "+id) ++
+  def renderComet = render ++ xml.Comment("comet " + id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ id }/>
 
+  class AjaxTask(key: Int, events: List[JValue]) {
+    @volatile var done = false
+    val scope = new LocalScope
+    def run = Reactions.inScope(scope){
+      try {
+        for (event <- events)
+          event match {
+            case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
+              try {
+                ajaxEvents.fire((jsEventStreamId, eventJson))
+              } catch {
+                case e: Exception => e.printStackTrace
+              }
+            case _ =>
+              sys.error("Invalid reactive event: " + compact(jrender(event)))
+          }
+      } finally {
+        done = true
+        completed ::= (System.currentTimeMillis(), key)
+      }
+    }
+    def js = scope.js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
+  }
+  private val inProgress = new java.util.concurrent.ConcurrentHashMap[Int, AjaxTask]
+
+  @volatile
+  private var completed = List.empty[(Long, Int)]
+
+  private val handler = S.SFuncHolder { s =>
+    val (oldCompleted, recentCompleted) = completed partition (System.currentTimeMillis - _._1 > 60000)
+    completed = recentCompleted
+    oldCompleted foreach (inProgress remove _._2)
+    parse(s) match {
+      case JObject(List(JField("unique", JInt(unique)), JField("events", JArray(events)))) =>
+        val key = unique.toInt
+        inProgress.get(key) match {
+          case null =>
+            val task = new AjaxTask(key, events)
+            inProgress.put(key, task)
+            task.run
+            task.js
+          case task =>
+            while (!task.done) Thread.sleep(30)
+            task.js
+        }
+
+      case _ =>
+        sys.error("Invalid reactive event json: " + s)
+    }
+
+  }
   Page.withPage(this) {
     Reactions.inAnyScope(this) {
-      val handler = S.SFuncHolder { s =>
-        Reactions.inLocalScope {
-          try {
-            for {
-              maps <- Serialization.read(s)(DefaultFormats, manifest[List[Map[String, JValue]]])
-              map <- maps
-            } ajaxEvents fire map
-          } catch {
-            case e: Exception =>
-              e.printStackTrace
-          }
-        }
-      }
       Reactions.queue(
         if (S.inStatefulScope_?) {
           S.fmapFunc(S.contextFuncBuilder(handler)){ funcId =>
-            JsCmds.Run("reactive.funcId='"+funcId+"'")
+            JsCmds.Run("reactive.funcId='" + funcId + "'")
           }
         } else
           JsCmds.Run("reactive.funcId='noStatefulScope'")
@@ -83,7 +128,7 @@ class Page extends Observing {
   }
 
   private[web] val ajaxEvents = new EventSource[(String, JValue)] {
-    override def debugName = Page.this.toString+".ajaxEvents"
+    override def debugName = Page.this.toString + ".ajaxEvents"
   }
 }
 
@@ -99,10 +144,15 @@ object Page {
 
   /**
    * Makes the current Page available implicitly.
+   */
+  @deprecated("Relying on the thread-local currentPage will break updates coming from outside that page's thread.")
+  implicit def implicitCurrentPage = currentPage
+
+  /**
    * Must be called when S.request.isDefined or there is
    * a dynamically-scoped current Page.
    */
-  implicit def currentPage: Page = {
+  def currentPage: Page = {
     require(dynamicScope.value.isDefined || S.request.isDefined, "no current request, page undefined")
     dynamicScope.value getOrElse CurrentPage.is
   }
@@ -115,7 +165,7 @@ object Page {
   def currentPageOption: Option[Page] = dynamicScope.value orElse
     S.request.map(_ => CurrentPage.is).toOption
 
-  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_"+randomString(7)
+  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_" + randomString(7)
 }
 
 /**

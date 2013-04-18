@@ -1,14 +1,15 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-import web._
-import javascript._
+import reactive.web.javascript._
 import JsTypes._
 
 import net.liftweb.util._
 import Helpers._
 
-class JsEventStreamDemo extends Observing {
+class JsEventStreamDemo extends PageSnippet {
   val clicks = DomEventSource.click
   // map all event values to a single string
   val jses = clicks.jsEventStream.map{ (_: $[JsObj]) => "Button clicked"$ }

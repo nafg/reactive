@@ -39,7 +39,7 @@ object Messages extends RequestVar(new Messages) {
     assert(!inited, "Cannot initialize twice!")
     inited = true
     LiftRules.snippets.append {
-      case "reactive" :: "Messages" :: Nil => is.renderWithTemplate(tmplt)
+      case "reactive" :: "Messages" :: Nil => is.renderWithTemplate(tmplt)(Page.currentPage)
     }
   }
 }
@@ -48,6 +48,7 @@ object Messages extends RequestVar(new Messages) {
  * A widget to display modeless pop up messages, optionally with a close link.
  */
 class Messages {
+  implicit object observing extends Observing
   val messages = BufferSignal[NodeSeq]()
   def apply() = messages.value
   def update(ms: Seq[NodeSeq]) = messages.value = ms

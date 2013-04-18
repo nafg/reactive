@@ -8,7 +8,6 @@ import org.scalatest.matchers.ShouldMatchers
 import net.liftweb.mockweb._
 
 class SelectTests extends FunSuite with ShouldMatchers with Observing {
-  def withNewPage[T](p: => T): T = Page.withPage(new Page)(p)
   implicit val config = Config.defaults
 
   test("Selection should initally be defined") {
@@ -29,6 +28,7 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
 
   test("Replacing items should cause selectedItem to change") {
     MockWeb.testS("/") {
+      implicit val page = Page.currentPage
       val items = Var(List("A", "B"))
       val select = Select(items)
       select.render
@@ -59,25 +59,24 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
     val itemsB = List("N", "B", "T", "K")
     val v = Var(itemsA)
     val select = Select(v)
-    select.selectedItem () = Some("N")
-    v () = itemsB
-    select.selectedItem.now should equal (Some("N"))
+    select.selectedItem() = Some("N")
+    v() = itemsB
+    select.selectedItem.now should equal(Some("N"))
   }
 
   test("Even when rendering (calling addPage) twice, listeners are not called more than twice") {
     val select = Select(Val(List("A", "B", "C")))
-    Page.withPage(new Page) {
-      select.render
-      select.render
-      var itemChanges, indexChanges = 0
-      select.selectedItem.change ->> { itemChanges += 1 }
-      select.selectedIndex.change ->> { indexChanges += 1 }
-      select.selectedItem () = Some("C")
-      itemChanges should (be <= (2) and be >= (1))
-      indexChanges should equal (1)
-      select.selectedIndex () = Some(1)
-      itemChanges should (be <= (3) and be >= (2))
-      indexChanges should (be <= (3) and be >= (2))
-    }
+    implicit val page = new Page
+    select.render
+    select.render
+    var itemChanges, indexChanges = 0
+    select.selectedItem.change ->> { itemChanges += 1 }
+    select.selectedIndex.change ->> { indexChanges += 1 }
+    select.selectedItem() = Some("C")
+    itemChanges should (be <= (2) and be >= (1))
+    indexChanges should equal(1)
+    select.selectedIndex() = Some(1)
+    itemChanges should (be <= (3) and be >= (2))
+    indexChanges should (be <= (3) and be >= (2))
   }
 }

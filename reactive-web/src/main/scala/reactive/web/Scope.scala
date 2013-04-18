@@ -61,6 +61,9 @@ case object DefaultScope extends Scope {
  * @param _xml the initial NodeSeq (such as a processed template)
  */
 class TestScope(private var _xml: NodeSeq) extends LocalScope {
+  object logger extends Logger
+  case class FiringAjaxEvent(page: Page, event: JValue)
+
   /**
    * The current xml
    */
@@ -76,14 +79,41 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
    */
   def apply(id: String): Node = this / ("#"+id)
 
+  private var confirms: List[(String, Boolean => Unit)] = Nil
+  private val ajaxRE = """\(function\(arg0\)\{reactive\.queueAjax\((\d+)\)\(arg0\);reactive.doAjax\(\)\}\)""".r
+  private val confirmRE = """window\.confirm\(\"(.*)\"\)""".r
+
+  private object rendered {
+    def unapply(a: JsExp[_]) = Some(a.render)
+  }
+
   override def queue[T: CanRender](renderable: T): Unit = {
     renderable match {
       case dm: DomMutation => synchronized {
         _xml = dm(xml)
       }
+      case Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg))) => synchronized {
+        val page = Page.currentPage //FIXME
+        confirms ::= (msg, b => page.ajaxEvents.fire((id, JBool(b))))
+      }
       case _ =>
     }
     super.queue(renderable)
+  }
+
+  /**
+   * Takes a confirm box handler off the stack and returns
+   * it, as an optional pair consisting of the
+   * message and a callback function.
+  */
+  def takeConfirm = synchronized {
+    confirms match {
+      case hd :: tl =>
+        confirms = tl
+        Some(hd)
+      case Nil =>
+        None
+    }
   }
 
   class PowerNode(val node: Node) {
@@ -136,7 +166,7 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * Simulate typing in a text field.
      * Currently only fires KeyUp events, no modifiers, and a Change event.
      */
-    def sendKeys(text: String): PowerNode = {
+    def sendKeys(text: String)(implicit page: Page): PowerNode = {
       text.foldLeft(node){
         case (n, '\b') =>
           val v = n.value
@@ -153,15 +183,15 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
      * Currently on handles Change, Click, and KeyUp.
      * @return this PowerNode
      */
-    def fire[T <: DomEvent: Manifest](event: T): this.type = {
-      for (eventAttr <- attr.get("on"+scalaClassName(manifest[T].erasure).toLowerCase)) {
+    def fire[T <: DomEvent](event: T)(implicit page: Page, eventType: Manifest[T]): this.type = {
+      for (eventAttr <- attr.get("on"+scalaClassName(eventType.erasure).toLowerCase)) {
         val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
-        val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(document.getElementById\(\'([^\']*)\'\)\.([^\)]*)\)""".r
+        val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(window.document.getElementById\(\"([^\"]*)\"\)\[\"([^\)\"]*)\"\]\)""".r
 
         val events = (eventRE findAllIn eventAttr).matchData.toList
         val props = (propRE findAllIn eventAttr).matchData.toList
 
-        def replace(replacements: (String, JsExp[_])*) = { s: String =>
+        def replace(replacements: (String, JsExp[_ <: JsTypes.JsAny])*) = { s: String =>
           replacements.foldLeft(s){ case (s, (m, e)) => s.replace(m, JsExp render e) }
         }
         def replaceModifiers: Modifiers => String => String = {
@@ -186,12 +216,15 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
               //TODO other events
             }
             val jvalue = Serialization.read(eventValue)(DefaultFormats, manifest[JValue])
-            Page.currentPage.ajaxEvents.fire((es, jvalue))
+            logger.trace(FiringAjaxEvent(page, jvalue))
+            page.ajaxEvents.fire((es, jvalue))
         }
         props foreach {
           case Regex.Groups(es, id, prop) =>
             val e = if (PowerNode.this.id == id) node else TestScope.this(id)
-            Page.currentPage.ajaxEvents.fire((es, JString(e.attr(prop))))
+            val jvalue = JString(e.attr(prop))
+            logger.trace(FiringAjaxEvent(page, jvalue))
+            page.ajaxEvents.fire((es, jvalue))
         }
       }
       this

@@ -20,7 +20,7 @@ class Boot {
         println("Classpath:"+rcl.getURLs.mkString("\n  ", "\n  ", ""))
     }
 
-    def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".co.cc") &&
+    def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".tk") &&
     ! (
       r.request.serverName == "localhost" ||
       r.request.serverName == "reactive.masgui.cloudbees.net" ||
@@ -28,7 +28,7 @@ class Boot {
     )
     LiftRules.statelessDispatch.append {
       case r if shouldRedirect(r) => () => Full(
-        PermRedirectResponse("http://reactive-web.co.cc"+r.uri, r, r.cookies: _*)
+        PermRedirectResponse("http://reactive-web.tk"+r.uri, r, r.cookies: _*)
       )
     }
 

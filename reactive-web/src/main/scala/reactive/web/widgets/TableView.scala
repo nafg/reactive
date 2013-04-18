@@ -44,9 +44,9 @@ trait TableView[A] {
     /**
      * The css selector expression that renders this column.
      */
-    def render(row: RowType): CssSel = selector #> renderer(row)
+    def render(row: RowType)(implicit page: Page): CssSel = selector #> renderer(row)
 
-    override def toString = "Col{"+selector+"}"
+    override def toString = "Col{" + selector + "}"
   }
 
   /**
@@ -76,6 +76,8 @@ trait TableView[A] {
    */
   type RowType <: Row
 
+  implicit def page: Page
+
   implicit def observing: Observing
 
   /**
@@ -83,7 +85,7 @@ trait TableView[A] {
    */
   def cols: List[Col]
 
-  protected lazy val params: Signal[List[FetchParam]] = Val(Nil)
+  protected lazy val params: Signal[Seq[FetchParam]] = Val(Nil)
 
   /**
    * Get the items from the data source

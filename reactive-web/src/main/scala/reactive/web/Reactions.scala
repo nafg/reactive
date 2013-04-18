@@ -48,6 +48,7 @@ object Reactions extends Logger {
         attributes,
         session
         ) =>
+        //TODO better (not thread-local/thread-global) connection to actual Page
         val comet = Page.currentPage.comet
         comet.initCometActor(
           session,

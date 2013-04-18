@@ -1,9 +1,9 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-
-
-class EventStream_union extends Observing {
+class EventStream_union extends PageSnippet {
   val eventSource1 = new EventSource[String] {}
   val eventSource2 = new EventSource[String] {}
   

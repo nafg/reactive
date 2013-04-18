@@ -30,14 +30,14 @@ import JsTypes._
 
 object JsExp extends ToJsHigh {
   implicit def canForward[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]) = new CanForward[$[J =|> JsVoid], T] {
-    def forward(source: Forwardable[T], target: => $[J =|> JsVoid])(implicit o: Observing) =
+    def forward(source: Forwardable[T, _], target: => $[J =|> JsVoid])(implicit o: Observing) =
       source.foreach{ v => Reactions.queue(target apply conv(v)) }
   }
 
   /**
    * Returns the javascript representation of the expression in a String
    */
-  def render(e: JsExp[_]): String = e match {
+  def render(e: JsExp[_ <: JsAny]): String = e match {
     case null => "null"
     case e    => e.render
   }
@@ -64,14 +64,12 @@ trait JsExp[+T <: JsAny] {
   def apply[P1 <: JsAny, P2 <: JsAny, R <: JsAny](p1: JsExp[P1], p2: JsExp[P2])(implicit canApply: CanApply[T, (JsExp[P1], JsExp[P2]), R]): JsExp[R] with JsStatement = canApply(this, (p1, p2))
 
   /**
-   * Array access
-   */
-  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]) = canGet(this, i)
-
-  /**
    * Returns a JsExp that represents member selection (the period) of this JsExp.
-   * A better solution is to use JsStub
+   * A better solution, when the member name is known at compile time, is to use JsStub
    */
+  def >>(name: Symbol)(implicit ev: T <:< JsObj) = new JsRaw[JsAny](JsExp.render(this) + "." + name.name) with Assignable[JsAny]
+
+  @deprecated("Will be removed for numerous reasons", "0.2")
   def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T, T2]): JsExp[T2] = canSelect(this, exp)
 
   /**
@@ -114,6 +112,13 @@ trait JsExp[+T <: JsAny] {
   def unary_-(implicit ev: T <:< JsNumber): JsExp[JsNumber] = new JsRaw[JsNumber]("(-"+JsExp.render(this)+")")
   def unary_~(implicit ev: T <:< JsNumber): JsExp[JsNumber] = new JsRaw[JsNumber]("(~"+JsExp.render(this)+")")
   def unary_+ : JsExp[JsNumber] = new JsRaw[JsNumber]("(+"+JsExp.render(this)+")")
+}
+
+class JsExpMethods[+T <: JsAny](self: JsExp[T]) {
+  /**
+   * Array access
+   */
+  def get[I <: JsAny, R <: JsAny](i: JsExp[I])(implicit canGet: CanGet[T, I, R]): Assignable[R] = canGet(self, i)
 }
 
 /**
@@ -165,7 +170,7 @@ object JsProp {
 /**
  * A JsExp that represents a reference to an existing, named identifier
  */
-trait JsIdent[T <: JsAny] extends JsExp[T] {
+trait JsIdent[+T <: JsAny] extends JsExp[T] {
   def ident: Symbol
   def render = ident.name
 }
@@ -278,7 +283,7 @@ trait ToJsHigh extends ToJsMedium {
   implicit object string extends ToJsLit[String, JsString](net.liftweb.util.Helpers.encJs(_: String))
   implicit object date extends ToJsLit[java.util.Date, JsDate]("new Date(\""+(_: java.util.Date).toString+"\")")
   implicit object regex extends ToJsLit[scala.util.matching.Regex, JsRegex]("/"+(_: scala.util.matching.Regex).toString+"/")
-  implicit object obj extends ToJsLit[Map[String, JsExp[_]], JsObj]((_: Map[String, JsExp[_]]).map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
+  implicit object obj extends ToJsLit[Map[String, JsExp[_ <: JsAny]], JsObj]((_: Map[String, JsExp[_ <: JsAny]]).map { case (k, v) => "\""+k+"\":"+JsExp.render(v) }.mkString("{", ",", "}"))
   implicit def array[T <: JsAny]: ToJsLit[List[JsExp[T]], JsArray[T]] = new ToJsLit[List[JsExp[T]], JsArray[T]]((_: List[JsExp[T]]).map(JsExp.render).mkString("[", ",", "]"))
 }
 
@@ -320,7 +325,7 @@ object FromJs {
 /**
  * A JsIdent whose javascript name is the scala type
  */
-trait NamedIdent[T <: JsAny] extends JsIdent[T] {
+trait NamedIdent[+T <: JsAny] extends JsIdent[T] {
   val ident = Symbol(scalaClassName(getClass))
 }
 
@@ -438,6 +443,7 @@ class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New)
 
 private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
   def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
+    val retType = method.getReturnType
     val args = args0 match { case null => scala.Array.empty case x => x }
     val clazz: Class[_] = classManifest[T].erasure
 
@@ -460,34 +466,32 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val 
     //TODO hack
 
     findAndInvokeForwarder(clazz).map(_.invoke(null, proxy +: args: _*)) getOrElse {
-      if (method.getName == "render" && method.getReturnType == classOf[String] && args.isEmpty)
-        ident
-      else if (method.getName == "ident" && method.getReturnType == classOf[Symbol] && args.isEmpty)
-        Symbol(ident)
-      else if (method.getName == "hashCode" && method.getReturnType == classOf[Int] && args.isEmpty)
-        System.identityHashCode(proxy): java.lang.Integer
-      else {
-        //It's a field if: (1) no args, and (2) either it's type is Assignable or it's a var
-        val (proxy, toReplace2) =
-          if (args.isEmpty && (
-            classOf[Assignable[_]].isAssignableFrom(method.getReturnType()) ||
-            clazz.getMethods.exists(_.getName == method.getName+"_$eq")
-          )) {
-            (new ProxyField(ident, method.getName), Nil)
-          } else {
-            val p = new ApplyProxyMethod(ident, method, args, toReplace)
-            (p, p :: Nil)
-          }
+      (method.getName, args.toSeq) match {
+        case ("render", Seq()) if retType == classOf[String] => ident
+        case ("ident", Seq())  if retType == classOf[Symbol] => Symbol(ident)
+        case ("hashCode", Seq())  if retType == classOf[Int] => java.lang.Integer.valueOf(System.identityHashCode(proxy))
+        case (name, _) =>
+          //It's a field if: (1) no args, and (2) either its type is Assignable or it's a var
+          val (proxy, toReplace2) =
+            if (args.isEmpty && (
+              classOf[Assignable[_]].isAssignableFrom(retType) ||
+              clazz.getMethods.exists(_.getName == name+"_$eq")
+            )) {
+              (new ProxyField(ident, name), Nil)
+            } else {
+              val p = new ApplyProxyMethod(ident, method, args, toReplace)
+              (p, p :: Nil)
+            }
 
-        // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
-        if (!(classOf[JsStub] isAssignableFrom method.getReturnType())) proxy
-        else java.lang.reflect.Proxy.newProxyInstance(
-          getClass.getClassLoader,
-          method.getReturnType().getInterfaces :+ method.getReturnType(),
-          new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(method.getReturnType()))
-        )
+          // Usually just return the proxy. But if it's a JsStub then the javascript is not fully built --- we need a new proxy.for the next step.
+          if (!(classOf[JsStub] isAssignableFrom retType)) proxy
+          else java.lang.reflect.Proxy.newProxyInstance(
+            getClass.getClassLoader,
+            retType.getInterfaces :+ retType,
+            new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(retType))
+          )
       }
     }
   }
 }
-private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_], tr: List[JsStatement]) extends StubInvocationHandler(JsExp.render(apm), tr)
+private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler[A](JsExp.render(apm), tr)

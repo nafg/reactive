@@ -43,7 +43,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
     } should equal (List(2, 3, 4, 1))
   }
 
-  ignore("flatMap (T=>SeqSignal[U])") {   //TODO is there any value in any part of this test after the new way of transforming SeqSignals?
+  ignore("flatMap (T=>SeqSignal[U])") { //TODO is there any value in any part of this test after the new way of transforming SeqSignals?
     val bufSig1 = BufferSignal(1, 2, 3)
     val bufSig2 = BufferSignal(2, 3, 4)
     val parent = Var(false)
@@ -79,7 +79,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
     }.toBatch.applyToSeq(List(2, 3, 4, 5)) should equal (List(1, 2, 3))
   }
 
-  ignore("flatMap(value => seqSignal.map(_ filter pred))") {  //TODO is there any value in any part of this test after the new way of transforming SeqSignals?
+  ignore("flatMap(value => seqSignal.map(_ filter pred))") { //TODO is there any value in any part of this test after the new way of transforming SeqSignals?
     val switch = Var(false)
     val numbers = BufferSignal(1, 2, 3, 4, 5)
     val filteredNumbers = numbers.map(_ filter (_ < 3))
@@ -183,7 +183,16 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
         }
       }
     }
+  }
 
+  test("reduceLeft") {
+    val v = Var(10)
+    val rl = v.reduceLeft(_ + _)
+    rl.now should equal (10)
+    v () = 20
+    rl.now should equal (30)
+    v () = 30
+    rl.now should equal (60)
   }
 }
 

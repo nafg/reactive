@@ -91,9 +91,10 @@ object PropertyVar {
      *  }
      * }}}
      */
-    def transform[A](f: Option[String] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
+    def transform[A](f: Option[String] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig, page: Page): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
       val s = f(elem.attributes.asAttrMap get dom.attributeName)
-      new PropertyVar[A](dom(config))(s.now) <<: s render elem
+      val pv = new PropertyVar[A](dom(config))(s.now) <<: s
+      pv.render(elem)
     })
 
     /**
@@ -140,7 +141,7 @@ object PropertyVar {
    * Convenience shortcut to append optional text to the class attribute based on a Signal[String].
    * Note that multiple invocations of appendClass for the same element will override each other,
    * so you should unify all the classes you may want to add in one appendClass invocation.
-   * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) })
+   * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) }) }}}
    */
   def appendClass(s: Signal[Option[String]])(implicit observing: Observing, page: Page) = className transform { cs: Option[String] =>
     s map { _ map { c => cs.filter(_.nonEmpty) map (_+" "+c) getOrElse c } getOrElse cs.getOrElse(""): String }
@@ -152,8 +153,10 @@ object PropertyVar {
  * @param dom the DomProperty to wrap
  * @param init the initial value (rendered in the attribute)
  */
-class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) {
+class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) with Forwardable[T, PropertyVar[T]] {
   (this >> dom) <<: dom.values.map(codec.fromString)
+
+  override def self = this
 
   override def debugName = "PropertyVar(%s)(%s)" format (dom, now)
 

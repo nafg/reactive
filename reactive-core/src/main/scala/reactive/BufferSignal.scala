@@ -12,7 +12,7 @@ class SeqVar[A](init: A*) extends Var(DeltaSeq.fromSeq(init)) with SeqSignal[A]
  * to be fired.
  */
 class BufferSignal[T] extends SeqSignal[T] {
-  val underlying = new ObservableBuffer[T]
+  lazy val underlying = new ObservableBuffer[T]
   val change = new EventSource[DeltaSeq[T]]
   private val dl: SeqDelta[T, T] => Unit = { d =>
     change fire now
@@ -52,6 +52,9 @@ class BufferSignal[T] extends SeqSignal[T] {
 object BufferSignal {
   def apply[T](init: T*): BufferSignal[T] = new BufferSignal[T] {
     value = init
+  }
+  implicit def canForward[A]: CanForward[BufferSignal[A], Seq[A]] = new CanForward[BufferSignal[A], Seq[A]] {
+    def forward(s: Forwardable[Seq[A], _], t: => BufferSignal[A])(implicit o: Observing) = s foreach NamedFunction(">>"+t.debugName)(t.update)
   }
 }
 

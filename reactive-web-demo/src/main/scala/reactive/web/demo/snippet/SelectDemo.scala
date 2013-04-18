@@ -1,7 +1,8 @@
-package reactive.web.demo.snippet
+package reactive
+package web
+package demo
+package snippet
 
-import reactive._
-import reactive.web._
 import reactive.web.html._
 
 import net.liftweb.util.Helpers
@@ -9,7 +10,7 @@ import Helpers._
 
 import scala.xml.{NodeSeq,Text}
 
-class SelectDemo extends Observing {
+class SelectDemo extends PageSnippet {
 
   val OSvariants = Map(
     "Windows" -> List("Windows XP", "Windows Vista", "Windows 7"),

@@ -14,7 +14,9 @@ object Signal {
  * @param T the type of value this signal contains
  */
 //TODO provide change veto (cancel) support
-trait Signal[+T] extends Forwardable[T] {
+trait Signal[+T] extends Forwardable[T, Signal[T]] {
+  def self = this
+
   /**
    * Represents the current value. Often, this value does not need to be
    * (or should not be) used explicitly from the outside; instead you can pass functions
@@ -85,6 +87,20 @@ trait Signal[+T] extends Forwardable[T] {
    */
   def foldLeft[U](initial: U)(f: (U, T) => U): Signal[U] = new ChildSignal[T, U, U](this, f(initial, now), identity) {
     override def debugName = Signal.this.debugName+".foldLeft("+initial+")("+f+")"
+    def parentHandler = (x, last) => {
+      val next = f(last, x)
+      current = next
+      change.fire(next)
+      next
+    }
+  }
+
+  /**
+   * Return a new Signal whose initial value is parent.now.
+   * Whenever the parent's value changes, the signal's value changes to f(previous, parent.now)
+   */
+  def reduceLeft[U >: T](f: (U, T) => U): Signal[U] = new ChildSignal[T, U, U](this, now, identity) {
+    override def debugName = Signal.this.debugName+".reduceLeft("+f+")"
     def parentHandler = (x, last) => {
       val next = f(last, x)
       current = next
@@ -331,7 +347,9 @@ object Var {
 /**
  * A signal whose value can be changed directly
  */
-class Var[T](initial: T) extends Signal[T] {
+class Var[T](initial: T) extends Signal[T] with Forwardable[T, Var[T]] {
+  override def self = this
+
   override def debugName = "Var(%s)" format now
   private var _value = initial
 
