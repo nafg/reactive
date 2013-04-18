@@ -38,7 +38,7 @@ object ReactiveBuild extends Build {
          ) % "test",
          "org.scalacheck" %% "scalacheck" % (
            if(v startsWith "2.8") "1.8"
-           else "1.10.1-SNAPSHOT"
+           else "1.10-SNAPSHOT"
          ) % "test" cross CrossVersion.full
       ) ++
       List("org.scala-lang" % "scala-actors" % v).filter(_ => v startsWith "2.10")

@@ -1,4 +1,4 @@
-<div class="lift:surround?with=default;at=content">
+<div class="lift:surround?with=navigable;at=content">
 
 <h2>EventStream</h2>
 <h3>Introduction</h3>
@@ -25,7 +25,7 @@ yourself. To do this just instantiate <code>EventSource</code>
 (it extends <code>EventStream</code>).
 You can then send events by calling <code>fire</code>.</p>
 
-<button onclick="showdemo('EventStream_EventSource')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_EventSource">Live Example</a>
 
 <p>Of course, you also create a new <code>EventStream</code> every
 time you call one of the transforming methods (below). And there's <code>Timer</code>.</p>
@@ -36,7 +36,7 @@ It fires ticks at a given interval. Ticks'
 values are based on the time when they are fired, not when they were
 scheduled to fire.</p>
 
-<button onclick="showdemo('EventStream_Timer')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_Timer">Live Example</a>
 
 
 <h3>Adding listeners: <code>foreach</code></h3>
@@ -64,7 +64,7 @@ often most correct) way to implement this, is to have the enclosing
 class extend <code>Observing</code> (since it contains an implicit
 reference to itself).</p>
 
-<button onclick="showdemo('EventStream_foreach')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_foreach">Live Example</a>
 
 <h3>Transformations</h3>
 <p>What makes <code>EventStream</code>s very versatile is their set
@@ -102,7 +102,7 @@ will be removed.</p>
 <p>Idiomatic code should not cause side effects in the predicate;
 however there's nothing stopping you from doing so if you so desire.</p>
 
-<button onclick="showdemo('EventStream_takeWhile')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_takeWhile">Live Example</a>
 
 <h3>What's the point?</h3>
 <p>At this point you may be wondering why go through all these
@@ -138,7 +138,7 @@ matches, so too can you <code>filter</code> an <code>EventStream</code>
 to obtain a new <code>EventStream</code> that fires only those events
 which the predicate matches.</p>
 
-<button onclick="showdemo('EventStream_filter')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_filter">Live Example</a>
 
 <h3>A completely transformed <code>EventStream</code>: <code>map</code></h3>
 <p>Another fundamental collections method is <code>map</code>. It
@@ -151,7 +151,7 @@ pass <code>map</code> a function, and for every event that the parent <code>Even
 fires, the new <code>EventStream</code> will fire an event whose value
 is the result of applying the function to the parent's event.</p>
 
-<button onclick="showdemo('EventStream_map')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_map">Live Example</a>
 
 <h3>Combined <code>filter</code> and <code>map</code>: <code>collect</code></h3>
 <p>For convenience, <code>EventStream</code> has a <code>collect</code>
@@ -224,7 +224,7 @@ seconds.filter(_ % 10 == 1).flatMap{ t =&gt;
 <p>You can also <code>flatMap</code> a <code>Signal</code> to
 <code>EventStream</code>s. See <a href="Signal#flatMap">here</a>.</p>
 
-<button onclick="showdemo('EventStream_flatMap')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_flatMap">Live Example</a>
 
 <h3><a id="foldLeft">Passing state: <code>foldLeft</code></a></h3>
 <p>What if you need the way you handle events to depend on various
@@ -253,7 +253,7 @@ that fires the returned value (the same value that will be passed to the
 next function invocation). we can create an <code>EventStream</code>
 that, whenever a number is fired, fires the average value:</p>
 
-<button onclick="showdemo('EventStream_foldLeft')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_foldLeft">Live Example</a>
 
 <h3>Combining <code>EventStream</code>s: <code>|</code></h3>
 <p>You can also get the union of two <code>EventStreams</code>. The
@@ -264,7 +264,7 @@ original <code>EventStream</code>s fire.</p>
 val allClicks = leftClicks | middleClicks | rightClicks
 </pre>
 
-<button onclick="showdemo('EventStream_union')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_union">Live Example</a>
 
 
 <h3>Turning an <code>EventStream</code> into a <code>Signal</code>:
@@ -273,7 +273,7 @@ val allClicks = leftClicks | middleClicks | rightClicks
 via the <code>hold</code> method. You have to pass it an initial value
 for the signal to hold until the next event fires.</p>
 
-<button onclick="showdemo('EventStream_hold')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="\showdemo\EventStream_hold">Live Example</a>
 
 <h3>Preventing infinite loops: <code>nonrecursive</code></h3>
 <p>If an <code>EventStream</code> firing can result in that <code>EventStream</code>

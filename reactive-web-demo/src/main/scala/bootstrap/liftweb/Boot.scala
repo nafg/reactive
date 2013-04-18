@@ -13,7 +13,7 @@ import reactive.web.widgets.Messages
  * to modify lift's environment
  */
 class Boot {
-  def boot {
+  def boot() {
     println("In boot")
     getClass.getClassLoader match {
       case rcl: java.net.URLClassLoader =>
@@ -21,7 +21,11 @@ class Boot {
     }
 
     def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".tk") &&
-      r.request.serverName != "localhost"
+    ! (
+      r.request.serverName == "localhost" ||
+      r.request.serverName == "reactive.masgui.cloudbees.net" ||
+      r.request.serverName == "reactive.scalakata.com"
+    )
     LiftRules.statelessDispatch.append {
       case r if shouldRedirect(r) => () => Full(
         PermRedirectResponse("http://reactive-web.tk"+r.uri, r, r.cookies: _*)
@@ -30,6 +34,7 @@ class Boot {
 
     // where to search snippets
     LiftRules.addToPackages("reactive.web.demo")
+    LiftRules.addToPackages("com.damianhelme.tbutils")
 
     reactive.web.Reactions.init(comet = true)
     Messages.init(Messages.template("alert"))
@@ -72,6 +77,12 @@ class Boot {
       case Req("reactive-web-api" :: _, _, _)  => false
     }
     LiftRules.useXhtmlMimeType = false
+
+    LiftRules.htmlProperties.default.set( (r: Req) =>
+      new Html5Properties(r.userAgent)
+    )
+
+    LiftRules.early.append( _.setCharacterEncoding("UTF-8") )
   }
 }
 

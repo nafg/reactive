@@ -1,38 +1,9 @@
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<meta name="description" content="" />
-<meta name="keywords" content="" />
-<title>Demo - reactive-web</title>
-<script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
-<script type="text/javascript">
+<div class="lift:surround?with=default;at=content">
 
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-21467136-1']);
-  _gaq.push(['_trackPageview']);
+    <head>
+        <link href="/styles/demo.css" rel="stylesheet" type="text/css" />
+    </head>
 
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
-</script>
-<script type="text/javascript" src="/xregexp-min.js"></script>
-<!-- Syntax Highlighter -->
-<script type="text/javascript" src="/scripts/shCore.js"></script>
-<script type="text/javascript" src="/scripts/shBrushScala.js"></script>
-<script type="text/javascript" src="/scripts/shBrushXml.js"></script>
-
-<link href="/styles/shCore.css" rel="stylesheet" type="text/css" />
-<link href="/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
-
-<script type="text/javascript">
-        SyntaxHighlighter.all()
-    </script>
-</head>
-<body>
-<div class="lift:reactive"></div>
-<div class="lift:DemoPane"></div>
-</body>
-</html>
+    <div class="lift:reactive"></div>
+    <div class="lift:DemoPane"></div>
+</div>

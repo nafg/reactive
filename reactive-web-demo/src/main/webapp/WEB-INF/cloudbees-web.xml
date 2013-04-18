@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<cloudbees-web-app xmlns="http://www.cloudbees.com/xml/webapp/1">
+
+    <appid>masgui/reactive</appid>
+
+    <context-param>
+        <param-name>run.mode</param-name>
+        <param-value>production</param-value>
+    </context-param>
+
+</cloudbees-web-app>
