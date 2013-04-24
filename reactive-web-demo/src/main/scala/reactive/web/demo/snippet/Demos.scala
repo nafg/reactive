@@ -21,7 +21,7 @@ object Demos {
     lazy val events = SeqSignal(
       eventStream.foldLeft(List[String]())((list, event) => event :: list).hold(Nil)
     )
-    events.now map { e => RElem(<p>Fired: '{ e }'</p>) } signal
+    events.now.map{ e => RElem(<p>Fired: '{ e }'</p>) }.signal
   }.render
 
   def varInput(v: Var[String])(implicit o: Observing, page: Page): NodeSeq = {

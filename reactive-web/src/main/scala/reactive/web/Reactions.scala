@@ -30,7 +30,7 @@ object Reactions extends Logger {
     case "reactive-web.js" :: Nil          => true
   }
 
-  @deprecated("Use init(comet=true) instead")
+  @deprecated("Use init(comet=true) instead", "0.1")
   def initComet = init(true)
   /**
    * Call this method in Boot.boot.
@@ -87,16 +87,16 @@ object Reactions extends Logger {
    */
   def init(): Unit = init(false)
 
-  @deprecated("no longer supported; throws runtime exception")
+  @deprecated("no longer supported; throws runtime exception", "0.2")
   def findPage(id: String): Option[Page] = throw new RuntimeException("no longer available")
 
-  @deprecated("no longer supported; throws runtime exception")
+  @deprecated("no longer supported; throws runtime exception", "0.2")
   def isPageAlive(id: String): Boolean = throw new RuntimeException("no longer available")
 
-  @deprecated("no longer supported; throws runtime exception")
+  @deprecated("no longer supported; throws runtime exception", "0.2")
   def removePage(page: Page) = throw new RuntimeException("no longer available")
 
-  @deprecated("no longer supported; throws runtime exception")
+  @deprecated("no longer supported; throws runtime exception", "0.2")
   def register(page: Page) = throw new RuntimeException("no longer available")
 
   /**
@@ -121,7 +121,7 @@ object Reactions extends Logger {
     inScope(new LocalScope)(p).js
   }
 
-  @deprecated("Use inLocalScope")
+  @deprecated("Use inLocalScope", "0.1")
   def inClientScope(p: => Unit): JsCmd = inLocalScope(p)
 
   /**

@@ -20,7 +20,7 @@ object ReactiveBuild extends Build {
 
   val defaults = Defaults.defaultSettings ++ Seq(
     organization := "cc.co.scala-reactive",
-    version := "0.3.0",
+    version := "0.3.1",
     resolvers ++= List(
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
@@ -30,21 +30,13 @@ object ReactiveBuild extends Build {
     (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
     }),
-    crossScalaVersions := List("2.10.0", "2.9.2"),
-    libraryDependencies <++= (scalaVersion) { v => List(
-         "org.scalatest" %% "scalatest" % (
-           if(v startsWith "2.9") "2.0.M6-SNAP3"
-           else "2.0.M6-SNAP5"
-         ) % "test",
-         "org.scalacheck" %% "scalacheck" % (
-           if(v startsWith "2.8") "1.8"
-           else "1.10.1-SNAPSHOT"
-         ) % "test" cross CrossVersion.full
-      ) ++
-      List("org.scala-lang" % "scala-actors" % v).filter(_ => v startsWith "2.10")
-    },
-    testOptions in Test += Tests.Argument("-oF"),
-    unmanagedClasspath in Compile += Attributed.blank(new java.io.File("doesnotexist"))
+    scalaVersion := "2.10.0",
+    libraryDependencies ++= List(
+      "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test",
+      "org.scalacheck" %% "scalacheck" % "1.10.1-SNAPSHOT" % "test" cross CrossVersion.full,
+      "org.scala-lang" % "scala-actors" % "2.10.0"
+    ),
+    testOptions in Test += Tests.Argument("-oF")
   )
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>

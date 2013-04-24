@@ -14,7 +14,7 @@ class RepeaterDemo extends PageSnippet {
   def render =
     ".add *" #> Button("Add")(signal.value += Person.newPerson) &
       "#people" #> Repeater {
-        signal.now map { person =>
+        signal.now.map{ person =>
           ".eachPerson" #> {
             ".first *" #> person.first &
               ".last *" #> person.last &
@@ -22,7 +22,7 @@ class RepeaterDemo extends PageSnippet {
                 signal.value -= person
               }
           }
-        } signal
+        }.signal
       }
 }
 
@@ -31,6 +31,6 @@ object Person {
   val firstNames = List("Mike", "Jack", "Jill", "John", "Joe", "Frank", "Bill", "George", "David")
   val lastNames = List("Smith", "Stone", "Johnson", "Davidson", "Jones")
   def newPerson = Person(
-    firstNames(math.random * firstNames.length toInt),
-    lastNames(math.random * lastNames.length toInt))
+    firstNames((math.random * firstNames.length).toInt),
+    lastNames((math.random * lastNames.length).toInt))
 }

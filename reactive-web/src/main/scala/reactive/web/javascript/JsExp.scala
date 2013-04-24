@@ -6,6 +6,8 @@ import net.liftweb.json._
 
 import java.lang.reflect.{ InvocationHandler, Proxy, Method }
 
+import scala.reflect.{ ClassTag, classTag }
+
 /**
  * Contains types that model javascript types.
  * These classes cannot be instantiated.
@@ -29,9 +31,8 @@ object JsTypes {
 import JsTypes._
 
 object JsExp extends ToJsHigh {
-  implicit def canForward[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]) = new CanForward[$[J =|> JsVoid], T] {
-    def forward(source: Forwardable[T, _], target: => $[J =|> JsVoid])(implicit o: Observing) =
-      source.foreach{ v => Reactions.queue(target apply conv(v)) }
+  implicit def canForwardTo[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]): CanForwardTo[JsExp[J =|> JsVoid], T] = new CanForwardTo[$[J =|> JsVoid], T] {
+    def forwarder(target: => $[J =|> JsVoid]) = v => Reactions.queue(target apply conv(v))
   }
 
   /**
@@ -67,7 +68,7 @@ trait JsExp[+T <: JsAny] {
    * Returns a JsExp that represents member selection (the period) of this JsExp.
    * A better solution, when the member name is known at compile time, is to use JsStub
    */
-  def >>(name: Symbol)(implicit ev: T <:< JsObj) = new JsRaw[JsAny](JsExp.render(this) + "." + name.name) with Assignable[JsAny]
+  def >>[T2 <: JsAny](name: Symbol)(implicit ev: T <:< JsObj) = new JsRaw[T2](JsExp.render(this) + "." + name.name) with Assignable[T2]
 
   @deprecated("Will be removed for numerous reasons", "0.2")
   def ->[T2 <: JsAny](exp: JsExp[T2])(implicit canSelect: CanSelect[T, T2]): JsExp[T2] = canSelect(this, exp)
@@ -229,7 +230,7 @@ abstract class FuncXLit[+R <: JsAny, +J <: JsAny](num: Int) extends JsLiteral[J]
         if (!Proxy.isProxyClass(x.getClass)) None
         else Some(Proxy.getInvocationHandler(x)).collect{ case mih: MethodInvocationHandler[_] => mih }
     }
-    val args = (0 until num).map("arg"+).mkString("(", ",", ")")
+    val args = (0 until num).map("arg" + _).mkString("(", ",", ")")
     "(function"+args + JsStatement.renderBlock(
       (statements.lastOption, exp) match {
         case (Some(_: Return[_]), _)             => statements
@@ -429,7 +430,7 @@ trait JsStub extends NamedIdent[JsObj]
  *   implicit object addWindowFunctions extends Extend[Window, MyWindow]
  * }}}
  */
-class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New) {
+class Extend[Old <: JsExp[_], New <: JsStub: ClassTag] extends (Old => New) {
   val cache = new scala.collection.mutable.WeakHashMap[Old, New]
 
   def apply(old: Old): New = cache.getOrElseUpdate(old,
@@ -441,11 +442,11 @@ class Extend[Old <: JsExp[_], New <: JsStub: ClassManifest] extends (Old => New)
   )
 }
 
-private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
+private[javascript] class StubInvocationHandler[T <: JsStub: ClassTag](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
   def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
     val retType = method.getReturnType
     val args = args0 match { case null => scala.Array.empty case x => x }
-    val clazz: Class[_] = classManifest[T].erasure
+    val clazz: Class[_] = classTag[T].runtimeClass
 
     // look for static forwarder --- that means the method has a scala method body, so invoke it
     def findAndInvokeForwarder(clazz: Class[_]): Option[Method] = try {
@@ -494,4 +495,4 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassManifest](val 
     }
   }
 }
-private[javascript] class MethodInvocationHandler[A <: JsStub: ClassManifest](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler[A](JsExp.render(apm), tr)
+private[javascript] class MethodInvocationHandler[A <: JsStub: ClassTag](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler[A](JsExp.render(apm), tr)

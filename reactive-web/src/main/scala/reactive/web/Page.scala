@@ -32,7 +32,7 @@ class Page {
 
   val id = randomString(20)
 
-  @deprecated("Use id")
+  @deprecated("Use id", "0.2")
   def cometName = id
 
   lazy val comet = new ReactionsComet
@@ -145,7 +145,7 @@ object Page {
   /**
    * Makes the current Page available implicitly.
    */
-  @deprecated("Relying on the thread-local currentPage will break updates coming from outside that page's thread.")
+  @deprecated("Relying on the thread-local currentPage will break updates coming from outside that page's thread.", "0.2")
   implicit def implicitCurrentPage = currentPage
 
   /**

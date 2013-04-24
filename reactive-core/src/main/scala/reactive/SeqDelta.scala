@@ -40,10 +40,9 @@ object SeqDelta {
     case (s, Update(n, _, e)) => s.patch(n, List(e), 1)
   }
 
-  final class Batchable[A, B](source: Seq[SeqDelta[A, B]]) {
+  final implicit class Batchable[A, B](source: Seq[SeqDelta[A, B]]) {
     def toBatch: Batch[A, B] = Batch(source: _*)
   }
-  implicit def seqToBatchable[A, B](source: Seq[SeqDelta[A, B]]): Batchable[A, B] = new Batchable(source)
 }
 sealed trait SeqDelta[+A, +B] {
   /**
@@ -88,7 +87,7 @@ case class Remove[+A](index: Int, old: A) extends IncludeOrRemove[A, Nothing] {
  * @param messages the messages contained in the batch
  */
 case class Batch[+A, +B](messages: SeqDelta[A, B]*) extends SeqDelta[A, B] {
-  def inverse = Batch(messages map { _.inverse } reverse: _*)
+  def inverse = Batch(messages.map{ _.inverse }.reverse: _*)
   /**
    * Returns the messages as a Seq of SeqDeltas that does not contain
    * any batches.

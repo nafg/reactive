@@ -63,10 +63,10 @@ class Messages {
    * Returns a Repeater that displays the messages
    */
   def render(implicit page: Page) = Repeater(
-    messages.now map { m =>
+    messages.now.map{ m =>
       ".text *" #> m &
         ".close" #> onServer[Click]{ _ => messages.value -= m }
-    } signal
+    }.signal
   )
   /**
    * Render the Repeater with a template

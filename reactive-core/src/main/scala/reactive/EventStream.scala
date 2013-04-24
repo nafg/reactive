@@ -4,11 +4,6 @@ import scala.ref.WeakReference
 import scala.util.DynamicVariable
 import scala.annotation.tailrec
 
-object EventSource {
-  @deprecated("Use Logger.defaultLevel, this does nothing anymore")
-  var debug = false
-}
-
 object EventStream {
   private object empty0 extends EventSource[Nothing] {
     override def debugName = "EventStream.empty"
@@ -46,9 +41,7 @@ object EventStream {
  * @tparam T the type of values fired as events
  * @see EventSource
  */
-trait EventStream[+T] extends Forwardable[T, EventStream[T]] {
-  def self = this
-
+trait EventStream[+T] extends Foreachable[T] {
   /**
    * Registers a listener function to run whenever
    * an event is fired. The function is held with a WeakReference
@@ -196,21 +189,17 @@ object NamedFunction {
   def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
 }
 
+
 /**
  * A basic implementation of EventStream,
  * adds fire method.
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
-class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] with Logger {
+class EventSource[T] extends EventStream[T] with Logger {
   case class HasListeners(listeners: List[WeakReference[T => Unit]])
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
   case class AddingListener(listener: T => Unit)
   case class AddedForeachListener(listener: T => Unit)
-
-  @deprecated("Use logLevel or setLogLevel, this does nothing anymore")
-  var debug = EventSource.debug
-
-  override def self = this
 
   /**
    * When n empty WeakReferences are found, purge them
@@ -338,7 +327,7 @@ class EventSource[T] extends EventStream[T] with Forwardable[T, EventSource[T]] 
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
     new FlatMapped(None)(f)
 
-  @deprecated("Use eventStream.hold(initial).flatMap(f)")
+  @deprecated("Use eventStream.hold(initial).flatMap(f)", "0.2")
   def flatMap[U](initial: T)(f: T => EventStream[U]): EventStream[U] =
     new FlatMapped(Some(initial))(f) {
       override def debugName = "%s.flatMap(%s)(%s)" format (EventSource.this.debugName, initial, f)

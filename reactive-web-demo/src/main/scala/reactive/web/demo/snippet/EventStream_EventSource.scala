@@ -3,11 +3,14 @@ package web
 package demo
 package snippet
 
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+
 
 class EventStream_EventSource extends EventStreamDemo {
   override lazy val eventSource = {
     val es = new EventSource[String] {}
-    scala.concurrent.ops.spawn {
+    future {
       Thread.sleep(10000)
       es fire "Event after 10 seconds"
       for(i <- 1 to 3) {

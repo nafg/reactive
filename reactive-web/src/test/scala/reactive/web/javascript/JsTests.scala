@@ -9,14 +9,14 @@ import org.scalatest.matchers.ShouldMatchers
 
 class JsTests extends FunSuite with ShouldMatchers with Observing {
   test("Operators") {
-    (1.$ + 2 render) should equal (new JsOp(1, 2, "+").render)
-    (1.$ & 2 render) should equal (new JsOp(1, 2, "&").render)
-    (1.$ | 2 render) should equal (new JsOp(1, 2, "|").render)
-    (true.$ || false render) should equal (new JsOp(true, false, "||").render)
-    (1.$ === 2 render) should equal (new JsOp(1, 2, "==").render)
-    (1.$ !== 2 render) should equal (new JsOp(1, 2, "!=").render)
+    (1.$ + 2).render should equal (new JsOp(1, 2, "+").render)
+    (1.$ & 2).render should equal (new JsOp(1, 2, "&").render)
+    (1.$ | 2).render should equal (new JsOp(1, 2, "|").render)
+    (true.$ || false).render should equal (new JsOp(true, false, "||").render)
+    (1.$ === 2).render should equal (new JsOp(1, 2, "==").render)
+    (1.$ !== 2).render should equal (new JsOp(1, 2, "!=").render)
 
-    (!(true.$) render) should equal ("(!true)")
+    (!(true.$)).render should equal ("(!true)")
   }
 
   test("Functions") {
@@ -79,7 +79,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       Reactions.inScope(new LocalScope) {
         Javascript {
           obj.method(obj.method("This is a scala string"))
-          val v = JsVar[JsObj] := obj.self
+          JsVar[JsObj] := obj.self
           obj.nullary
           obj.prop := 2
           obj.self.prop := 3
@@ -214,9 +214,9 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
 
       implicit val page: Page = new Page  // needed to generate fresh ids
 
-      for (j <- List(1.$, 2.$, 3.$)$) {
+      for (j <- List(1.$, 2.$, 3.$).$) {
         If(j > 1) {
-          window.alert("Greater"$)
+          window.alert("Greater".$)
         }
       }
       for (j <- Each(List(1.$, 2.$, 3.$))) {
