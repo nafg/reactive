@@ -315,4 +315,26 @@ for((click, isStale) &lt;- mouseClicks.zipWithStaleness.nonblocking) {
   if(!isStale()) doSomeMoreWork()
 }
 </pre>
+
+<h3>Splitting up events: <code>unzip</code> and <code>uneither</code></h3>
+<p>When an <code>EventStream</code> fires data in pairs, it can be useful to be able to
+get just the first half (or just the second half) of that pair. The <code>unzip</code>
+method works on <code>EventStream</code> that fire pairs, and returns a pair of new 
+<code>EventStreams</code>, where the first stream will fire events equal to the first
+half of each pair fired by the original stream, and the second stream will fire events
+equal to the second half of each pair fired by the original stream.</p>
+<pre class="brush: scala">
+val pairedEvents: EventStream[(Int, String)] = //...
+val (justTheInts, justTheStrings) = pairedEvents.unzip
+for(i &lt;- justTheInts) println("int " + i)
+for(s &lt;- justTheStrings) println("string " + s)
+</pre>
+
+<p><code>uneither</code> works similarly to <code>unzip</code>, but for <code>EventStreams</code>
+that fire events as an `Either`.</p>
+<pre class="brush: scala">
+val eitherEvents: EventStream[Either[Int, String]] = //...
+val (justTheInts, justTheStrings) = eitherEvents.uneither
+</pre>
+
 </div>
