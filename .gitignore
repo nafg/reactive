@@ -20,3 +20,4 @@ jrockit.*.dump
 /.idea_modules/
 .classpath
 .project
+.cache
