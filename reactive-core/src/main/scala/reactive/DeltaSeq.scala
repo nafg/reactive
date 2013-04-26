@@ -4,10 +4,10 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.generic.SeqFactory
 import scala.collection.generic.CanBuildFrom
 import scala.collection.generic.GenericTraversableTemplate
+import scala.collection.GenTraversableOnce
 import scala.collection.mutable.Builder
 import scala.collection.immutable
 import scala.collection.SeqLike
-import Compat.GTraversableOnce
 
 object DeltaSeq extends SeqFactory[DeltaSeq] {
   class DeltaSeqCBF[A] extends CanBuildFrom[DeltaSeq[_], A, DeltaSeq[A]] {
@@ -105,7 +105,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       override val underlying = SeqDelta.patch(prev.underlying, fromDelta)
     }
   }
-  class FlatMapped[T, V](val parent: DeltaSeq[T], val f: T => GTraversableOnce[V]) extends Transformed[T, V] { prev =>
+  class FlatMapped[T, V](val parent: DeltaSeq[T], val f: T => GenTraversableOnce[V]) extends Transformed[T, V] { prev =>
     type This = FlatMapped[T, V]
     lazy val (underlying, indexMap) = {
       val buf = new ArrayBuffer[V]
@@ -562,7 +562,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
 
   override def map[U, That](f: T => U)(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
     ifDS(new FlatMapped[T, U](immutableCopy, x => List(f(x))), super.map(f))
-  override def flatMap[U, That](f: T => GTraversableOnce[U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
+  override def flatMap[U, That](f: T => GenTraversableOnce[U])(implicit bf: CanBuildFrom[DeltaSeq[T], U, That]): That =
     ifDS(new FlatMapped[T, U](immutableCopy, x => f(x)), super.flatMap(f))
   override def filter(p: T => Boolean): DeltaSeq[T] = new FlatMapped[T, T](immutableCopy, x => List(x) filter p)
   override def withFilter(p: T => Boolean) = filter(p)
@@ -580,7 +580,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
   override def splitAt(n: Int) = (take(n), drop(n))
   override def takeWhile(p: T => Boolean): DeltaSeq[T] = new TakenWhile(immutableCopy, p)
   override def dropWhile(p: T => Boolean): DeltaSeq[T] = new DroppedWhile(immutableCopy, p)
-  override def ++[B >: T, That](xs: GTraversableOnce[B])(implicit bf: CanBuildFrom[DeltaSeq[T], B, That]): That =
+  override def ++[B >: T, That](xs: GenTraversableOnce[B])(implicit bf: CanBuildFrom[DeltaSeq[T], B, That]): That =
     ifDS(
       new Appended[B](immutableCopy, xs.toList),
       super.++(xs)

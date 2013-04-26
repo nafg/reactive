@@ -153,10 +153,8 @@ object PropertyVar {
  * @param dom the DomProperty to wrap
  * @param init the initial value (rendered in the attribute)
  */
-class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) with Forwardable[T, PropertyVar[T]] {
+class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCodec[T], observing: Observing) extends Var(init) {
   (this >> dom) <<: dom.values.map(codec.fromString)
-
-  override def self = this
 
   override def debugName = "PropertyVar(%s)(%s)" format (dom, now)
 
@@ -165,7 +163,7 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * @param name the name of the DomProperty to create and wrap
    * @param init the initial value (rendered in the attribute)
    */
-  @deprecated("Use the factory: PropertyVar(name)(init)")
+  @deprecated("Use the factory: PropertyVar(name)(init)", "0.2")
   def this(name: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing, config: CanRenderDomMutationConfig) = this(DomProperty(name)(config))(init)(codec, observing)
   /**
    * Wraps a new DomProperty as a type-safe Var.
@@ -173,7 +171,7 @@ class PropertyVar[T](val dom: DomProperty)(init: T)(implicit codec: PropertyCode
    * @param attributeName the name of the attribute rendered by the DomProperty
    * @param init the initial value (rendered in the attribute)
    */
-  @deprecated("Use the factory: PropertyVar(name, attributeName)(init)")
+  @deprecated("Use the factory: PropertyVar(name, attributeName)(init)", "0.2")
   def this(name: String, attributeName: String)(init: T)(implicit codec: PropertyCodec[T], observing: Observing, config: CanRenderDomMutationConfig) =
     this(DomProperty(name, attributeName)(config))(init)(codec, observing)
 

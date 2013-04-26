@@ -3,6 +3,7 @@ package reactive
 object Signal {
   def unapply[T](s: Signal[T]) = Some(s.now)
 }
+
 /**
  * A Signal in FRP represents a continuous value.
  *
@@ -14,9 +15,7 @@ object Signal {
  * @param T the type of value this signal contains
  */
 //TODO provide change veto (cancel) support
-trait Signal[+T] extends Forwardable[T, Signal[T]] {
-  def self = this
-
+trait Signal[+T] extends Foreachable[T] {
   /**
    * Represents the current value. Often, this value does not need to be
    * (or should not be) used explicitly from the outside; instead you can pass functions
@@ -343,13 +342,12 @@ case class Val[T](now: T) extends Signal[T] {
 object Var {
   def apply[T](v: T) = new Var(v)
   def unapply[T](v: Var[T]) = Some(v.now)
+
 }
 /**
  * A signal whose value can be changed directly
  */
-class Var[T](initial: T) extends Signal[T] with Forwardable[T, Var[T]] {
-  override def self = this
-
+class Var[T](initial: T) extends Signal[T] {
   override def debugName = "Var(%s)" format now
   private var _value = initial
 
@@ -385,6 +383,4 @@ class Var[T](initial: T) extends Signal[T] with Forwardable[T, Var[T]] {
     other.distinct >> this
     this
   }
-
 }
-

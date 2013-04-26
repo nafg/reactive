@@ -67,7 +67,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
   test("map") {
     val es = new EventSource[Int] {}
     val x = math.random * 100
-    val f = (_: Int) * x toInt
+    val f = (y: Int)  => (y * x).toInt
     val mapped = es map f
 
     collecting(mapped)(es fire 2) should equal (List(2) map f)

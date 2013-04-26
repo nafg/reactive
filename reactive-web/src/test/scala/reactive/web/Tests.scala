@@ -46,10 +46,10 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
                   signal () = xs
                   //                  println(ts.js)
                   //                  println(ts.xml)
-                  (ts.xml >+ "span" length) should equal (signal.now.length)
+                  (ts.xml >+ "span").length should equal (signal.now.length)
                   (ts.xml >+ "span" map (_.text)) should equal (signal.now)
                 } catch {
-                  case e =>
+                  case e: Exception =>
                     println(Console.RED + e)
                     println("X" * 25 + Console.RESET)
                     throw e
@@ -90,7 +90,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     }
     val pageA, pageB = new TestPage({ implicit p => (prop1.render apply <elem1/>) ++ (prop2.render apply <elem2/>) })
 
-    def thread(name: String)(f: => Unit) = new Thread(name) {
+    class WrappedThread(name: String)(f: => Unit) extends Thread(name) {
       val exc = new SyncVar[Option[Throwable]]
       start
 
@@ -99,7 +99,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
         println(this + " ok")
         exc.put(None)
       } catch {
-        case e =>
+        case e: Exception =>
           println(this + ":")
           e.printStackTrace()
           exc.put(Some(e))
@@ -109,7 +109,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     }
     val sync = new SyncVar[Unit]
 
-    val ta = thread("pageA") {
+    val ta = new WrappedThread("pageA")({
       val ts = pageA.ts
       import ts._
 
@@ -123,8 +123,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
         ts / "elem2" attr "prop" should equal("value1")
         sync put ()
         while (sync.isSet) Thread.`yield`()
-        sync get 2000 getOrElse error("timeout waiting for pageB")
-        sync.unset
+        sync take 2000
 
         println("pageA part two")
         ts / "elem1" attr "prop" should equal("value2")
@@ -132,15 +131,15 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
         println("pageA done")
       }
       println("thread pageA done")
-    }
-    val tb = thread("pageB") {
+    })
+    val tb = new WrappedThread("pageB")({
       val ts = pageB.ts
       import ts._
 
       implicit val p = pageB
 
-      sync get 10000 getOrElse error("timeout waiting for pageA")
-      sync.unset
+      sync take 10000
+
       Reactions.inScope(ts) {
         println("pageB")
         ts / "elem2" attr "prop" should equal("value1")
@@ -153,10 +152,10 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
       }
       sync put ()
       println("thread pageB done")
-    }
+    })
     ta.exc.get(10000) orElse tb.exc.get(10000) match {
       case Some(Some(e)) => throw e
-      case None          => error("timeout")
+      case None          => fail("timeout")
       case Some(None)    =>
     }
   }
@@ -169,8 +168,8 @@ class DomEventSourceTests extends FunSuite with ShouldMatchers {
       implicit val page = new Page
       val e1 = property.render apply <elem1/>
       val e2 = property.render apply <elem1/>
-      ((e1 \ "@onclick" text) split ";" length) should equal(3)
-      ((e2 \ "@onclick" text) split ";" length) should equal(3)
+      ((e1 \ "@onclick").text.split(";").length) should equal(3)
+      ((e2 \ "@onclick").text.split(";").length) should equal(3)
     }
   }
 }
@@ -186,8 +185,8 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
       val xml = Reactions.inScope(new TestScope(snippet apply template)) {
         signal() = "B"
       }.xml
-      (xml \\ "span" text) should equal ("B")
-      xml.toString should equal (<span id="span">B</span> toString)
+      (xml \\ "span").text should equal ("B")
+      xml.toString should equal (<span id="span">B</span>.toString)
     }
   }
 
@@ -216,12 +215,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
     val ts = new TestScope(<xml/>)
     import ts._
     implicit val page = new Page
-    println(page.id)
     Reactions.logLevel = Logger.Levels.Trace
-    Logger.traces ?>> {
-      case Reactions.LogEvent(_, q @ Reactions.QueueingJS(p, _)) =>
-        println(p + ": " + q.js)
-    }
     Reactions.inScope(ts) {
       var result: Option[Boolean] = None
       Page.withPage(page) { //FIXME
@@ -234,6 +228,8 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
           result should equal(Some(true))
           f(false)
           result should equal(Some(false))
+        case _ =>
+          fail("No confirm function found.")
       }
     }
   }

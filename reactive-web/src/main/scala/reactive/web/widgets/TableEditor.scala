@@ -70,7 +70,7 @@ trait TableEditor[A] extends TableView[A] {
     override def render(row: RowType)(implicit page: Page) = {
       println("In render for (%s, %s)" format (row, this))
 
-      def opt(i: Int) = Some(i) filter (-1 !=)
+      def opt(i: Int) = Some(i) filter (-1 != _)
       selector #> (renderer(row) andThen
         PropertyVar.appendClass{ row.modifieds(cols.indexOf(this)).distinct.map(m => Some("modified") filter (_ => m)) } andThen
         onServer[KeyUp]{ // we have to go to the server because we don't know what rows will be adjacent at the moment the key is pressed until then.

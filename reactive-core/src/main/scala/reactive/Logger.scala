@@ -53,7 +53,7 @@ object Logger {
  * event streams in the Logger singleton
  */
 trait Logger {
-  @deprecated("No longer needed; predicates can be Any")
+  @deprecated("No longer needed; predicates can be Any", "0.2")
   trait LogEventPredicate
   case class LogEvent(subject: AnyRef, predicate: Any)
 

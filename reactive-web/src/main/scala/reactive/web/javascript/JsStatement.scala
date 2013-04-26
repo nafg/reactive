@@ -109,7 +109,7 @@ object JsStatement {
     case _       => renderImpl(statement)
   }
 
-  private def indentAndRender(statement: JsStatement) = indent.withValue(indent.value map (2+))(indentStr + render(statement))
+  private def indentAndRender(statement: JsStatement) = indent.withValue(indent.value map (2 + _))(indentStr + render(statement))
 
   private[javascript] def renderBlock(statements: List[JsStatement]): String = if (statements.isEmpty) "{}" else varsFirst(statements).map(indentAndRender).mkString("{"+nl, nl, nl + indentStr+"}")
 
@@ -299,7 +299,7 @@ object For {
     private[javascript] val cond: $[JsBoolean],
     private[javascript] val inc: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]]
   )(block: => Unit) extends HasBody(block) with JsStatement {
-    def toReplace = inc ++ init toList
+    def toReplace = (inc ++ init).toList
   }
   def apply(
     init: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]],
@@ -354,7 +354,7 @@ object Try {
 }
 
 class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAny] with JsStatement {
-  private[javascript] lazy val body = new Block(capt('arg0 $))
+  private[javascript] lazy val body = new Block(capt('arg0.$))
   def toReplace = Nil
 }
 object Function {

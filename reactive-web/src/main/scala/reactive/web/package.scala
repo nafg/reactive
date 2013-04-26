@@ -14,15 +14,15 @@ package object web {
     case class WrappedNonElemInSpan(xml: NodeSeq)
   }
 
-  @deprecated("Use DomEventSource")
+  @deprecated("Use DomEventSource", "0.2")
   val DOMEventSource = DomEventSource
-  @deprecated("Use DomEventSource")
+  @deprecated("Use DomEventSource", "0.2")
   type DOMEventSource[T <: DomEvent] = DomEventSource[T]
-  @deprecated("Use DomProperty")
+  @deprecated("Use DomProperty", "0.2")
   val DOMProperty = DomProperty
-  @deprecated("Use DomProperty")
+  @deprecated("Use DomProperty", "0.2")
   type DOMProperty = DomProperty
-  @deprecated("Use DomEvent")
+  @deprecated("Use DomEvent", "0.2")
   type DOMEvent = DomEvent
 
   /**
@@ -119,6 +119,8 @@ package object web {
   private[web] def scalaClassName(c: Class[_]) = {
     val name = c.getSimpleName
     val dropEnd = name.replaceAll("""(\$\d*)*\z""", "")
-    dropEnd.toList.reverse.takeWhile('$'!=).reverse.mkString
+    dropEnd.toList.reverse.takeWhile('$' != _).reverse.mkString
   }
+
+//  implicit def toForwardable[A : CanForwardFrom]
 }

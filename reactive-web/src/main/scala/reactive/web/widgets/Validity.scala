@@ -11,14 +11,15 @@ import scala.xml.Text
 
 import reactive.Observing
 import reactive.web.PropertyVar
+import scala.reflect.{ ClassTag, classTag }
 
 
 object Validity {
   trait FailureMessage[-From, -To, Msg] {
     def apply(value: From): Msg
   }
-  implicit def stringFailureMessage[From, To: Manifest]: FailureMessage[From, To, String] = new FailureMessage[From, To, String] {
-    def apply(value: From) = "Not a valid "+manifest[To].erasure.getSimpleName+": "+value
+  implicit def stringFailureMessage[From, To: ClassTag]: FailureMessage[From, To, String] = new FailureMessage[From, To, String] {
+    def apply(value: From) = "Not a valid "+classTag[To].runtimeClass.getSimpleName+": "+value
   }
   implicit def box2StrValidity[A](box: Box[A])(implicit fm: FailureMessage[String, A, String], m: Manifest[A]): Validity[A, String] = box match {
     case Full(a)            => Valid(a)
