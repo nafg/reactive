@@ -28,7 +28,8 @@ object ReactiveBuild extends Build {
     checksums in update := Nil,
     scalacOptions in (Compile, compile) += "-deprecation",
     (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
-      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
+      val sourceUrl = "http://github.com/nafg/reactive/blob/master/" + bd.getName + "€{FILE_PATH}.scala"
+      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
     }),
     scalaVersion := "2.10.0",
     libraryDependencies ++= List(
