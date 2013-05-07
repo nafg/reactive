@@ -71,7 +71,7 @@ class Boot {
       case Req("reactive-core-api" :: _, _, _) => false
       case Req("reactive-web-api" :: _, _, _)  => false
     }
+    LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
     LiftRules.useXhtmlMimeType = false
   }
 }
-
