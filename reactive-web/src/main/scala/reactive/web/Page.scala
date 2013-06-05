@@ -56,22 +56,25 @@ class Page {
   class AjaxTask(key: Int, events: List[JValue]) {
     @volatile var done = false
     val scope = new LocalScope
-    def run = Reactions.inScope(scope){
-      try {
-        for (event <- events)
-          event match {
-            case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
-              try {
-                ajaxEvents.fire((jsEventStreamId, eventJson))
-              } catch {
-                case e: Exception => e.printStackTrace
-              }
-            case _ =>
-              sys.error("Invalid reactive event: " + compact(jrender(event)))
-          }
-      } finally {
-        done = true
-        completed ::= (System.currentTimeMillis(), key)
+    val page = Page.this
+    def run = CurrentPage.doWith(page) {
+      Reactions.inScope(scope){
+        try {
+          for (event <- events)
+            event match {
+              case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
+                try {
+                  ajaxEvents.fire((jsEventStreamId, eventJson))
+                } catch {
+                  case e: Exception => e.printStackTrace
+                }
+              case _ =>
+                sys.error("Invalid reactive event: " + compact(jrender(event)))
+            }
+        } finally {
+          done = true
+          completed ::= (System.currentTimeMillis(), key)
+        }
       }
     }
     def js = scope.js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
@@ -81,11 +84,11 @@ class Page {
   @volatile
   private var completed = List.empty[(Long, Int)]
 
-  private val handler = S.SFuncHolder { s =>
+  private[reactive] def handleAjax: JValue => net.liftweb.http.js.JsCmd = { json =>
     val (oldCompleted, recentCompleted) = completed partition (System.currentTimeMillis - _._1 > 60000)
     completed = recentCompleted
     oldCompleted foreach (inProgress remove _._2)
-    parse(s) match {
+    json match {
       case JObject(List(JField("unique", JInt(unique)), JField("events", JArray(events)))) =>
         val key = unique.toInt
         inProgress.get(key) match {
@@ -98,22 +101,14 @@ class Page {
             while (!task.done) Thread.sleep(30)
             task.js
         }
-
       case _ =>
-        sys.error("Invalid reactive event json: " + s)
+        sys.error("Invalid reactive json: " + compact(jrender(json)))
     }
-
   }
+
   Page.withPage(this) {
     Reactions.inAnyScope(this) {
-      Reactions.queue(
-        if (S.inStatefulScope_?) {
-          S.fmapFunc(S.contextFuncBuilder(handler)){ funcId =>
-            JsCmds.Run("reactive.funcId='" + funcId + "'")
-          }
-        } else
-          JsCmds.Run("reactive.funcId='noStatefulScope'")
-      )
+      Reactions.queue(JsCmds.Run(s"reactive.pageId='$id'"))
     }
   }
 
@@ -130,9 +125,15 @@ class Page {
   private[web] val ajaxEvents = new EventSource[(String, JValue)] {
     override def debugName = Page.this.toString + ".ajaxEvents"
   }
+
+  Page.pages += this -> ()
 }
 
 object Page {
+  private val pages = new scala.collection.mutable.WeakHashMap[Page, Unit]()
+
+  private[reactive] def findPage(id: String) = pages.keys.find(_.id == id)
+
   private val dynamicScope = new scala.util.DynamicVariable[Option[Page]](None)
 
   /**
@@ -146,7 +147,7 @@ object Page {
    * Makes the current Page available implicitly.
    */
   @deprecated("Relying on the thread-local currentPage will break updates coming from outside that page's thread.", "0.2")
-  implicit def implicitCurrentPage = currentPage
+  implicit def implicitCurrentPage: Page = currentPage
 
   /**
    * Must be called when S.request.isDefined or there is

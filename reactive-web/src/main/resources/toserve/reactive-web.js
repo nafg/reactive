@@ -109,11 +109,21 @@ window.reactive = {
     };
   },
   doAjax : function() {
+    if(!this.pageId) {
+      console.error("No reactive-web pageId set");
+      return
+    }
     var q = this.queuedAjaxEvents;
     this.queuedAjaxEvents = [];
     var s = JSON.stringify( { unique: this.unique++, events: q } );
-    liftAjax.lift_ajaxHandler(this.funcId + "=" + encodeURIComponent(s), null,
-        null, null);
+    var http = new XMLHttpRequest();
+    http.open("POST", "/__reactive-web-ajax/"+this.pageId);
+    http.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+    http.onreadystatechange = function() {
+      if(http.readyState == 4 && http.status == 200)
+        eval(http.responseText)
+    }
+    http.send(s)
   },
   createElem : function(label, attributes, innerHtml) {
     var e = document.createElement(label);

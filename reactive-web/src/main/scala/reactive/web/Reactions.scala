@@ -68,6 +68,15 @@ trait Reactions extends Logger {
             _ => CurrentPage.is.render
         }
     }
+    LiftRules.dispatch append {
+      case req @ net.liftweb.http.Req("__reactive-web-ajax" :: pageId :: Nil, "", net.liftweb.http.PostRequest) => { () =>
+        for {
+          page <- Page.findPage(pageId)
+          json <- req.json
+          result = CurrentPage.doWith(page) { page.handleAjax(json) }
+        } yield net.liftweb.http.JavaScriptResponse(result)
+      }
+    }
   }
 
   /**
@@ -80,7 +89,10 @@ trait Reactions extends Logger {
    */
   def init(comet: Boolean): Unit = init(_ => comet)
   /**
-   * Call this method in Boot.boot to disable comet completely.
+   * Call this method in Boot.boot to initialize reactive-web
+   * without comet support for any page.
+   * Javascript will only be sent in the response to ajax events,
+   * and as part of page render.
    * You should add something like &lt;span class="lift:reactive"/&gt;
    * in your template (or in whichever pages use reactive-web),
    * to include the required javascript in your page.
