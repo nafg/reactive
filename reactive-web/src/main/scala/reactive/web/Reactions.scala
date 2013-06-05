@@ -32,8 +32,6 @@ trait Reactions extends Logger {
     case "reactive-web.js" :: Nil          => true
   }
 
-  @deprecated("Use init(comet=true) instead", "0.1")
-  def initComet = init(true)
   /**
    * Call this method in Boot.boot.
    * You should add something like &lt;span class="lift:reactive"/&gt;
