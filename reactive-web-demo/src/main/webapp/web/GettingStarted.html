@@ -8,11 +8,7 @@
   </li>
   <li>
   <h3>Make sure you have the Sonatype maven repository configured</h3>
-  <p>For instance, if you're using sbt 0.7.x, you should have in your project file, e.g., <code>project/build/Project.scala</code>:</p>
-  <pre class="brush:scala">
-  val sonatype_snapshot = "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
-  </pre>
-  <p>For sbt 0.10, that would be:</p>
+  <p>For instance, if you're using sbt, that would be:</p>
   <pre class="brush: scala">
   resolvers += "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
   </pre>
@@ -20,14 +16,9 @@
   
   <li>
   <h3>Add reactive-web as a dependency</h3>
-  <p>For instance, if you're using sbt 0.7.x, in <code>project/build/Project.scala</code> (or whatever your project
-  file is called), for example:</p>
-  <pre class="brush: scala">
-  val reactive_web = "cc.co.scala-reactive" %% "reactive-web" % "0.2-SNAPSHOT"
-  </pre>
-  <p>For sbt 0.10, that would be:</p>
+  <p>For instance, if you're using sbt, that would be:</p>
   <pre>
-  libraryDependencies += "cc.co.scala-reactive" %% "reactive-web" % "0.2-SNAPSHOT"
+  libraryDependencies += "cc.co.scala-reactive" %% "reactive-web" % "0.3.2"
   </pre>
   </li>
   <li>
@@ -42,8 +33,8 @@
   Reactions.init(true)
   </pre></li>
   <li>
-  <p>Once on each page, in individual templates or in your surround template
-  (e.g., templates-hidden/default.html), add:</p>
+  <p>On each page (you can put it in your surround template,
+  e.g., templates-hidden/default.html), add:</p>
   <pre class="brush: xml">
   &lt;div class="lift:reactive"&gt;&lt;/div&gt;
   </pre></li></ol></li>
