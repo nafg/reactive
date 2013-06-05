@@ -15,7 +15,9 @@ import net.liftweb.util.{ Helpers, ThreadGlobal }
 /**
  * This singleton is used to enable reactive-web's features and to send javascript to the browser
  */
-object Reactions extends Logger {
+object Reactions extends Reactions
+
+trait Reactions extends Logger {
   case class QueueingJS[T: CanRender](pageId: Option[String], data: T) {
     def js: String = implicitly[CanRender[T]] apply data
   }
@@ -30,8 +32,6 @@ object Reactions extends Logger {
     case "reactive-web.js" :: Nil          => true
   }
 
-  @deprecated("Use init(comet=true) instead", "0.1")
-  def initComet = init(true)
   /**
    * Call this method in Boot.boot.
    * You should add something like &lt;span class="lift:reactive"/&gt;
@@ -68,6 +68,15 @@ object Reactions extends Logger {
             _ => CurrentPage.is.render
         }
     }
+    LiftRules.dispatch append {
+      case req @ net.liftweb.http.Req("__reactive-web-ajax" :: pageId :: Nil, "", net.liftweb.http.PostRequest) => { () =>
+        for {
+          page <- Page.findPage(pageId)
+          json <- req.json
+          result = CurrentPage.doWith(page) { page.handleAjax(json) }
+        } yield net.liftweb.http.JavaScriptResponse(result)
+      }
+    }
   }
 
   /**
@@ -80,7 +89,10 @@ object Reactions extends Logger {
    */
   def init(comet: Boolean): Unit = init(_ => comet)
   /**
-   * Call this method in Boot.boot to disable comet completely.
+   * Call this method in Boot.boot to initialize reactive-web
+   * without comet support for any page.
+   * Javascript will only be sent in the response to ajax events,
+   * and as part of page render.
    * You should add something like &lt;span class="lift:reactive"/&gt;
    * in your template (or in whichever pages use reactive-web),
    * to include the required javascript in your page.

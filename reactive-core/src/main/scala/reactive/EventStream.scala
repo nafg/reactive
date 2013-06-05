@@ -174,6 +174,27 @@ trait EventStream[+T] extends Foreachable[T] {
    */
   def throttle(period: Long): EventStream[T]
 
+  /**
+   * Converts this EventStream of pairs into two EventStreams of the first
+   * and second half of each pair. For each event that this EventStream fires,
+   * the returned event streams will fire the first half and second half of
+   * that event, respectively.
+   */
+  def unzip[A, B](implicit ev: T <:< (A, B)): (EventStream[A], EventStream[B]) =
+    map { t => ev(t)._1 } -> map { t => ev(t)._2 }
+
+  /**
+   * Converts this EventStream of `Either`s into two EventStreams of the
+   * `Left` and `Right` halves, respectively. For each `Left` event that 
+   * this EventStream fires, the first of the returned streams will fire
+   * the data inside of that `Left`. Similarly, for each `Right` event
+   * that this EventStream fires, the second of the returned streams will
+   * fire the data inside of that `Right`.
+   */
+  def uneither[A, B](implicit ev: T <:< Either[A,B]): (EventStream[A], EventStream[B]) =
+    collect{ case t if ev(t).isLeft => ev(t).left.get } ->
+    collect{ case t if ev(t).isRight => ev(t).right.get }
+
   private[reactive] def addListener(f: (T) => Unit): Unit
   private[reactive] def removeListener(f: (T) => Unit): Unit
 

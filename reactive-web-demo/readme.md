@@ -2,7 +2,7 @@
 
 ```bash
 $sbt
->project reactive-web-demo
+>project demo
 >container:start
 
 ```

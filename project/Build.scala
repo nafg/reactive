@@ -20,7 +20,7 @@ object ReactiveBuild extends Build {
 
   val defaults = Defaults.defaultSettings ++ Seq(
     organization := "cc.co.scala-reactive",
-    version := "0.3.1",
+    version := "0.3.2",
     resolvers ++= List(
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
@@ -28,7 +28,8 @@ object ReactiveBuild extends Build {
     checksums in update := Nil,
     scalacOptions in (Compile, compile) += "-deprecation",
     (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
-      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/nafg/reactive/tree€{FILE_PATH}.scala")
+      val sourceUrl = "http://github.com/nafg/reactive/blob/master/" + bd.getName + "€{FILE_PATH}.scala"
+      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
     }),
     scalaVersion := "2.10.0",
     libraryDependencies ++= List(
