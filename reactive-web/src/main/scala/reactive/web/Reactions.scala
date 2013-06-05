@@ -15,7 +15,9 @@ import net.liftweb.util.{ Helpers, ThreadGlobal }
 /**
  * This singleton is used to enable reactive-web's features and to send javascript to the browser
  */
-object Reactions extends Logger {
+object Reactions extends Reactions
+
+trait Reactions extends Logger {
   case class QueueingJS[T: CanRender](pageId: Option[String], data: T) {
     def js: String = implicitly[CanRender[T]] apply data
   }
