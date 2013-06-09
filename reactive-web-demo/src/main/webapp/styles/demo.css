@@ -1,0 +1,14 @@
+body
+{
+    padding-top: 0;
+}
+
+.code .snippet .CodeMirror-scroll
+{
+    height: 600px;
+}
+
+.code .template .CodeMirror-scroll
+{
+    height: 100px;
+}
