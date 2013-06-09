@@ -30,6 +30,7 @@ class Boot {
 
     // where to search snippets
     LiftRules.addToPackages("reactive.web.demo")
+    LiftRules.addToPackages("com.damianhelme.tbutils")
 
     reactive.web.Reactions.init(comet = true)
     Messages.init(Messages.template("alert"))

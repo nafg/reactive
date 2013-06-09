@@ -2,7 +2,8 @@ h1 {
     font-style: italic;
 }
 
-body {
-    margin: 10px;
-    padding-top: 0;
+.google-plus
+{
+    float: right;
+    width: 72px;
 }

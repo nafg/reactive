@@ -26,13 +26,18 @@
 </head>
 <body>
     <div class="lift:reactive"></div>
-    <div style="float: right; width: 72px">
-        <g:plusone href="http://reactive-web.tk"></g:plusone>
-    </div>
 
-    <h1>reactive-web: Simplify Your Lift</h1>
-    <div class="menu">
-        <div class="lift:Menu.builder?expandAll=true"></div>
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <span data-lift="lift:TBNav.menuToTBNav?eager_eval=true">
+                  <span data-lift="lift:Menu.builder?top:class=nav;li_item:class=active;linkToSelf=true;expandAll=true"></span>
+                </span>
+                <div class="google-plus">
+                    <g:plusone href="http://reactive-web.tk"></g:plusone>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="container">
@@ -40,6 +45,9 @@
     </div>
 
     <lift:msgs></lift:msgs>
+    <lift:msgs />
+
+    <script src="/vendors/bootstrap/js/bootstrap.min.js"></script>
 
     <script defer="defer" type="text/javascript">
       var _gaq = _gaq || [];
