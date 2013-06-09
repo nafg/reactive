@@ -16,6 +16,7 @@ import net.liftweb.common._
 import net.liftweb.sitemap._
   import Loc._
 
+import net.liftweb.doc.snippet.CodeInjection
 
 object DemoPane {
   val menu = Menu.param[String]("ShowDemo","ShowDemo",Full(_),s=>s)  /"showdemo"  >>Hidden
@@ -24,15 +25,21 @@ object DemoPane {
   def render(xhtml: NodeSeq) = (
     for {
       snippetName <- S.attr("snippet") or loc.currentValue
+      codePath = "/scala-sources/reactive/web/demo/snippet/" + snippetName + ".scala"
+      htmlPath = "/templates-hidden/" + snippetName.toLowerCase
       layout <- Templates(List("templates-hidden", "demopanelayout"))
-      scalaSource = scala.io.Source.fromInputStream(
-        getClass.getResourceAsStream("/scala-sources/reactive/web/demo/snippet/" + snippetName + ".scala")
-      )
-      template = Templates(List("templates-hidden", snippetName.toLowerCase)) openOr xhtml
+      template = Templates(htmlPath.split("/").toList) openOr xhtml
+      templateHtmlTransform = CodeInjection.render(htmlPath + ".html")
+        .map(".template *" #> _)
+        .openOr(
+          "#template-code" #> NodeSeq.Empty &                          // remove place for html
+          "#demo [class!]" #> "span6" &                                // if not found
+          "#demo [class+]" #> "span12"
+        )
       bind = ".demo [class]" #> ("lift:" + snippetName) &
         ".demo *" #> template &
-        ".template *" #> <pre class="brush: xml">{template.toString}</pre> &
-        ".snippet *" #> <pre class="brush: scala">{scalaSource.getLines().mkString("\n")}</pre>
+        ".snippet *" #> CodeInjection.render(codePath) &
+        templateHtmlTransform
     } yield bind(layout)
   ) openOr NodeSeq.Empty
 }

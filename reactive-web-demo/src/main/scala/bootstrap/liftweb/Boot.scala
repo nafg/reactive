@@ -13,7 +13,7 @@ import reactive.web.widgets.Messages
  * to modify lift's environment
  */
 class Boot {
-  def boot {
+  def boot() {
     println("In boot")
     getClass.getClassLoader match {
       case rcl: java.net.URLClassLoader =>
@@ -30,6 +30,7 @@ class Boot {
 
     // where to search snippets
     LiftRules.addToPackages("reactive.web.demo")
+    LiftRules.addToPackages("com.damianhelme.tbutils")
 
     reactive.web.Reactions.init(comet = true)
     Messages.init(Messages.template("alert"))
@@ -73,5 +74,11 @@ class Boot {
     }
     LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
     LiftRules.useXhtmlMimeType = false
+
+    LiftRules.htmlProperties.default.set( (r: Req) =>
+      new Html5Properties(r.userAgent)
+    )
+
+    LiftRules.early.append( _.setCharacterEncoding("UTF-8") )
   }
 }

@@ -1,4 +1,4 @@
-<div class="lift:surround?with=default;at=content">
+<div class="lift:surround?with=navigable;at=content">
 
 
 <h2>Signal</h2>
@@ -76,7 +76,7 @@ myVar ()= 62
 println(mapped.now)  // prints 620
 </pre>
 
-<button onclick="showdemo('Signal_map')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="/showdemo/Signal_map">Live Example</a>
 
 <h3><a id="flatMap"><code>flatMap</code></a></h3>
 <p>Just like you can <code>flatMap</code> an <code>EventStream</code>
@@ -144,7 +144,7 @@ val selectClicks = altKey flatMap (if(_) leftButtonClicks else rightButtonClicks
 val contextClicks = altKey flatMap (if(_) rightButtonClicks else leftButtonClicks)
 </pre>
 
-<button onclick="showdemo('Signal_flatMap')">Live Example</button>
+<a class="btn btn-primary" target="_blank" href="/showdemo/Signal_flatMap">Live Example</a>
 
 <h3>Passing down state: <code>foldLeft</code></h3>
 <p>If you need to derive a signal based on memory of previous state,
