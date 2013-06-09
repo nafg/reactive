@@ -73,5 +73,12 @@ class Boot {
     }
     LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
     LiftRules.useXhtmlMimeType = false
+
+    LiftRules.htmlProperties.default.set( (r: Req) =>
+      new Html5Properties(r.userAgent)
+    )
+
+    LiftRules.early.append( _.setCharacterEncoding("UTF-8") )
+
   }
 }
