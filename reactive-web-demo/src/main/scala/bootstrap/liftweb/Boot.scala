@@ -13,7 +13,7 @@ import reactive.web.widgets.Messages
  * to modify lift's environment
  */
 class Boot {
-  def boot {
+  def boot() {
     println("In boot")
     getClass.getClassLoader match {
       case rcl: java.net.URLClassLoader =>
@@ -80,6 +80,5 @@ class Boot {
     )
 
     LiftRules.early.append( _.setCharacterEncoding("UTF-8") )
-
   }
 }
