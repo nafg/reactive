@@ -87,18 +87,6 @@ trait Reactions extends Logger {
    */
   def init(): Unit = init(false)
 
-  @deprecated("no longer supported; throws runtime exception", "0.2")
-  def findPage(id: String): Option[Page] = throw new RuntimeException("no longer available")
-
-  @deprecated("no longer supported; throws runtime exception", "0.2")
-  def isPageAlive(id: String): Boolean = throw new RuntimeException("no longer available")
-
-  @deprecated("no longer supported; throws runtime exception", "0.2")
-  def removePage(page: Page) = throw new RuntimeException("no longer available")
-
-  @deprecated("no longer supported; throws runtime exception", "0.2")
-  def register(page: Page) = throw new RuntimeException("no longer available")
-
   /**
    * Queues javascript to be rendered in the current Scope.
    */
@@ -120,9 +108,6 @@ trait Reactions extends Logger {
   def inLocalScope(p: => Unit): JsCmd = {
     inScope(new LocalScope)(p).js
   }
-
-  @deprecated("Use inLocalScope", "0.1")
-  def inClientScope(p: => Unit): JsCmd = inLocalScope(p)
 
   /**
    * Executes code in the specified Scope, and
