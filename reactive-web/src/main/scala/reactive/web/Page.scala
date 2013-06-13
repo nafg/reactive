@@ -27,9 +27,6 @@ class Page {
 
   val id = randomString(20)
 
-  @deprecated("Use id", "0.2")
-  def cometName = id
-
   lazy val comet = new ReactionsComet
 
   /**
