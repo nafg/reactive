@@ -18,15 +18,7 @@ import net.liftweb.util.{ Helpers, ThreadGlobal }
 object Reactions extends Reactions
 
 trait Reactions extends Logger {
-  case class QueueingJS[T: CanRender](pageId: Option[String], data: T) {
-    def js: String = implicitly[CanRender[T]] apply data
-  }
-  case class FinishedServerScope(pageId: String, comet: ReactionsComet)
-  case class ReusingScope(scope: Scope)
-
-  private val _currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
-
-  def currentScope: Scope = _currentScope.value
+  def currentScope(implicit page: Page): Scope = page._currentScope.value
 
   net.liftweb.http.ResourceServer.allow {
     case "reactive-web.js" :: Nil          => true
@@ -87,75 +79,21 @@ trait Reactions extends Logger {
    */
   def init(): Unit = init(false)
 
-  /**
-   * Queues javascript to be rendered in the current Scope.
-   */
-  def queue[T: CanRender](renderable: T): Unit = {
-    lazy val page = currentScope match {
-      case CometScope(p) => Some(p.id)
-      case _             => Page.currentPageOption map (_.id)
-    }
-    trace(QueueingJS(page, renderable))
-    _currentScope.value queue renderable
-  }
+  def queue[T: CanRender](renderable: T)(implicit page: Page): Unit = page.queue(renderable)
 
   /**
-   * Executes code in the specified Scope, and
-   * returns the scope.
+   * Executes code in the specified Scope, and returns the scope.
    */
-  def inScope[T <: Scope](scope: T)(p: => Unit): T = {
-    _currentScope.withValue(scope){ p }
+  def inScope[T <: Scope](scope: T)(p: => Unit)(implicit page: Page): T = {
+    page.inScope(scope){ p }
     scope
   }
 
-  /**
-   * Executes code within a "local" scope. All javascript
-   * queued within the scope will simply be accumulated and returned.
-   * @param p the code block to execute
-   * @return the accumulated javascript
-   */
-  def inLocalScope(p: => Unit): JsCmd = {
-    inScope(new LocalScope)(p).js
-  }
+  def inLocalScope(p: => Unit)(implicit page: Page): JsCmd = page.inLocalScope(p)
 
-  /**
-   * Executes code within a server scope. All javascript queued
-   * withing the scope will be sent to the page's comet
-   * and it will be flushed to the browser.
-   * @tparam T the return type of the code block
-   * @param page the Page to queued the javascript in
-   * @param p the code block to execute
-   * @return the result of the code block
-   */
-  def inServerScope[T](page: Page)(p: => T): T = {
-    val ret = _currentScope.withValue(CometScope(page)) {
-      p
-    }
-    trace(FinishedServerScope(page.id, page.comet))
-    page.comet.flush
-    ret
-  }
-  /**
-   * If there is already a current scope for the current thread,
-   * execute code within that scope. Otherwise, execute it in
-   * a new server context associated with the given Page.
-   * @tparam T the return type of the code block
-   * @param page the Page to associate queued javascript with if there is no current scope
-   * @param p the code block to execute
-   * @return the result of the code block
-   */
-  def inAnyScope[T](page: Page)(block: => T): T = {
-    _currentScope.value match {
-      case s @ CometScope(`page`) =>
-        trace(ReusingScope(s))
-        block
-      case s if Page.currentPageOption == Some(page) =>
-        trace(ReusingScope(s))
-        block
-      case _ =>
-        inServerScope(page)(block)
-    }
-  }
+  def inServerScope[T](page: Page)(p: => T): T = page.inServerScope(p)
+
+  def inAnyScope[T](page: Page)(block: => T): T = page.inAnyScope(block)
 }
 
 /**
@@ -163,7 +101,6 @@ trait Reactions extends Logger {
  * Not used directly by application code.
  */
 class ReactionsComet extends CometActor {
-
   override def initCometActor(theSession: LiftSession, typ: Box[String], name: Box[String], defaultXml: NodeSeq, attributes: Map[String, String]) =
     super.initCometActor(theSession, typ, name, defaultXml, attributes)
 

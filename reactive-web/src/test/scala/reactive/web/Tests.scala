@@ -84,14 +84,13 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     prop1.values >> prop2
     //TODO testable comet should be in the library?
     class TestPage(xml: Page => Node) extends Page {
-      private var tsO = Option.empty[TestScope]
       override lazy val comet = new ReactionsComet {
         override def queue[T](renderable: T)(implicit canRender: CanRender[T]) {
-          tsO foreach (_.queue(renderable))
+          if(ts != null)
+            ts.queue(renderable)
         }
       }
       val ts = new TestScope(xml(this))(this)
-      tsO = Some(ts)
     }
     val pageA, pageB = new TestPage({ implicit p => <html>{ prop1.render apply <elem1/> }{ prop2.render apply <elem2/> }</html> })
 
