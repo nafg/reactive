@@ -60,24 +60,6 @@ object RElem {
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String, RElem] //TODO
 
   /**
-   * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
-   * runs the provided function in the client scope. Exceptions are intercepted.
-   */
-  @deprecated("Not supported, to be removed in the future", "0.2")
-  def ajaxFunc(f: String => Unit): S.AFuncHolder = S.LFuncHolder {
-    case Nil => JsCmds.Noop
-    case s :: _ => Reactions.inLocalScope {
-      try {
-        f(s)
-      } catch {
-        case e: Exception =>
-          e.printStackTrace
-          JsCmds.Noop
-      }
-    }
-  }
-
-  /**
    * Creates an RElem from the given scala.xml.Elem. One may provide 0 or more RElems to append.
    * @param parent the Elem to use. If it has an id you must ensure it is unique
    * @param children any children to append
