@@ -100,6 +100,15 @@ trait Reactions extends Logger {
   }
 
   /**
+   * Executes code in the specified Scope, and
+   * returns the scope.
+   */
+  def inScope[T <: Scope](scope: T)(p: => Unit): T = {
+    _currentScope.withValue(scope){ p }
+    scope
+  }
+
+  /**
    * Executes code within a "local" scope. All javascript
    * queued within the scope will simply be accumulated and returned.
    * @param p the code block to execute
@@ -107,15 +116,6 @@ trait Reactions extends Logger {
    */
   def inLocalScope(p: => Unit): JsCmd = {
     inScope(new LocalScope)(p).js
-  }
-
-  /**
-   * Executes code in the specified Scope, and
-   * returns the scope.
-   */
-  def inScope[T <: Scope](scope: T)(p: => Unit): T = {
-    _currentScope.withValue(scope){ p }
-    scope
   }
 
   /**
