@@ -89,7 +89,7 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
    * Simulate typing in a text field.
    * Currently only fires KeyUp events, no modifiers, and a Change event.
    */
-  def sendKeys(node: NodeLoc, text: String)(implicit page: Page): NodeLoc =
+  def sendKeys(node: NodeLoc, text: String): NodeLoc =
     fire(
       text.foldLeft(node){
         case (n, ch) =>
@@ -109,7 +109,7 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
    * Currently only handles Change, Click, and KeyUp.
    * @return the NodeLoc
    */
-  def fire[T <: DomEvent](node: NodeLoc, event: T)(implicit page: Page, eventType: Manifest[T]): NodeLoc = {
+  def fire[T <: DomEvent](node: NodeLoc, event: T)(implicit eventType: Manifest[T]): NodeLoc = {
     for (eventAttr <- node.attr.get("on" + scalaClassName(eventType.runtimeClass).toLowerCase)) {
       val eventRE = """reactive.eventStreams\[(\d+)\]\.fire\((\{(?:\([^\)]*\)|[^\)])*)\)""".r
       val propRE = """reactive.eventStreams\[(\d+)\]\.fire\(window.document.getElementById\(\"([^\"]*)\"\)\[\"([^\)\"]*)\"\]\)""".r
