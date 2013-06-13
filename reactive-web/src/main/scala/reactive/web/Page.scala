@@ -51,15 +51,11 @@ class Page extends Logger {
   def renderComet = render ++ xml.Comment("comet " + id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ id }/>
 
-  private var counter = 0
+  private val counter = new java.util.concurrent.atomic.AtomicInteger(0)
 
   def nextId = "reactiveWebId_%06d" format nextNumber
 
-  def nextNumber = synchronized {
-    val c = counter
-    counter += 1
-    c
-  }
+  def nextNumber = counter.getAndIncrement
 
   private[web] val ajaxEvents = new EventSource[(String, JValue)] {
     override def debugName = Page.this.toString + ".ajaxEvents"
