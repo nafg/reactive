@@ -1,14 +1,17 @@
 package reactive
 package web
 
+import scala.xml.Elem
+import scala.xml.NodeSeq.seqToNodeSeq
+import scala.xml.Null
+import scala.xml.UnprefixedAttribute
+import net.liftweb.http.S
+import net.liftweb.http.RequestVar
 import net.liftweb.util.Helpers.randomString
-import net.liftweb.http.{ RequestVar, S }
-import net.liftweb.http.js.JsCmds
-import net.liftweb.json.{ render => jrender, _ }
-
-import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
-
-import scala.concurrent.DelayedLazyVal
+import net.liftweb.json.JsonAST.JValue
+import reactive.EventSource
+import reactive.Logger
+import reactive.Observing
 
 /**
  * A Page uniquely identifies a web page rendered with reactive-web components.
@@ -45,72 +48,6 @@ class Page {
   def renderComet = render ++ xml.Comment("comet " + id) ++
     <lift:comet type="net.liftweb.reactive.ReactionsComet" name={ id }/>
 
-  class AjaxTask(key: Int, events: List[JValue]) {
-    @volatile var done = false
-    val scope = new LocalScope
-    def run = Page.withPage(Page.this) {
-      Reactions.inScope(scope){
-        try {
-          for (event <- events)
-            event match {
-              case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
-                try {
-                  ajaxEvents.fire((jsEventStreamId, eventJson))
-                } catch {
-                  case e: Exception => e.printStackTrace
-                }
-              case _ =>
-                sys.error("Invalid reactive event: " + compact(jrender(event)))
-            }
-        } finally {
-          done = true
-          completed ::= (System.currentTimeMillis(), key)
-        }
-      }
-    }
-    def js = scope.js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
-  }
-  private val inProgress = new java.util.concurrent.ConcurrentHashMap[Int, AjaxTask]
-
-  @volatile
-  private var completed = List.empty[(Long, Int)]
-
-  private val handler = S.SFuncHolder { s =>
-    val (oldCompleted, recentCompleted) = completed partition (System.currentTimeMillis - _._1 > 60000)
-    completed = recentCompleted
-    oldCompleted foreach (inProgress remove _._2)
-    parse(s) match {
-      case JObject(List(JField("unique", JInt(unique)), JField("events", JArray(events)))) =>
-        val key = unique.toInt
-        inProgress.get(key) match {
-          case null =>
-            val task = new AjaxTask(key, events)
-            inProgress.put(key, task)
-            task.run
-            task.js
-          case task =>
-            while (!task.done) Thread.sleep(30)
-            task.js
-        }
-
-      case _ =>
-        sys.error("Invalid reactive event json: " + s)
-    }
-
-  }
-  Page.withPage(this) {
-    Reactions.inAnyScope(this) {
-      Reactions.queue(
-        if (S.inStatefulScope_?) {
-          S.fmapFunc(S.contextFuncBuilder(handler)){ funcId =>
-            JsCmds.Run("reactive.funcId='" + funcId + "'")
-          }
-        } else
-          JsCmds.Run("reactive.funcId='noStatefulScope'")
-      )
-    }
-  }
-
   private var counter = 0
 
   def nextId = "reactiveWebId_%06d" format nextNumber
@@ -123,6 +60,14 @@ class Page {
 
   private[web] val ajaxEvents = new EventSource[(String, JValue)] {
     override def debugName = Page.this.toString + ".ajaxEvents"
+  }
+
+  val ajaxTransport = AjaxTransport(this)
+
+  Page.withPage(this) {
+    Reactions.inAnyScope(this) {
+      Reactions.queue(ajaxTransport.installJs)
+    }
   }
 }
 
