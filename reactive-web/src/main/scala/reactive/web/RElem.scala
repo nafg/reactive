@@ -35,9 +35,9 @@ object RElem {
    * by calling [[reactive.web.Page.newId]], and return the
    * new `Elem`.
    */
-  def withId(elem: Elem): Elem = elem.attributes get "id" match {
+  def withId(elem: Elem)(implicit page: Page = null): Elem = elem.attributes get "id" match {
     case Some(id) => elem
-    case None     => elem % new UnprefixedAttribute("id", Page.newId, Null)
+    case None     => elem % new UnprefixedAttribute("id", Option(page).map(_.nextId) getOrElse "reactiveWebId_" + randomString(7), Null)
   }
   /**
    * An RElem based on a scala.xml.Elem.

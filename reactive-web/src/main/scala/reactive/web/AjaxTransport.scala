@@ -11,7 +11,7 @@ class AjaxTransport(page: Page) {
   class AjaxTask(key: Int, events: List[JValue]) {
     @volatile var done = false
     val scope = new LocalScope
-    def run = Page.withPage(page) {
+    def run = {
       implicit val _ = page
       Reactions.inScope(scope){
         try {

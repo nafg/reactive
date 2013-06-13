@@ -75,34 +75,32 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     implicit object ext extends Extend[obj, extendObj]
     val obj = jsProxy[obj](())
     implicit val page: Page = new Page
-    Page.withPage(page) {
-      Reactions.inScope(new LocalScope) {
-        Javascript {
-          obj.method(obj.method("This is a scala string"))
-          JsVar[JsObj] := obj.self
-          obj.nullary
-          obj.prop := 2
-          obj.self.prop := 3
-          obj.get("otherProp") := "xyz"
-          obj.getSelf(1).getSelf(2)
-          obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
-            obj.takeCallback2{ _: JsExp[JsTypes.JsVoid] =>
-              obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)
-            }
+    Reactions.inScope(new LocalScope) {
+      Javascript {
+        obj.method(obj.method("This is a scala string"))
+        JsVar[JsObj] := obj.self
+        obj.nullary
+        obj.prop := 2
+        obj.self.prop := 3
+        obj.get("otherProp") := "xyz"
+        obj.getSelf(1).getSelf(2)
+        obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
+          obj.takeCallback2{ _: JsExp[JsTypes.JsVoid] =>
+            obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)
           }
         }
-      }.js.map(_.toJsCmd) zipAll (List(
-        "obj.method(obj.method(\"This is a scala string\"));",
-        "var x$0;",
-        "x$0=obj.self;",
-        "obj.nullary();",
-        "obj.prop=2;",
-        "obj.self.prop=3;",
-        """obj["otherProp"]="xyz";""",
-        "obj.getSelf(1).getSelf(2);",
-        "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4);}));}));"
-      ), "", "") foreach { case (a, b) => a should equal (b) }
-    }
+      }
+    }.js.map(_.toJsCmd) zipAll (List(
+      "obj.method(obj.method(\"This is a scala string\"));",
+      "var x$0;",
+      "x$0=obj.self;",
+      "obj.nullary();",
+      "obj.prop=2;",
+      "obj.self.prop=3;",
+      """obj["otherProp"]="xyz";""",
+      "obj.getSelf(1).getSelf(2);",
+      "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4);}));}));"
+    ), "", "") foreach { case (a, b) => a should equal (b) }
   }
 
   test("JsStub+Extend"){
@@ -122,39 +120,37 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
 
     implicit val page: Page = new Page
-    Page.withPage(page) {
-      val res = Reactions.inScope(new LocalScope) {
-        Javascript {
-          window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
-            window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
-              //TODO not chained
-              window.jQuery(".items").jstree("create",
-                JsRaw[JsTypes.JsString](null),
-                "last"
-              ).bind("rename.jstree"){ _: JsExp[JsObj] =>
-                  Ajax{ x: Int => println("Got rename "+x+"!") } apply 10
-                }
-            }, 1000)
-          }
+    val res = Reactions.inScope(new LocalScope) {
+      Javascript {
+        window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
+          window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
+            //TODO not chained
+            window.jQuery(".items").jstree("create",
+              JsRaw[JsTypes.JsString](null),
+              "last"
+            ).bind("rename.jstree"){ _: JsExp[JsObj] =>
+                Ajax{ x: Int => println("Got rename "+x+"!") } apply 10
+              }
+          }, 1000)
         }
-      }.js.map(_.toJsCmd)
-      res foreach println
-      res.length should equal (1)
-      res zipAll (List(
-        "window.jQueryReady("+
-          "(function(arg0){"+
-          "return window.setTimeout("+
-          "(function(arg0){"+
-          "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
-          "\"rename.jstree\","+
-          "(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax()})(10);return ;})"+
-          ");"+"}),"+
-          "1000"+
-          ");"+
-          "})"+
-          ");"
-      ), "", "") foreach { case (a, b) => a should equal (b) }
-    }
+      }
+    }.js.map(_.toJsCmd)
+    res foreach println
+    res.length should equal (1)
+    res zipAll (List(
+      "window.jQueryReady("+
+        "(function(arg0){"+
+        "return window.setTimeout("+
+        "(function(arg0){"+
+        "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
+        "\"rename.jstree\","+
+        "(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax()})(10);return ;})"+
+        ");"+"}),"+
+        "1000"+
+        ");"+
+        "})"+
+        ");"
+    ), "", "") foreach { case (a, b) => a should equal (b) }
   }
 
   test("Function bodies do not get repeated") {

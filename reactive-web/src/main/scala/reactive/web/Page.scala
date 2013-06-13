@@ -61,7 +61,7 @@ class Page extends Logger {
     override def debugName = Page.this.toString + ".ajaxEvents"
   }
 
-  private[reactive] val _currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
+  private[web] val _currentScope = new scala.util.DynamicVariable[Scope](DefaultScope)
 
   private def isOriginal = (for (r <- S.request; o <- S.originalRequest) yield r == o) openOr false
 
@@ -126,11 +126,9 @@ class Page extends Logger {
 
   val ajaxTransport = AjaxTransport(this)
 
-  Page.withPage(this) {
-    Reactions.inAnyScope(this) {
-      implicit val _ = this
-      Reactions.queue(ajaxTransport.installJs)
-    }
+  inAnyScope {
+    implicit val _ = this
+    Reactions.queue(ajaxTransport.installJs)
   }
 }
 
@@ -140,33 +138,25 @@ object Page {
    * per request.
    */
   private object CurrentPage extends RequestVar(new Page)
-  private val dynamicScope = new scala.util.DynamicVariable[Option[Page]](None)
 
   /**
-   * Execute a block of code with a dynamically-scoped current Page
-   * @param p the Page
-   * @param b the block of code
-   */
-  def withPage[T](p: Page)(b: => T): T = dynamicScope.withValue(Some(p))(b)
-
-  /**
+   * For the rare case when you need to get the Page for the current Lift request.
    * Must be called when S.request.isDefined or there is
    * a dynamically-scoped current Page.
+   * @throws IllegalArgumentException if called outside of a Lift request
    */
   def currentPage: Page = {
-    require(dynamicScope.value.isDefined || S.request.isDefined, "no current request, page undefined")
-    dynamicScope.value getOrElse CurrentPage.is
+    require(S.request.isDefined, "Page.currentPage: no current request")
+    CurrentPage.is
   }
 
   /**
-   * If there is a dynamically-scoped current Page, returns it in a Some.
-   * Otherwise if there is a current request, returns the value of the CurrentPage RequestVar in a Some.
+   * For the rare case when you need to get the Page for the current Lift request.
+   * If there is a current request, returns the value of the CurrentPage RequestVar in a Some.
    * Otherwise returns None
    */
-  def currentPageOption: Option[Page] = dynamicScope.value orElse
-    S.request.map(_ => CurrentPage.is).toOption
+  def currentPageOption: Option[Page] = S.request.map(_ => CurrentPage.is).toOption
 
-  def newId = currentPageOption.map(_.nextId) getOrElse "reactiveWebId_" + randomString(7)
 }
 
 /**

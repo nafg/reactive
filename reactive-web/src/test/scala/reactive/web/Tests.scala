@@ -38,30 +38,28 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
           val signal = BufferSignal(xss.head: _*)
           def snippet: NodeSeq => NodeSeq = "div" #> Repeater(signal.now.map(x => "span *" #> x).signal)
           val ts = new TestScope(<html>{ snippet(template) }</html>)
-          Page.withPage(page) {
-            Reactions.inScope(ts) {
-              // println(Console.BLUE+"\n"+"=" * 25)
-              // println(Console.BLUE+"Testing with: "+xss)
-              // println(Console.BLUE+"js: "+ts.js)
-              // println(Console.BLUE+"xml: "+ts.xml)
-              for (xs <- xss.tail) {
-                try {
-                  // println(Console.BLUE+"Setting to "+xs)
-                  signal () = xs
-                  // println(Console.BLUE+"js: "+ts.js)
-                  // println(Console.BLUE+"xml: "+ts.xml)
-                  (ts.xml \\ "span").length should equal (signal.now.length)
-                  (ts.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
-                } catch {
-                  case e: Exception =>
-                    println(Console.RED + e)
-                    e.getStackTrace.take(30) foreach { x => println(Console.RED + x.toString) }
-                    println(Console.RED + "X" * 25 + Console.RESET)
-                    throw e
-                }
+          Reactions.inScope(ts) {
+            // println(Console.BLUE+"\n"+"=" * 25)
+            // println(Console.BLUE+"Testing with: "+xss)
+            // println(Console.BLUE+"js: "+ts.js)
+            // println(Console.BLUE+"xml: "+ts.xml)
+            for (xs <- xss.tail) {
+              try {
+                // println(Console.BLUE+"Setting to "+xs)
+                signal () = xs
+                // println(Console.BLUE+"js: "+ts.js)
+                // println(Console.BLUE+"xml: "+ts.xml)
+                (ts.xml \\ "span").length should equal (signal.now.length)
+                (ts.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
+              } catch {
+                case e: Exception =>
+                  println(Console.RED + e)
+                  e.getStackTrace.take(30) foreach { x => println(Console.RED + x.toString) }
+                  println(Console.RED + "X" * 25 + Console.RESET)
+                  throw e
               }
-              // println(Console.GREEN+"=" * 10+" Ok "+"=" * 11 + Console.RESET)
             }
+            // println(Console.GREEN+"=" * 10+" Ok "+"=" * 11 + Console.RESET)
           }
         }
       }
@@ -186,9 +184,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
       def snippet: NodeSeq => NodeSeq =
         "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
       val xml = Reactions.inScope(new TestScope(<html>{ snippet apply template }</html>)) {
-        Page.withPage(page) {
-          signal() = "B"
-        }
+        signal() = "B"
       }.xml
       (xml \\! "span").node.text should equal ("B")
       xml.node should equal (<html><span id="span">B</span></html>)
@@ -221,9 +217,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
     Reactions.logLevel = Logger.Levels.Trace
     Reactions.inScope(ts) {
       var result: Option[Boolean] = None
-      Page.withPage(page) { //FIXME
-        confirm("Are you sure?") { case b => result = Some(b) }
-      }
+      confirm("Are you sure?") { case b => result = Some(b) }
       ts.takeConfirm match {
         case Some((msg, f)) =>
           msg should equal("Are you sure?")

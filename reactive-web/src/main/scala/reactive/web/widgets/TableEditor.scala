@@ -221,16 +221,12 @@ trait TableEditor[A] extends TableView[A] {
             refreshes fire ()
           } match {
             case Failure(msg, _, _) =>
-              Reactions.inAnyScope(page) {
-                Page.withPage(page) {  // TODO is this necessary?
-                  messages += "Save failed: "+msg
-                }
+              page.inAnyScope {
+                messages += "Save failed: "+msg
               }
             case _ =>
-              Reactions.inAnyScope(page) {
-                Page.withPage(page) {  // TODO is this necessary?
-                  messages += "Saved successfully!"
-                }
+              page.inAnyScope {
+                messages += "Saved successfully!"
               }
           }
         }
