@@ -10,6 +10,8 @@ import java.lang.Thread
 import scala.concurrent.SyncVar
 import net.liftweb.util.Helpers._
 import org.scalatest.prop.PropertyChecks
+import scala.xml.Node
+import org.scalatest.prop.TableDrivenPropertyChecks
 
 class RElemTests extends FunSuite with ShouldMatchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
@@ -29,33 +31,36 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
   test("Repeater should send correct deltas") {
     MockWeb.testS("/") {
       val template = <div><span></span></div>
-      implicit val page = new Page
       import org.scalacheck.Gen._
       forAll(listOf1(listOf(alphaUpperChar map (_.toString))), maxSize(10)) { xss: List[List[String]] =>
         whenever(xss.length >= 2) {
+          implicit val page = new Page
           val signal = BufferSignal(xss.head: _*)
           def snippet: NodeSeq => NodeSeq = "div" #> Repeater(signal.now.map(x => "span *" #> x).signal)
-          val ts = new TestScope(snippet(template))
+          val ts = new TestScope(<html>{ snippet(template) }</html>)
           Page.withPage(page) {
-            import ts._
             Reactions.inScope(ts) {
-              //              println(Console.RESET+"\n"+"=" * 25)
-//              println(xss)
+              // println(Console.BLUE+"\n"+"=" * 25)
+              // println(Console.BLUE+"Testing with: "+xss)
+              // println(Console.BLUE+"js: "+ts.js)
+              // println(Console.BLUE+"xml: "+ts.xml)
               for (xs <- xss.tail) {
                 try {
+                  // println(Console.BLUE+"Setting to "+xs)
                   signal () = xs
-                  //                  println(ts.js)
-                  //                  println(ts.xml)
-                  (ts.xml >+ "span").length should equal (signal.now.length)
-                  (ts.xml >+ "span" map (_.text)) should equal (signal.now)
+                  // println(Console.BLUE+"js: "+ts.js)
+                  // println(Console.BLUE+"xml: "+ts.xml)
+                  (ts.xml \\ "span").length should equal (signal.now.length)
+                  (ts.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
                 } catch {
                   case e: Exception =>
                     println(Console.RED + e)
-                    println("X" * 25 + Console.RESET)
+                    e.getStackTrace.take(30) foreach { x => println(Console.RED + x.toString) }
+                    println(Console.RED + "X" * 25 + Console.RESET)
                     throw e
                 }
               }
-              //              println(Console.GREEN+"=" * 10+" Ok "+"=" * 11 + Console.RESET)
+              // println(Console.GREEN+"=" * 10+" Ok "+"=" * 11 + Console.RESET)
             }
           }
         }
@@ -78,7 +83,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     val prop1, prop2 = DomProperty("prop") withEvents DomEventSource.change
     prop1.values >> prop2
     //TODO testable comet should be in the library?
-    class TestPage(xml: Page => NodeSeq) extends Page {
+    class TestPage(xml: Page => Node) extends Page {
       private var tsO = Option.empty[TestScope]
       override lazy val comet = new ReactionsComet {
         override def queue[T](renderable: T)(implicit canRender: CanRender[T]) {
@@ -88,7 +93,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
       val ts = new TestScope(xml(this))(this)
       tsO = Some(ts)
     }
-    val pageA, pageB = new TestPage({ implicit p => (prop1.render apply <elem1/>) ++ (prop2.render apply <elem2/>) })
+    val pageA, pageB = new TestPage({ implicit p => <html>{ prop1.render apply <elem1/> }{ prop2.render apply <elem2/> }</html> })
 
     class WrappedThread(name: String)(f: => Unit) extends Thread(name) {
       val exc = new SyncVar[Option[Throwable]]
@@ -111,23 +116,22 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
 
     val ta = new WrappedThread("pageA")({
       val ts = pageA.ts
-      import ts._
 
       implicit val p = pageA
       Reactions.inScope(ts) {
         println("pageA part one")
         val t = System.currentTimeMillis()
-        ((ts / "elem1")("prop") = "value1") fire Change()
+        ts.fire(ts(ts.xml \\! "elem1", "prop") = "value1", Change())
         println("Finished firing Change after " + (System.currentTimeMillis() - t))
-        ts / "elem1" attr "prop" should equal("value1")
-        ts / "elem2" attr "prop" should equal("value1")
+        ts.xml \\! "elem1" attr "prop" should equal("value1")
+        ts.xml \\! "elem2" attr "prop" should equal("value1")
         sync put ()
         while (sync.isSet) Thread.`yield`()
         sync take 2000
 
         println("pageA part two")
-        ts / "elem1" attr "prop" should equal("value2")
-        ts / "elem2" attr "prop" should equal("value2")
+        ts.xml \\! "elem1" attr "prop" should equal("value2")
+        ts.xml \\! "elem2" attr "prop" should equal("value2")
         println("pageA done")
       }
       println("thread pageA done")
@@ -142,12 +146,12 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
 
       Reactions.inScope(ts) {
         println("pageB")
-        ts / "elem2" attr "prop" should equal("value1")
-        ts / "elem1" attr "prop" should equal("value1")
+        ts.xml \\! "elem2" attr "prop" should equal("value1")
+        ts.xml \\! "elem1" attr "prop" should equal("value1")
 
-        ((ts / "elem1")("prop") = "value2") fire Change()
-        ts / "elem1" attr "prop" should equal("value2")
-        ts / "elem2" attr "prop" should equal("value2")
+        ts.fire(ts(ts.xml \\! "elem1", "prop") = "value2", Change())
+        ts.xml \\! "elem1" attr "prop" should equal("value2")
+        ts.xml \\! "elem2" attr "prop" should equal("value2")
         println("pageB done")
       }
       sync put ()
@@ -182,13 +186,13 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
       implicit val page = new Page
       def snippet: NodeSeq => NodeSeq =
         "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
-      val xml = Reactions.inScope(new TestScope(snippet apply template)) {
+      val xml = Reactions.inScope(new TestScope(<html>{ snippet apply template }</html>)) {
         Page.withPage(page) {
           signal() = "B"
         }
       }.xml
-      (xml \\ "span").text should equal ("B")
-      xml.toString should equal (<span id="span">B</span>.toString)
+      (xml \\! "span").node.text should equal ("B")
+      xml.node should equal (<html><span id="span">B</span></html>)
     }
   }
 
@@ -198,8 +202,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
     val event = DomEventSource.keyUp ->> { fired = true }
     val input = event.render apply <input/>
     val ts = new TestScope(input)
-    import ts._
-    input fire KeyUp(56)
+    ts.fire(ts.xml, KeyUp(56))
     fired should equal(true)
   }
 
@@ -208,8 +211,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
     val value = PropertyVar("value")("initial") withEvents DomEventSource.change
     val input = value render <input id="id"/>
     val ts = new TestScope(input)
-    import ts._
-    (input("value") = "newValue") fire Change()
+    ts.fire(ts(ts.xml, "value") = "newValue", Change())
     value.now should equal("newValue")
   }
 
@@ -237,28 +239,45 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
   }
 }
 
-class DomMutationTests extends FunSuite with ShouldMatchers {
+class DomMutationTests extends FunSuite with ShouldMatchers with TableDrivenPropertyChecks {
   import DomMutation._
 
   test("Apply to xml") {
     val template = <elem><parent id="parentId"><child1 id="child1"/><child2 id="child2"/></parent></elem>
-    InsertChildBefore("parentId", <child3/>, "child2") apply template should equal (
-      <elem><parent id="parentId"><child1 id="child1"/><child3/><child2 id="child2"/></parent></elem>
+    val zipper = NodeLoc(template)
+
+    val ops = Table(
+      ("DomMutation", "Expected result"),
+      (
+        InsertChildBefore("parentId", <child3/>, "child2"),
+        <elem><parent id="parentId"><child1 id="child1"/><child3/><child2 id="child2"/></parent></elem>
+      ),
+      (
+        AppendChild("parentId", <child3/>),
+        <elem><parent id="parentId"><child1 id="child1"/><child2 id="child2"/><child3/></parent></elem>
+      ),
+      (
+        RemoveChild("parentId", "child1"),
+        <elem><parent id="parentId"><child2 id="child2"/></parent></elem>
+      ),
+      (
+        ReplaceChild("parentId", <child3/>, "child1"),
+        <elem><parent id="parentId"><child3/><child2 id="child2"/></parent></elem>
+      ),
+      (
+        ReplaceAll("parentId", <child3/> ++ <child4/>),
+        <elem><parent id="parentId"><child3/><child4/></parent></elem>
+      ),
+      (
+        UpdateProperty("parentId", "value", "value", 30),
+        <elem><parent value="30" id="parentId"><child1 id="child1"/><child2 id="child2"/></parent></elem>
+      )
     )
-    AppendChild("parentId", <child3/>) apply template should equal (
-      <elem><parent id="parentId"><child1 id="child1"/><child2 id="child2"/><child3/></parent></elem>
-    )
-    RemoveChild("parentId", "child1") apply template should equal (
-      <elem><parent id="parentId"><child2 id="child2"/></parent></elem>
-    )
-    ReplaceChild("parentId", <child3/>, "child1") apply template should equal (
-      <elem><parent id="parentId"><child3/><child2 id="child2"/></parent></elem>
-    )
-    ReplaceAll("parentId", <child3/> ++ <child4/>) apply template should equal (
-      <elem><parent id="parentId"><child3/><child4/></parent></elem>
-    )
-    val up = UpdateProperty("parentId", "value", "value", 30) apply template
-    up.asInstanceOf[Elem].child(0).attributes.asAttrMap should equal (Map("id" -> "parentId", "value" -> "30"))
+
+    forAll(ops) { (dm, exp) =>
+      dm apply template should equal (exp)
+      zipper.applyDomMutation(dm).top.node should equal (exp)
+    }
   }
 
   test("Rendering") {
