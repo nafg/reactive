@@ -109,7 +109,7 @@ class Page extends Logger {
   def inAnyScope[A](block: =>A): A = {
     _currentScope.value match {
       case DefaultScope if !isOriginal =>
-        Reactions.inServerScope(this)(block)
+        inServerScope(block)
       case s =>
         trace(ReusingScope(s))
         block
@@ -127,8 +127,7 @@ class Page extends Logger {
   val ajaxTransport = AjaxTransport(this)
 
   inAnyScope {
-    implicit val _ = this
-    Reactions.queue(ajaxTransport.installJs)
+    queue(ajaxTransport.installJs)
   }
 }
 
@@ -156,7 +155,6 @@ object Page {
    * Otherwise returns None
    */
   def currentPageOption: Option[Page] = S.request.map(_ => CurrentPage.is).toOption
-
 }
 
 /**

@@ -38,7 +38,7 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
           val signal = BufferSignal(xss.head: _*)
           def snippet: NodeSeq => NodeSeq = "div" #> Repeater(signal.now.map(x => "span *" #> x).signal)
           val ts = new TestScope(<html>{ snippet(template) }</html>)
-          Reactions.inScope(ts) {
+          page.inScope(ts) {
             // println(Console.BLUE+"\n"+"=" * 25)
             // println(Console.BLUE+"Testing with: "+xss)
             // println(Console.BLUE+"js: "+ts.js)
@@ -113,9 +113,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
 
     val ta = new WrappedThread("pageA")({
       val ts = pageA.ts
-
-      implicit val p = pageA
-      Reactions.inScope(ts) {
+      pageA.inScope(ts) {
         println("pageA part one")
         val t = System.currentTimeMillis()
         ts.fire(ts(ts.xml \\! "elem1", "prop") = "value1", Change())
@@ -135,13 +133,10 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
     })
     val tb = new WrappedThread("pageB")({
       val ts = pageB.ts
-      import ts._
-
-      implicit val p = pageB
 
       sync take 10000
 
-      Reactions.inScope(ts) {
+      pageB.inScope(ts) {
         println("pageB")
         ts.xml \\! "elem2" attr "prop" should equal("value1")
         ts.xml \\! "elem1" attr "prop" should equal("value1")
@@ -183,11 +178,12 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
       implicit val page = new Page
       def snippet: NodeSeq => NodeSeq =
         "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
-      val xml = Reactions.inScope(new TestScope(<html>{ snippet apply template }</html>)) {
+      val ts = new TestScope(<html>{ snippet apply template }</html>)
+      page.inScope(ts) {
         signal() = "B"
-      }.xml
-      (xml \\! "span").node.text should equal ("B")
-      xml.node should equal (<html><span id="span">B</span></html>)
+      }
+      (ts.xml \\! "span").node.text should equal ("B")
+      ts.xml.node should equal (<html><span id="span">B</span></html>)
     }
   }
 
@@ -213,9 +209,7 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
   test("Confirm") {
     implicit val page = new Page
     val ts = new TestScope(<xml/>)
-    import ts._
-    Reactions.logLevel = Logger.Levels.Trace
-    Reactions.inScope(ts) {
+    page.inScope(ts) {
       var result: Option[Boolean] = None
       confirm("Are you sure?") { case b => result = Some(b) }
       ts.takeConfirm match {

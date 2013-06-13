@@ -11,27 +11,25 @@ class AjaxTransport(page: Page) {
   class AjaxTask(key: Int, events: List[JValue]) {
     @volatile var done = false
     val scope = new LocalScope
-    def run = {
-      implicit val _ = page
-      Reactions.inScope(scope){
-        try {
-          for (event <- events)
-            event match {
-              case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
-                try {
-                  page.ajaxEvents.fire((jsEventStreamId, eventJson))
-                } catch {
-                  case e: Exception => e.printStackTrace
-                }
-              case _ =>
-                sys.error("Invalid reactive event: " + compact(jrender(event)))
-            }
-        } finally {
-          done = true
-          completed ::= (System.currentTimeMillis(), key)
-        }
+    def run = page.inScope(scope){
+      try {
+        for (event <- events)
+          event match {
+            case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
+              try {
+                page.ajaxEvents.fire((jsEventStreamId, eventJson))
+              } catch {
+                case e: Exception => e.printStackTrace
+              }
+            case _ =>
+              sys.error("Invalid reactive event: " + compact(jrender(event)))
+          }
+      } finally {
+        done = true
+        completed ::= (System.currentTimeMillis(), key)
       }
     }
+
     def js = scope.js.foldLeft(net.liftweb.http.js.JsCmds.Noop)(_ & _)
   }
   private val inProgress = new java.util.concurrent.ConcurrentHashMap[Int, AjaxTask]

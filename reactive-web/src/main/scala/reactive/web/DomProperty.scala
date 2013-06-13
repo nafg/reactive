@@ -156,9 +156,8 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
     for {
       (page, id) <- pageIds
       if shouldUpdate(page)
-    } Reactions.inAnyScope(page) {
-      implicit val _ = page
-      Reactions queue DomMutation.UpdateProperty(id, name, attributeName, value)
+    } page.inAnyScope {
+      page queue DomMutation.UpdateProperty(id, name, attributeName, value)
     }
   }
 

@@ -18,8 +18,6 @@ import net.liftweb.util.{ Helpers, ThreadGlobal }
 object Reactions extends Reactions
 
 trait Reactions extends Logger {
-  def currentScope(implicit page: Page): Scope = page._currentScope.value
-
   net.liftweb.http.ResourceServer.allow {
     case "reactive-web.js" :: Nil          => true
   }
@@ -78,22 +76,6 @@ trait Reactions extends Logger {
    * to include the required javascript in your page.
    */
   def init(): Unit = init(false)
-
-  def queue[T: CanRender](renderable: T)(implicit page: Page): Unit = page.queue(renderable)
-
-  /**
-   * Executes code in the specified Scope, and returns the scope.
-   */
-  def inScope[T <: Scope](scope: T)(p: => Unit)(implicit page: Page): T = {
-    page.inScope(scope){ p }
-    scope
-  }
-
-  def inLocalScope(p: => Unit)(implicit page: Page): JsCmd = page.inLocalScope(p)
-
-  def inServerScope[T](page: Page)(p: => T): T = page.inServerScope(p)
-
-  def inAnyScope[T](page: Page)(block: => T): T = page.inAnyScope(block)
 }
 
 /**

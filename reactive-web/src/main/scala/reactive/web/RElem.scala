@@ -32,7 +32,8 @@ class ElemFuncWrapper(renderer: Elem => Elem) extends (NodeSeq => NodeSeq) {
 object RElem {
   /**
    * Given an `Elem`, if it doesn't have an id attribute, add one
-   * by calling [[reactive.web.Page.newId]], and return the
+   * by calling [[reactive.web.Page#nextId]], or if no `Page` is
+   * available generate a random id, and return the
    * new `Elem`.
    */
   def withId(elem: Elem)(implicit page: Page = null): Elem = elem.attributes get "id" match {

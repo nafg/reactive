@@ -26,8 +26,8 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   def init: Unit = synchronized {
     if (!initialized) {
       initialized = true
-      Reactions.inAnyScope(page) {
-        Reactions queue render+"="+initExp
+      page.inAnyScope {
+        page queue render+"="+initExp
       }
     }
   }
@@ -59,16 +59,16 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * are scheduled to be processed after 500 milliseconds.
    */
   def fire(v: JsExp[T]) {
-    Reactions.inAnyScope(page) {
-      Reactions queue JsExp.render(fireExp(v))
-      Reactions queue "window.setTimeout('reactive.doAjax()',500)"
+    page.inAnyScope {
+      page queue JsExp.render(fireExp(v))
+      page queue "window.setTimeout('reactive.doAjax()',500)"
     }
   }
 
   protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
-    Reactions.inAnyScope(page) {
+    page.inAnyScope {
       init
-      Reactions queue render+".foreach("+JsExp.render(f)+")"
+      page queue render+".foreach("+JsExp.render(f)+")"
     }
   }
   /**
