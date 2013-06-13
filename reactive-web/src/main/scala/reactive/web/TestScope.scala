@@ -78,7 +78,7 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
    * The TestScope's xml will be replaced with a copy
    * that's identical except for the attribute replacement.
    * @return the new node (searches the TestScope for a node with the same id).
-   * @example {{{ testScope(
+   * @example {{{ testScope(testScope.xml \\ "#Id", "value") = "newValue" }}}
    */
   def update[T: PropertyCodec](node: NodeLoc, name: String, value: T) = synchronized {
     zipper = zipper.applyDomMutation(DomMutation.UpdateProperty[T](node.id, name, name, value)).top

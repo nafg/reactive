@@ -42,9 +42,9 @@ package object javascript {
   /**
    * Returns a JsStub proxy for the specified type,
    * with the specified identifier for the instance.
-   * @usecase def jsProxy[MyStub](default: Unit): MyStub
-   * @usecase def jsProxy[MyStub](symbol: Symbol): MyStub
-   * @usecase def jsProxy[MyStub](string: String): MyStub
+   * @usecase def jsProxy[MyStub](default: Unit): MyStub = ???
+   * @usecase def jsProxy[MyStub](symbol: Symbol): MyStub = ???
+   * @usecase def jsProxy[MyStub](string: String): MyStub = ???
    */
   def jsProxy[T <: JsStub: ClassTag](ident: ProxyName[T], toReplace: List[JsStatement] = Nil): T = {
     val ih = new StubInvocationHandler[T](ident.value, toReplace)
