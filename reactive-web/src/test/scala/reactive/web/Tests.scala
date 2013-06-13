@@ -29,15 +29,15 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
   test("Repeater should send correct deltas") {
     MockWeb.testS("/") {
       val template = <div><span></span></div>
-      implicit val page = Page.currentPage
+      implicit val page = new Page
       import org.scalacheck.Gen._
       forAll(listOf1(listOf(alphaUpperChar map (_.toString))), maxSize(10)) { xss: List[List[String]] =>
         whenever(xss.length >= 2) {
           val signal = BufferSignal(xss.head: _*)
           def snippet: NodeSeq => NodeSeq = "div" #> Repeater(signal.now.map(x => "span *" #> x).signal)
           val ts = new TestScope(snippet(template))
-          import ts._
           Page.withPage(page) {
+            import ts._
             Reactions.inScope(ts) {
               //              println(Console.RESET+"\n"+"=" * 25)
 //              println(xss)
@@ -85,7 +85,7 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
           tsO foreach (_.queue(renderable))
         }
       }
-      val ts = new TestScope(xml(this))
+      val ts = new TestScope(xml(this))(this)
       tsO = Some(ts)
     }
     val pageA, pageB = new TestPage({ implicit p => (prop1.render apply <elem1/>) ++ (prop2.render apply <elem2/>) })
@@ -179,11 +179,13 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
     MockWeb.testS("/") {
       val template = <span id="span">A</span>
       val signal = Var("A")
-      implicit val page = Page.currentPage
+      implicit val page = new Page
       def snippet: NodeSeq => NodeSeq =
         "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
       val xml = Reactions.inScope(new TestScope(snippet apply template)) {
-        signal() = "B"
+        Page.withPage(page) {
+          signal() = "B"
+        }
       }.xml
       (xml \\ "span").text should equal ("B")
       xml.toString should equal (<span id="span">B</span>.toString)
@@ -212,9 +214,9 @@ class TestScopeTests extends FunSuite with ShouldMatchers with Observing {
   }
 
   test("Confirm") {
+    implicit val page = new Page
     val ts = new TestScope(<xml/>)
     import ts._
-    implicit val page = new Page
     Reactions.logLevel = Logger.Levels.Trace
     Reactions.inScope(ts) {
       var result: Option[Boolean] = None

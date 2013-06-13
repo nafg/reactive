@@ -54,10 +54,7 @@ object RElem {
       })
     }
 
-    override def toString = "ElemWrapper("+(baseElem :: children.toList).mkString(",")+")"+(Page.currentPageOption match {
-      case Some(p) => ":  "+render(p)
-      case _       => ""
-    })
+    override def toString = (baseElem :: children.toList).mkString("ElemWrapper(", ",", ")")
   }
 
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String, RElem] //TODO
@@ -170,10 +167,4 @@ trait RElem extends PageIds {
       case (e, _)                      => e
     }
   }
-
-  /**
-   * Calls render with the value of the CurrentPage RequestVar
-   */
-  @deprecated("Use render instead", "0.2")
-  def asHtml: Elem = render(CurrentPage.is)
 }

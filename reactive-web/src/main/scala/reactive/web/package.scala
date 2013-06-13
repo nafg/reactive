@@ -14,7 +14,6 @@ package object web {
     case class WrappedNonElemInSpan(xml: NodeSeq)
   }
 
-
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
    * provided PartialFunction.

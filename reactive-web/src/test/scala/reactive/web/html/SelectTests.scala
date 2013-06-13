@@ -28,7 +28,7 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
 
   test("Replacing items should cause selectedItem to change") {
     MockWeb.testS("/") {
-      implicit val page = Page.currentPage
+      implicit val page = new Page
       val items = Var(List("A", "B"))
       val select = Select(items)
       select.render

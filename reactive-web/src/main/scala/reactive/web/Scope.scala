@@ -60,7 +60,7 @@ case object DefaultScope extends Scope {
  * by directly applying transformations to a NodeSeq
  * @param _xml the initial NodeSeq (such as a processed template)
  */
-class TestScope(private var _xml: NodeSeq) extends LocalScope {
+class TestScope(private var _xml: NodeSeq)(implicit val page: Page) extends LocalScope {
   object logger extends Logger
   case class FiringAjaxEvent(page: Page, event: JValue)
 
@@ -93,7 +93,6 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
         _xml = dm(xml)
       }
       case Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg))) => synchronized {
-        val page = Page.currentPage //FIXME
         confirms ::= (msg, b => page.ajaxEvents.fire((id, JBool(b))))
       }
       case _ =>
@@ -115,6 +114,8 @@ class TestScope(private var _xml: NodeSeq) extends LocalScope {
         None
     }
   }
+
+  override def toString = s"TestScope(page = $page)"
 
   class PowerNode(val node: Node) {
     /**

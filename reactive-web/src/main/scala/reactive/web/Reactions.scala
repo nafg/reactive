@@ -63,9 +63,9 @@ trait Reactions extends Logger {
       case "reactive" :: Nil =>
         S.request.dmap[NodeSeq => NodeSeq](identity){ req =>
           if (comet(req))
-            _ => CurrentPage.is.renderComet
+            _ => Page.currentPage.renderComet
           else
-            _ => CurrentPage.is.render
+            _ => Page.currentPage.render
         }
     }
   }

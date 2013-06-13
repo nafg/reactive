@@ -11,14 +11,6 @@ import scala.xml.{ Elem, UnprefixedAttribute, Null, NodeSeq }
 import scala.concurrent.DelayedLazyVal
 
 /**
- * A RequestVar to generate a maximum of one Page instance
- * per request.
- * The value is automatically used when an implicit Page
- * is required while a request is being processed.
- */
-object CurrentPage extends RequestVar(new Page)
-
-/**
  * A Page uniquely identifies a web page rendered with reactive-web components.
  * It is used to associate RElems and ReactionsComets.
  * An RElem can be associated with multiple Pages. The corresponding
@@ -135,6 +127,11 @@ class Page {
 }
 
 object Page {
+  /**
+   * A RequestVar to generate a maximum of one Page instance
+   * per request.
+   */
+  private object CurrentPage extends RequestVar(new Page)
   private val dynamicScope = new scala.util.DynamicVariable[Option[Page]](None)
 
   /**
@@ -143,12 +140,6 @@ object Page {
    * @param b the block of code
    */
   def withPage[T](p: Page)(b: => T): T = dynamicScope.withValue(Some(p))(b)
-
-  /**
-   * Makes the current Page available implicitly.
-   */
-  @deprecated("Relying on the thread-local currentPage will break updates coming from outside that page's thread.", "0.2")
-  implicit def implicitCurrentPage = currentPage
 
   /**
    * Must be called when S.request.isDefined or there is
