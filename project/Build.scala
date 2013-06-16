@@ -33,7 +33,7 @@ object ReactiveBuild extends Build {
     scalaVersion := "2.10.0",
     libraryDependencies ++= List(
       "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.10.1-SNAPSHOT" % "test" cross CrossVersion.full,
+      "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
       "org.scala-lang" % "scala-actors" % "2.10.0"
     ),
     testOptions in Test += Tests.Argument("-oF")
