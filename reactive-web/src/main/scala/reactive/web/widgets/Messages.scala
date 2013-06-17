@@ -39,7 +39,7 @@ object Messages extends RequestVar(new Messages) {
     assert(!inited, "Cannot initialize twice!")
     inited = true
     LiftRules.snippets.append {
-      case "reactive" :: "Messages" :: Nil => is.renderWithTemplate(tmplt)(Page.currentPage)
+      case "reactive" :: "Messages" :: Nil => is.renderWithTemplate(tmplt)(LiftCometPage())
     }
   }
 }

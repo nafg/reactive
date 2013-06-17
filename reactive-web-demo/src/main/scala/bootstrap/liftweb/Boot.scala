@@ -32,7 +32,9 @@ class Boot {
     LiftRules.addToPackages("reactive.web.demo")
     LiftRules.addToPackages("com.damianhelme.tbutils")
 
-    reactive.web.Reactions.init(comet = true)
+    reactive.web.AppendToRender.init()
+    reactive.web.LiftCometPage.init()
+
     Messages.init(Messages.template("alert"))
 
     // Build SiteMap

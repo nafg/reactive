@@ -108,14 +108,14 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
    * modified version of this location
    * (or throw a NavigationException is isContainer == false)
    */
-  final def \+:(n: Node) = setChildren(n +: node.child)
+  final def prependChild(n: Node) = setChildren(n +: node.child)
 
   /**
    * Insert the given node to the right of this node's children and return the
    * modified version of this location
    * (or throw a NavigationException is isContainer == false)
    */
-  final def :\+(n: Node) = setChildren(node.child :+ n)
+  final def appendChild(n: Node) = setChildren(node.child :+ n)
 
   /**
    * Delete this node. Return the location to the right if it exists,
@@ -138,7 +138,7 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
     case DomMutation.InsertChildBefore(parentId, child, beforeId) =>
       child +: (this \\! s"#$parentId" \! s"#$beforeId")
     case DomMutation.AppendChild(parentId, child) =>
-      (this \\! s"#$parentId") :\+ child
+      (this \\! s"#$parentId") appendChild child
     case dm@DomMutation.RemoveChild(parentId, oldId) =>
       (this \\! s"#$parentId" \! s"#$oldId").delete
     case DomMutation.ReplaceChild(parentId, child, oldId) =>

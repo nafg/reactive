@@ -26,9 +26,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   def init: Unit = synchronized {
     if (!initialized) {
       initialized = true
-      page.inAnyScope {
-        page queue render+"="+initExp
-      }
+      page queue render+"="+initExp
     }
   }
   private var ajaxQueued = false
@@ -59,17 +57,13 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * are scheduled to be processed after 500 milliseconds.
    */
   def fire(v: JsExp[T]) {
-    page.inAnyScope {
-      page queue JsExp.render(fireExp(v))
-      page queue "window.setTimeout('reactive.doAjax()',500)"
-    }
+    page queue JsExp.render(fireExp(v))
+    page queue "window.setTimeout('reactive.doAjax()',500)"
   }
 
   protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
-    page.inAnyScope {
-      init
-      page queue render+".foreach("+JsExp.render(f)+")"
-    }
+    init
+    page queue render+".foreach("+JsExp.render(f)+")"
   }
   /**
    * Register a javascript callback function with the javascript event stream.

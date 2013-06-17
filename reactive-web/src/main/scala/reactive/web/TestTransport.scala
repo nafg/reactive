@@ -16,17 +16,21 @@ import net.liftweb.json.JsonAST.JBool
 /**
  * A scope to simulate the dom mutations that the browser would apply,
  * by directly applying transformations to a NodeSeq
- * @param _xml the initial NodeSeq (such as a processed template)
+ * @param _xml the initial NodeSeq (such as a rendered template)
  */
-class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
+class TestTransport(_xml: Node)(implicit val page: Page) extends AccumulatingTransport {
   object logger extends Logger
   case class FiringAjaxEvent(page: Page, event: JValue)
+
+  def currentPriority = 1000
 
   private var zipper = NodeLoc(_xml)
   /**
    * The current xml
    */
   def xml = zipper
+
+  private val queuingNow = new scala.util.DynamicVariable(Vector.empty[String])
 
   /**
    * All Elems
@@ -55,7 +59,15 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
       }
       case _ =>
     }
+    queuingNow.value :+= implicitly[CanRender[T]] apply renderable
     super.queue(renderable)
+  }
+
+  def collectQueued(f: =>Unit): Seq[String] = {
+    queuingNow.withValue(Vector.empty) {
+      f
+      queuingNow.value
+    }
   }
 
   /**
@@ -75,14 +87,14 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
 
   /**
    * Update an attribute on this node.
-   * The TestScope's xml will be replaced with a copy
+   * The TestTransport's xml will be replaced with a copy
    * that's identical except for the attribute replacement.
-   * @return the new node (searches the TestScope for a node with the same id).
-   * @example {{{ testScope(testScope.xml \\ "#Id", "value") = "newValue" }}}
+   * @return the new node (searches the TestTransport for a node with the same id).
+   * @example {{{ testTransport(testTransport.xml \\ "#Id", "value") = "newValue" }}}
    */
   def update[T: PropertyCodec](node: NodeLoc, name: String, value: T) = synchronized {
     zipper = zipper.applyDomMutation(DomMutation.UpdateProperty[T](node.id, name, name, value)).top
-    TestScope.this(node.id)
+    TestTransport.this(node.id)
   }
 
   /**
@@ -147,7 +159,7 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
       }
       props foreach {
         case Regex.Groups(es, id, prop) =>
-          val e = if (node.id == id) node else TestScope.this(id)
+          val e = if (node.id == id) node else TestTransport.this(id)
           val jvalue = JString(e.attr(prop))
           logger.trace(FiringAjaxEvent(page, jvalue))
           page.ajaxEvents.fire((es, jvalue))
@@ -156,5 +168,5 @@ class TestScope(_xml: Node)(implicit val page: Page) extends LocalScope {
     node
   }
 
-  override def toString = s"TestScope(page = $page)"
+  override def toString = s"TestTransport(page = $page)"
 }

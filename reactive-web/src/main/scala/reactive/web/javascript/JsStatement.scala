@@ -9,7 +9,7 @@ import JsTypes._
  * will be sent to the browser.
  */
 object Javascript {
-  def apply[A](f: => A)(implicit page: Page): A = page.inAnyScope {
+  def apply[A](f: => A)(implicit page: Page): A = {
     val (ret, js) = JsStatement.inScope(f)
     js foreach { s => page.queue(s) }
     ret

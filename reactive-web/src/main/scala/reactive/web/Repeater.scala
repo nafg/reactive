@@ -84,9 +84,7 @@ trait Repeater extends RElem {
     val ret = super.addPage(elem)(page)
     import page.observing
     manager.createPageStream(id(page)) foreach { dms =>
-      page.inAnyScope {
-        dms foreach { dm => page.queue(dm) }
-      }
+      dms foreach { dm => page.queue(dm) }
     }
     ret
   }

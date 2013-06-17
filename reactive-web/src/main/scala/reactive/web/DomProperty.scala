@@ -156,9 +156,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
     for {
       (page, id) <- pageIds
       if shouldUpdate(page)
-    } page.inAnyScope {
-      page queue DomMutation.UpdateProperty(id, name, attributeName, value)
-    }
+    } page queue DomMutation.UpdateProperty(id, name, attributeName, value)
   }
 
   override def toString = "DomProperty(name=%s,attributeName=%s)" format (name, attributeName)

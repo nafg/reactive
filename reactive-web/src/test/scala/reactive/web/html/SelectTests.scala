@@ -28,10 +28,11 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
 
   test("Replacing items should cause selectedItem to change") {
     MockWeb.testS("/") {
-      implicit val page = new Page
       val items = Var(List("A", "B"))
       val select = Select(items)
-      select.render
+      implicit val page = new TestPage({ implicit page =>
+        select.render
+      })
 
       select.items.now should equal(items.now)
       select.selectedItem.now should equal(Some("A"))
@@ -66,9 +67,10 @@ class SelectTests extends FunSuite with ShouldMatchers with Observing {
 
   test("Even when rendering (calling addPage) twice, listeners are not called more than twice") {
     val select = Select(Val(List("A", "B", "C")))
-    implicit val page = new Page
-    select.render
-    select.render
+    implicit val page = new TestPage({ implicit self =>
+      select.render
+      select.render
+    })
     var itemChanges, indexChanges = 0
     select.selectedItem.change ->> { itemChanges += 1 }
     select.selectedIndex.change ->> { indexChanges += 1 }

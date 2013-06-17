@@ -74,8 +74,8 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     }
     implicit object ext extends Extend[obj, extendObj]
     val obj = jsProxy[obj](())
-    implicit val page: Page = new Page
-    page.inLocalScope {
+    implicit val page = new TestPage
+    page.collectQueued {
       Javascript {
         obj.method(obj.method("This is a scala string"))
         JsVar[JsObj] := obj.self
@@ -90,7 +90,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
           }
         }
       }
-    }.map(_.toJsCmd) zipAll (List(
+    } zipAll (List(
       "obj.method(obj.method(\"This is a scala string\"));",
       "var x$0;",
       "x$0=obj.self;",
@@ -119,8 +119,8 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     implicit object extendWindow extends Extend[Window, Window2]
     implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
 
-    implicit val page: Page = new Page
-    val res = page.inLocalScope {
+    implicit val page = new TestPage
+    val res = page.collectQueued {
       Javascript {
         window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
           window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
@@ -134,8 +134,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
           }, 1000)
         }
       }
-    }.map(_.toJsCmd)
-    res foreach println
+    }
     res.length should equal (1)
     res zipAll (List(
       "window.jQueryReady("+
@@ -208,7 +207,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       object i extends JsVar[JsNumber]
       For(List(i := 1), i < 10, List(i := i + 1)) {}
 
-      implicit val page: Page = new Page  // needed to generate fresh ids
+      implicit val page: Page = new TestPage  // needed to generate fresh ids
 
       for (j <- List(1.$, 2.$, 3.$).$) {
         If(j > 1) {

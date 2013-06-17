@@ -21,9 +21,7 @@ trait Cell extends RElem {
     val ret = super.addPage(elem)(page)
     import page.observing
     content.change foreach { s =>
-      page.inAnyScope {
-        page.queue(DomMutation.ReplaceAll(id, s))
-      }
+      page.queue(DomMutation.ReplaceAll(id, s))
     }
     ret
   }

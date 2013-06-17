@@ -8,13 +8,15 @@ import reactive.web.html._
 import net.liftweb.util.Helpers._
 
 case class Contact(name: String, numbers: List[String]) {
-  val id = Page.currentPage.nextNumber
+  val id = Contacts.ids.run(a => (a + 1, a))
+
   def copy(name: String = this.name, numbers: List[String] = this.numbers) = new Contact(name, numbers) {
     override val id = Contact.this.id
   }
 }
 
 object Contacts {
+  val ids = new AtomicRef(0L)
   val contacts = BufferSignal[Contact](
     Contact("John Smith", List("124568790", "0987654321"))
   )

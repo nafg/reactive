@@ -221,13 +221,9 @@ trait TableEditor[A] extends TableView[A] {
             refreshes fire ()
           } match {
             case Failure(msg, _, _) =>
-              page.inAnyScope {
-                messages += "Save failed: "+msg
-              }
+              messages += "Save failed: "+msg
             case _ =>
-              page.inAnyScope {
-                messages += "Saved successfully!"
-              }
+              messages += "Saved successfully!"
           }
         }
         val (warnings, errors) = cols.collect {
