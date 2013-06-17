@@ -207,7 +207,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       object i extends JsVar[JsNumber]
       For(List(i := 1), i < 10, List(i := i + 1)) {}
 
-      implicit val ids = new IdCounter { }
+      implicit val page = new TestPage
 
       for (j <- List(1.$, 2.$, 3.$).$) {
         If(j > 1) {
