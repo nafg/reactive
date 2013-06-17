@@ -8,13 +8,14 @@ object NodePredicate {
   implicit def funcPredicate(f: Node => Boolean): NodePredicate = new NodePredicate(f compose (_.node))
   implicit def stringPredicate(s: String): NodePredicate = new NodePredicate(finder(s.head)(s.tail))
 
-  private def finder(c: Char): String => NodeLoc => Boolean = s => c match {
-    case '#' => _.attr.get("id") == Some(s)
-    case '.' => _.classes contains s
-    case ':' => _.attr.get("name") == Some(s)
-    case '=' => _.node.text == s
-    case '~' => _.node.text contains s
-    case _   => _.node.label == c + s
+  private def finder(c: Char): String => NodeLoc => Boolean = s => n => (c, n) match {
+    case ('#', nl                 ) => n.attr.get("id") == Some(s)
+    case ('.', nl                 ) => n.classes contains s
+    case (':', nl                 ) => n.attr.get("name") == Some(s)
+    case ('=', NodeLoc(n, _)      ) => n.text == s
+    case ('~', NodeLoc(n, _)      ) => n.text contains s
+    case (_,   NodeLoc(e: Elem, _)) => e.label == c + s
+    case _                              => false
   }
 }
 
@@ -33,7 +34,10 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
     case Hole(_, _, Nil) | Top => None
   }
   final def downOpt(idx: Int) = {
-    val ch = node.child
+    val ch = node match {
+      case g: Group => g.nodes
+      case _        => node.child
+    }
     if (ch.isEmpty) None
     else Some(create(ch.head, Hole(ch.tail.take(idx).reverse.toList, this, ch.drop(idx + 1).toList)))
   }
@@ -232,8 +236,10 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
   /**
    * The attributes, as a Map[String,String]
    */
-  lazy val attr = node.attributes.asAttrMap
-
+  lazy val attr = node match {
+    case e: Elem => e.attributes.asAttrMap
+    case _       => Map.empty[String, String]
+  }
 }
 
 object NodeLoc {
