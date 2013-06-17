@@ -288,8 +288,8 @@ object JsVar {
   /**
    * Create a JsVar with a fresh name
    */
-  def apply[T <: JsAny]()(implicit p: Page) = new JsVar[T] {
-    override val ident = Symbol("x$"+p.nextNumber)
+  def apply[T <: JsAny]()(implicit idc: IdCounter) = new JsVar[T] {
+    override val ident = Symbol("x$"+idc.nextNumber)
   }
 }
 
@@ -312,7 +312,7 @@ case class ForInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
   class ForIn(private[javascript] val v: JsVar[JsNumber], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit) extends HasBody(block) with JsStatement {
     def toReplace = List(v)
   }
-  def foreach(f: JsIdent[JsNumber] => Unit)(implicit p: Page) = {
+  def foreach(f: JsIdent[JsNumber] => Unit)(implicit idc: IdCounter) = {
     val v = JsVar[JsNumber]()
     new ForIn(v, exp)(f(v))
   }
@@ -321,7 +321,7 @@ case class ForEachInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
   class ForEachIn(private[javascript] val v: JsVar[T], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit) extends HasBody(block) with JsStatement {
     def toReplace = List(v)
   }
-  def foreach(f: JsIdent[T] => Unit)(implicit p: Page) = {
+  def foreach(f: JsIdent[T] => Unit)(implicit idc: IdCounter) = {
     val v = JsVar[T]()
     new ForEachIn(v, exp)(f(v))
   }
@@ -342,7 +342,7 @@ object Try {
   def apply(block: => Unit) = new Try(block)
   private[javascript] class Try(block: => Unit) extends HasBody(block) with Finallyable with JsStatement {
     def toReplace = Nil
-    def Catch(b: JsIdent[JsAny] => Unit)(implicit page: Page) = {
+    def Catch(b: JsIdent[JsAny] => Unit)(implicit idc: IdCounter) = {
       val v = JsVar[JsAny]()
       new Catch(v)(b(v))
     }
@@ -358,8 +358,8 @@ class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAn
   def toReplace = Nil
 }
 object Function {
-  def apply[P <: JsAny](capt: $[P] => Unit)(implicit p: Page) = new Function[P](capt) {
-    override val ident = Symbol("f$"+p.nextNumber)
+  def apply[P <: JsAny](capt: $[P] => Unit)(implicit idc: IdCounter) = new Function[P](capt) {
+    override val ident = Symbol("f$"+idc.nextNumber)
   }
 }
 

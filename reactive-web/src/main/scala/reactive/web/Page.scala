@@ -6,13 +6,19 @@ import scala.xml.NodeSeq
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.json.JsonAST.JValue
 
+trait IdCounter {
+  protected val counter = new java.util.concurrent.atomic.AtomicInteger(0)
+
+  def nextNumber = counter.getAndIncrement
+}
+
 /**
  * A Page uniquely identifies a web page rendered with reactive-web components.
  * It is used to associate RElems and ReactionsComets.
  * An RElem can be associated with multiple Pages. The corresponding
  * element will be kept in sync in both places.
  */
-trait Page extends Logger {
+trait Page extends Logger with IdCounter {
   case class QueueingJS[T: CanRender](pageId: Option[String], transport: Transport, data: T) {
     def js: String = implicitly[CanRender[T]] apply data
   }
@@ -24,11 +30,7 @@ trait Page extends Logger {
 
   val id = randomString(20)
 
-  private val counter = new java.util.concurrent.atomic.AtomicInteger(0)
-
   def nextId = "reactiveWebId_%06d" format nextNumber
-
-  def nextNumber = counter.getAndIncrement
 
   private[web] val ajaxEvents = new EventSource[(String, JValue)] {
     override def debugName = Page.this.toString + ".ajaxEvents"
