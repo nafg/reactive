@@ -35,7 +35,8 @@ object SimpleAjaxPage {
     cleanPages()
   }
 
-  private[this] val timer = new Timer(interval = 60000)
+  private[this] var shutDown = false
+  private[this] val timer = new Timer(0, 60000, _ => shutDown)
   private[this] implicit object observing extends Observing
   timer foreach (_ => cleanPages())
 
@@ -50,13 +51,16 @@ object SimpleAjaxPage {
   /**
    * You must call this in `boot` for [[SimpleAjaxPage]] to work.
    */
-  def init(): Unit = LiftRules.dispatch append {
-    case req @ Req("__reactive-web-ajax" :: PageById(page) :: Nil, "", PostRequest) => () =>
-      addPage(page)
-      req.json map (json => JavaScriptResponse(JsCmds.Run(page.handleAjax(json).mkString(";\n"))))
-    case req @ Req("__reactive-web-ajax" :: PageById(page) :: "heartbeat" :: Nil, "", PostRequest) => () =>
-      addPage(page)
-      Full(OkResponse())
+  def init(): Unit = {
+    LiftRules.dispatch append {
+      case req @ Req("__reactive-web-ajax" :: PageById(page) :: Nil, "", PostRequest) => () =>
+        addPage(page)
+        req.json map (json => JavaScriptResponse(JsCmds.Run(page.handleAjax(json).mkString(";\n"))))
+      case req @ Req("__reactive-web-ajax" :: PageById(page) :: "heartbeat" :: Nil, "", PostRequest) => () =>
+        addPage(page)
+        Full(OkResponse())
+    }
+    LiftRules.unloadHooks append { () => shutDown = true }
   }
 }
 
