@@ -112,8 +112,7 @@ window.reactive = {
     var q = this.queuedAjaxEvents;
     this.queuedAjaxEvents = [];
     var s = JSON.stringify( { unique: this.unique++, events: q } );
-    liftAjax.lift_ajaxHandler(this.funcId + "=" + encodeURIComponent(s), null,
-        null, null);
+    this.sendAjax(s);
   },
   createElem : function(label, attributes, innerHtml) {
     var e = document.createElement(label);
