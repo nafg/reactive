@@ -112,8 +112,6 @@ class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
       case EventData(enc, es) => JsExp render es.fireExp(enc)
     }.mkString(";")+";reactive.doAjax()"
   }
-  @deprecated("Use js", "0.2")
-  final def propagateJS(implicit page: Page) = js
 
   /**
    * Returns an attribute that will register a handler with the event.
