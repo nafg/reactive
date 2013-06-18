@@ -47,7 +47,6 @@ trait AppendToRender extends Logger {
     case (xr: XhtmlResponse) & GetTransport(transport) =>
       val body = NodeLoc(xr.out) \\! "body"
       val nodes = transport.renderAndDestroy()
-      println("Append to render: "+nodes)
       val rendered = nodes.foldLeft(body)(_ appendChild _)
       xr.copy(out = rendered.top.node)
     case lr & GetTransport(transport) =>
@@ -63,17 +62,13 @@ trait AppendToRender extends Logger {
 
     S addAround new LoanWrapper {
       def apply[A](f: => A) = {
-        println(s"Beginning request ${S.renderVersion}, ${S.request}, original = ${S.originalRequest}")
         if(S.request == S.originalRequest)
           currentPageRenders.transform((S.renderVersion, new Transport) :: _)
-        val ret = try f finally {
+        try f finally {
           val cur = currentPageRender
           cur foreach (_.renderAndDestroy())
           currentPageRenders.transform(_ filter (cur ne _))
         }
-        println(s"Ending request ${S.renderVersion}")
-        println(ret)
-        ret
       }
     }
 
