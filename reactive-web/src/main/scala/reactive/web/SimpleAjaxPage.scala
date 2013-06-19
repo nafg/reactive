@@ -41,7 +41,7 @@ object SimpleAjaxPage {
   timer foreach (_ => cleanPages())
 
   private[this] def cleanPages() =
-    pagesSeenTime.transform(_ filter (System.currentTimeMillis - _._2 < 60000))
+    pagesSeenTime.transform(_ filter (System.currentTimeMillis - _._2 < 600000))
 
   private[this] object PageById {
     def unapply(id: String) =
@@ -85,7 +85,7 @@ trait SimpleAjaxPage extends AjaxPage {
       reactive.resetHeartBeat = function() {{
         if(this.heartBeatTimeout)
           window.clearTimeout(this.heartBeatTimeout);
-        this.heartBeatTimeout = window.setTimeout(function() {{ reactive.doHeartBeat() }}, 12000);
+        this.heartBeatTimeout = window.setTimeout(function() {{ reactive.doHeartBeat() }}, 120000);
       }};
       reactive.doHeartBeat = function() {{
         this.ajaxImpl("/__reactive-web-ajax/{ id }/heartbeat");
