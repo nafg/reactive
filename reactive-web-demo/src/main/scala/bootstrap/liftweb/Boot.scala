@@ -33,7 +33,8 @@ class Boot {
     LiftRules.addToPackages("com.damianhelme.tbutils")
 
     reactive.web.AppendToRender.init()
-    reactive.web.LiftCometPage.init()
+    reactive.web.SimpleAjaxPage.init()
+    reactive.web.SsePage.init()
 
     Messages.init(Messages.template("alert"))
 

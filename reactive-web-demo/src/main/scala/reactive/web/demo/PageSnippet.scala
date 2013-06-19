@@ -3,5 +3,5 @@ package web
 package demo
 
 trait PageSnippet extends Observing {
-	implicit lazy val page = LiftCometPage()
+	implicit lazy val page = SsePage()
 }
