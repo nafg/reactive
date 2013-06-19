@@ -10,7 +10,7 @@ import net.liftweb.common.Full
  * containing the [[SimpleAjaxPage.init]] method that you must call in `boot`.
  * It also is a factory for [[SimpleAjaxPage]] instances, mixed in with [[AppendToRenderPage]].
  */
-object SimpleAjaxPage {
+object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
   /**
    * @return a new [[Page]] with [[AppendToRender]] and [[SimpleAjaxPage]] functionality.
    */
@@ -20,18 +20,13 @@ object SimpleAjaxPage {
    * This keeps a strong reference to pages, within a period of time since their last heartbeat
    */
   private[this] val pagesSeenTime = new AtomicRef(Map.empty[SimpleAjaxPage, Long])
-  /**
-   * This keeps a weak reference to pages, so they can outlive the heartbeat mechanism
-   * in certain circumstances
-   */
-  private[this] val pagesWeakMap = new scala.collection.mutable.WeakHashMap[SimpleAjaxPage, Unit]
 
   /**
    * Adds a page, or resets its "last seen" time
    */
-  private def addPage(page: SimpleAjaxPage) = {
+  override def addPage(page: SimpleAjaxPage) = {
+    super.addPage(page)
     pagesSeenTime.transform(_ + (page -> System.currentTimeMillis))
-    pagesWeakMap += page -> ()
     cleanPages()
   }
 
@@ -43,10 +38,8 @@ object SimpleAjaxPage {
   private[this] def cleanPages() =
     pagesSeenTime.transform(_ filter (System.currentTimeMillis - _._2 < 600000))
 
-  private[this] object PageById {
-    def unapply(id: String) =
-      pagesSeenTime.get.keys.find(_.id == id) orElse pagesWeakMap.keys.find(_.id == id)
-  }
+  override protected def getPage(id: String) =
+    pagesSeenTime.get.keys.find(_.id == id) orElse super.getPage(id)
 
   /**
    * You must call this in `boot` for [[SimpleAjaxPage]] to work.
