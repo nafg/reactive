@@ -60,7 +60,7 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
 /**
  * This is an [[AjaxPage]] that uses a Lift dispatch
  * and plain XMLHttpRequest to install the ajax handler.
- * You must call [[AjaxPage.init]] in `boot` for it to work.
+ * You must call [[SimpleAjaxPage.init]] in `boot` for it to work.
  */
 trait SimpleAjaxPage extends AjaxPage {
   override def render = super.render ++
