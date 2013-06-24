@@ -25,21 +25,23 @@ object DemoPane {
   def render(xhtml: NodeSeq) = (
     for {
       snippetName <- S.attr("snippet") or loc.currentValue
-      codePath = "/scala-sources/reactive/web/demo/snippet/" + snippetName + ".scala"
-      htmlPath = "/templates-hidden/" + snippetName.toLowerCase
       layout <- Templates(List("templates-hidden", "demopanelayout"))
-      template = Templates(htmlPath.split("/").toList) openOr xhtml
-      templateHtmlTransform = CodeInjection.render(htmlPath + ".html")
-        .map(".template *" #> _)
-        .openOr(
-          "#template-code" #> NodeSeq.Empty &                          // remove place for html
-          "#demo [class!]" #> "span6" &                                // if not found
-          "#demo [class+]" #> "span12"
+    } yield {
+      val htmlPath = "/templates-hidden/" + snippetName.toLowerCase
+      val templateXml = Templates(htmlPath.split("/").toList) openOr xhtml
+      val renderedTemplate: Box[NodeSeq] = CodeInjection.load(htmlPath + ".html") or {
+        Full(xhtml) filter (_.flatMap(_.child).toString.trim != "") map ( ns =>
+          CodeInjection.renderCodeMirror(ns.toString, "Template", "html")
         )
-      bind = ".demo [class]" #> ("lift:" + snippetName) &
-        ".demo *" #> template &
-        ".snippet *" #> CodeInjection.render(codePath) &
-        templateHtmlTransform
-    } yield bind(layout)
+      }
+      val codePath = "/scala-sources/reactive/web/demo/snippet/" + snippetName + ".scala"
+      val sel = ".demo [data-lift]" #> snippetName &
+        ".demo *" #> templateXml &
+        ".snippet *" #> CodeInjection.load(codePath) &
+        ".template *" #> renderedTemplate.openOr(NodeSeq.Empty) andThen
+        "#template-code" #> renderedTemplate.dmap[NodeSeq => NodeSeq](ClearNodes)(_ => PassThru) &
+        "#demo [class+]" #> renderedTemplate.dmap("span12")(_ => "span6")
+      sel(layout)
+    }
   ) openOr NodeSeq.Empty
 }
