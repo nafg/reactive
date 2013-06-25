@@ -34,11 +34,23 @@ trait AppendToRender extends Logger {
     }
 
     override def toString = s"AppendToRender.Transport{pages = $pages, data = $data}"
+
+    private[AppendToRender] def currentPages = pages.get
   }
 
-  val currentPageRenders = new AtomicRef(List.empty[(String, Transport)])
+  private val currentPageRenders = new AtomicRef(List.empty[(String, Transport)])
 
+  /**
+   * The [[Transport]] used in the current page render,
+   * if any
+   */
   def currentPageRender = currentPageRenders.get.find(_._1 == S.renderVersion).map(_._2)
+
+  /**
+   * The [[AppendToRenderPage]]s that are known to be
+   * created during the current request
+   */
+  def currentPages = currentPageRender.toList.flatMap(_.currentPages)
 
   private object GetTransport { def unapply(x: Any) = currentPageRender }
 
