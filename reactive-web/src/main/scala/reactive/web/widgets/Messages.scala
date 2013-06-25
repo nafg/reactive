@@ -60,9 +60,9 @@ class Messages {
   def -=(s: String) = messages.value -= Text(s)
 
   /**
-   * Returns a Repeater that displays the messages
+   * Returns `NodeSeq => NodeSeq` that renders a Repeater that displays the messages
    */
-  def render(implicit page: Page) = Repeater(
+  def render(implicit page: Page): NodeSeq => NodeSeq = Repeater(
     messages.now.map{ m =>
       ".text *" #> m &
         ".close" #> onServer[Click]{ _ => messages.value -= m }
