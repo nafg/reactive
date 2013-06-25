@@ -43,7 +43,7 @@ class TestTransport(_xml: Node)(implicit val page: Page) extends AccumulatingTra
   def apply(id: String): NodeLoc = zipper \\! ("#" + id)
 
   private var confirms: List[(String, Boolean => Unit)] = Nil
-  private val ajaxRE = """\(function\(arg0\)\{reactive\.queueAjax\((\d+)\)\(arg0\);reactive.doAjax\(\)\}\)""".r
+  private val ajaxRE = ("""\(function\(arg0\)\{reactive\.queueAjax\((\d+)\)\(arg0\);reactive.doAjax\('"""+page.id+"""'\)\}\)""").r
   private val confirmRE = """window\.confirm\(\"(.*)\"\)""".r
 
   private object rendered {

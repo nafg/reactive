@@ -58,7 +58,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    */
   def fire(v: JsExp[T]) {
     page queue JsExp.render(fireExp(v))
-    page queue "window.setTimeout('reactive.doAjax()',500)"
+    page queue s"window.setTimeout(function() { reactive.doAjax('${page.id}') }, 500)"
   }
 
   protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {

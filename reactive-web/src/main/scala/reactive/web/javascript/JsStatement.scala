@@ -34,9 +34,7 @@ object Ajax {
         f()
     }
     //TODO reactive should be a JsStub, so this could be scala code
-    JsRaw(
-      "(function(){reactive.queueAjax("+id+")();reactive.doAjax()})"
-    )
+    JsRaw(s"(function(){reactive.queueAjax($id)();reactive.doAjax('${page.id}')})")
   }
   def apply[J <: JsAny, S](f: S => Unit)(implicit fromJs: FromJs[J, S], observing: Observing, page: Page): $[J =|> JsVoid] = {
     val id = page.nextNumber
@@ -45,11 +43,8 @@ object Ajax {
         f(fromJs.parser(json))
     }
     //TODO reactive should be a JsStub, so this could be scala code
-    JsRaw(
-      "(function(arg0){reactive.queueAjax("+id+")("+
-        JsExp.render(fromJs.encoder(JsRaw[J]("arg0")))+
-        ");reactive.doAjax()})"
-    )
+    val data = JsExp.render(fromJs.encoder(JsRaw[J]("arg0")))
+    JsRaw(s"(function(arg0){reactive.queueAjax($id)($data);reactive.doAjax('${page.id}')})")
   }
   def apply[J1 <: JsAny, S1, J2 <: JsAny, S2](f: (S1, S2) => Unit)(implicit fromJs1: FromJs[J1, S1], fromJs2: FromJs[J2, S2], observing: Observing, page: Page): JsExp[JsFunction2[J1, J2, JsVoid]] = {
     val id = page.nextNumber
@@ -58,11 +53,8 @@ object Ajax {
         f(fromJs1.parser(json1), fromJs2.parser(json2))
     }
     //TODO reactive should be a JsStub, so this could be scala code
-    JsRaw(
-      "(function(arg0,arg1){reactive.queueAjax("+id+")("+
-        JsExp.render(List(fromJs1.encoder(JsRaw[J1]("arg0")), fromJs2.encoder(JsRaw[J2]("arg1"))))+
-        ");reactive.doAjax()})"
-    )
+    val data = JsExp.render(List(fromJs1.encoder(JsRaw[J1]("arg0")), fromJs2.encoder(JsRaw[J2]("arg1"))))
+    JsRaw(s"(function(arg0,arg1){reactive.queueAjax($id)($data);reactive.doAjax('${page.id}')})")
   }
 }
 

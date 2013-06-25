@@ -49,8 +49,12 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
       case req @ Req("__reactive-web-ajax" :: PageById(page) :: Nil, "", PostRequest) => () =>
         addPage(page)
         req.json map (json => JavaScriptResponse(JsCmds.Run(page.handleAjax(json).mkString(";\n"))))
-      case req @ Req("__reactive-web-ajax" :: PageById(page) :: "heartbeat" :: Nil, "", PostRequest) => () =>
-        addPage(page)
+      case req @ Req("__reactive-web-ajax" :: "heartbeat" :: Nil, "", PostRequest) => () =>
+        for {
+          net.liftweb.json.JArray(pages) <- req.json
+          net.liftweb.json.JString(pageId) <- pages
+          page <- getPage(pageId)
+        } addPage(page)
         Full(OkResponse())
     }
     LiftRules.unloadHooks append { () => shutDown = true }
@@ -63,6 +67,8 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
  * You must call [[SimpleAjaxPage.init]] in `boot` for it to work.
  */
 trait SimpleAjaxPage extends AjaxPage {
+  def heartbeatInterval = 120000
+
   override def render = super.render ++
     <script type="text/javascript">
       reactive.ajaxImpl = function(url, str) {{
@@ -75,18 +81,20 @@ trait SimpleAjaxPage extends AjaxPage {
         }}
         http.send(str);
       }};
+      if(!reactive.pageIds) reactive.pageIds = []
+      reactive.pageIds.push('{ id }');
       reactive.resetHeartBeat = function() {{
         if(this.heartBeatTimeout)
           window.clearTimeout(this.heartBeatTimeout);
-        this.heartBeatTimeout = window.setTimeout(function() {{ reactive.doHeartBeat() }}, 120000);
+        this.heartBeatTimeout = window.setTimeout(function() {{ reactive.doHeartBeat() }}, { heartbeatInterval });
       }};
       reactive.doHeartBeat = function() {{
-        this.ajaxImpl("/__reactive-web-ajax/{ id }/heartbeat");
+        this.ajaxImpl("/__reactive-web-ajax/heartbeat", JSON.stringify(this.pageIds));
         this.resetHeartBeat();
       }};
-      reactive.sendAjax = function(jsonStr) {{
-        this.ajaxImpl("/__reactive-web-ajax/{ id }", jsonStr);
-        this.resetHeartBeat();
+      reactive.sendAjax['{ id }'] = function(jsonStr) {{
+        reactive.ajaxImpl("/__reactive-web-ajax/{ id }", jsonStr);
+        reactive.resetHeartBeat();
       }};
       reactive.resetHeartBeat();
     </script>

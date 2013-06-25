@@ -143,7 +143,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
         "(function(arg0){"+
         "return window.jQuery(\".items\").jstree(\"create\",null,\"last\").bind("+
         "\"rename.jstree\","+
-        "(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax()})(10);return ;})"+
+        s"(function(arg0){(function(arg0){reactive.queueAjax(0)(arg0);reactive.doAjax('${page.id}')})(10);return ;})"+
         ");"+"}),"+
         "1000"+
         ");"+
@@ -182,6 +182,8 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     window.alert(window.encodeURIComponent("Message"))
     JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"));")
 
+    implicit val page = new TestPage
+
     val (_, theStatements) = JsStatement.inScope{
       If(true) {
         window.alert("True")
@@ -206,8 +208,6 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       )
       object i extends JsVar[JsNumber]
       For(List(i := 1), i < 10, List(i := i + 1)) {}
-
-      implicit val page = new TestPage
 
       for (j <- List(1.$, 2.$, 3.$).$) {
         If(j > 1) {
@@ -253,7 +253,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       """function myFunc(arg0){if((arg0>10)) {window.alert("Greater");} else {window.alert("Small");}}""",
       """myFunc(10);""",
       """function f$3(arg0){return (arg0>10);}""",
-      """(function(arg0){reactive.queueAjax(4)(arg0);reactive.doAjax()})("Hello server!");"""
+      s"""(function(arg0){reactive.queueAjax(4)(arg0);reactive.doAjax('${page.id}')})("Hello server!");"""
     )
     rendered.length should equal (target.length)
     rendered.zipAll(target, "", "") foreach { case (s, t) => s should equal (t) }

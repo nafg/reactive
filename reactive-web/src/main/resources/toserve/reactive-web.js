@@ -108,12 +108,13 @@ window.reactive = {
       reactive.queuedAjaxEvents.push(e);
     };
   },
-  doAjax : function() {
+  doAjax : function(pageId) {
     var q = this.queuedAjaxEvents;
     this.queuedAjaxEvents = [];
     var s = JSON.stringify( { unique: this.unique++, events: q } );
-    this.sendAjax(s);
+    this.sendAjax[pageId](s);
   },
+  sendAjax : { },
   createElem : function(label, attributes, innerHtml) {
     var e = document.createElement(label);
     for (k in attributes)

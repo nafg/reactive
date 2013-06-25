@@ -110,7 +110,7 @@ class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
   def js(implicit page: Page): String = {
     (getEventObjectData(page) :: eventData.getOrElse(page, Nil)).map{
       case EventData(enc, es) => JsExp render es.fireExp(enc)
-    }.mkString(";")+";reactive.doAjax()"
+    }.mkString(";")+";reactive.doAjax('"+page.id+"')"
   }
 
   /**
