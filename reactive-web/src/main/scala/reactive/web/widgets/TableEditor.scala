@@ -51,7 +51,7 @@ trait TableEditor[A] extends TableView[A] {
     def inverse = Insert(item)
   }
 
-  val messages = Messages.is
+  def messages = Messages.defaultMessages
 
   /**
    * get and set form a lens to get and set the column value in a row.
