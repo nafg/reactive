@@ -2,6 +2,8 @@ seq(webSettings: _*)
 
 libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test")
 
+libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6-SNAPSHOT"
+
 scanDirectories in Compile := Nil
 
 // To change the default port, use the following line

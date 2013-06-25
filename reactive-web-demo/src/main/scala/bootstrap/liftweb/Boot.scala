@@ -38,31 +38,42 @@ class Boot {
     SsePage.init()
     Messages.init(Messages.template("alert"))
 
+    val mdParser = new net.liftweb.markdown.ActuariusTransformer
+
+    def loadMarkdown = Template { () =>
+      val f = s"/site/${ S.uri stripPrefix "/" stripSuffix "/" }.md"
+      val res = LiftRules.loadResourceAsString(f) openOr ""
+      val md = "<div>" + mdParser(res) + "</div>"
+      <div data-lift="surround?with=navigable;at=content">{
+        Html5.parse(md) openOr scala.xml.NodeSeq.Empty
+      }</div>
+    }
+
     // Build SiteMap
     def sitemap = () => SiteMap(
-      Menu("About") / "index",
+      Menu("About") / "index" >> loadMarkdown,
       Menu("Core") / "0" >> PlaceHolder submenus (
-        Menu("EventStream") / "core" / "EventStream",
-        Menu("Signal") / "core" / "Signal",
-        Menu("SeqSignal") / "core" / "SeqSignal",
-        Menu("Forwardable") / "core" / "Forwardable",
-        Menu("Logger") / "core" / "Logger",
-        Menu("Recipes") / "core" / "Recipes"
+        Menu("EventStream") / "core" / "EventStream" >> loadMarkdown,
+        Menu("Signal") / "core" / "Signal" >> loadMarkdown,
+        Menu("SeqSignal") / "core" / "SeqSignal" >> loadMarkdown,
+        Menu("Forwardable") / "core" / "Forwardable" >> loadMarkdown,
+        Menu("Logger") / "core" / "Logger" >> loadMarkdown,
+        Menu("Recipes") / "core" / "Recipes" >> loadMarkdown
       ),
       Menu("Web") / "1" >> PlaceHolder submenus (
-        Menu("Getting Started") / "web" / "GettingStarted",
-        Menu("Low Level API") / "web" / "LowLevel",
-        Menu("Javascript") / "web" / "JsEventStream",
-        Menu("Events") / "web" / "Events",
-        Menu("Properties") / "web" / "Properties",
-        Menu("Elements") / "web" / "Elements",
-        Menu("HTML Classes") / "web" / "Html",
-        Menu("Testing") / "web" / "TestScope",
-        Menu("Configuration") / "web" / "Config",
+        Menu("Getting Started") / "web" / "GettingStarted" >> loadMarkdown,
+        Menu("Low Level API") / "web" / "LowLevel" >> loadMarkdown,
+        Menu("Javascript") / "web" / "JsEventStream" >> loadMarkdown,
+        Menu("Events") / "web" / "Events" >> loadMarkdown,
+        Menu("Properties") / "web" / "Properties" >> loadMarkdown,
+        Menu("Elements") / "web" / "Elements" >> loadMarkdown,
+        Menu("HTML Classes") / "web" / "Html" >> loadMarkdown,
+        Menu("Testing") / "web" / "TestTransport" >> loadMarkdown,
+        Menu("Configuration") / "web" / "Config" >> loadMarkdown,
         Menu("Simple demo") / "demos" / "SimpleDemo"
       ),
       Menu("Widgets") / "2" >> PlaceHolder submenus (
-        Menu("Messages") / "widgets" / "Messages"
+        Menu("Messages") / "widgets" / "Messages" >> loadMarkdown
       ),
       Menu("Scaladocs") / "3" >> PlaceHolder submenus (
         Menu("reactive-core") / "reactive-core-api" / **,
