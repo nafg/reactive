@@ -6,6 +6,7 @@ import net.liftweb.http._
 import net.liftweb.sitemap._
 import Loc._
 
+import reactive.web._
 import reactive.web.widgets.Messages
 
 /**
@@ -32,10 +33,9 @@ class Boot {
     LiftRules.addToPackages("reactive.web.demo")
     LiftRules.addToPackages("com.damianhelme.tbutils")
 
-    reactive.web.AppendToRender.init()
-    reactive.web.SimpleAjaxPage.init()
-    reactive.web.SsePage.init()
-
+    AppendToRender.init()
+    SimpleAjaxPage.init()
+    SsePage.init()
     Messages.init(Messages.template("alert"))
 
     // Build SiteMap
