@@ -21,7 +21,7 @@ import net.liftweb.doc.snippet.CodeInjection
 object DemoPane {
   val menu = Menu.param[String]("ShowDemo","ShowDemo",Full(_),s=>s)  /"showdemo"  >>Hidden
   lazy val loc = menu.toLoc
-  
+
   def render(xhtml: NodeSeq) = (
     for {
       snippetName <- S.attr("snippet") or loc.currentValue

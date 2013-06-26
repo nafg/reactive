@@ -7,3 +7,7 @@ h1 {
     float: right;
     width: 72px;
 }
+
+.CodeMirror-scroll {
+  height: auto;
+}

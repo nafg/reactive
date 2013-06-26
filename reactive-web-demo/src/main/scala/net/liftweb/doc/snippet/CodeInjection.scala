@@ -42,12 +42,13 @@ object CodeInjection
       <textarea id={guid}>{code}</textarea>
       <script>
         $(function(){{
-        CodeMirror.fromTextArea( document.getElementById("{guid}"), {{
-        lineNumbers: true,
-        readOnly: true,
-        mode: {mode},
-        theme: "solarized-dark"
-        }})
+          CodeMirror.fromTextArea( document.getElementById("{guid}"), {{
+            lineNumbers: true,
+            lineWrapping: true,
+            readOnly: true,
+            mode: {mode},
+            theme: "solarized-dark"
+          }})
         }})
       </script>
     </lift:children>

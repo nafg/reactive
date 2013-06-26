@@ -2,12 +2,15 @@ package bootstrap.liftweb
 
 import net.liftweb.common._
 import net.liftweb.util._
+import Helpers.strToCssBindPromoter
 import net.liftweb.http._
 import net.liftweb.sitemap._
 import Loc._
-
 import reactive.web._
 import reactive.web.widgets.Messages
+import scala.xml.Elem
+import scala.xml.NodeSeq
+import net.liftweb.doc.snippet.CodeInjection
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -44,8 +47,20 @@ class Boot {
       val f = s"/site/${ S.uri stripPrefix "/" stripSuffix "/" }.md"
       val res = LiftRules.loadResourceAsString(f) openOr ""
       val md = "<div>" + mdParser(res) + "</div>"
+      val html = Html5.parse(md) openOr scala.xml.NodeSeq.Empty
+      val brushRe = """\bbrush:\s*(\w+)""".r
+      val renderPres =
+        "pre" #> ((_: NodeSeq) match {
+          case elem: Elem =>
+            elem.attribute("class").map(_.text) match {
+              case Some(brushRe(lang)) =>
+                CodeInjection.renderCodeMirror(elem.text.stripLineEnd, "", lang)
+              case other =>
+                elem
+            }
+        })
       <div data-lift="surround?with=navigable;at=content">{
-        Html5.parse(md) openOr scala.xml.NodeSeq.Empty
+        renderPres(html)
       }</div>
     }
 
