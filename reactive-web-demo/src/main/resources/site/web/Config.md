@@ -31,7 +31,7 @@ implicit val config = Config(
 )
 </pre>
 
-You're defining a `CanRender[DomMutation]` by calling the
+You’re defining a `CanRender[DomMutation]` by calling the
 `CanRender` factory with a `DomMutation=&gt;String`.
 The best place to put it is in your package object, so it will be in the
 implicit scope of all your classes without requiring an import.

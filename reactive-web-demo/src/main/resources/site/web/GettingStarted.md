@@ -3,7 +3,7 @@
 ### 1. Choose an existing Lift project or [create a new one](http://www.assembla.com/wiki/show/liftweb/Using_SBT)
 
 ### 2. Add reactive-web as a dependency
-For instance, if you're using sbt, that would be:
+For instance, if you’re using sbt, that would be:
 ````
   libraryDependencies += "cc.co.scala-reactive" %% "reactive-web" % "0.4-SNAPSHOT"
 ````

@@ -7,15 +7,15 @@ within the client side. You control this with the `JsEventStream` class. `JsEven
 proxies a corresponding javascript object, and you can call familiar event stream methods such as
 `fire`, `foreach`, `map`, `flatMap`, and `filter`.
 Calling these methods in scala triggers a call to the corresponding javascript method in the browser.
-Of course, mostly you only call these methods to initialize the event streams --- once they are wired
-properly they work on their own --- so from then on they do not need to communicate between the browser and
+Of course, mostly you only call these methods to initialize the event streams — once they are wired
+properly they work on their own — so from then on they do not need to communicate between the browser and
 the server. The exception is `fire`, which does make sense to call later, allowing you to
 control what happens in the browser by inserting a value into an event stream.
 
 On the other hand, if the server needs to respond to a `JsEventStream`, call its `toServer`
 method, which returns a regular `EventStream`. The values will be encoded in JSON format
 when they are sent to the browser. You can pass `toServer` a `JValue=>U` function, where `U`
-is the type of the new `EventStream` (`JValue` being `lift-json`'s AST representation).
+is the type of the new `EventStream` (`JValue` being `lift-json`’s AST representation).
 Alternatively, you can implicitly provide `toServer` with a `net.liftweb.json.Formats` and a `Manifest[U]`,
 and `lift-json` will do the extracting.
 
@@ -27,7 +27,7 @@ this, `reactive-web` contains a DSL for writing typesafe javascript expressions 
 
 *   Javascript expressions have type `JsExp[T <: JsTypes.JsAny]`. Subclasses of `JsExp` include
     `JsLiteral`, `JsIdent`, `JsRaw` (there are others as well). All take a type parameter
-    that indicates what the javascript type of the expression will be after it's evaluated. `JsExp` defines
+    that indicates what the javascript type of the expression will be after it’s evaluated. `JsExp` defines
     a `render` method that returns the javascript it represents as a `String`.
 *   Many scala values can be converted into javascript with the `$` postfix operator. For instance, `"A string".$`
     yields a `JsLiteral[JsString]`, and `'symbol.$[JsString]` yields a `JsIdent[JsString]` named `symbol`.
@@ -114,7 +114,7 @@ You can then "call" Javascript APIs from scala code, simply by invoking methods 
 
 The way it works is simple. You write a trait that extends `JsStub`, named after the Javscript object it represents,
 and define abstract methods in it that correspond to the methods of that object.
-The methods' arguments should `JsExp`s, and they may return a `JsExp`, or another `JsStub` interface.
+The methods’ arguments should `JsExp`s, and they may return a `JsExp`, or another `JsStub` interface.
 You then obtain an instance by calling `jsProxy[theTrait]()`.
 
 <pre class="brush:scala">

@@ -7,7 +7,7 @@ Several types, such as
 `EventStream`, and
 `DomEventSource`, extend
 `Forwardable`
-. This gives you a convenient syntax to respond such objects' values
+. This gives you a convenient syntax to respond such objects’ values
 in several common ways.
 
 #### Run a block of code:

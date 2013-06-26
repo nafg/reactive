@@ -3,11 +3,11 @@
 ### Introduction
 
 While `EventStream` represents a stream of discrete
-values over time --- that is, each value only exists instantaneously (in
+values over time — that is, each value only exists instantaneously (in
 practice that means that you can never say "what is the current
 value?"), `Signal` represents a continuous value. In
 practical terms, a `Signal` has a current value, and an `EventStream`
-that, whenever the `Signal`'s value changes, fires the new
+that, whenever the `Signal`’s value changes, fires the new
 value.
 
 ### `now`
@@ -21,7 +21,7 @@ for it.
 ### `change`
 
 This is an `EventStream` that fires an event for every
-change to the `Signal`'s value.
+change to the `Signal`’s value.
 
 <pre class="brush:scala">
 signal.change.foreach {v =&gt;
@@ -87,7 +87,7 @@ Just like you can `flatMap` an `EventStream`
 to get an `EventStream` that "switches" between several `EventStream`s,
 so too you can create a `Signal` whose value depends on
 several other `Signal`s. However, there are several
-differences from `EventStream`'s `flatMap`, and
+differences from `EventStream`’s `flatMap`, and
 its usage is slightly different. These differences stem from the fact
 that a `Signal` always has a value. So the semantics are,
 that initially the resulting `Signal` has the value of the `Signal`
@@ -135,13 +135,13 @@ filterSignal.flatMap{ filter =&gt;
 Similarly, you can pass `flatMap` a function that returns
 `EventStream`s, and `flatMap` will return an
 `EventStream` that "strings together"
-the event streams that correspond to the signal's values.
+the event streams that correspond to the signal’s values.
 
 For instance, suppose you have an application that swaps the
 meaning of the mouse buttons while the `Alt` key is
 depressed. You have two `EventStream`s, one firing left mouse button clicks,
 and one firing right mouse button clicks, and a `Signal` representing
-the `Alt` key's state.
+the `Alt` key’s state.
 
 <pre class="brush:scala">
 val selectClicks = altKey flatMap (if(_) leftButtonClicks else rightButtonClicks)
@@ -157,7 +157,7 @@ use `foldLeft`. It works similar to [EventStream.foldLeft](EventStream#foldLeft)
 
 ### `zip`
 
-A method that can be convenient sometimes is `zip`. A parallel to the collections' `zip` method,
+A method that can be convenient sometimes is `zip`. A parallel to the collections’ `zip` method,
 it allows you to create a `Tuple2`-valued `Signal` from two `Signal`s.
 
 <pre class="brush:scala">
@@ -170,13 +170,13 @@ When you have two interdependent signals, you need a way to prevent infinite loo
 (signal A caused signal B to change which causes signal A to change). `Signal`
 has two methods that return a new `Signal` identical to the parent `Signal`
 but with an added safety filter. `distinct` returns a new `Signal` that filters out change events that are equal
-to the signal's previous value. This suffices in most cases. But what if when signal A causes signal B
+to the signal’s previous value. This suffices in most cases. But what if when signal A causes signal B
 to change signal A, it sets to another value, infinitely? A silly illustration:
 
 <pre class="brush:scala">myVar.map(_ + 1) >> myVar</pre>
 
 Another example is where rounding errors are not symmetric. For such scenarios, call `nonrecursive`, which
-uses a `DynamicVariable` (Scala's `ThreadLocal`) to prevent recursion.
+uses a `DynamicVariable` (Scala’s `ThreadLocal`) to prevent recursion.
 
 ### Time-consuming handling of values: `nonblocking`, `zipWithStaleness`
 

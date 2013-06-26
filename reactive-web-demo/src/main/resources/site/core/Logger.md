@@ -6,7 +6,7 @@ has a case class defined, containing the relevant details. When logging for that
 this information will be put in a LogEvent and fired from a global EventStream. LogEvent is a case class with two
 arguments: a subject, i.e. the object "logging" the information, and a predicate, the first case class we mentioned.
 
-The `Logger` trait supplies the ability to log. It's used by `reactive` classes, and you
+The `Logger` trait supplies the ability to log. It’s used by `reactive` classes, and you
 can use it in your own classes. Either mix it in, or instantiate it, optionally overriding `subject`
 (presumably to point to the containing object). It has the following members:
 

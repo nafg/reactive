@@ -5,12 +5,12 @@ Suppose you have a list of contacts displayed. Whenever a contact is
 added, removed, or updated, you need to update the display. Well, you
 keep the list in a `Signal[Seq[Contact]]`, listen to change
 events, and update the display in response. You could have the display
-be represented by a `map`ped `Signal`. But it's
+be represented by a `map`ped `Signal`. But it’s
 expensive, especially with a lot of contacts, to update the entire
 display whenever a single row changes.
 
 For this reason, there is a special subtype of `Signal`,
-`SeqSignal`. It adds, on top of `Signal`'s
+`SeqSignal`. It adds, on top of `Signal`’s
 members, an additional `EventStream[SeqDelta]` called `deltas`.
 Depending on how you create the first `SeqSignal` in the
 chain, it will fire `SeqDelta` events representing inserts,

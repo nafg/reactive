@@ -104,8 +104,8 @@ element in HTML. Currently only single-select is supported. It displays
 items that are in a `SeqSignal[T]`, where `T` is a
 type argument to `Select`. You can also specify a rendering
 function of type `T=>String`, or use the default which is
-`_.toString`. If you don't specify a value for `size`
-(the height, in rows), it defaults to 1 --- a dropdown.
+`_.toString`. If you don’t specify a value for `size`
+(the height, in rows), it defaults to 1 — a dropdown.
 
 `Select` currently supports the `change`
 event, and the `selectedIndex` property (represented as a `Option[Int]`.)
@@ -117,7 +117,7 @@ Here is the current choice of factories, from simpler to more
 complex:
 
 #### Taking just a `Signal[Seq[T]]`
-If the `Signal`'s value changes, a diff will be computed to determine what needs
+If the `Signal`’s value changes, a diff will be computed to determine what needs
   updating
 <pre class="brush:scala">
 val items = Var(List("First", "Second", "Third"))

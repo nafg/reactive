@@ -4,8 +4,8 @@ Events are the mechanism by which events get from
 the browser to your code running on the server.
 There is another mechanism that builds on events,
 and that is properties or attributes. This
-allows you to access and modify the browser's
-state. The property's state is sent to
+allows you to access and modify the browser’s
+state. The property’s state is sent to
 your code on the server with events.
 Modifications to properties are sent to the
 browser with
@@ -14,8 +14,8 @@ the JavaScript queuing mechanism.
 ### `DomProperty`
 
 `DomProperty` acts a proxy to a property or attribute of a DOM element.
-It has an `EventStream[String]` that fires updates to the property's value.
-And it has an `update` method that sets the property's value with a `JsExp`.
+It has an `EventStream[String]` that fires updates to the property’s value.
+And it has an `update` method that sets the property’s value with a `JsExp`.
 
 Like `DomEventSource`, you can apply it to an Elem and get a new Elem, or use it
 as a `NodeSeq=>NodeSeq` function for CSS Selectors. Unlike `DomEventSource` however, you need to either
@@ -27,7 +27,7 @@ calling `withEvents` will also
 be applied to the element. Also, if the element
 does not have an `id` attribute
 one will be added. `render` (and the implicit conversion) require an
-implicit `Page`. The element's id will be
+implicit `Page`. The element’s id will be
 stored in the `DomProperty` for that
 `Page`, so that update commands can be sent to the browser.
 
@@ -65,9 +65,9 @@ Here are some members of `DomProperty` and `PropertyVar`:
 
 #### `updateOn`
 Calling this method with one or more `DomEventSource`s will
-  register a `JsEventStream` with it that fires the property's value whenever
+  register a `JsEventStream` with it that fires the property’s value whenever
   the browser raises that event. When `Page`s
-  are subsequently added to the `DomProperty` (for instance when it's rendered),
+  are subsequently added to the `DomProperty` (for instance when it’s rendered),
   updates to the property will reach the server. In the case of `DomProperty`
   they will be fired from its `values` event stream, and in the case of `PropertyVar`
   it will contain the new value. Returns the `DomProperty` or `PropertyVar`.

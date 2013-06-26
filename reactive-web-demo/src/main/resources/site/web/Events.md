@@ -17,7 +17,7 @@ can fire a corresponding DomEvent instance to your code.
 
 ### `DomEventSource`
 
-Let's move on to `DomEventSource`.
+Let’s move on to `DomEventSource`.
 `DomEventSource` wraps an `JsEventStream` that fires
 values that encode the event data. This lets you
 handle the event on the client side, without requiring an
@@ -40,11 +40,11 @@ companion object contains convenience methods,
 so you can just write, e.g., `DomEventSource.click`.
 
 If you have an `Elem` you can
-pass it to `EventStream`'s `apply`
+pass it to `EventStream`’s `apply`
 method and get back a new `Elem`
 with the event handler attribute. Also,
 `DomEventSource` extends `NodeSeq=>NodeSeq`, so
-you can use it with Lift's CSS Selectors or binding. For example:
+you can use it with Lift’s CSS Selectors or binding. For example:
 
 <pre class="brush:xml">
 &lt;!-- in the template --&gt;
@@ -70,7 +70,7 @@ The `JsEventStream` that proxies the javascript event stream
 
 
 #### `eventStream`
-The lazily instantiated `EventStream` that propagates `jsEventStreams`'s 
+The lazily instantiated `EventStream` that propagates `jsEventStreams`’s 
   values to the server as `DomEvent`s.
 
 #### `addEventData`

@@ -28,12 +28,12 @@ You can then send events by calling `fire`.
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_EventSource">Live Example</a>
 
 Of course, you also create a new `EventStream` every
-time you call one of the transforming methods (below). And there's `Timer`.
+time you call one of the transforming methods (below). And there’s `Timer`.
 
 ### `Timer`
 
 One useful subclass of `EventStream` is `Timer`.
-It fires ticks at a given interval. Ticks'
+It fires ticks at a given interval. Ticks’
 values are based on the time when they are fired, not when they were
 scheduled to fire.
 
@@ -42,7 +42,7 @@ scheduled to fire.
 ### Adding listeners: `foreach`
 
 Under the hood `EventStream` manages a collection of
-listeners, but that's not how you should think of it conceptually.
+listeners, but that’s not how you should think of it conceptually.
 Conceptually, by adding a listener what you really want is to execute a
 function for each event fired. In other words, for all values of the `EventStream`.
 So, just like when you want to execute a function for all values of a
@@ -77,17 +77,17 @@ some modification. You can chain together various transformations to get
 a `EventStream` whose event values are very different than those
 of the original `EventStream`. This is similar to how
 you can transform collections: `List(1,2,3).map(_ * 10).filter(_ < 25)`. Consumers of the
-resulting `EventStream` don't need to care about how it
+resulting `EventStream` don’t need to care about how it
 relates to the original `EventStream`. Whenever the original `EventStream`
 fires an event, the transformed `EventStream`s may fire their own events
-that are based on the original's event, according to the transformation.
+that are based on the original’s event, according to the transformation.
 The way this works behind the scenes is that a listener function is added to
 the "parent" `EventStream` that simply fires the correct
 event(s) from the "child" `EventStream`.
 
 ### Finer-grained lifetime control: `takeWhile`
 
-What if you need finer-grained control over your function's
+What if you need finer-grained control over your function’s
 lifetime than that afforded by `Observing`?
 
 Well, recalling the collections analogy, what do you if you want
@@ -106,24 +106,24 @@ events, and the reference to your predicate function and the new `EventStream`
 will be removed.
 
 Idiomatic code should not cause side effects in the predicate;
-however there's nothing stopping you from doing so if you so desire.
+however there’s nothing stopping you from doing so if you so desire.
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_takeWhile">Live Example</a>
 
-### What's the point?
+### What’s the point?
 
 At this point you may be wondering why go through all these
 hoops? Why not use the regular listener pattern directly, like Swing
 does?
 
-The short answer is that, while it's a new way of thinking, in
+The short answer is that, while it’s a new way of thinking, in
 the long run it makes life easier. For example, if you take the
 imperative approach of adding a listener in response to one situation,
 in one method, and removing it in response to other situations, in other
-methods, the result is that you have code that manages listeners'
+methods, the result is that you have code that manages listeners’
 lifecycles sprinkled in different places in code. Of course that means
-it's harder to keep track of. By abstracting over the concept of
-managing listeners' lifecycles, it becomes possible to program less in
+it’s harder to keep track of. By abstracting over the concept of
+managing listeners’ lifecycles, it becomes possible to program less in
 terms of what the computer should do next, and more in terms of what you
 want to happen, resulting in more maintainable code.
 
@@ -163,20 +163,20 @@ original collection.
 So too, you can `map` `EventStream`s. You
 pass `map` a function, and for every event that the parent `EventStream`
 fires, the new `EventStream` will fire an event whose value
-is the result of applying the function to the parent's event.
+is the result of applying the function to the parent’s event.
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_map">Live Example</a>
 
 ### Combined `filter` and `map`: `collect`
 
 For convenience, `EventStream` has a `collect`
-method, just like Scala's collections. Just as you'd expect, it takes a
+method, just like Scala’s collections. Just as you’d expect, it takes a
 `PartialFunction` that specifies which events to respond
 to and what event to fire in response.
 
 ### Switching `EventStream`s: `flatMap`
 
-Let's get a bit more advanced now, and apply `flatMap`
+Let’s get a bit more advanced now, and apply `flatMap`
 to `EventStream`s.
 
 What does `flatMap` do in the Scala Collections
@@ -225,7 +225,7 @@ def compositeAnimation(millisTimer: EventStream[Long], shape: Shape): EventStrea
 }
 </pre>
 
-Of course, it's possible to return new `EventStream`s
+Of course, it’s possible to return new `EventStream`s
 based on the event fired by the parent `EventStream`.
 
 <pre class="brush:scala">
@@ -245,7 +245,7 @@ You can also `flatMap` a `Signal` to
 ### <a id="foldLeft"></a>Passing state: `foldLeft`
 
 What if you need the way you handle events to depend on various
-factors, in a way that's more complex than what `flatMap`
+factors, in a way that’s more complex than what `flatMap`
 allows?
 
 In imperative languages, a common task is to iterate through an
@@ -299,7 +299,7 @@ for the signal to hold until the next event fires.
 If an `EventStream` firing can result in that `EventStream`
 firing again, you may end up with infinite recursion (in other words, a `StackOverflowError`).
 If that is the case, call `nonrecursive`, which returns
-a derived `EventStream` that uses a `DynamicVariable` (Scala's `ThreadLocal`)
+a derived `EventStream` that uses a `DynamicVariable` (Scala’s `ThreadLocal`)
 to prevent it from firing recursively.
 
 
@@ -320,14 +320,14 @@ an event involves a lot of work, this means some of that work may be redundant.
 
 Calling `nonblocking` on an `EventStream` returns a derived `EventStream`
 that hands off events to an internal actor to process. Thus, only one event will be handled
-at a time, and the thread firing the event won't block. See below for an example.
+at a time, and the thread firing the event won’t block. See below for an example.
 
 ### Detecting that an event has been superseded: `zipWithStaleness`
 
 Sometimes, like when you have a long-running, hard-working event handler, you may want
 to check whether a new event has been fired since the handler began running. Perhaps
 if one indeed was, you want to short-circuit and skip the rest of the work (maybe because
-it's superfluous in light of the new event). This may be especially important if you are using
+it’s superfluous in light of the new event). This may be especially important if you are using
 `nonblocking`: since only one event can be processed at a time, things may fall
 more and more behind schedule. For instance, if processing a mouse click takes half a second,
 after the user clicks 10 times it will take five seconds for the computer to "catch up" to the
