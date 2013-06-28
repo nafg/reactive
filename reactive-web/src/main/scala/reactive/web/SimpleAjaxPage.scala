@@ -46,16 +46,24 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
    */
   def init(): Unit = {
     LiftRules.dispatch append {
-      case req @ Req("__reactive-web-ajax" :: PageById(page) :: Nil, "", PostRequest) => () =>
-        addPage(page)
-        req.json map (json => JavaScriptResponse(JsCmds.Run(page.handleAjax(json).mkString(";\n"))))
       case req @ Req("__reactive-web-ajax" :: "heartbeat" :: Nil, "", PostRequest) => () =>
-        for {
-          net.liftweb.json.JArray(pages) <- req.json
-          net.liftweb.json.JString(pageId) <- pages
-          page <- getPage(pageId)
-        } addPage(page)
-        Full(OkResponse())
+        val pages = for {
+          net.liftweb.json.JArray(pageIds) <- req.json.toList
+          net.liftweb.json.JString(pageId) <- pageIds
+        } yield getPage(pageId)
+        pages foreach (_ foreach addPage)
+        if(pages.forall(_.isDefined))
+          Full(OkResponse())
+        else
+          Full(JavaScriptResponse(JsCmds.Run("alert('Some server state was lost, please reload the page.')")))
+      case req @ Req("__reactive-web-ajax" :: pageId :: Nil, "", PostRequest) => () =>
+        getPage(pageId) match {
+          case Some(page) =>
+            addPage(page)
+            req.json map (json => JavaScriptResponse(JsCmds.Run(page.handleAjax(json).mkString(";\n"))))
+          case None =>
+            Full(JavaScriptResponse(JsCmds.Run("alert('Server state was lost, please reload the page.')")))
+        }
     }
     LiftRules.unloadHooks append { () => shutDown = true }
   }
