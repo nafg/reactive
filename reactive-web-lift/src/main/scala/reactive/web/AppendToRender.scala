@@ -28,7 +28,7 @@ trait AppendToRender extends Logger {
         <script type="text/javascript">
           { Unparsed("// <![CDATA[\n" + data.mkString(";\n") + "// ]]>") }
         </script>
-      if (ps.nonEmpty) include +: ps.flatMap(_.render) :+ js
+      if(ps.nonEmpty) include +: ps.flatMap(_.render) :+ js
       else Nil
     }
 
@@ -78,7 +78,7 @@ trait AppendToRender extends Logger {
 
     S addAround new LoanWrapper {
       def apply[A](f: => A) = {
-        if (S.request == S.originalRequest)
+        if(S.request == S.originalRequest)
           currentPageRenders.transform((S.renderVersion, new Transport) :: _)
         try f finally {
           val cur = currentPageRender
