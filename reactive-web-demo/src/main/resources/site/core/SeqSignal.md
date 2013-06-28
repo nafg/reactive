@@ -1,4 +1,4 @@
-### `SeqSignal`
+## `SeqSignal`
 
 Here is one of the most important and powerful features of `reactive`.
 Suppose you have a list of contacts displayed. Whenever a contact is

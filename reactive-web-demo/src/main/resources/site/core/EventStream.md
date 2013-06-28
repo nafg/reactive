@@ -17,6 +17,28 @@ values, except that rather than all values existing simultaneously, each one
 exists at a different point in time. Keep this analogy in mind, because
 methods in reactive-core are named like the corresponding methods in the scala collections framework.
 
+### What’s the point?
+
+You may be wondering, why learn a new way of doing things? Why not just use the regular listener pattern, like Swing
+does?
+
+The short answer is that, while it’s a new way of thinking, in
+the long run it makes life easier. For example, if you take the
+imperative approach of adding a listener in response to one situation,
+in one method, and removing it in response to other situations, in other
+methods, the result is that you have code that manages listeners’
+lifecycles sprinkled in different places in code. Of course that means
+it’s harder to keep track of. By abstracting over the concept of
+managing listeners’ lifecycles, it becomes possible to program less in
+terms of what the computer should do next, and more in terms of what you
+want to happen, resulting in more maintainable code.
+
+However, perhaps the greater advantage, is that we have a
+general-purpose abstraction called an `EventStream` that can
+be transformed and composed. This will become more apparent as you read
+more about `EventStream` and about everything that interacts
+with it and is built on it.
+
 ### Creating an `EventStream`
 
 Often you will be dealing with `EventStream`s
@@ -85,7 +107,7 @@ The way this works behind the scenes is that a listener function is added to
 the "parent" `EventStream` that simply fires the correct
 event(s) from the "child" `EventStream`.
 
-### Finer-grained lifetime control: `takeWhile`
+#### Finer-grained lifetime control: `takeWhile`
 
 What if you need finer-grained control over your function’s
 lifetime than that afforded by `Observing`?
@@ -110,30 +132,7 @@ however there’s nothing stopping you from doing so if you so desire.
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_takeWhile">Live Example</a>
 
-### What’s the point?
-
-At this point you may be wondering why go through all these
-hoops? Why not use the regular listener pattern directly, like Swing
-does?
-
-The short answer is that, while it’s a new way of thinking, in
-the long run it makes life easier. For example, if you take the
-imperative approach of adding a listener in response to one situation,
-in one method, and removing it in response to other situations, in other
-methods, the result is that you have code that manages listeners’
-lifecycles sprinkled in different places in code. Of course that means
-it’s harder to keep track of. By abstracting over the concept of
-managing listeners’ lifecycles, it becomes possible to program less in
-terms of what the computer should do next, and more in terms of what you
-want to happen, resulting in more maintainable code.
-
-However, perhaps the greater advantage, is that we have a
-general-purpose abstraction called an `EventStream` that can
-be transformed and composed. This will become more apparent as you read
-more about `EventStream` and about everything that interacts
-with it and is built on it.
-
-### A more focused `EventStream`: `filter`
+#### A more focused `EventStream`: `filter`
 
 What if you have an `EventStream` that fires a lot of
 events but you are only interested in some? You can use `filter`.
@@ -152,7 +151,7 @@ which the predicate matches.
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_filter">Live Example</a>
 
-### A completely transformed `EventStream`: `map`
+#### A completely transformed `EventStream`: `map`
 
 Another fundamental collections method is `map`. It
 lets you transform a collection by applying any function to each
@@ -167,14 +166,14 @@ is the result of applying the function to the parent’s event.
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_map">Live Example</a>
 
-### Combined `filter` and `map`: `collect`
+#### Combined `filter` and `map`: `collect`
 
 For convenience, `EventStream` has a `collect`
 method, just like Scala’s collections. Just as you’d expect, it takes a
 `PartialFunction` that specifies which events to respond
 to and what event to fire in response.
 
-### Switching `EventStream`s: `flatMap`
+#### Switching `EventStream`s: `flatMap`
 
 Let’s get a bit more advanced now, and apply `flatMap`
 to `EventStream`s.
@@ -242,7 +241,7 @@ You can also `flatMap` a `Signal` to
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_flatMap">Live Example</a>
 
-### <a id="foldLeft"></a>Passing state: `foldLeft`
+#### <a id="foldLeft"></a>Passing on state: `foldLeft`
 
 What if you need the way you handle events to depend on various
 factors, in a way that’s more complex than what `flatMap`
@@ -274,7 +273,7 @@ that, whenever a number is fired, fires the average value:
 
  <a class="btn btn-primary" target="_blank" href="/showdemo/EventStream_foldLeft">Live Example</a>
 
-### Combining `EventStream`s: `|`
+### Merging `EventStream`s: `|`
 
 You can also get the union of two `EventStreams`. The
 new `EventStream` will fire all events that either of the

@@ -1,4 +1,4 @@
-### Messages
+## Messages
 
 The `Messages` widget makes it very easy to add modeless, closable alerts to your
 application. The easiest way to access it is via the application-wide
