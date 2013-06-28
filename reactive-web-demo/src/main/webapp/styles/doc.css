@@ -11,3 +11,7 @@ h1 {
 .CodeMirror-scroll {
   height: auto;
 }
+
+body {
+  padding-top: 70px;
+}

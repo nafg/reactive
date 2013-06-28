@@ -25,7 +25,7 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_
   Seq[File]()
 }
 
-// Automatically dopy the Web API Docs into the "copied-docs" managed resource folder
+// Automatically copy the Web API Docs into the "copied-docs" managed resource folder
 resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_web, Compile)) map {
   (dir, docs) =>
   val dest = dir / "copied-docs" / "reactive-web-api"
@@ -33,7 +33,7 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_
   Seq[File]()
 }
 
-// User the copied-docs folder as an addition to the webapp resources.
+// Use the copied-docs folder as an addition to the webapp resources.
 // When the resourceGenerators run, this dir will contain
 // "reactive-core-api" and "reactive-web-api" directories.
 webappResources in Compile <+= (resourceManaged in Compile) { dir =>

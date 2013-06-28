@@ -43,8 +43,8 @@ class Boot {
 
     val mdParser = new net.liftweb.markdown.ActuariusTransformer
 
-    def loadMarkdown = Template { () =>
-      val f = s"/site/${ S.uri stripPrefix "/" stripSuffix "/" }.md"
+    def loadMarkdown(path: String): Elem = {
+      val f = s"/site/$path.md"
       val res = LiftRules.loadResourceAsString(f) openOr ""
       val md = "<div>" + mdParser(res) + "</div>"
       val html = Html5.parse(md) openOr scala.xml.NodeSeq.Empty
@@ -54,7 +54,7 @@ class Boot {
           case elem: Elem =>
             elem.attribute("class").map(_.text) match {
               case Some(brushRe(lang)) =>
-                CodeInjection.renderCodeMirror(elem.text.stripLineEnd, "", lang)
+                CodeInjection.renderCodeMirror(elem.text, "", lang)
               case other =>
                 elem
             }
@@ -63,39 +63,74 @@ class Boot {
         renderPres(html)
       }</div>
     }
+    def markdownTemplate = Template { () =>
+      val path = S.uri stripPrefix "/" stripSuffix "/" match {
+        case "" => "index"
+        case x  => x
+      }
+      loadMarkdown(path)
+    }
+
+    def emptyPage = Template { () =>
+      <div data-lift="surround?with=navigable;at=content"/>
+    }
+    def header = MenuCssClass("nav-header")
 
     // Build SiteMap
-    def sitemap = () => SiteMap(
-      Menu("About") / "index" >> loadMarkdown,
-      Menu("Core") / "0" >> PlaceHolder submenus (
-        Menu("EventStream") / "core" / "EventStream" >> loadMarkdown,
-        Menu("Signal") / "core" / "Signal" >> loadMarkdown,
-        Menu("SeqSignal") / "core" / "SeqSignal" >> loadMarkdown,
-        Menu("Forwardable") / "core" / "Forwardable" >> loadMarkdown,
-        Menu("Logger") / "core" / "Logger" >> loadMarkdown,
-        Menu("Recipes") / "core" / "Recipes" >> loadMarkdown
-      ),
-      Menu("Web") / "1" >> PlaceHolder submenus (
-        Menu("Getting Started") / "web" / "GettingStarted" >> loadMarkdown,
-        Menu("Low Level API") / "web" / "LowLevel" >> loadMarkdown,
-        Menu("Javascript") / "web" / "JsEventStream" >> loadMarkdown,
-        Menu("Events") / "web" / "Events" >> loadMarkdown,
-        Menu("Properties") / "web" / "Properties" >> loadMarkdown,
-        Menu("Elements") / "web" / "Elements" >> loadMarkdown,
-        Menu("HTML Classes") / "web" / "Html" >> loadMarkdown,
-        Menu("Testing") / "web" / "TestTransport" >> loadMarkdown,
-        Menu("Configuration") / "web" / "Config" >> loadMarkdown,
-        Menu("Simple demo") / "demos" / "SimpleDemo"
-      ),
-      Menu("Widgets") / "2" >> PlaceHolder submenus (
-        Menu("Messages") / "widgets" / "Messages" >> loadMarkdown
-      ),
+    object Item {
+      def apply(name: String): Item = new Item(name, name)
+    }
+    case class Item(name: String, title: String, children: Item*)
+    def docTree =
+      Seq(
+        Item("index", "About"),
+        Item("core", "Core",
+          Item("EventStream", "EventStream",
+            Item("intro", "Introduction"),
+            Item("EventSource", "Creating"),
+            Item("timer", "Timer"),
+            Item("foreach"),
+            Item("transform", "Transformations"),
+            Item("merge", "Merge"),
+            Item("hold"),
+            Item("other", "Other operations")
+          ),
+          Item("Signal"),
+          Item("SeqSignal"),
+          Item("Forwardable"),
+          Item("Logger"),
+          Item("Recipes")
+        ),
+        Item("web", "Web",
+          Item("GettingStarted", "Getting started"),
+          Item("LowLevel", "Low level API"),
+          Item("JsEventStream", "Javascript"),
+          Item("Events"),
+          Item("Properties"),
+          Item("Elements"),
+          Item("Html", "HTML classes"),
+          Item("TestTransport", "Testing"),
+          Item("Config", "Configuration")
+        ),
+        Item("widgets", "Widgets",
+          Item("Messages")
+        )
+      )
+
+    def itemToMenu(item: Item, path: List[String] = Nil): Menu.Menuable = {
+      val p = path :+ item.name
+      val m = p.tail.foldLeft(Menu(item.name, item.title) / p.head)(_ / _)
+      if(item.children.isEmpty) m >> markdownTemplate
+      else m >> emptyPage >> PlaceHolder submenus (item.children.map(i => itemToMenu(i, p)): _*)
+    }
+    val menus = docTree.map(itemToMenu(_)) :+ (
       Menu("Scaladocs") / "3" >> PlaceHolder submenus (
         Menu("reactive-core") / "reactive-core-api" / **,
         Menu("reactive-web") / "reactive-web-api" / **
-      ),
-      reactive.web.demo.snippet.DemoPane.menu
-    )
+      )
+    ) :+
+        reactive.web.demo.snippet.DemoPane.menu
+    def sitemap = () => SiteMap(menus: _*)
     LiftRules.setSiteMapFunc(sitemap)
     LiftRules.liftRequest.append {
       case Req("reactive-core-api" :: _, _, _) => false

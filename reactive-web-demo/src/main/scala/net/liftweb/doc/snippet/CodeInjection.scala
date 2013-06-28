@@ -34,12 +34,12 @@ object CodeInjection
     val mode = fileExtension match {
       case "scala" => "'text/x-scala'"
       case "html" => "'text/html'"
-      case other => s"{ name: $other }"
+      case other => s"""{ name: "$other" }"""
     }
 
     <lift:children>
       <label for={guid}>{ fileName }</label>
-      <textarea id={guid}>{code}</textarea>
+      <textarea id={guid}>{code.stripLineEnd}</textarea>
       <script>
         $(function(){{
           CodeMirror.fromTextArea( document.getElementById("{guid}"), {{

@@ -44,7 +44,7 @@ this, `reactive-web` contains a DSL for writing typesafe javascript expressions 
     Note that the name of the trait is assumed to be the name of the identifier on which to call the method. If you need to distinguish,
     call `jsProxy[myStubTrait]('name)` or `jsProxy[myStubTrait]("name")`. See below for more on `JsStub`.
 
- <a class="btn btn-primary" target="_blank" href="/showdemo/JsEventStreamDemo">Live Example</a>
+ <div data-lift="DemoPane?snippet=JsEventStreamDemo"></div>
 
 The following snippet should give you a good idea how to write Javascript statements with the DSL. Wrapping them in a `Javascript` block sends it to the browser to run.
 

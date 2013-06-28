@@ -79,7 +79,7 @@ myVar ()= 62
 println(mapped.now)  // prints 620
 </pre>
 
- <a class="btn btn-primary" target="_blank" href="/showdemo/Signal_map">Live Example</a>
+ <div data-lift="DemoPane?snippet=Signal_map"></div>
 
 ### <a id="flatMap">`flatMap`</a>
 
@@ -148,7 +148,7 @@ val selectClicks = altKey flatMap (if(_) leftButtonClicks else rightButtonClicks
 val contextClicks = altKey flatMap (if(_) rightButtonClicks else leftButtonClicks)
 </pre>
 
- <a class="btn btn-primary" target="_blank" href="/showdemo/Signal_flatMap">Live Example</a>
+ <div data-lift="DemoPane?snippet=Signal_flatMap"></div>
 
 ### Passing down state: `foldLeft`
 

@@ -1,19 +1,36 @@
-<lift:surround with=default at=content>
-    <div class="navbar navbar-fixed-top">
-        <div class="navbar-inner">
-            <div class="container">
-                <span data-lift="lift:TBNav.menuToTBNav?eager_eval=true">
-                  <span data-lift="lift:Menu.builder?top:class=nav;li_item:class=active;linkToSelf=true;expandAll=true"></span>
-                </span>
-
-                <div class="google-plus">
-                    <g:plusone href="http://reactive-web.tk"></g:plusone>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<div data-lift="surround?with=default;at=content">
+ <div class="container">
+  <div class="navbar navbar-fixed-top">
+   <div class="navbar-inner">
     <div class="container">
-        <lift:bind name="content" />
+     <a class="brand" href="#">Reactive Web</a>
+     <ul class="nav">
+      <li><a href="/index">About</a></li>
+      <li><a href="/core/EventStream">Core</a></li>
+      <li><a href="/web/GettingStarted">Web</a></li>
+      <li><a href="/widgets/Messages">Widgets</a></li>
+      <li class="dropdown"><a href="#" class="dropdown-toggle"
+       data-toggle="dropdown">Scaladoc<b class="caret"></b></a>
+       <ul class="dropdown-menu">
+        <li><a href="/reactive-core-api" target="_blank">reactive-core</a></li>
+        <li><a href="/reactive-web-api" target="_blank">reactive-web</a></li>
+       </ul></li>
+     </ul>
     </div>
-</lift:surround>
+   </div>
+  </div>
+
+  <div class="row">
+   <div class="span2 well">
+    <span data-lift="SideMenuBuilder"></span>
+
+    <div class="google-plus">
+     <g:plusone href="http://reactive-web.tk"></g:plusone>
+    </div>
+   </div>
+   <div class="span9">
+    <lift:bind name="content" />
+   </div>
+  </div>
+ </div>
+</div>

@@ -151,4 +151,4 @@ Select(Some(curPerson), peopleSignal, _.toString, 20){
 
 #### Same as above, except taking a plain `Seq[T]` (no `Signal`), and no default value defined for `size`
 
- <a class="btn btn-primary" target="_blank" href="/showdemo/SelectDemo">Live Example</a>
+ <div data-lift="DemoPane?snippet=SelectDemo"></div>

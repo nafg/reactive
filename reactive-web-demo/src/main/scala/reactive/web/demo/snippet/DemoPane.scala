@@ -39,8 +39,7 @@ object DemoPane {
         ".demo *" #> templateXml &
         ".snippet *" #> CodeInjection.load(codePath) &
         ".template *" #> renderedTemplate.openOr(NodeSeq.Empty) andThen
-        "#template-code" #> renderedTemplate.dmap[NodeSeq => NodeSeq](ClearNodes)(_ => PassThru) &
-        "#demo [class+]" #> renderedTemplate.dmap("span12")(_ => "span6")
+        "#template-code" #> renderedTemplate.dmap[NodeSeq => NodeSeq](ClearNodes)(_ => PassThru)
       sel(layout)
     }
   ) openOr NodeSeq.Empty
