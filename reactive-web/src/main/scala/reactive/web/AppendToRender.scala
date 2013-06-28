@@ -57,10 +57,14 @@ trait AppendToRender extends Logger {
   // TODO customizability
   def transformResponse: PartialFunction[LiftResponse, LiftResponse] = {
     case (xr: XhtmlResponse) & GetTransport(transport) =>
-      val body = NodeLoc(xr.out) \\! "body"
-      val nodes = transport.renderAndDestroy()
-      val rendered = nodes.foldLeft(body)(_ appendChild _)
-      xr.copy(out = rendered.top.node)
+    val nodes = transport.renderAndDestroy()
+      (NodeLoc(xr.out) \\? "body") match {
+        case Some(body) =>
+          val rendered = nodes.foldLeft(body)(_ appendChild _)
+          xr.copy(out = rendered.top.node)
+        case None =>
+          xr
+      }
     case lr & GetTransport(transport) =>
       error(DroppedData(lr, transport.data))
       transport.renderAndDestroy()
