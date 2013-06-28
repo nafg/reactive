@@ -79,7 +79,7 @@ object Messages {
   /**
    * A default per-[[Page]] instance
    */
-  def defaultMessages(implicit page: Page) = _defaultMessages.getOrElseUpdate(page, trace("Creating new Messages for page "+page)(new Messages))
+  def defaultMessages(implicit page: Page) = _defaultMessages.getOrElseUpdate(page, new Messages)
 
   /**
    * Make the global Messages RequestVar available as a snippet, `reactive.Messages`.
