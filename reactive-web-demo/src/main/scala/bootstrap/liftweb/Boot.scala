@@ -21,14 +21,14 @@ class Boot {
     println("In boot")
     getClass.getClassLoader match {
       case rcl: java.net.URLClassLoader =>
-        println("Classpath:"+rcl.getURLs.mkString("\n  ", "\n  ", ""))
+        println("Classpath:" + rcl.getURLs.mkString("\n  ", "\n  ", ""))
     }
 
     def shouldRedirect(r: Req) = !r.request.serverName.endsWith(".tk") &&
       r.request.serverName != "localhost"
     LiftRules.statelessDispatch.append {
       case r if shouldRedirect(r) => () => Full(
-        PermRedirectResponse("http://reactive-web.tk"+r.uri, r, r.cookies: _*)
+        PermRedirectResponse("http://reactive-web.tk" + r.uri, r, r.cookies: _*)
       )
     }
 
@@ -77,6 +77,7 @@ class Boot {
     def header = MenuCssClass("nav-header")
 
     // Build SiteMap
+
     object Item {
       def apply(name: String): Item = new Item(name, name)
     }
@@ -139,10 +140,12 @@ class Boot {
     LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
     LiftRules.useXhtmlMimeType = false
 
-    LiftRules.htmlProperties.default.set( (r: Req) =>
+    LiftRules.htmlProperties.default.set((r: Req) =>
       new Html5Properties(r.userAgent)
     )
 
-    LiftRules.early.append( _.setCharacterEncoding("UTF-8") )
+    LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
+
+    println("reactive finished booting!")
   }
 }
