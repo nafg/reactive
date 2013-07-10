@@ -42,7 +42,7 @@ sealed trait Validity[+A, +Msg] {
 }
 case class Valid[+A](value: A) extends Validity[A, Nothing] {
   def isValid = true
-  def messages = throw new UnsupportedOperationException("message of Valid")
+  def messages = throw new UnsupportedOperationException("messages of Valid")
 
   def map[B](f: A => B): Validity[B, Nothing] = Valid(f(value))
   def flatMap[B, M2 >: Nothing](f: A => Validity[B, M2]): Validity[B, M2] = f(value)
