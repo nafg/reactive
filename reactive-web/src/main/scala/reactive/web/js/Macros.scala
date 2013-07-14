@@ -17,6 +17,8 @@ object Macros {
       def sel(name: TermName) = Ident(s) sel name
     }
 
+    def list(els: List[Tree]) = "scala" sel "List" ap els
+
     def jsAst = reify(reactive.web.js.JsAst).tree
 
     def block(trees: Tree*) =
@@ -39,8 +41,9 @@ object Macros {
         default
       )
     def _case(test: List[Tree], st: List[Tree]) = jsAst sel "Case" ap List(list(test), list(st))
-
-    def list(els: List[Tree]) = "scala" sel "List" ap els
+    def _throw(e: Tree) = jsAst sel "Throw" ap List(e)
+    def _try(b: List[Tree], n: String, c: List[Tree], f: List[Tree]) =
+      jsAst sel "Try" ap List(list(b), Literal(Constant(n)), list(c), list(f))
 
     def trace(in: Tree)(out: Tree) = {
       println("in: "+in)
@@ -131,6 +134,29 @@ object Macros {
         }
         val cases = allCases.getOrElse(false, Nil).flatten
         List(switch(expr(input), cases, default))
+      case Try(b, cs, f) =>
+        val (name, cc) = cs match {
+          case List(
+            CaseDef(
+              Apply(
+                tt @ TypeTree(),
+                List(Bind(name, Ident(nme.WILDCARD) | Typed(Ident(nme.WILDCARD), _)))
+              ),
+              EmptyTree,
+              code
+            )
+          ) if tt.original.symbol.fullName == "reactive.web.js.js.Throwable" =>
+            (name.decoded, statements(code))
+          case _ =>
+            if(cs.nonEmpty) {
+              c.error(cs.head.pos, "catch block must consist of one case of the form case js.Throwable(e)")
+              c.info(cs.head.pos, "found: "+cs.map(showRaw(_)), false)
+            }
+            ("e", Nil)
+        }
+        List(_try(statements(b), name, cc, statements(f)))
+      case Throw(Apply(fun, List(e))) if "reactive.web.js.js.Throwable.apply" == fun.symbol.fullName =>
+        List(_throw(expr(e)))
       case Apply(function, params) =>
         List(_apply(expr(function), params map (p => expr(p))))
       case Literal(Constant(())) =>

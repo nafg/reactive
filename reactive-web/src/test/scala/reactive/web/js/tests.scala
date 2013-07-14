@@ -126,4 +126,22 @@ class JavascriptTests extends FunSuite with ShouldMatchers {
       )
     ))
   }
+
+  test("throw/try/catch/finally") {
+    js.javascript {
+      try {
+        throw js.Throwable("hi")
+      } catch {
+        case js.Throwable(s: String) =>
+          window.console.log(s)
+      } finally {
+        window.console.log("the end")
+      }
+    } should equal (Try(
+      List(Throw(LitStr("hi"))),
+      "s",
+      List(Apply(winConLog,SimpleIdentifier("s"))),
+      List(Apply(winConLog,LitStr("the end")))
+    ))
+  }
 }

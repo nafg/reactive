@@ -8,6 +8,8 @@ object js {
   class Object
 
   def javascript(body: Any): JsAst.Statement = macro Macros.javascriptImpl
+
+  case class Throwable[A](value: A) extends scala.Throwable
 }
 
 sealed trait JsExprAst {
@@ -41,6 +43,8 @@ object JsAst extends JsExprAst {
   case object Break extends Statement
   case class Assign(to: Identifier, what: Expr) extends Statement
   case class Declare(name: String) extends Statement
+  case class Throw(e: Expr) extends Statement
+  case class Try(block: List[Statement], catchName: String, catcher: List[Statement], finalizer: List[Statement]) extends Statement
   //TODO: for, for..in, for each..in, throw, try/catch, function, return
 
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
@@ -79,5 +83,7 @@ object JsAst extends JsExprAst {
     case While(cond, body)     => s"while(${render(cond)}) ${render(body)}"
     case DoWhile(body, cond)   => s"do ${render(body)} while(${render(cond)})"    
     case s: Switch             => renderSwitch(s)
+    case Throw(e)              => s"throw ${render(e)}"
+    case Try(b, n, c, f)       => "try {"+renderBlock(b)+nl+"} catch("+n+") {"+renderBlock(c)+nl+"} finally {"+renderBlock(f)+nl+"}"
   }
 }
