@@ -27,12 +27,12 @@ case class WithRender(s: JsAst.Statement) {
   }
 }
 
-class JavascriptTests extends FunSuite with ShouldMatchers {
+class StatementTests extends FunSuite with ShouldMatchers {
   val winConLog = Select(Select(SimpleIdentifier("window"), "console"), "log")
 
   implicit class printStatement(s: Statement) {
     def info: Statement = {
-      JavascriptTests.this.info(withRender.toString)
+      StatementTests.this.info(withRender.toString)
       s
     }
     def withRender = WithRender(s)
@@ -143,5 +143,56 @@ class JavascriptTests extends FunSuite with ShouldMatchers {
       List(Apply(winConLog,SimpleIdentifier("s"))),
       List(Apply(winConLog,LitStr("the end")))
     ))
+  }
+
+  test("def/return/apply") {
+    js.javascript {
+      def a(i: Int) = { if(true) window.console.log("[hi]\\'bye'\n") }
+      a(10)
+    } should equal (Block(List(
+      Function(
+        "a",
+        List("i"),
+        Block(List(
+          If(
+            LitBool(true),
+            Block(List(Apply(winConLog,LitStr("[hi]\\'bye'\n")))),
+            Block(List())
+          )
+        ))
+      ),
+      Apply(SimpleIdentifier("a"),LitNum(10))
+    )))
+
+    js.javascript {
+      def b() = { if(true) window.console.log("""[hi]\'bye'\n""") }
+      b()
+    } should equal (Block(List(
+      Function(
+        "b",
+        Nil,
+        Block(List(
+          If(
+            LitBool(true),
+            Block(List(Apply(winConLog,(LitStr("""[hi]\'bye'\n"""))))),
+            Block(List())
+          )
+        ))
+      ),
+      Apply(SimpleIdentifier("b"))
+    )))
+    js.javascript {
+      def c(i: Int, j: String, k: Double): Int = return 10
+      c(0,"",0)
+    } should equal (Block(List(
+      Function(
+        "c",
+        List("i", "j", "k"),
+        Block(List(
+          Return(LitNum(10))
+        ))
+      ),
+      Apply(SimpleIdentifier("c"), LitNum(0), LitStr(""), LitNum(0.0))
+    )))
   }
 }

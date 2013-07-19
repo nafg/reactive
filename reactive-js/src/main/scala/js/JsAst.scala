@@ -76,7 +76,7 @@ object JsAst extends JsExprAst {
   case class Try(block: List[Statement], catchName: String, catcher: List[Statement], finalizer: List[Statement]) extends Statement
   case class Function(name: String, args: List[String], body: Block) extends Statement
   case class Return(e: Expr) extends Statement
-  //TODO: for, for..in, for each..in
+  //TODO: for, for..in
 
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
   private def indentStr = indent.value.map(" " * _).getOrElse("")
