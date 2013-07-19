@@ -83,7 +83,7 @@ sealed trait JsStatement {
  */
 object JsStatement {
   /**
-   * Some to pretty print at the given indent, None for compressed output
+   * `Some` to pretty print at the given indent, `None` for compressed output
    */
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
   def indentStr = indent.value.map(" " * _).getOrElse("")

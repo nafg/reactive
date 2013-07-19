@@ -36,7 +36,7 @@ object JsExp extends ToJsHigh {
   }
 
   /**
-   * Returns the javascript representation of the expression in a String
+   * Returns a String representation of the javascript expression
    */
   def render(e: JsExp[_ <: JsAny]): String = e match {
     case null => "null"
@@ -45,7 +45,7 @@ object JsExp extends ToJsHigh {
 }
 
 /**
- * A Scala representation of a javscript expression.
+ * A Scala representation of a javascript expression.
  * @tparam T the javascript type of the expression.
  */
 trait JsExp[+T <: JsAny] {
