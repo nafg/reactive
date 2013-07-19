@@ -102,36 +102,58 @@ object Macros {
         reify{ j.Try(be.splice, c.literal(n).splice, ce.splice, fe.splice) }.tree
       }
 
-      def expr(t: Tree): Tree = (t match {
-        case Literal(Constant(s: String)) =>
-          str(s)
-        case Literal(Constant(b: Boolean)) =>
-          bool(b)
+      @inline def exprPF(pf: PartialFunction[Tree, Tree]) = pf
+
+      val exprLitStr = exprPF {
+        case Literal(Constant(s: String)) => str(s)
+      }
+      val exprLitBool = exprPF {
+        case Literal(Constant(b: Boolean)) => bool(b)
+      }
+      val exprLitNum = exprPF {
         case n @ Literal(Constant((_: Int) | (_: Double) | (_: Long) | (_: BigDecimal))) =>
           num(n)
+      }
+      lazy val exprSelect = exprPF {
         case Select(left, right) =>
           if(!(left.tpe <:< typeOf[js.Object]))
             c.error(left.pos, "Can only select members of a js.Object")
           select(expr(left), right.toString)
-        case Ident(name) =>
-          simpleIdent(name.toString)
-        case _ =>
-          c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
-          c.abort(t.pos, s"Don't know how to convert expression $t\n raw: ${showRaw(t)}")
-      }).setPos(t.pos)
+      }
+      lazy val exprIdent = exprPF {
+        case Ident(name) => simpleIdent(name.toString)
+      }
 
-      def statements(t: Tree): List[Tree] = (t match {
+      @inline def stPF(pf: PartialFunction[Tree, List[Tree]]) = pf
+
+      def expr(t: Tree): Tree =
+        exprLitStr orElse
+          exprLitBool orElse
+          exprLitNum orElse
+          exprSelect orElse
+          exprIdent applyOrElse(t, {
+              c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
+              c.abort(t.pos, s"Don't know how to convert expression $t\n raw: ${showRaw(t)}")
+          }) setPos t.pos
+
+      val stValVar = stPF {
         case ValDef(m, name, TypeTree(), e) if m == Modifiers() || m == Modifiers(Flag.MUTABLE) =>
           List(
             declare(name.toString),
             assign(simpleIdent(name.toString), expr(e))
           )
+      }
+      val stAssign = stPF {
         case Assign(name, e) =>
           List(assign(simpleIdent(name.toString), expr(e)))
+      }
+      lazy val stIf = stPF {
         case If(cond, yes, no) =>
           List(
             _if(expr(cond), block(statements(yes): _*), block(statements(no): _*))
           )
+      }
+      lazy val stWhile = stPF {
         case LabelDef(
           labelName,
           Nil,
@@ -144,6 +166,8 @@ object Macros {
           List(
             _while(expr(cond), block(b flatMap (s => statements(s)): _*))
           )
+      }
+      lazy val stDoWhile = stPF {
         case LabelDef(
           labelName,
           Nil,
@@ -159,7 +183,9 @@ object Macros {
           List(
             doWhile(block(b flatMap (s => statements(s)): _*), expr(cond))
           )
-        case Match(input, casedefs) =>
+      }
+      lazy val stSwitch = stPF {
+        case t @ Match(input, casedefs) =>
           def openBlock(t: Tree) = t match {
             case Block(stmts, ret) => stmts :+ ret flatMap (s => statements(s))
             case _                 => statements(t)
@@ -185,6 +211,8 @@ object Macros {
           }
           val cases = allCases.getOrElse(false, Nil).flatten
           List(switch(expr(input), cases, default))
+      }
+      lazy val stTry = stPF {
         case Try(b, cs, f) =>
           val (name, cc) = cs match {
             case List(
@@ -206,9 +234,13 @@ object Macros {
               ("e", Nil)
           }
           List(_try(statements(b), name, cc, statements(f)))
+      }
+      lazy val stThrow = stPF {
         case Throw(Apply(fun, List(e))) if "reactive.web.js.js.Throwable.apply" == fun.symbol.fullName =>
           List(_throw(expr(e)))
-        case DefDef(Mods(), name, Nil, argss, TypeTree(), body) =>
+      }
+      lazy val stFunc = stPF {
+        case t @ DefDef(Mods(), name, Nil, argss, TypeTree(), body) =>
           if(argss.length != 1)
             c.error(t.pos, "Javascript methods must have one and only one argument list.")
           val args = c.Expr(list(argss.flatten.map {
@@ -219,17 +251,32 @@ object Macros {
             JsAst.Function(c.literal(name.toString).splice, args.splice, JsAst.Block(b.splice))
           }.tree
           List(func)
+      }
+      lazy val stApply = stPF {
         case Apply(function, params) =>
           List(_apply(expr(function), params map (p => expr(p))))
-        case Literal(Constant(())) =>
-          Nil
+      }
+      lazy val stBlock = stPF {
         case Block((stmts, ret)) =>
           List(block(stmts.flatMap(s => statements(s)) ++ statements(ret): _*))
-        case _ =>
-          c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
-          c.error(t.pos, s"Don't know how to convert statement $t\n  raw: ${showRaw(t)}")
-          Nil
-      }).map(_ setPos t.pos)
+      }
+
+      def statements(t: Tree): List[Tree] =
+        stValVar orElse
+          stAssign orElse
+          stIf orElse
+          stWhile orElse
+          stDoWhile orElse
+          stSwitch orElse
+          stTry orElse
+          stThrow orElse
+          stFunc orElse stPF {
+            case Literal(Constant(())) => Nil
+          } applyOrElse(t, { _: Tree =>
+            c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
+            c.error(t.pos, s"Don't know how to convert statement $t\n  raw: ${showRaw(t)}")
+            List.empty
+          }) map(_ setPos t.pos)
 
       def fixPos(t: Tree, default: Position): Tree = {
         if(t.pos == NoPosition) t.pos = default
