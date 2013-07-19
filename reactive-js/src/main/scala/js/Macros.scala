@@ -46,100 +46,61 @@ object Macros {
       def jsAst = reify{ j }.tree
 
       def block(trees: Tree*) = reify { j.Block }.tree ap List(list(trees.toList))
-      def str(s: String) = reify{ j.LitStr(c.literal(s).splice) }.tree
-      def bool(b: Boolean) = reify{ j.LitBool(c.literal(b).splice) }.tree
-      def num(n: Tree) = {
-        val e = c.Expr(n)
-        reify{ j.LitNum(e.splice) }.tree
-      }
-      def declare(n: String) = reify{ j.Declare(c.literal(n).splice) }.tree
       def assign(to: Tree, what: Tree) = {
         val t = c.Expr(to)
         val w = c.Expr(what)
         reify{ j.Assign(t.splice, w.splice) }.tree
       }
       def simpleIdent(n: String) = reify{ j.SimpleIdentifier(c.literal(n).splice) }.tree
-      def select(q: Tree, n: String) = {
-        val qe = c.Expr(q)
-        reify{ j.Select(qe.splice, c.literal(n).splice) }.tree
-      }
-      def _apply(fun: Tree, args: List[Tree]) = reify{ j.Apply }.tree ap fun +: args
-      def _if(cond: Tree, yes: Tree, no: Tree) = {
-        val ce = c.Expr(cond)
-        val y = c.Expr(yes)
-        val n = c.Expr(no)
-        reify{ j.If(ce.splice, y.splice, n.splice) }.tree
-      }
-      def _while(cond: Tree, body: Tree) = {
-        val ce = c.Expr(cond)
-        val b = c.Expr(body)
-        reify{ j.While(ce.splice, b.splice) }.tree
-      }
-      def doWhile(body: Tree, cond: Tree) = {
-        val b = c.Expr(body)
-        val ce = c.Expr(cond)
-        reify{ j.DoWhile(b.splice, ce.splice) }.tree
-      }
-      def switch(in: Tree, cases: List[Tree], default: Tree) = {
-        val i = c.Expr(in)
-        val cs = c.Expr(list(cases))
-        val d = c.Expr(default)
-        reify{ j.Switch(i.splice, cs.splice, d.splice) }.tree
-      }
+
       def _case(test: List[Tree], st: List[Tree]) = {
         val t = c.Expr(list(test))
         val s = c.Expr(list(st))
         reify{ j.Case(t.splice, s.splice) }.tree
       }
-      def _throw(e: Tree) = {
-        val ee = c.Expr(e)
-        reify{ j.Throw(ee.splice) }.tree
-      }
-      def _try(b: List[Tree], n: String, cs: List[Tree], f: List[Tree]) = {
-        val be = c.Expr(list(b))
-        val ce = c.Expr(list(cs))
-        val fe = c.Expr(list(f))
-        reify{ j.Try(be.splice, c.literal(n).splice, ce.splice, fe.splice) }.tree
-      }
 
       @inline def exprPF(pf: PartialFunction[Tree, Tree]) = pf
 
-      val exprLitStr = exprPF {
-        case Literal(Constant(s: String)) => str(s)
+      lazy val exprLitStr = exprPF {
+        case Literal(Constant(s: String)) => reify{ j.LitStr(c.literal(s).splice) }.tree
       }
-      val exprLitBool = exprPF {
-        case Literal(Constant(b: Boolean)) => bool(b)
+      lazy val exprLitBool = exprPF {
+        case Literal(Constant(b: Boolean)) => reify{ j.LitBool(c.literal(b).splice) }.tree
       }
-      val exprLitNum = exprPF {
+      lazy val exprLitNum = exprPF {
         case n @ Literal(Constant((_: Int) | (_: Double) | (_: Long) | (_: BigDecimal))) =>
-          num(n)
+          val e = c.Expr(n)
+          reify{ j.LitNum(e.splice) }.tree
       }
       lazy val exprSelect = exprPF {
         case Select(left, right) =>
           if(!(left.tpe <:< typeOf[js.Object]))
             c.error(left.pos, "Can only select members of a js.Object")
-          select(expr(left), right.toString)
+          val qualifier = c.Expr(expr(left))
+          reify{ j.Select(qualifier.splice, c.literal(right.toString).splice) }.tree
       }
       lazy val exprIdent = exprPF {
         case Ident(name) => simpleIdent(name.toString)
       }
 
-      @inline def stPF(pf: PartialFunction[Tree, List[Tree]]) = pf
-
-      def expr(t: Tree): Tree =
-        exprLitStr orElse
+      def expr(t: Tree): Tree = {
+        val chain = exprLitStr orElse
           exprLitBool orElse
           exprLitNum orElse
           exprSelect orElse
-          exprIdent applyOrElse(t, {
-              c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
-              c.abort(t.pos, s"Don't know how to convert expression $t\n raw: ${showRaw(t)}")
-          }) setPos t.pos
+          exprIdent
+        chain.applyOrElse(t, { _: Tree =>
+          // c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
+          c.abort(t.pos, s"Don't know how to convert expression $t\n raw: ${showRaw(t)}")
+        }) setPos t.pos
+      }
+
+      @inline def stPF(pf: PartialFunction[Tree, List[Tree]]) = pf
 
       val stValVar = stPF {
         case ValDef(m, name, TypeTree(), e) if m == Modifiers() || m == Modifiers(Flag.MUTABLE) =>
           List(
-            declare(name.toString),
+            reify{ j.Declare(c.literal(name.toString).splice) }.tree,
             assign(simpleIdent(name.toString), expr(e))
           )
       }
@@ -149,9 +110,10 @@ object Macros {
       }
       lazy val stIf = stPF {
         case If(cond, yes, no) =>
-          List(
-            _if(expr(cond), block(statements(yes): _*), block(statements(no): _*))
-          )
+          val ce = c.Expr(expr(cond))
+          val y = c.Expr(block(statements(yes): _*))
+          val n = c.Expr(block(statements(no): _*))
+          List(reify{ j.If(ce.splice, y.splice, n.splice) }.tree)
       }
       lazy val stWhile = stPF {
         case LabelDef(
@@ -163,9 +125,9 @@ object Macros {
             Literal(Constant(()))
           )
         ) if labelName == jumpName =>
-          List(
-            _while(expr(cond), block(b flatMap (s => statements(s)): _*))
-          )
+          val ce = c.Expr(expr(cond))
+          val be = c.Expr(block(b flatMap (s => statements(s)): _*))
+          List(reify{ j.While(ce.splice, be.splice) }.tree)
       }
       lazy val stDoWhile = stPF {
         case LabelDef(
@@ -180,9 +142,9 @@ object Macros {
             )
           )
         ) if labelName == jumpName =>
-          List(
-            doWhile(block(b flatMap (s => statements(s)): _*), expr(cond))
-          )
+          val be = c.Expr(block(b flatMap (s => statements(s)): _*))
+          val ce = c.Expr(expr(cond))
+          List(reify{ j.DoWhile(be.splice, ce.splice) }.tree)
       }
       lazy val stSwitch = stPF {
         case t @ Match(input, casedefs) =>
@@ -203,14 +165,17 @@ object Macros {
           } groupBy (_._1) mapValues (_ map (_._2))
           val default = allCases.getOrElse(true, Nil) match {
             case List(one) =>
-              "scala" sel "Some" ap List(list(one))
+              reify{ Some }.tree ap List(list(one))
             case xs        =>
               if(xs.nonEmpty)
                 c.error(t.pos, s"Multiple default cases found: $xs");
-              "scala" sel "None"
+              reify{ None }.tree
           }
           val cases = allCases.getOrElse(false, Nil).flatten
-          List(switch(expr(input), cases, default))
+          val i = c.Expr(expr(input))
+          val cs = c.Expr(list(cases))
+          val d = c.Expr(default)
+          List(reify{ j.Switch(i.splice, cs.splice, d.splice) }.tree)
       }
       lazy val stTry = stPF {
         case Try(b, cs, f) =>
@@ -233,11 +198,15 @@ object Macros {
               }
               ("e", Nil)
           }
-          List(_try(statements(b), name, cc, statements(f)))
+          val be = c.Expr(list(statements(b)))
+          val ce = c.Expr(list(cc))
+          val fe = c.Expr(list(statements(f)))
+          List(reify{ j.Try(be.splice, c.literal(name).splice, ce.splice, fe.splice) }.tree)
       }
       lazy val stThrow = stPF {
         case Throw(Apply(fun, List(e))) if "reactive.web.js.js.Throwable.apply" == fun.symbol.fullName =>
-          List(_throw(expr(e)))
+          val ee = c.Expr(expr(e))
+          List(reify{ j.Throw(ee.splice) }.tree)
       }
       lazy val stFunc = stPF {
         case t @ DefDef(Mods(), name, Nil, argss, TypeTree(), body) =>
@@ -247,14 +216,11 @@ object Macros {
             case ValDef(Mods(Flag.PARAM), paramName, _, EmptyTree) => Literal(Constant(paramName.toString))
           }))
           val b = c.Expr(list(statements(body))) //TODO
-          val func = reify {
-            JsAst.Function(c.literal(name.toString).splice, args.splice, JsAst.Block(b.splice))
-          }.tree
-          List(func)
+          List(reify { j.Function(c.literal(name.toString).splice, args.splice, JsAst.Block(b.splice)) }.tree)
       }
       lazy val stApply = stPF {
         case Apply(function, params) =>
-          List(_apply(expr(function), params map (p => expr(p))))
+          List(reify{ j.Apply }.tree ap expr(function) +: params.map(p => expr(p)))
       }
       lazy val stBlock = stPF {
         case Block((stmts, ret)) =>
@@ -270,10 +236,12 @@ object Macros {
           stSwitch orElse
           stTry orElse
           stThrow orElse
-          stFunc orElse stPF {
+          stFunc orElse
+          stApply orElse
+          stBlock orElse stPF {
             case Literal(Constant(())) => Nil
           } applyOrElse(t, { _: Tree =>
-            c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
+            // c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
             c.error(t.pos, s"Don't know how to convert statement $t\n  raw: ${showRaw(t)}")
             List.empty
           }) map(_ setPos t.pos)
