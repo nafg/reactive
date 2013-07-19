@@ -75,7 +75,8 @@ object JsAst extends JsExprAst {
   case class Throw(e: Expr) extends Statement
   case class Try(block: List[Statement], catchName: String, catcher: List[Statement], finalizer: List[Statement]) extends Statement
   case class Function(name: String, args: List[String], body: Block) extends Statement
-  //TODO: for, for..in, for each..in, function, return
+  case class Return(e: Expr) extends Statement
+  //TODO: for, for..in, for each..in
 
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
   private def indentStr = indent.value.map(" " * _).getOrElse("")
@@ -116,5 +117,6 @@ object JsAst extends JsExprAst {
     case Throw(e)              => s"throw ${render(e)}"
     case Try(b, n, c, f)       => "try {"+renderBlock(b)+nl+"} catch("+n+") {"+renderBlock(c)+nl+"} finally {"+renderBlock(f)+nl+"}"
     case Function(n, args, b)  => s"function $n(${args.mkString(",")}) ${render(b)}"
+    case Return(exp)           => "return "+render(exp)
   }
 }

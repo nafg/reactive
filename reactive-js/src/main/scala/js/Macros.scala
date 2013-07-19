@@ -218,6 +218,11 @@ object Macros {
           val b = c.Expr(list(statements(body))) //TODO
           List(reify { j.Function(c.literal(name.toString).splice, args.splice, JsAst.Block(b.splice)) }.tree)
       }
+      lazy val stReturn = stPF {
+        case Return(exp) =>
+          val e = c.Expr(expr(exp))
+          List(reify{ j.Return(e.splice) }.tree)
+      }
       lazy val stApply = stPF {
         case Apply(function, params) =>
           List(reify{ j.Apply }.tree ap expr(function) +: params.map(p => expr(p)))
@@ -237,6 +242,7 @@ object Macros {
           stTry orElse
           stThrow orElse
           stFunc orElse
+          stReturn orElse
           stApply orElse
           stBlock orElse stPF {
             case Literal(Constant(())) => Nil
