@@ -22,10 +22,39 @@ sealed trait JsExprAst {
   case class SimpleIdentifier(name: String) extends Identifier
   case class Select(qualifier: Expr, name: String) extends Identifier
 
+  /**
+   * Based on net.liftweb.util.StringHelpers#encJs
+   */
+  def renderString(in: String): String = in match {
+    case null => "null"
+    case _    =>
+      def escUnicode(in: Char) = {
+        val ret = Integer.toString(in.toInt, 16)
+        "\\u"+("0000".substring(ret.length)) + ret
+      }
+
+      val len = in.length
+      val sb = new java.lang.StringBuilder(len * 2) append '"'
+      var pos = 0
+      while (pos < len) {
+        in.charAt(pos) match {
+          case c @ ('"' | '\\')                           => sb append '\\' append c
+          case '\n'                                       => sb append "\\n"
+          case '\r'                                       => sb append "\\r"
+          case '\t'                                       => sb append "\\t"
+          case c if c < ' ' || c == ']' || c.toInt >= 127 => sb append escUnicode(c)
+          case c                                          => sb append c
+        }
+        pos += 1
+      }
+      sb.append('"').toString
+  }
+
+
   def render(expr: Expr): String = expr match {
     case SimpleIdentifier(name) => name
     case Select(qual, name)     => s"${render(qual)}.$name"
-    case LitStr(s)              => net.liftweb.util.Helpers.encJs(s) //TODO eliminate dependency?
+    case LitStr(s)              => renderString(s)
     case LitBool(b)             => b.toString
     case LitNum(n)              => n.toString
   }
@@ -45,7 +74,8 @@ object JsAst extends JsExprAst {
   case class Declare(name: String) extends Statement
   case class Throw(e: Expr) extends Statement
   case class Try(block: List[Statement], catchName: String, catcher: List[Statement], finalizer: List[Statement]) extends Statement
-  //TODO: for, for..in, for each..in, throw, try/catch, function, return
+  case class Function(name: String, args: List[String], body: Block) extends Statement
+  //TODO: for, for..in, for each..in, function, return
 
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
   private def indentStr = indent.value.map(" " * _).getOrElse("")
@@ -81,9 +111,10 @@ object JsAst extends JsExprAst {
     case Apply(fun, args @ _*) => render(fun)+args.map(render).mkString("(", ",", ")")
     case If(cond, yes, no)     => s"if(${render(cond)}) ${render(yes)} else ${render(no)}"
     case While(cond, body)     => s"while(${render(cond)}) ${render(body)}"
-    case DoWhile(body, cond)   => s"do ${render(body)} while(${render(cond)})"    
+    case DoWhile(body, cond)   => s"do ${render(body)} while(${render(cond)})"
     case s: Switch             => renderSwitch(s)
     case Throw(e)              => s"throw ${render(e)}"
     case Try(b, n, c, f)       => "try {"+renderBlock(b)+nl+"} catch("+n+") {"+renderBlock(c)+nl+"} finally {"+renderBlock(f)+nl+"}"
+    case Function(n, args, b)  => s"function $n(${args.mkString(",")}) ${render(b)}"
   }
 }
