@@ -227,7 +227,12 @@ object Macros {
           List(reify{ j.Try(be.splice, c.literal(name).splice, ce.splice, fe.splice) }.tree)
       }
       lazy val stThrow = stPF {
-        case Throw(Apply(fun, List(e))) if "reactive.web.js.js.Throwable.apply" == fun.symbol.fullName =>
+        case Throw(
+          Apply(
+            TypeApply(Select(Select(Ident(Name("js")), Name("Throwable")), Name("apply")), List(TypeTree())),
+            List(e)
+          )
+        ) =>
           val ee = c.Expr(expr(e))
           List(reify{ j.Throw(ee.splice) }.tree)
       }
