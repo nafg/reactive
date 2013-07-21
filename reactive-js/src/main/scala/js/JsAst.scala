@@ -7,6 +7,15 @@ import language.experimental.macros
 object js {
   class Object
 
+  def stub = sys.error("Javascript stub, should not be called from scala code")
+
+  case class Array[A](xs: A*) extends Object{
+    def push(x: A): Unit = stub
+    def shift(): A = stub
+    def foreach(f: Int => Unit): Unit = stub
+    def apply(idx: Int): A = stub
+  }
+
   def javascript(body: Any): JsAst.Statement = macro Macros.javascriptImpl
 
   case class Throwable[A](value: A) extends scala.Throwable
@@ -19,8 +28,10 @@ sealed trait JsExprAst {
   case class LitStr(string: String) extends Literal
   case class LitBool(bool: Boolean) extends Literal
   case class LitNum(num: BigDecimal) extends Literal
+  case class LitArray(xs: List[Expr]) extends Literal
   case class SimpleIdentifier(name: String) extends Identifier
   case class Select(qualifier: Expr, name: String) extends Identifier
+  case class Index(obj: Expr, index: Expr) extends Expr
 
   /**
    * Based on net.liftweb.util.StringHelpers#encJs
@@ -57,6 +68,8 @@ sealed trait JsExprAst {
     case LitStr(s)              => renderString(s)
     case LitBool(b)             => b.toString
     case LitNum(n)              => n.toString
+    case LitArray(xs)           => xs.map(render).mkString("[",",","]")
+    case Index(obj, idx)        => render(obj)+"["+render(idx)+"]"
   }
 }
 
@@ -76,7 +89,8 @@ object JsAst extends JsExprAst {
   case class Try(block: List[Statement], catchName: String, catcher: List[Statement], finalizer: List[Statement]) extends Statement
   case class Function(name: String, args: List[String], body: Block) extends Statement
   case class Return(e: Expr) extends Statement
-  //TODO: for, for..in
+  case class For(varName: String, start: Expr, end: Expr, step: Expr, inclusive: Boolean, statement: Statement) extends Statement
+  case class ForIn(varName: String, target: Expr, statement: Statement) extends Statement
 
   val indent = new scala.util.DynamicVariable[Option[Int]](None)
   private def indentStr = indent.value.map(" " * _).getOrElse("")
@@ -90,10 +104,10 @@ object JsAst extends JsExprAst {
   private def indentAndRender(statement: Statement) = indented {
     indentStr + render(statement)
   }
+
   private def renderBlock(statements: Seq[Statement]): String =
     if(statements.isEmpty) ""
     else varsFirst(statements).map(indentAndRender).mkString(nl, ";"+nl, "")
-
   private def renderSwitch(s: Switch) =
     s"switch(${render(s.input)}) {" +
       indented {
@@ -104,6 +118,14 @@ object JsAst extends JsExprAst {
           s"$nl${indentStr}default: " + renderBlock(body) + ";"
         }.getOrElse("")
       } + s"$nl$indentStr}"
+  private def renderFor(f: For): String = {
+    import f._
+    val cmp = step match {
+      case LitNum(n) if n < 0 => if(inclusive) ">=" else ">"
+      case _                  => if(inclusive) "<=" else "<"
+    }
+    s"for(var $varName=${render(start)}; $varName $cmp ${render(end)}; $varName += ${render(step)}) ${render(statement)}"
+  }
 
   def render(statement: Statement): String = statement match {
     case Block(statements)     => "{"+renderBlock(statements)+nl+indentStr+"}"
@@ -118,5 +140,7 @@ object JsAst extends JsExprAst {
     case Try(b, n, c, f)       => "try {"+renderBlock(b)+nl+"} catch("+n+") {"+renderBlock(c)+nl+"} finally {"+renderBlock(f)+nl+"}"
     case Function(n, args, b)  => s"function $n(${args.mkString(",")}) ${render(b)}"
     case Return(exp)           => "return "+render(exp)
+    case f: For                => renderFor(f)
+    case ForIn(nm, target, st) => s"for($nm in ${render(target)}) ${render(st)}"
   }
 }

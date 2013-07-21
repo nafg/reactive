@@ -38,10 +38,14 @@ object Macros {
       )
       def unapplySeq(m: Modifiers) = Some(flags.filter(m.hasFlag))
     }
+    object Name {
+      def unapply(name: Name) = Some(name.decoded)
+    }
   }
 
   class JsCompiler[C <: Context](val context: C) extends MacroUtils {
     import context.universe._
+
     def apply(body: context.Expr[Any]): context.Expr[j.Statement] = {
       def jsAst = reify{ j }.tree
 
@@ -82,12 +86,31 @@ object Macros {
       lazy val exprIdent = exprPF {
         case Ident(name) => simpleIdent(name.toString)
       }
+      lazy val exprArray = exprPF {
+        case Apply(
+          TypeApply(
+            Select(Select(Ident(Name("js")), Name("Array")), Name("apply")),
+            List(TypeTree())
+          ),
+          exprs
+        ) =>
+          val es = c.Expr(list(exprs map expr))
+          reify{ j.LitArray(es.splice) }.tree
+      }
+      lazy val exprIndex = exprPF {
+        case Apply(Select(e, Name("apply")), List(elem)) if e.tpe <:< typeOf[js.Object] =>
+          val ee = c.Expr(expr(e))
+          val el = c.Expr(expr(elem))
+          reify{ j.Index(ee.splice, el.splice) }.tree
+      }
 
       def expr(t: Tree): Tree = {
         val chain = exprLitStr orElse
           exprLitBool orElse
           exprLitNum orElse
           exprSelect orElse
+          exprArray orElse
+          exprIndex orElse
           exprIdent
         chain.applyOrElse(t, { _: Tree =>
           // c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
@@ -215,7 +238,7 @@ object Macros {
           val args = c.Expr(list(argss.flatten.map {
             case ValDef(Mods(Flag.PARAM), paramName, _, EmptyTree) => Literal(Constant(paramName.toString))
           }))
-          val b = c.Expr(list(statements(body))) //TODO
+          val b = c.Expr(list(statements(body)))
           List(reify { j.Function(c.literal(name.toString).splice, args.splice, JsAst.Block(b.splice)) }.tree)
       }
       lazy val stReturn = stPF {
@@ -231,6 +254,63 @@ object Macros {
         case Block((stmts, ret)) =>
           List(block(stmts.flatMap(s => statements(s)) ++ statements(ret): _*))
       }
+      lazy val stFor = stPF {
+        case Apply(
+          TypeApply(
+            Select(
+              Apply(
+                Select(
+                  Apply(
+                    Select(Select(This(Name("scala")), Name("Predef")), Name("intWrapper")),
+                    List(start)
+                  ),
+                  Name(rangeType @ ("to" | "until"))
+                ),
+                List(end)
+              ),
+              Name("foreach")
+            ),
+            List(TypeTree())
+          ),
+          List(
+            Function(
+              List(
+                ValDef(Mods(Flag.PARAM), Name(argName), TypeTree(), EmptyTree)
+              ),
+              body
+            )
+          )
+        ) =>
+          val incl = c.literal(rangeType == "to")
+          val se = c.Expr(expr(start))
+          val ee = c.Expr(expr(end))
+          val nm = c.literal(argName)
+          val st = c.Expr[j.Statement](statements(body) match {
+            case List(one) => one
+            case xs        => block(xs: _*)
+          })
+          List(reify{ j.For(nm.splice, se.splice, ee.splice, j.LitNum(1), incl.splice, st.splice) }.tree)
+      }
+      lazy val stForIn = stPF {
+        case Apply(
+          Select(e, Name("foreach")),
+          List(
+            Function(
+              List(
+                ValDef(Mods(Flag.PARAM), Name(argName), TypeTree(), EmptyTree)
+              ),
+              body
+            )
+          )
+        ) =>
+          val ee = c.Expr(expr(e))
+          val nm = c.literal(argName)
+          val st = c.Expr(statements(body) match {
+            case List(one) => one
+            case xs        => block(xs: _*)
+          })
+          List(reify{ j.ForIn(nm.splice, ee.splice, st.splice) }.tree)
+      }
 
       def statements(t: Tree): List[Tree] =
         stValVar orElse
@@ -243,6 +323,8 @@ object Macros {
           stThrow orElse
           stFunc orElse
           stReturn orElse
+          stFor orElse
+          stForIn orElse
           stApply orElse
           stBlock orElse stPF {
             case Literal(Constant(())) => Nil

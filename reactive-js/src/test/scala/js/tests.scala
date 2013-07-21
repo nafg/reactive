@@ -14,6 +14,8 @@ object window extends js.Object {
   }
 }
 
+import window._
+
 /**
  * adds the javascript code rendering to the
  * toString output (alongside the AST toString)
@@ -193,6 +195,46 @@ class StatementTests extends FunSuite with ShouldMatchers {
         ))
       ),
       Apply(SimpleIdentifier("c"), LitNum(0), LitStr(""), LitNum(0.0))
+    )))
+  }
+
+  test("for") {
+    js.javascript {
+      var a = 0
+      for(i <- 1 to 100) {
+        a = i
+      }
+    } should equal (Block(List(
+      Declare("a"),
+      Assign(SimpleIdentifier("a"),LitNum(0)),
+      For(
+        "i",
+        LitNum(1),
+        LitNum(100),
+        LitNum(1),
+        true,
+        Assign(SimpleIdentifier("a"),SimpleIdentifier("i"))
+      )
+    )))
+  }
+  test("for..in") {
+    js.javascript {
+      val arr = js.Array("a", "b", "c")
+      var b = ""
+      for(i <- arr) b = arr(i)
+    } should equal (Block(List(
+      Declare("arr"),
+      Assign(SimpleIdentifier("arr"),LitArray(List(LitStr("a"), LitStr("b"), LitStr("c")))),
+      Declare("b"),
+      Assign(SimpleIdentifier("b"),LitStr("")),
+      ForIn(
+        "i",
+        SimpleIdentifier("arr"),
+        Assign(
+          SimpleIdentifier("b"),
+          Index(SimpleIdentifier("arr"),SimpleIdentifier("i"))
+        )
+      )
     )))
   }
 }
