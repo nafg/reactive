@@ -49,7 +49,7 @@ object Macros {
     def apply(body: context.Expr[Any]): context.Expr[j.Statement] = {
       def jsAst = reify{ j }.tree
 
-      def block(trees: Tree*) = reify { j.Block }.tree ap List(list(trees.toList))
+      def block(trees: List[Tree]) = reify { j.Block }.tree ap List(list(trees))
       def assign(to: Tree, what: Tree) = {
         val t = c.Expr(to)
         val w = c.Expr(what)
@@ -134,8 +134,8 @@ object Macros {
       lazy val stIf = stPF {
         case If(cond, yes, no) =>
           val ce = c.Expr(expr(cond))
-          val y = c.Expr(block(statements(yes): _*))
-          val n = c.Expr(block(statements(no): _*))
+          val y = c.Expr(block(statements(yes)))
+          val n = c.Expr(block(statements(no)))
           List(reify{ j.If(ce.splice, y.splice, n.splice) }.tree)
       }
       lazy val stWhile = stPF {
@@ -149,7 +149,7 @@ object Macros {
           )
         ) if labelName == jumpName =>
           val ce = c.Expr(expr(cond))
-          val be = c.Expr(block(b flatMap (s => statements(s)): _*))
+          val be = c.Expr(block(b flatMap (s => statements(s))))
           List(reify{ j.While(ce.splice, be.splice) }.tree)
       }
       lazy val stDoWhile = stPF {
@@ -165,7 +165,7 @@ object Macros {
             )
           )
         ) if labelName == jumpName =>
-          val be = c.Expr(block(b flatMap (s => statements(s)): _*))
+          val be = c.Expr(block(b flatMap (s => statements(s))))
           val ce = c.Expr(expr(cond))
           List(reify{ j.DoWhile(be.splice, ce.splice) }.tree)
       }
@@ -257,7 +257,7 @@ object Macros {
       }
       lazy val stBlock = stPF {
         case Block((stmts, ret)) =>
-          List(block(stmts.flatMap(s => statements(s)) ++ statements(ret): _*))
+          List(block(stmts.flatMap(s => statements(s)) ++ statements(ret)))
       }
       lazy val stFor = stPF {
         case Apply(
@@ -292,7 +292,7 @@ object Macros {
           val nm = c.literal(argName)
           val st = c.Expr[j.Statement](statements(body) match {
             case List(one) => one
-            case xs        => block(xs: _*)
+            case xs        => block(xs)
           })
           List(reify{ j.For(nm.splice, se.splice, ee.splice, j.LitNum(1), incl.splice, st.splice) }.tree)
       }
@@ -312,7 +312,7 @@ object Macros {
           val nm = c.literal(argName)
           val st = c.Expr(statements(body) match {
             case List(one) => one
-            case xs        => block(xs: _*)
+            case xs        => block(xs)
           })
           List(reify{ j.ForIn(nm.splice, ee.splice, st.splice) }.tree)
       }
@@ -345,7 +345,7 @@ object Macros {
         t
       }
       val trees = (statements(body.tree) match {
-        case Nil => List(block())
+        case Nil => List(block(Nil))
         case xs  => xs
       }) map (t => fixPos(t, body.tree.pos))
       val ret = c.Expr[JsAst.Statement](Block(trees.init, trees.last))
