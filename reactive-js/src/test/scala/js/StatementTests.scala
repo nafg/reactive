@@ -5,7 +5,6 @@ package js
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
-import scala.xml.NodeSeq
 import JsAst._
 
 object window extends js.Object {
