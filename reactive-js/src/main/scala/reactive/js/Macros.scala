@@ -118,6 +118,48 @@ object Macros {
           val b = c.Expr(block(sts :+ re))
           reify{ j.LitFunction(argNames.splice, b.splice) }.tree
       }
+      object objArgs {
+        def unapply(args: List[Tree]) = {
+          val xs = args collect {
+            case Apply(
+              TypeApply(
+                Select(
+                  Apply(
+                    TypeApply(
+                      Select(
+                        Select(
+                          This(Name("scala")),
+                          Name("Predef")
+                        ),
+                        Name("any2ArrowAssoc")
+                      ),
+                      _
+                    ),
+                    List(Literal(Constant(propName: String)))
+                  ),
+                  Name("->")
+                ),
+                _
+              ),
+              List(valueTree)
+            ) => (propName, valueTree)
+          }
+          if(xs.length != args.length) None
+          else Some(
+            c.Expr(list(xs map { case (k, v) =>
+              val ve = c.Expr(expr(v))
+              reify{ (c.literal(k).splice, ve.splice) }.tree
+            }))
+          )
+        }
+      }
+      lazy val exprObject = exprPF {
+        case Apply(
+          TypeApply(Select(Ident(Name("js")), Name("Object")), _),
+          objArgs(xs)
+        ) =>
+          reify{ j.LitObject(xs.splice) }.tree
+      }
       lazy val exprBinOp = exprPF {
         case Apply(Select(left, op), List(right)) if op.decoded != op.encoded =>
           val le = c.Expr(expr(left))
@@ -139,6 +181,7 @@ object Macros {
           exprArray orElse
           exprIndex orElse
           exprFunction orElse
+          exprObject orElse
           exprBinOp orElse
           exprApply orElse
           exprIdent

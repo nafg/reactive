@@ -56,4 +56,40 @@ class ExprTests extends FunSuite with ShouldMatchers with JsTestUtils {
       )
     )))
   }
+
+  test("object literal") {
+    js.javascript {
+      val a = js.Object(
+        "x" -> 10,
+        "y" -> "??",
+        "z" -> ((i: Int) => i % 2 == 0)
+      )
+    } should equal (Block(List(
+      Declare("a"),
+      Assign(
+        SimpleIdentifier("a"),
+        LitObject(
+          List(
+            ("x",LitNum(10)),
+            ("y",LitStr("??")),
+            (
+              "z",
+              LitFunction(
+                List("i"),
+                Block(List(
+                  Return(
+                    BinOp(
+                      BinOp(SimpleIdentifier("i"),"%",LitNum(2)),
+                      "==",
+                      LitNum(0)
+                    )
+                  )
+                ))
+              )
+            )
+          )
+        )
+      )
+    )))
+  }
 }
