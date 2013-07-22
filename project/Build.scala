@@ -30,7 +30,7 @@ object ReactiveBuild extends Build {
       val sourceUrl = "http://github.com/nafg/reactive/blob/master/" + bd.getName + "€{FILE_PATH}.scala"
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
     }),
-    scalaVersion := "2.10.0",
+    scalaVersion := "2.10.1",
     libraryDependencies ++= List(
       "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test",
       "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
