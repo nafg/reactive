@@ -5,39 +5,40 @@ import org.scalatest.matchers.ShouldMatchers
 
 import JsAst._
 
+
 object window extends js.Object {
   object console extends js.Object {
     def log(s: String): Unit = ???
   }
 }
 
-import window._
+trait JsTestUtils { this: FunSuite =>
 
-/**
- * adds the javascript code rendering to the
- * toString output (alongside the AST toString)
- * to aid in debugging "did not equal" test failures
- */
-case class WithRender(s: JsAst.Statement) {
-  override def toString = render(s) + " /*"+s.toString+"*/"
-  def println: this.type = {
-    Console.println(toString)
-    this
-  }
-}
-
-class StatementTests extends FunSuite with ShouldMatchers {
   val winConLog = Select(Select(SimpleIdentifier("window"), "console"), "log")
 
-  implicit class printStatement(s: Statement) {
-    def info: Statement = {
-      StatementTests.this.info(withRender.toString)
+  /**
+   * adds the javascript code rendering to the
+   * toString output (alongside the AST toString)
+   * to aid in debugging "did not equal" test failures
+   */
+  implicit class WithRender(s: JsAst.Statement) {
+    override def toString = render(s) + " /*"+s.toString+"*/"
+    def println: Statement = {
+      Console.println(toString)
       s
     }
-    def withRender = WithRender(s)
+    def info: Statement = {
+      JsTestUtils.this.info(toString)
+      s
+    }
   }
 
   JsAst.indent.value = Some(0)
+}
+
+class StatementTests extends FunSuite with ShouldMatchers with JsTestUtils {
+  import window._
+
 
   test("val") {
     js.javascript {

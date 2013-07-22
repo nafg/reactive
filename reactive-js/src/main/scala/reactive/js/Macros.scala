@@ -22,8 +22,8 @@ object Macros {
     def list(els: List[Tree]) = reify{ List }.tree ap els
 
     def trace(in: Tree)(out: Tree) = {
-      println("in: "+in)
-      println("out: "+out)
+      println("in: " + in)
+      println("out: " + out)
       out
     }
 
@@ -79,8 +79,8 @@ object Macros {
       }
       lazy val exprSelect = exprPF {
         case Select(left, right) =>
-          if(!(left.tpe <:< typeOf[js.Object]))
-            c.error(left.pos, "Can only select members of a js.Object")
+          if (!(left.tpe <:< typeOf[js.Object]))
+            c.error(left.pos, "Can only select members of a js.Object, but got a "+left.tpe)
           val qualifier = c.Expr(expr(left))
           reify{ j.Select(qualifier.splice, c.literal(right.toString).splice) }.tree
       }
@@ -92,9 +92,9 @@ object Macros {
           TypeApply(
             Select(Select(Ident(Name("js")), Name("Array")), Name("apply")),
             List(TypeTree())
-          ),
+            ),
           exprs
-        ) =>
+          ) =>
           val es = c.Expr(list(exprs map expr))
           reify{ j.LitArray(es.splice) }.tree
       }
@@ -104,6 +104,32 @@ object Macros {
           val el = c.Expr(expr(elem))
           reify{ j.Index(ee.splice, el.splice) }.tree
       }
+      lazy val exprFunction = exprPF {
+        case Function(args, body) =>
+          val argNames = c.Expr(list(args map {
+            case ValDef(Mods(Flag.PARAM), Name(name), _, EmptyTree) =>
+              Literal(Constant(name))
+          }))
+          val (sts, ret) = body match {
+            case Block(sts, ret) => (sts flatMap statements, c.Expr(expr(ret)))
+            case ret             => (Nil, c.Expr(expr(ret)))
+          }
+          val re = reify{ j.Return(ret.splice) }.tree
+          val b = c.Expr(block(sts :+ re))
+          reify{ j.LitFunction(argNames.splice, b.splice) }.tree
+      }
+      lazy val exprBinOp = exprPF {
+        case Apply(Select(left, op), List(right)) if op.decoded != op.encoded =>
+          val le = c.Expr(expr(left))
+          val re = c.Expr(expr(right))
+          reify{ j.BinOp(le.splice, c.literal(op.decoded).splice, re.splice) }.tree
+      }
+      lazy val exprApply = exprPF {
+        case Apply(Select(func, Name("apply")), args) =>
+          expr(Apply(func, args))
+        case Apply(func, args) =>
+          reify{ j.Apply }.tree ap expr(func) +: args.map(expr)
+      }
 
       def expr(t: Tree): Tree = {
         val chain = exprLitStr orElse
@@ -112,6 +138,9 @@ object Macros {
           exprSelect orElse
           exprArray orElse
           exprIndex orElse
+          exprFunction orElse
+          exprBinOp orElse
+          exprApply orElse
           exprIdent
         chain.applyOrElse(t, { _: Tree =>
           // c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
@@ -121,14 +150,14 @@ object Macros {
 
       @inline def stPF(pf: PartialFunction[Tree, List[Tree]]) = pf
 
-      val stValVar = stPF {
+      lazy val stValVar = stPF {
         case ValDef(m, name, TypeTree(), e) if m == Modifiers() || m == Modifiers(Flag.MUTABLE) =>
           List(
             reify{ j.Declare(c.literal(name.toString).splice) }.tree,
             assign(simpleIdent(name.toString), expr(e))
           )
       }
-      val stAssign = stPF {
+      lazy val stAssign = stPF {
         case Assign(name, e) =>
           List(assign(simpleIdent(name.toString), expr(e)))
       }
@@ -147,8 +176,8 @@ object Macros {
             cond,
             Block(b, Apply(Ident(jumpName), Nil)),
             Literal(Constant(()))
-          )
-        ) if labelName == jumpName =>
+            )
+          ) if labelName == jumpName =>
           val ce = c.Expr(expr(cond))
           val be = c.Expr(block(b flatMap (s => statements(s))))
           List(reify{ j.While(ce.splice, be.splice) }.tree)
@@ -163,9 +192,9 @@ object Macros {
               cond,
               Apply(Ident(jumpName), Nil),
               Literal(Constant(()))
+              )
             )
-          )
-        ) if labelName == jumpName =>
+          ) if labelName == jumpName =>
           val be = c.Expr(block(b flatMap (s => statements(s))))
           val ce = c.Expr(expr(cond))
           List(reify{ j.DoWhile(be.splice, ce.splice) }.tree)
@@ -190,8 +219,8 @@ object Macros {
           val default = allCases.getOrElse(true, Nil) match {
             case List(one) =>
               reify{ Some }.tree ap List(list(one))
-            case xs        =>
-              if(xs.nonEmpty)
+            case xs =>
+              if (xs.nonEmpty)
                 c.error(t.pos, s"Multiple default cases found: $xs");
               reify{ None }.tree
           }
@@ -209,15 +238,15 @@ object Macros {
                 Apply(
                   TypeTreeOrig(Select(Ident(Name("js")), Name("Throwable"))),
                   List(Bind(name, Ident(nme.WILDCARD) | Typed(Ident(nme.WILDCARD), _)))
-                ),
+                  ),
                 EmptyTree,
                 code
-              )
-            ) =>
+                )
+              ) =>
               (name.decoded, statements(code))
             case _ =>
-              if(cs.nonEmpty) {
-                c.info(cs.head.pos, "found: "+cs.map(showRaw(_)), false)
+              if (cs.nonEmpty) {
+                c.info(cs.head.pos, "found: " + cs.map(showRaw(_)), false)
                 c.error(cs.head.pos, "catch block must consist of one case of the form case js.Throwable(e)")
               }
               ("e", Nil)
@@ -232,14 +261,14 @@ object Macros {
           Apply(
             TypeApply(Select(Select(Ident(Name("js")), Name("Throwable")), Name("apply")), List(TypeTree())),
             List(e)
-          )
-        ) =>
+            )
+          ) =>
           val ee = c.Expr(expr(e))
           List(reify{ j.Throw(ee.splice) }.tree)
       }
       lazy val stFunc = stPF {
         case t @ DefDef(Mods(), name, Nil, argss, TypeTree(), body) =>
-          if(argss.length != 1)
+          if (argss.length != 1)
             c.error(t.pos, "Javascript methods must have one and only one argument list.")
           val args = c.Expr(list(argss.flatten.map {
             case ValDef(Mods(Flag.PARAM), paramName, _, EmptyTree) => Literal(Constant(paramName.toString))
@@ -269,24 +298,24 @@ object Macros {
                   Apply(
                     Select(Select(This(Name("scala")), Name("Predef")), Name("intWrapper")),
                     List(start)
-                  ),
+                    ),
                   Name(rangeType @ ("to" | "until"))
-                ),
+                  ),
                 List(end)
-              ),
+                ),
               Name("foreach")
-            ),
+              ),
             List(TypeTree())
-          ),
+            ),
           List(
             Function(
               List(
                 ValDef(Mods(Flag.PARAM), Name(argName), TypeTree(), EmptyTree)
-              ),
+                ),
               body
+              )
             )
-          )
-        ) =>
+          ) =>
           val incl = c.literal(rangeType == "to")
           val se = c.Expr(expr(start))
           val ee = c.Expr(expr(end))
@@ -304,11 +333,11 @@ object Macros {
             Function(
               List(
                 ValDef(Mods(Flag.PARAM), Name(argName), TypeTree(), EmptyTree)
-              ),
+                ),
               body
+              )
             )
-          )
-        ) =>
+          ) =>
           val ee = c.Expr(expr(e))
           val nm = c.literal(argName)
           val st = c.Expr(statements(body) match {
@@ -334,14 +363,14 @@ object Macros {
           stApply orElse
           stBlock orElse stPF {
             case Literal(Constant(())) => Nil
-          } applyOrElse(t, { _: Tree =>
+          } applyOrElse (t, { _: Tree =>
             // c.info(t.pos, s"Error converting code to javascript, input is: $body\n  raw: ${showRaw(body)}", false)
             c.error(t.pos, s"Don't know how to convert statement $t\n  raw: ${showRaw(t)}")
             List.empty
-          }) map(_ setPos t.pos)
+          }) map (_ setPos t.pos)
 
       def fixPos(t: Tree, default: Position): Tree = {
-        if(t.pos == NoPosition) t.pos = default
+        if (t.pos == NoPosition) t.pos = default
         t.children foreach (c => fixPos(c, t.pos))
         t
       }
@@ -350,7 +379,7 @@ object Macros {
         case xs  => xs
       }) map (t => fixPos(t, body.tree.pos))
       val ret = c.Expr[JsAst.Statement](Block(trees.init, trees.last))
-//       c.info(body.tree.pos, s"Converted from $body\n to $ret", false)  // why is this getting printed without -verbose?
+      //       c.info(body.tree.pos, s"Converted from $body\n to $ret", false)  // why is this getting printed without -verbose?
       ret
     }
   }

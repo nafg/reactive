@@ -19,7 +19,7 @@ object js {
   case class Throwable[A](value: A) extends scala.Throwable
 }
 
-sealed trait JsExprAst {
+sealed trait JsExprAst { this: JsAst.type =>
   sealed trait Expr
   sealed trait Identifier extends Expr
   sealed trait Literal extends Expr
@@ -27,9 +27,11 @@ sealed trait JsExprAst {
   case class LitBool(bool: Boolean) extends Literal
   case class LitNum(num: BigDecimal) extends Literal
   case class LitArray(xs: List[Expr]) extends Literal
+  case class LitFunction(args: List[String], body: Block) extends Literal
   case class SimpleIdentifier(name: String) extends Identifier
   case class Select(qualifier: Expr, name: String) extends Identifier
   case class Index(obj: Expr, index: Expr) extends Expr
+  case class BinOp(left: Expr, operator: String, right: Expr) extends Expr
 
   /**
    * Based on net.liftweb.util.StringHelpers#encJs
@@ -68,6 +70,9 @@ sealed trait JsExprAst {
     case LitNum(n)              => n.toString
     case LitArray(xs)           => xs.map(render).mkString("[",",","]")
     case Index(obj, idx)        => render(obj)+"["+render(idx)+"]"
+    case LitFunction(args, body)=> "function("+args.mkString(",")+") "+render(body)
+    case BinOp(left, op, right) => s"(${render(left)} $op ${render(right)})"
+    case Apply(func, args @ _*) => render(func) + args.map(render).mkString("(",",",")")
   }
 }
 
