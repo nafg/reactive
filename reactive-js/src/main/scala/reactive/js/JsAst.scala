@@ -1,6 +1,4 @@
-package reactive
-package web
-package js
+package reactive.js
 
 import language.experimental.macros
 

@@ -1,10 +1,8 @@
-package reactive
-package web
-package js
+package reactive.js
 
 import scala.reflect.macros.Context
 
-import reactive.web.js.{ JsAst => j }
+import reactive.js.{ JsAst => j }
 
 object Macros {
   trait MacroUtils {
@@ -40,6 +38,9 @@ object Macros {
     }
     object Name {
       def unapply(name: Name) = Some(name.decoded)
+    }
+    object TypeTreeOrig {
+      def unapply(tt: TypeTree) = Some(tt.original)
     }
   }
 
@@ -206,18 +207,18 @@ object Macros {
             case List(
               CaseDef(
                 Apply(
-                  tt @ TypeTree(),
+                  TypeTreeOrig(Select(Ident(Name("js")), Name("Throwable"))),
                   List(Bind(name, Ident(nme.WILDCARD) | Typed(Ident(nme.WILDCARD), _)))
                 ),
                 EmptyTree,
                 code
               )
-            ) if tt.original.symbol.fullName == "reactive.web.js.js.Throwable" =>
+            ) =>
               (name.decoded, statements(code))
             case _ =>
               if(cs.nonEmpty) {
-                c.error(cs.head.pos, "catch block must consist of one case of the form case js.Throwable(e)")
                 c.info(cs.head.pos, "found: "+cs.map(showRaw(_)), false)
+                c.error(cs.head.pos, "catch block must consist of one case of the form case js.Throwable(e)")
               }
               ("e", Nil)
           }
@@ -349,7 +350,7 @@ object Macros {
         case xs  => xs
       }) map (t => fixPos(t, body.tree.pos))
       val ret = c.Expr[JsAst.Statement](Block(trees.init, trees.last))
-      // c.info(body.tree.pos, s"Converted from $body\n to $ret", false)  // why is this getting printed without -verbose?
+//       c.info(body.tree.pos, s"Converted from $body\n to $ret", false)  // why is this getting printed without -verbose?
       ret
     }
   }

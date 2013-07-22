@@ -1,6 +1,4 @@
-package reactive
-package web
-package js
+package reactive.js
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
