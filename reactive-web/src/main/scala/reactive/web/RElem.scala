@@ -1,10 +1,6 @@
 package reactive
 package web
 
-import net.liftweb.http._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
 import net.liftweb.util.Helpers._
 import net.liftweb.common._
 import net.liftweb.actor._
