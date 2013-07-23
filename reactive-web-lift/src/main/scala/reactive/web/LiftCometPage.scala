@@ -2,7 +2,6 @@ package reactive
 package web
 
 import scala.xml.{ NodeSeq, Null, UnprefixedAttribute }
-
 import net.liftweb.common._
 import net.liftweb.util.Helpers._
 import net.liftweb.http._

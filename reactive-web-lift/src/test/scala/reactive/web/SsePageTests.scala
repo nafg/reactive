@@ -5,10 +5,8 @@ import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.SpanSugar
-
 import scala.concurrent._
 import ExecutionContext.Implicits._
-
 import java.io._
 
 class SsePageTests extends FunSuite with ShouldMatchers with Eventually with SpanSugar {

@@ -7,7 +7,7 @@ import net.liftweb.http._
 import net.liftweb.sitemap._
 import Loc._
 import reactive.web._
-import reactive.web.widgets.Messages
+import reactive.web.widgets.{ Messages, MessagesSnippet }
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import net.liftweb.doc.snippet.CodeInjection
@@ -39,7 +39,7 @@ class Boot {
     AppendToRender.init()
     SimpleAjaxPage.init()
     SsePage.init()
-    Messages.init(Messages.template("alert"))
+    MessagesSnippet.init(Messages.template("alert"))
 
     val mdParser = new net.liftweb.markdown.ActuariusTransformer
 

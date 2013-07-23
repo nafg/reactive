@@ -6,13 +6,10 @@ import scala.xml._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import net.liftweb.http.LiftRules
-import net.liftweb.http.RequestVar
 
 /**
  * The Messages companion object provides a default template.
- * In addition it provides a default per-page instance
- * which you can invoke as a Lift snippet, as long
- * as you invoke [[Messages.init]] in `boot`.
+ * In addition it provides a default per-page instance.
  */
 object Messages {
   private object counter extends IdCounter
@@ -72,31 +69,12 @@ object Messages {
       """) }</style>
     </div>
 
-  @volatile private var inited = false
-
   private val _defaultMessages = scala.collection.mutable.WeakHashMap[Page, Messages]()
 
   /**
    * A default per-[[Page]] instance
    */
   def defaultMessages(implicit page: Page) = _defaultMessages.getOrElseUpdate(page, new Messages)
-
-  /**
-   * Make the global Messages RequestVar available as a snippet, `reactive.Messages`.
-   * @param tmplt The template to use. Defaults to `template`.
-   */
-  def init(tmplt: NodeSeq = template()) = {
-    assert(!inited, "Cannot initialize twice!")
-    inited = true
-    LiftRules.snippets.append {
-      case "reactive" :: "Messages" :: Nil =>
-        { _: NodeSeq =>
-          AppendToRender.currentPages.flatMap{ implicit page =>
-            defaultMessages.renderWithTemplate(tmplt)
-          }
-        }
-    }
-  }
 
   implicit def singletonToDefaultMessages(m: Messages.type)(implicit page: Page): Messages = m.defaultMessages
 }
