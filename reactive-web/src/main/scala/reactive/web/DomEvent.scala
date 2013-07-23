@@ -2,7 +2,6 @@ package reactive
 package web
 
 import javascript._
-import net.liftweb.http.S
 import JsTypes._
 import net.liftweb.json.Serialization
 import net.liftweb.json.JsonAST.JValue
@@ -44,7 +43,11 @@ object EventEncoder {
   implicit val keyUp = new EventEncoder[KeyUp](key)
   implicit val keyPress = new EventEncoder[KeyPress](key)
 
-  def buttons(event: $[JsObj]) = if (S.request.dmap(false)(_.isIE)) javascript.Object(
+  case class CalcIsIE(f: () => Boolean) {
+    def apply() = f()
+  }
+
+  def buttons(event: $[JsObj])(implicit isIE: CalcIsIE = CalcIsIE(() => false)) = if (isIE()) javascript.Object(
     "left" -> ((event >> 'buttons) & 1 !== 0),
     "middle" -> ((event >> 'buttons) & 4 !== 0),
     "right" -> ((event >> 'buttons) & 2 !== 0),
