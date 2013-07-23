@@ -5,6 +5,7 @@ package widgets
 import scala.xml._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
+import net.liftweb.http.LiftRules
 
 /**
  * The Messages companion object provides a default template.
