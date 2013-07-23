@@ -23,7 +23,7 @@ class SsePageTests extends FunSuite with ShouldMatchers with Eventually with Spa
     Thread.sleep(200)
     page.sseTransport.queue("hello")
     Await.ready(fut, duration.Duration.Inf)
-    
+
     eventually(timeout(3000.millis)) {
       sw.toString should equal ("id: 1\ndata: hello\n\n")
     }

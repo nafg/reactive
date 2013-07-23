@@ -7,24 +7,20 @@ import org.scalatest.matchers.ShouldMatchers
 import scala.xml.{ NodeSeq, Text }
 
 import net.liftweb.util.Helpers._
-import net.liftweb.mockweb._
-
 
 class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
   test("TestTransport") {
-    MockWeb.testS("/") {
-      val template = <span id="span">A</span>
-      val signal = Var("A")
-      implicit val page = new Page { }
-      def snippet: NodeSeq => NodeSeq =
-        "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
-      val tt = new TestTransport(<html>{ snippet apply template }</html>)(page)
-      page.withTransport(tt) {
-        signal() = "B"
-      }
-      (tt.xml \\! "span").node.text should equal ("B")
-      tt.xml.node should equal (<html><span id="span">B</span></html>)
+    val template = <span id="span">A</span>
+    val signal = Var("A")
+    implicit val page = new Page {}
+    def snippet: NodeSeq => NodeSeq =
+      "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
+    val tt = new TestTransport(<html>{ snippet apply template }</html>)(page)
+    page.withTransport(tt) {
+      signal() = "B"
     }
+    (tt.xml \\! "span").node.text should equal ("B")
+    tt.xml.node should equal (<html><span id="span">B</span></html>)
   }
 
   test("Emulate event") {
