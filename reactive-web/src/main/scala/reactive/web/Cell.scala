@@ -2,7 +2,6 @@ package reactive
 package web
 
 import scala.xml.{ Elem, NodeSeq }
-import net.liftweb.http.js.JsCmds.SetHtml
 
 /**
  * A Cell is an RElem whose contents are determined by a simple Signal.

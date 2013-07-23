@@ -1,9 +1,6 @@
 package reactive
 
 import scala.xml.{ Elem, Group, Node, NodeSeq }
-import net.liftweb.http.{ js, SHtml, S }
-import js.JE.{ JsRaw, Str }
-import js.JsCmds
 import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
 
 /**

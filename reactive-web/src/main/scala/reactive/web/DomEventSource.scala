@@ -1,7 +1,6 @@
 package reactive
 package web
 
-import net.liftweb.http.{ S, SHtml }
 import net.liftweb.util.Helpers.urlDecode
 import javascript._
 import JsTypes._

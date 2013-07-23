@@ -3,7 +3,6 @@ package web
 package html
 
 import scala.xml.{ NodeSeq, Text }
-import net.liftweb.http.js.JsCmds.SetHtml
 
 /**
  * Represents a button element in the DOM
