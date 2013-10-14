@@ -1,2 +1,1 @@
-See the demo at "http://reactive-web-demo.nafg.cloudbees.net/":http://reactive-web-demo.nafg.cloudbees.net/
-
+See the demo at "http://scalareactive.org/":http://scalareactive.org/
