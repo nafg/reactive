@@ -34,7 +34,8 @@ object SsePage extends PagesCache[SsePage] {
               List(
                 "Content-Type" -> "text/event-stream",
                 "Cache-Control" -> "no-cache",
-                "Connection" -> "keep-alive"
+                "Connection" -> "keep-alive",
+                "X-Accel-Buffering" -> "no"
               )
             )
           )
