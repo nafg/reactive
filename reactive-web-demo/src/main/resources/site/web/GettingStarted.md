@@ -5,7 +5,7 @@
 ### 2. Add reactive-web as a dependency
 For instance, if you’re using sbt, that would be:
 ````
-  libraryDependencies += "cc.co.scala-reactive" %% "reactive-web" % "0.4-SNAPSHOT"
+  libraryDependencies += "cc.co.scala-reactive" %% "reactive-web" % "0.4.0-SNAPSHOT"
 ````
 
 ### 3. Enable it
