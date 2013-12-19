@@ -12,6 +12,7 @@ import net.liftweb.json.Serialization
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonAST.JBool
 
+import reactive.logging.Logger
 
 /**
  * A scope to simulate the dom mutations that the browser would apply,

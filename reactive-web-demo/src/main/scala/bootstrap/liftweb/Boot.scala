@@ -1,8 +1,8 @@
 package bootstrap.liftweb
 
-import net.liftweb.common._
-import net.liftweb.util._
-import Helpers.strToCssBindPromoter
+import net.liftweb.common.Full
+import net.liftweb.util.Html5
+import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.http._
 import net.liftweb.sitemap._
 import Loc._
@@ -11,6 +11,9 @@ import reactive.web.widgets.{ Messages, MessagesSnippet }
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import net.liftweb.doc.snippet.CodeInjection
+
+import reactive.Observing
+import reactive.logging._
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -146,6 +149,18 @@ class Boot {
 
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
+    Logging.init()
+
     println("reactive finished booting!")
+  }
+}
+
+object Logging {
+  implicit private object observing extends Observing
+  def init() {
+    Logger.all foreach {
+      case (level, LogEvent(subj, pred)) =>
+        System.err.println(s"$level ($subj): $pred")
+    }
   }
 }

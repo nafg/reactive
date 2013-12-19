@@ -10,6 +10,8 @@ import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
 import scala.collection.mutable.WeakHashMap
 import scala.reflect.{ classTag, ClassTag }
 
+import reactive.logging.Logger
+
 
 class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
   def self = domEventSource

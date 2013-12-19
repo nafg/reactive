@@ -4,6 +4,8 @@ import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.ParallelTestExecution
 
+import reactive.logging._
+
 object CollectEvents extends CollectEvents
 //TODO add collecting method to EventStream
 trait CollectEvents {
@@ -25,7 +27,7 @@ trait CollectEvents {
 
 class LoggerTests extends FunSuite with ShouldMatchers with Observing {
   test("doesn't StackOverflow") {
-    Logger.defaultLevel = Logger.Levels.Trace
+    Logger.defaultLevel = LogLevel.Trace
     Logger.all foreach { _ => }
     val es = new EventSource[Int]
     es foreach { _ => }

@@ -3,6 +3,8 @@ package reactive
 import scala.xml.{ Elem, Group, Node, NodeSeq }
 import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
 
+import reactive.logging.Logger
+
 /**
  * reactive-web package
  */

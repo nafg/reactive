@@ -2,6 +2,7 @@ package reactive
 
 import java.util.{Timer => juTimer, TimerTask}
 
+import logging.Logger
 
 private object _timer extends juTimer("reactive-core timer thread", true) {
   def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit): TimerTask = {

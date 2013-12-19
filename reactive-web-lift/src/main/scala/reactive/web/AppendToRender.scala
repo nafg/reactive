@@ -7,6 +7,8 @@ import net.liftweb.http.{ LiftResponse, LiftRules }
 import net.liftweb.http.{ S, XhtmlResponse }
 import net.liftweb.util.LoanWrapper
 
+import reactive.logging.Logger
+
 object AppendToRender extends AppendToRender
 
 trait AppendToRender extends Logger {

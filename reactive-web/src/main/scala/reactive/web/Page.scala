@@ -6,6 +6,8 @@ import scala.xml.NodeSeq
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.json.JsonAST.JValue
 
+import reactive.logging.Logger
+
 trait IdCounter {
   protected val counter = new java.util.concurrent.atomic.AtomicInteger(0)
 

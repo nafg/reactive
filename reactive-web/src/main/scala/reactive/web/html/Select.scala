@@ -6,6 +6,8 @@ import scala.xml.Elem
 
 import scala.annotation.tailrec
 
+import reactive.logging.Logger
+
 /**
  * Represents a select element in the DOM.
  * @tparam T the type of item rendered by this select

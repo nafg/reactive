@@ -3,6 +3,8 @@ package web
 
 import scala.xml.{ Elem, Null, UnprefixedAttribute }
 
+import reactive.logging.Logger
+
 /**
  * Manages a WeakHashMap of Pages to ids, so for instance
  * an RElem may render under a different id for different Pages,

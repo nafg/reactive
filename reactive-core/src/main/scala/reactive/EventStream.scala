@@ -4,6 +4,8 @@ import scala.ref.WeakReference
 import scala.util.DynamicVariable
 import scala.annotation.tailrec
 
+import reactive.logging.Logger
+
 object EventStream {
   private object empty0 extends EventSource[Nothing] {
     override def debugName = "EventStream.empty"
