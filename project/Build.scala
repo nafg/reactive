@@ -1,7 +1,5 @@
 import sbt._
 import Keys._
-import com.github.siasia.WebPlugin._
-import com.github.siasia.PluginKeys._
 
 object ReactiveBuild extends Build {
   val pomCommon = <xml:group>
@@ -30,7 +28,6 @@ object ReactiveBuild extends Build {
       val sourceUrl = "http://github.com/nafg/reactive/blob/master/" + bd.getName + "€{FILE_PATH}.scala"
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
     }),
-    scalaVersion := "2.10.0",
     libraryDependencies ++= List(
       "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test",
       "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
@@ -72,7 +69,7 @@ object ReactiveBuild extends Build {
   lazy val reactive_web_lift = Project(
     "web-lift",
     file("reactive-web-lift"),
-    settings = defaults ++ Seq(
+    settings = publishingDefaults ++ Seq(
       pomExtra := pomCommon
     )
   ).dependsOn(reactive_web)
