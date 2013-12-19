@@ -447,11 +447,11 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   def nonblocking: EventStream[T] = new ActorEventStream
 
-  private[reactive] def addListener(f: (T) => Unit): Unit = synchronized {
+  private[reactive] def addListener(f: T => Unit): Unit = synchronized {
     trace(AddingListener(f))
     listeners :+= new WeakReference(f)
   }
-  private[reactive] def removeListener(f: (T) => Unit): Unit = synchronized {
+  private[reactive] def removeListener(f: T => Unit): Unit = synchronized {
     //remove the last listener that is identical to f
     listeners.lastIndexWhere(_.get.map(f.eq) getOrElse false) match {
       case -1 =>
