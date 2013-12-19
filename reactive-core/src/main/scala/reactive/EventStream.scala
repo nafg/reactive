@@ -239,12 +239,12 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   class FlatMapped[U](initial: Option[T])(val f: T => EventStream[U]) extends ChildEventSource[U, Option[EventStream[U]]](initial map f) {
     override def debugName = "%s.flatMap(%s)" format (EventSource.this.debugName, f)
-    val thunk: U => Unit = fire _
-    state foreach { _ addListener thunk }
+    val fireFunc: U => Unit = fire _
+    state foreach { _ addListener fireFunc }
     def handler = (parentEvent, lastES) => {
-      lastES foreach { _ removeListener thunk }
+      lastES foreach { _ removeListener fireFunc }
       val newES = Some(f(parentEvent))
-      newES foreach { _ addListener thunk }
+      newES foreach { _ addListener fireFunc }
       newES
     }
   }
