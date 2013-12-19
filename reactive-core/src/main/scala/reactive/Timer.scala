@@ -4,14 +4,24 @@ import java.util.{Timer => juTimer, TimerTask}
 
 import logging.Logger
 
-private object _timer extends juTimer("reactive-core timer thread", true) {
+private object _timer extends juTimer("reactive-core timer thread", true) with Logger {
+  case class ExceptionRunningTask(throwable: Throwable)
+  private def timerTask(block: =>Unit) = new TimerTask {
+    def run =
+      try
+        block
+      catch {
+        case e: Throwable =>
+          error(ExceptionRunningTask(e))
+      }
+  }
   def scheduleAtFixedRate(delay: Long, interval: Long)(p: =>Unit): TimerTask = {
-    val tt = new java.util.TimerTask {def run = p}
+    val tt = timerTask(p)
     super.scheduleAtFixedRate(tt, delay, interval)
     tt
   }
   def schedule(delay: Long)(p: =>Unit): TimerTask = {
-    val tt = new java.util.TimerTask {def run = p}
+    val tt = timerTask(p)
     super.schedule(tt, delay)
     tt
   }
