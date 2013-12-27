@@ -14,6 +14,34 @@ trait IdCounter {
   def nextNumber = counter.getAndIncrement
 }
 
+trait PageComponent {
+  private[web] val ajaxEvents = new EventSource[(String, JValue)] {
+    override def debugName = PageComponent.this.toString + ".ajaxEvents"
+  }
+
+  private[web] val transports = new AtomicRef(List.empty[Transport])
+
+  def linkTransport(t: Transport) =
+    transports.transform(t +: _)
+
+  def unlinkTransport(t: Transport) =
+    transports.transform { _.filter(t ne _) }
+
+  def withTransport[A](t: Transport)(f: =>A): A = {
+    linkTransport(t)
+    try f
+    finally unlinkTransport(t)
+  }
+
+  def render: NodeSeq = NodeSeq.Empty
+}
+
+object Page {
+  def apply(components: (Page => PageComponent)*) = new Page {
+    lazy val pageComponents = components map (_(this))
+  }
+}
+
 /**
  * A Page uniquely identifies a web page rendered with reactive-web components.
  * It is used to associate RElems and ReactionsComets.
@@ -21,7 +49,10 @@ trait IdCounter {
  * element will be kept in sync in both places.
  */
 trait Page extends Logger with IdCounter {
-  case class QueueingJS[T: CanRender](pageId: Option[String], transport: Transport, data: T) {
+  case class QueueingJS[T: CanRender](pageId: String, transport: Transport, data: T) {
+    def js: String = implicitly[CanRender[T]] apply data
+  }
+  case class DroppedNoTransport[T: CanRender](pageId: String, data: T) {
     def js: String = implicitly[CanRender[T]] apply data
   }
 
@@ -34,38 +65,25 @@ trait Page extends Logger with IdCounter {
 
   def nextId = "reactiveWebId_%06d" format nextNumber
 
-  private[web] val ajaxEvents = new EventSource[(String, JValue)] {
-    override def debugName = Page.this.toString + ".ajaxEvents"
-  }
+  def pageComponents: Seq[PageComponent]
+  lazy val ajaxEvents = pageComponents.foldLeft(EventStream.empty[(String, JValue)])(_ | _.ajaxEvents)
 
-  private val transports = new AtomicRef(List.empty[Transport])
+  private val pageTransports = new AtomicRef(List.empty[Transport])
 
-  def linkTransport(t: Transport) = {
-    t addPage this
-    transports.transform(t +: _)
-  }
-
-  def unlinkTransport(t: Transport) = {
-    transports.transform { _.filter(t ne _) }
-    t removePage this
-  }
-
-  def withTransport[A](t: Transport)(f: =>A): A = {
-    linkTransport(t)
-    try f
-    finally unlinkTransport(t)
-  }
 
   /**
    * Queues javascript to be rendered via the available `Transport` with the highest priority
    */
-  def queue[T: CanRender](renderable: T) =
-    if(transports.get.isEmpty) sys.error("Page has no Transport installed")
+  def queue[T: CanRender](renderable: T) = {
+    val cmps = if(pageComponents ne null) pageComponents else Nil
+    val transports = pageTransports.get ++ cmps.flatMap(_.transports.get)
+    if(transports.isEmpty) warn(DroppedNoTransport(id, renderable))
     else {
-      val preferredTransport = transports.get.maxBy(_.currentPriority)
-      trace(QueueingJS(Some(id), preferredTransport, renderable))
+      val preferredTransport = transports.maxBy(_.currentPriority)
+      trace(QueueingJS(id, preferredTransport, renderable))
       preferredTransport.queue(renderable)
     }
+  }
 
-  def render: NodeSeq = NodeSeq.Empty
+  def render: NodeSeq = pageComponents.flatMap(_.render)
 }

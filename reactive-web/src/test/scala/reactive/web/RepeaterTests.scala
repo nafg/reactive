@@ -36,8 +36,8 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
             signal () = xs
             // println(Console.BLUE+"js: "+page.testTransport.js)
             // println(Console.BLUE+"xml: "+page.testTransport.xml)
-            (page.testTransport.xml \\ "span").length should equal (signal.now.length)
-            (page.testTransport.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
+            (page.testComponent.xml \\ "span").length should equal (signal.now.length)
+            (page.testComponent.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
           } catch {
             case e: Exception =>
               println(Console.RED + e)

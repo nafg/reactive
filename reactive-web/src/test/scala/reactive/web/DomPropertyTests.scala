@@ -21,12 +21,12 @@ class DomPropertyTests extends FunSuite with ShouldMatchers {
       <html>{ prop1.render apply <elem1/> }{ prop2.render apply <elem2/> }</html>
     })
 
-    val ttA = pageA.testTransport
+    val ttA = pageA.testComponent
     ttA.fire(ttA(ttA.xml \\! "elem1", "prop") = "value1", Change())
     ttA.xml \\! "elem1" attr "prop" should equal("value1")
     ttA.xml \\! "elem2" attr "prop" should equal("value1")
 
-    val ttB = pageB.testTransport
+    val ttB = pageB.testComponent
     ttB.xml \\! "elem2" attr "prop" should equal("value1")
     ttB.xml \\! "elem1" attr "prop" should equal("value1")
 

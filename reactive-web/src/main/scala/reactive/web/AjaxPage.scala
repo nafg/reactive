@@ -8,9 +8,9 @@ import net.liftweb.json._
  * to send javascript to the browser as a response
  * to ajax requests.
  * The actual installation and linking of ajax handlers
- * is left for extending traits.
+ * is left to implementors.
  */
-trait AjaxPage extends Page {
+trait AjaxPageComponent extends PageComponent {
   class AjaxTask(val key: Long, events: List[JValue]) {
     @volatile private var started = false
 
@@ -55,6 +55,13 @@ trait AjaxPage extends Page {
 
   protected val tasks = new AtomicRef(List.empty[AjaxTask])
 
+  /**
+   * Process an incoming ajax request.
+   * The data will be fired from `ajaxEvents`, but
+   * that is delegated to an [[AjaxTask]]. If the same
+   * ajax call is retried we will reuse the same [[AjaxTask]]
+   * so work is not done twice.
+   */
   protected def handleAjax(json: =>JValue): Seq[String] = try {
     tasks.transform(_ filter (_.completionTime map (System.currentTimeMillis - _ > 60000) getOrElse true))
     json match {
@@ -77,4 +84,3 @@ trait AjaxPage extends Page {
       Nil
   }
 }
-

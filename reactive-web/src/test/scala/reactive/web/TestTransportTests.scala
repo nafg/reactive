@@ -9,27 +9,29 @@ import scala.xml.{ NodeSeq, Text }
 import net.liftweb.util.Helpers._
 
 class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
+
   test("TestTransport") {
     val template = <span id="span">A</span>
     val signal = Var("A")
-    implicit val page = new Page {}
-    def snippet: NodeSeq => NodeSeq =
-      "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
-    val tt = new TestTransport(<html>{ snippet apply template }</html>)(page)
-    page.withTransport(tt) {
-      signal() = "B"
-    }
-    (tt.xml \\! "span").node.text should equal ("B")
-    tt.xml.node should equal (<html><span id="span">B</span></html>)
+    implicit val page = new TestPage({ implicit p =>
+      def snippet: NodeSeq => NodeSeq =
+        "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
+      <html>{ snippet apply template }</html>
+    })
+
+    signal() = "B"
+
+    (page.testComponent.xml \\! "span").node.text should equal ("B")
+    page.testComponent.xml.node should equal (<html><span id="span">B</span></html>)
   }
 
   test("Emulate event") {
     var fired = false
-    val page = new TestPage({ implicit page =>
+    val page = new TestPage({ implicit p =>
       val event = DomEventSource.keyUp ->> { fired = true }
       event.render apply <input/>
     })
-    page.testTransport.fire(page.testTransport.xml, KeyUp(56))
+    page.testComponent.fire(page.testComponent.xml, KeyUp(56))
     fired should equal (true)
   }
 
@@ -38,8 +40,8 @@ class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
     val page = new TestPage({ implicit p =>
       value render <input id="id"/>
     })
-    val tt = page.testTransport
-    tt.fire(tt(tt.xml, "value") = "newValue", Change())
+    val tc = page.testComponent
+    tc.fire(tc(tc.xml, "value") = "newValue", Change())
     value.now should equal ("newValue")
   }
 
@@ -47,7 +49,7 @@ class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
     implicit val page = new TestPage
     var result: Option[Boolean] = None
     confirm("Are you sure?") { case b => result = Some(b) }
-    page.testTransport.takeConfirm match {
+    page.testComponent.takeConfirm match {
       case Some((msg, f)) =>
         msg should equal("Are you sure?")
         f(true)
