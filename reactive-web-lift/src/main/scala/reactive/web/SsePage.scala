@@ -7,16 +7,10 @@ import net.liftweb.http.{ GetRequest, LiftRules, OutputStreamResponse, Req, S }
 import net.liftweb.common.Full
 
 /**
- * A factory for [[SsePage]]s.
- * This companion module also contains the [[SsePage.init]] method which must
- * be invoked in `boot` for [[SsePage]] to work.
+ * Contains the [[SsePageComponent.init]] method which must
+ * be invoked in `boot` for [[SsePageComponent]] to work.
  */
-object SsePage extends PagesCache[SsePage] {
-  /**
-   * Returns an [[SsePage]] mixed into [[AppendToRenderPage]] and [[SimpleAjaxPage]].
-   */
-  def apply() = new AppendToRenderPage with SimpleAjaxPage with SsePage { }
-
+object SsePageComponent extends PagesCache {
   /**
    * Installs the SSE handler into Lift
    */
@@ -24,11 +18,11 @@ object SsePage extends PagesCache[SsePage] {
     LiftRules.dispatch append {
       case req @ Req("__reactive-web-sse" :: PageById(page) :: Nil, "", GetRequest) =>
         S.respondAsync {
-          Full(
+          page.pageComponents.collectFirst { case spc: SsePageComponent => spc } map { spc =>
             OutputStreamResponse(
               (os: OutputStream) => {
                 val osw = new OutputStreamWriter(os)
-                page.sseTransport.write(osw, req.header("Last-Event-ID") map (_.toLong) openOr 0)
+                spc.sseTransport.write(osw, req.header("Last-Event-ID") map (_.toLong) openOr 0)
                 osw.close()
               },
               List(
@@ -38,7 +32,7 @@ object SsePage extends PagesCache[SsePage] {
                 "X-Accel-Buffering" -> "no"
               )
             )
-          )
+          }
         }
     }
   }
@@ -48,7 +42,7 @@ object SsePage extends PagesCache[SsePage] {
  * A [[Page]] that can push events to the browser via SSE (Server Side Events),
  * also known as HTML5 EventSource.
  */
-trait SsePage extends Page {
+class SsePageComponent(page: Page) extends PageComponent {
   /**
    * The longest duration of a connection
    */
@@ -125,7 +119,7 @@ trait SsePage extends Page {
   }
 
   override def render = super.render ++ <script type="text/javascript">
-    reactive.sse = new EventSource('/__reactive-web-sse/{ id }');
+    reactive.sse = new EventSource('/__reactive-web-sse/{ page.id }');
     reactive.sse.addEventListener('message', function(e) {{
       eval(e.data);
     }}, false)
@@ -133,5 +127,5 @@ trait SsePage extends Page {
 
   linkTransport(sseTransport)
 
-  SsePage.addPage(this)
+  SsePageComponent.addPage(page)
 }

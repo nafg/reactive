@@ -1,51 +1,79 @@
 package reactive
 package web
 
+import reactive.logging._
+
 import scala.xml.{ Node, Unparsed }
 
 import net.liftweb.http.{ LiftResponse, LiftRules }
 import net.liftweb.http.{ S, XhtmlResponse }
 import net.liftweb.util.LoanWrapper
 
-import reactive.logging.Logger
-
-object AppendToRender extends AppendToRender
-
-trait AppendToRender extends Logger {
-  case class DroppedData(reponse: LiftResponse, data: Seq[String])
-
-  class Transport extends AccumulatingTransport {
-    def currentPriority = 100
-
-    /**
-     * Remove connection with all pages,
-     * and return the queued data
-     */
-    def renderAndDestroy(): Seq[Node] = synchronized {
-      val ps = pages.get
-      ps foreach (_ unlinkTransport this)
-
-      val include = <script type="text/javascript" src="/classpath/reactive-web.js"/>
-      val js =
-        <script type="text/javascript">
-          { Unparsed("// <![CDATA[\n" + data.mkString(";\n") + "// ]]>") }
-        </script>
-      if(ps.nonEmpty) include +: ps.flatMap(_.render) :+ js
-      else Nil
-    }
-
-    override def toString = s"AppendToRender.Transport{pages = $pages, data = $data}"
-
-    private[AppendToRender] def currentPages = pages.get
+/**
+ * A [[Transport]] that inserts data
+ * in the page during its initial render
+ */
+class RenderTransport extends AccumulatingTransport {
+  def currentPriority = 100
+  /**
+   * The page components that may render to this `Transport`.
+   * There may be more than one. For instance, two Lift snippets
+   * may actually render to the same web page despite defining
+   * separate `Page` instances.
+   */
+  protected val pageComponents = new AtomicRef(List.empty[PageComponent])
+  /**
+   * Add `page` to this transport
+   * Called by [[Page#linkTransport]] before it actually inserts the transport
+   */
+  protected[web] def addPageComponent(pageComponent: PageComponent): Unit = pageComponents.transform(pageComponent :: _)
+  /**
+   * Remove `page` from this transport
+   * Called by [[Page#unlinkTransport]] after it actually removes the transport
+   */
+  protected[web] def removePageComponent(pageComponent: PageComponent): Unit = pageComponents.transform(_ filter (pageComponent != _))
+  
+  def destroy() = pageComponents.get foreach { pc =>
+    pc unlinkTransport this
+    removePageComponent(pc)
   }
+  
+  /**
+   * Remove connection with all pages,
+   * and return the queued data
+   */
+  def renderAndDestroy(): Seq[Node] = synchronized {
+    val pcs = pageComponents.get
+    pcs foreach { pc =>
+      pc unlinkTransport this
+      removePageComponent(pc)
+    }
+    val include = <script type="text/javascript" src="/classpath/reactive-web.js"/>
+    val js =
+      <script type="text/javascript">
+        { Unparsed("// <![CDATA[\n" + data.mkString(";\n") + "// ]]>") }
+      </script>
+    if (pcs.nonEmpty) include +: pcs.flatMap(_.render) :+ js
+    else Nil
+  }
+  
+  override def toString = s"RenderTransport{pages = $pages, data = $data}"
+  
+  private[web] def currentPages = pages.get
+}
 
-  private val currentPageRenders = new AtomicRef(List.empty[(String, Transport)])
+trait AppendToRender extends HasLogger {
+  sealed trait DroppedDataLogEvent
+  case class DroppedDataNotHtml(response: LiftResponse, data: Seq[String]) extends DroppedDataLogEvent
+  case class DroppedDataNoBody(response: LiftResponse, data: Seq[String]) extends DroppedDataLogEvent
+
+  private val currentPageRenders = new AtomicRef(Map.empty[String, RenderTransport])
 
   /**
-   * The [[Transport]] used in the current page render,
+   * The [[RenderTransport]] used in the current page render,
    * if any
    */
-  def currentPageRender = currentPageRenders.get.find(_._1 == S.renderVersion).map(_._2)
+  def currentPageRender = currentPageRenders.get.get(S.renderVersion)
 
   /**
    * The [[AppendToRenderPage]]s that are known to be
@@ -56,37 +84,53 @@ trait AppendToRender extends Logger {
   private object GetTransport { def unapply(x: Any) = currentPageRender }
   private object & { def unapply[A](x: A) = Some(x, x) }
 
+  /**
+   * This is where we modify HTML `LiftResponse`s.
+   * We retrieve the current [[RenderTransport]] (see [[currentPageRender]]),
+   * and attempt to append it to the response's `<body>` element.
+   */
   // TODO customizability
-  def transformResponse: PartialFunction[LiftResponse, LiftResponse] = {
+  protected def transformResponse: PartialFunction[LiftResponse, LiftResponse] = {
     case (xr: XhtmlResponse) & GetTransport(transport) =>
-      val nodes = transport.renderAndDestroy()
       (NodeLoc(xr.out) \\? "body") match {
         case Some(body) =>
+          val nodes = transport.renderAndDestroy()
           val rendered = nodes.foldLeft(body)(_ appendChild _)
           xr.copy(out = rendered.top.node)
         case None =>
+          transport.destroy()
+          logger.warn(DroppedDataNoBody(xr, transport.data))
           xr
       }
-    case lr & GetTransport(transport) =>
-      error(DroppedData(lr, transport.data))
-      transport.renderAndDestroy()
-      lr
+    case otherResponse & GetTransport(transport) =>
+      logger.trace(DroppedDataNotHtml(otherResponse, transport.data))
+      transport.destroy()
+      otherResponse
   }
 
+  /**
+   * Install this AppendToRender into Lift.
+   *  - Calls `ResourceServer.allow` to serve reactive-web.js
+   *  - Adds a request `LoanWrapper` where we associate a
+   *    [[RenderTransport]] with the current request
+   *  - Installs our response transformer (see [[transformResponse]])
+   */
   def init(): Unit = {
     net.liftweb.http.ResourceServer allow {
       case "reactive-web.js" :: Nil => true
     }
 
     S addAround new LoanWrapper {
-      def apply[A](f: => A) = {
-        if(S.request == S.originalRequest)
-          currentPageRenders.transform((S.renderVersion, new Transport) :: _)
-        try f finally {
-          val cur = currentPageRender
-          cur foreach (_.renderAndDestroy())
-          currentPageRenders.transform(_ filter (cur ne _))
-        }
+      def apply[A](wrapee: => A) = {
+        if (S.request == S.originalRequest)
+          currentPageRenders.transform(_ + (S.renderVersion -> new RenderTransport))
+        try
+          wrapee
+        finally
+          currentPageRender foreach { rt =>
+            rt.renderAndDestroy()
+            currentPageRenders.transform(_ filter (_._2 ne rt))
+          }
       }
     }
 
@@ -94,8 +138,13 @@ trait AppendToRender extends Logger {
   }
 }
 
-trait AppendToRenderPage extends Page {
+object AppendToRender extends AppendToRender
+
+class AppendToRenderPageComponent extends PageComponent {
   def appendToRender: AppendToRender = AppendToRender
 
-  appendToRender.currentPageRender foreach linkTransport
+  appendToRender.currentPageRender foreach { pr =>
+    linkTransport(pr)
+    pr.addPageComponent(this)
+  }
 }

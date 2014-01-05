@@ -6,18 +6,11 @@ import net.liftweb.http.S
 import net.liftweb.json.parse
 
 /**
- * A factory for [[LiftAjaxPage]] instances, mixed in to [[AppendToRender]]
- */
-object LiftAjaxPage {
-  def apply() = new AppendToRenderPage with LiftAjaxPage { }
-}
-
-/**
  * This is an [[AjaxPage]] that uses the
  * Lift function mapping mechanism and ajax code
  * to install the ajax handler.
  */
-trait LiftAjaxPage extends AjaxPage {
+class LiftAjaxPageComponent extends AjaxPageComponent {
   private val handler = ((urlParam: String) => JsCmds.Run(handleAjax(parse(urlParam)).mkString(";\n")))
 
   private val funcId = S.fmapFunc(S.contextFuncBuilder(S.SFuncHolder(handler)))(identity)

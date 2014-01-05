@@ -6,25 +6,19 @@ import net.liftweb.http.js.JsCmds
 import net.liftweb.common.Full
 
 /**
- * This is the companion module for [[SimpleAjaxPage]],
- * containing the [[SimpleAjaxPage.init]] method that you must call in `boot`.
- * It also is a factory for [[SimpleAjaxPage]] instances, mixed in with [[AppendToRenderPage]].
+ * This is the companion module for [[SimpleAjaxPageComponent]],
+ * containing the [[SimpleAjaxPageComponent.init]] method that you must call in `boot`.
  */
-object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
-  /**
-   * @return a new [[Page]] with [[AppendToRender]] and [[SimpleAjaxPage]] functionality.
-   */
-  def apply() = new AppendToRenderPage with SimpleAjaxPage { }
-
+object SimpleAjaxPageComponent extends PagesCache {
   /**
    * This keeps a strong reference to pages, within a period of time since their last heartbeat
    */
-  private[this] val pagesSeenTime = new AtomicRef(Map.empty[SimpleAjaxPage, Long])
+  private[this] val pagesSeenTime = new AtomicRef(Map.empty[Page, Long])
 
   /**
    * Adds a page, or resets its "last seen" time
    */
-  override def addPage(page: SimpleAjaxPage) = {
+  override def addPage(page: Page) = {
     super.addPage(page)
     pagesSeenTime.transform(_ + (page -> System.currentTimeMillis))
     cleanPages()
@@ -42,7 +36,7 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
     pagesSeenTime.get.keys.find(_.id == id) orElse super.getPage(id)
 
   /**
-   * You must call this in `boot` for [[SimpleAjaxPage]] to work.
+   * You must call this in `boot` for [[SimpleAjaxPageComponent]] to work.
    */
   def init(): Unit = {
     LiftRules.dispatch append {
@@ -60,7 +54,9 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
         getPage(pageId) match {
           case Some(page) =>
             addPage(page)
-            req.json map (json => JavaScriptResponse(JsCmds.Run(page.handleAjax(json).mkString(";\n"))))
+            page.pageComponents.collectFirst { case sapc: SimpleAjaxPageComponent => sapc } flatMap { sapc =>
+              req.json map (json => JavaScriptResponse(JsCmds.Run(sapc.handleAjax(json).mkString(";\n"))))
+            }
           case None =>
             Full(JavaScriptResponse(JsCmds.Run("alert('Server state was lost, please reload the page.')")))
         }
@@ -72,9 +68,9 @@ object SimpleAjaxPage extends PagesCache[SimpleAjaxPage] {
 /**
  * This is an [[AjaxPage]] that uses a Lift dispatch
  * and plain XMLHttpRequest to install the ajax handler.
- * You must call [[SimpleAjaxPage.init]] in `boot` for it to work.
+ * You must call [[SimpleAjaxPageComponent.init]] in `boot` for it to work.
  */
-trait SimpleAjaxPage extends AjaxPage {
+class SimpleAjaxPageComponent(page: Page) extends AjaxPageComponent {
   def heartbeatInterval = 120000
 
   override def render = super.render ++
@@ -90,7 +86,7 @@ trait SimpleAjaxPage extends AjaxPage {
         http.send(str);
       }};
       if(!reactive.pageIds) reactive.pageIds = []
-      reactive.pageIds.push('{ id }');
+      reactive.pageIds.push('{ page.id }');
       reactive.resetHeartBeat = function() {{
         if(this.heartBeatTimeout)
           window.clearTimeout(this.heartBeatTimeout);
@@ -100,12 +96,12 @@ trait SimpleAjaxPage extends AjaxPage {
         this.ajaxImpl("/__reactive-web-ajax/heartbeat", JSON.stringify(this.pageIds));
         this.resetHeartBeat();
       }};
-      reactive.sendAjax['{ id }'] = function(jsonStr) {{
-        reactive.ajaxImpl("/__reactive-web-ajax/{ id }", jsonStr);
+      reactive.sendAjax['{ page.id }'] = function(jsonStr) {{
+        reactive.ajaxImpl("/__reactive-web-ajax/{ page.id }", jsonStr);
         reactive.resetHeartBeat();
       }};
       reactive.resetHeartBeat();
     </script>
 
-  SimpleAjaxPage.addPage(this)
+  SimpleAjaxPageComponent.addPage(page)
 }
