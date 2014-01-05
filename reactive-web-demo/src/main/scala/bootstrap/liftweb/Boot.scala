@@ -37,7 +37,6 @@ class Boot {
 
     // where to search snippets
     LiftRules.addToPackages("reactive.web.demo")
-    LiftRules.addToPackages("com.damianhelme.tbutils")
 
     AppendToRender.init()
     SimpleAjaxPageComponent.init()
