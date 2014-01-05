@@ -40,8 +40,8 @@ class Boot {
     LiftRules.addToPackages("com.damianhelme.tbutils")
 
     AppendToRender.init()
-    SimpleAjaxPage.init()
-    SsePage.init()
+    SimpleAjaxPageComponent.init()
+    SsePageComponent.init()
     MessagesSnippet.init(Messages.template("alert"))
 
     val mdParser = new net.liftweb.markdown.ActuariusTransformer
