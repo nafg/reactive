@@ -57,9 +57,9 @@ class RenderTransport extends AccumulatingTransport {
     else Nil
   }
   
-  override def toString = s"RenderTransport{pages = $pages, data = $data}"
+  override def toString = s"RenderTransport{pageComponents = $pageComponents, data = $data}"
   
-  private[web] def currentPages = pages.get
+  private[web] def currentPages = pageComponents.get.map(_.page)
 }
 
 trait AppendToRender extends HasLogger {

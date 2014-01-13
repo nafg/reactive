@@ -20,26 +20,6 @@ trait Transport {
    * Does not need to always return the same value.
    */
   def currentPriority: Int
-
-  /**
-   * The pages that may render to this `Transport`.
-   * This may be more than one. For instance, two Lift snippets
-   * may actually render to the same webpage despite defining
-   * separate `Page` instances.
-   */
-  protected val pages = new AtomicRef(List.empty[Page])
-
-  /**
-   * Add `page` to this transport
-   * Called by [[Page#linkTransport]] before it actually inserts the transport
-   */
-  protected[web] def addPage(page: Page): Unit = pages.transform(page :: _)
-
-  /**
-   * Remove `page` from this transport
-   * Called by [[Page#unlinkTransport]] after it actually removes the transport
-   */
-  protected[web] def removePage(page: Page): Unit = pages.transform(_ filter (page != _))
 }
 
 trait AccumulatingTransport extends Transport {
