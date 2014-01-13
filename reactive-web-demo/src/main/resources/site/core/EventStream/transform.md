@@ -38,6 +38,10 @@ will be removed.
 Idiomatic code should not cause side effects in the predicate;
 however there’s nothing stopping you from doing so if you so desire.
 
+In the following demo, text you enter will be printed when you press "Fire."
+However if you type "stop," it will never print anything anymore.
+If you type "next," it will stop printing starting from the next time.
+
  <div data-lift="DemoPane?snippet=EventStream_takeWhile"></div>
 
 #### A more focused `EventStream`: `filter`
@@ -56,6 +60,9 @@ obtain a new collection that has only those elements that a predicate
 matches, so too can you `filter` an `EventStream`
 to obtain a new `EventStream` that fires only those events
 which the predicate matches.
+
+The following demo will print what you enter when you click Fire,
+as long as it is less than 5 characters long.
 
  <div data-lift="DemoPane?snippet=EventStream_filter"></div>
 
