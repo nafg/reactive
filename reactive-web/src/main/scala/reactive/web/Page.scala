@@ -63,7 +63,7 @@ trait Page extends Logger with IdCounter {
 
   val id = randomString(20)
 
-  def nextId = "reactiveWebId_%06d" format nextNumber
+  def nextId = f"reactiveWebId_$id%s_$nextNumber%06d"
 
   def pageComponents: Seq[PageComponent]
   lazy val ajaxEvents = pageComponents.foldLeft(EventStream.empty[(String, JValue)])(_ | _.ajaxEvents)
