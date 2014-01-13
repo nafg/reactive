@@ -4,7 +4,7 @@ package demo
 
 trait PageSnippet extends Observing {
   implicit lazy val page = Page(
-    _ => new AppendToRenderPageComponent,
+    new AppendToRenderPageComponent(_),
     new SimpleAjaxPageComponent(_),
     new SsePageComponent(_)
   )

@@ -21,17 +21,17 @@ class RenderTransport extends AccumulatingTransport {
    * may actually render to the same web page despite defining
    * separate `Page` instances.
    */
-  protected val pageComponents = new AtomicRef(List.empty[PageComponent])
+  protected val pageComponents = new AtomicRef(List.empty[AppendToRenderPageComponent])
   /**
    * Add `page` to this transport
    * Called by [[Page#linkTransport]] before it actually inserts the transport
    */
-  protected[web] def addPageComponent(pageComponent: PageComponent): Unit = pageComponents.transform(pageComponent :: _)
+  protected[web] def addPageComponent(pageComponent: AppendToRenderPageComponent): Unit = pageComponents.transform(pageComponent :: _)
   /**
    * Remove `page` from this transport
    * Called by [[Page#unlinkTransport]] after it actually removes the transport
    */
-  protected[web] def removePageComponent(pageComponent: PageComponent): Unit = pageComponents.transform(_ filter (pageComponent != _))
+  protected[web] def removePageComponent(pageComponent: AppendToRenderPageComponent): Unit = pageComponents.transform(_ filter (pageComponent != _))
   
   def destroy() = pageComponents.get foreach { pc =>
     pc unlinkTransport this
@@ -53,7 +53,7 @@ class RenderTransport extends AccumulatingTransport {
       <script type="text/javascript">
         { Unparsed("// <![CDATA[\n" + data.mkString(";\n") + "// ]]>") }
       </script>
-    if (pcs.nonEmpty) include +: pcs.flatMap(_.render) :+ js
+    if (pcs.nonEmpty) include +: pcs.flatMap(_.page.render) :+ js
     else Nil
   }
   
@@ -140,7 +140,7 @@ trait AppendToRender extends HasLogger {
 
 object AppendToRender extends AppendToRender
 
-class AppendToRenderPageComponent extends PageComponent {
+class AppendToRenderPageComponent(val page: Page) extends PageComponent {
   def appendToRender: AppendToRender = AppendToRender
 
   appendToRender.currentPageRender foreach { pr =>
