@@ -91,7 +91,7 @@ object ReactiveBuild extends Build {
   ) dependsOn(reactive_web_lift)
 
   lazy val root = Project(
-    "root",
+    "scala-reactive",
     file("."),
     settings = defaults ++ Seq(
       publishArtifact := false
