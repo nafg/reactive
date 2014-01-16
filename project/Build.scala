@@ -29,7 +29,7 @@ object ReactiveBuild extends Build {
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
     }),
     libraryDependencies ++= List(
-      "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test",
+      "org.scalatest" %% "scalatest" % "2.0" % "test",
       "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
       "org.scala-lang" % "scala-actors" % "2.10.0"
     ),
