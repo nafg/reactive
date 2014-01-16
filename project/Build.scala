@@ -26,7 +26,7 @@ object ReactiveBuild extends Build {
     scalacOptions in (Compile, compile) += "-deprecation",
     (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
       val sourceUrl = "http://github.com/nafg/reactive/blob/master/" + bd.getName + "€{FILE_PATH}.scala"
-      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
+      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl, "-doc-title", "Scaladocs - scala-reactive")
     }),
     libraryDependencies ++= List(
       "org.scalatest" %% "scalatest" % "2.0" % "test",
@@ -35,6 +35,7 @@ object ReactiveBuild extends Build {
     ),
     testOptions in Test += Tests.Argument("-oF")
   )
+
   val publishingDefaults = defaults ++ Seq(
     publishTo <<= (version) { version: String =>
       if (version.trim.endsWith("SNAPSHOT"))
