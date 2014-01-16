@@ -21,8 +21,8 @@ class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
 
     signal() = "B"
 
-    (page.testComponent.xml \\! "span").node.text should equal ("B")
-    page.testComponent.xml.node should equal (<html><span id="span">B</span></html>)
+    (page.testTransportType.xml \\! "span").node.text should equal ("B")
+    page.testTransportType.xml.node should equal (<html><span id="span">B</span></html>)
   }
 
   test("Emulate event") {
@@ -31,7 +31,7 @@ class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
       val event = DomEventSource.keyUp ->> { fired = true }
       event.render apply <input/>
     })
-    page.testComponent.fire(page.testComponent.xml, KeyUp(56))
+    page.testTransportType.fire(page.testTransportType.xml, KeyUp(56))
     fired should equal (true)
   }
 
@@ -40,7 +40,7 @@ class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
     val page = new TestPage({ implicit p =>
       value render <input id="id"/>
     })
-    val tc = page.testComponent
+    val tc = page.testTransportType
     tc.fire(tc(tc.xml, "value") = "newValue", Change())
     value.now should equal ("newValue")
   }
@@ -49,7 +49,7 @@ class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
     implicit val page = new TestPage
     var result: Option[Boolean] = None
     confirm("Are you sure?") { case b => result = Some(b) }
-    page.testComponent.takeConfirm match {
+    page.testTransportType.takeConfirm match {
       case Some((msg, f)) =>
         msg should equal("Are you sure?")
         f(true)

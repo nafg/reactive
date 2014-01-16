@@ -10,7 +10,7 @@ import net.liftweb.json.parse
  * Lift function mapping mechanism and ajax code
  * to install the ajax handler.
  */
-class LiftAjaxPageComponent extends AjaxPageComponent {
+class LiftAjaxTransportType extends AjaxTransportType {
   private val handler = ((urlParam: String) => JsCmds.Run(handleAjax(parse(urlParam)).mkString(";\n")))
 
   private val funcId = S.fmapFunc(S.contextFuncBuilder(S.SFuncHolder(handler)))(identity)

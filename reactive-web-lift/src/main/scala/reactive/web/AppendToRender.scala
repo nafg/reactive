@@ -21,21 +21,21 @@ class RenderTransport extends AccumulatingTransport {
    * may actually render to the same web page despite defining
    * separate `Page` instances.
    */
-  protected val pageComponents = new AtomicRef(List.empty[AppendToRenderPageComponent])
+  protected val transportTypes = new AtomicRef(List.empty[AppendToRenderTransportType])
   /**
    * Add `page` to this transport
    * Called by [[Page#linkTransport]] before it actually inserts the transport
    */
-  protected[web] def addPageComponent(pageComponent: AppendToRenderPageComponent): Unit = pageComponents.transform(pageComponent :: _)
+  protected[web] def addTransportType(transportType: AppendToRenderTransportType): Unit = transportTypes.transform(transportType :: _)
   /**
    * Remove `page` from this transport
    * Called by [[Page#unlinkTransport]] after it actually removes the transport
    */
-  protected[web] def removePageComponent(pageComponent: AppendToRenderPageComponent): Unit = pageComponents.transform(_ filter (pageComponent != _))
+  protected[web] def removeTransportType(transportType: AppendToRenderTransportType): Unit = transportTypes.transform(_ filter (transportType != _))
   
-  def destroy() = pageComponents.get foreach { pc =>
+  def destroy() = transportTypes.get foreach { pc =>
     pc unlinkTransport this
-    removePageComponent(pc)
+    removeTransportType(pc)
   }
   
   /**
@@ -43,10 +43,10 @@ class RenderTransport extends AccumulatingTransport {
    * and return the queued data
    */
   def renderAndDestroy(): Seq[Node] = synchronized {
-    val pcs = pageComponents.get
+    val pcs = transportTypes.get
     pcs foreach { pc =>
       pc unlinkTransport this
-      removePageComponent(pc)
+      removeTransportType(pc)
     }
     val include = <script type="text/javascript" src="/classpath/reactive-web.js"/>
     val js =
@@ -57,9 +57,9 @@ class RenderTransport extends AccumulatingTransport {
     else Nil
   }
   
-  override def toString = s"RenderTransport{pageComponents = $pageComponents, data = $data}"
+  override def toString = s"RenderTransport{transportTypes = $transportTypes, data = $data}"
   
-  private[web] def currentPages = pageComponents.get.map(_.page)
+  private[web] def currentPages = transportTypes.get.map(_.page)
 }
 
 trait AppendToRender extends HasLogger {
@@ -140,11 +140,11 @@ trait AppendToRender extends HasLogger {
 
 object AppendToRender extends AppendToRender
 
-class AppendToRenderPageComponent(val page: Page) extends PageComponent {
+class AppendToRenderTransportType(val page: Page) extends TransportType {
   def appendToRender: AppendToRender = AppendToRender
 
   appendToRender.currentPageRender foreach { pr =>
     linkTransport(pr)
-    pr.addPageComponent(this)
+    pr.addTransportType(this)
   }
 }

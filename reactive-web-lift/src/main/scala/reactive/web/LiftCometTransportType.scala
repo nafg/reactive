@@ -7,13 +7,15 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http._
 import net.liftweb.http.js.{ JsCmd, JsCmds }
 
-object LiftCometPageComponent {
-  private val _overrideCometHack = new scala.util.DynamicVariable(Option.empty[LiftCometPageComponent#PageComet])
+import reactive.logging.HasLogger
+
+object LiftCometTransportType {
+  private val _overrideCometHack = new scala.util.DynamicVariable(Option.empty[LiftCometTransportType#PageComet])
   private var initted = false
 
-  private def overrideCometHack[A](comet: LiftCometPageComponent#PageComet)(f: =>A): A =
+  private def overrideCometHack[A](comet: LiftCometTransportType#PageComet)(f: =>A): A =
     if(!initted)
-      sys.error("LiftCometSupport was not initialized! You must call LiftCometSupport.init() in boot in order to use LiftCometPageComponent.")
+      sys.error("LiftCometSupport was not initialized! You must call LiftCometSupport.init() in boot in order to use LiftCometTransportType.")
     else
       _overrideCometHack.withValue(Some(comet))(f)
 
@@ -31,7 +33,7 @@ object LiftCometPageComponent {
   }
 }
 
-class LiftCometPageComponent(page: Page) extends PageComponent {
+class LiftCometTransportType(page: Page) extends TransportType with HasLogger {
   class PageComet extends CometActor {
     // Make initCometActor accessible
     override protected[web] def initCometActor(s: LiftSession, t: Box[String], n: Box[String], x: NodeSeq, a: Map[String, String]) =
@@ -53,7 +55,7 @@ class LiftCometPageComponent(page: Page) extends PageComponent {
     def queue[T](renderable: T)(implicit render: CanRender[T]) = comet ! JsCmds.Run(render(renderable))
   }
 
-  LiftCometPageComponent.overrideCometHack(comet) {
+  LiftCometTransportType.overrideCometHack(comet) {
     // This is how we install our own comet actors in Lift
     S.withAttrs(new UnprefixedAttribute("type", "reactive.web.ReactionsComet", new UnprefixedAttribute("name", page.id, Null))) {
       net.liftweb.builtin.snippet.Comet.render(NodeSeq.Empty)
@@ -70,7 +72,7 @@ class LiftCometPageComponent(page: Page) extends PageComponent {
     val cometSrc =
       List(S.contextPath, LiftRules.cometPath, urlEncode(session.uniqueId), LiftRules.cometScriptName()) mkString "/"
     <script src={ S.encodeURL(cometSrc) } type="text/javascript"/>
-  }.openOr{ println("Rendering "+this+" outside of session"); NodeSeq.Empty }
+  }.openOr{ logger.warn("Rendering "+this+" outside of session"); NodeSeq.Empty }
 
   linkTransport(cometTransport)
 }

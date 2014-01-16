@@ -21,7 +21,7 @@ import reactive.logging.HasLogger
  * is passed to the function, in case it's needed to
  * build the html.
  */
-class TestPageComponent(page: Page, initialXml: =>Node = Group(Nil)) extends PageComponent with HasLogger {
+class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends TransportType with HasLogger {
   case class FiringAjaxEvent(page: Page, event: JValue)
 
   private var zipper: NodeLoc = _
@@ -199,18 +199,12 @@ class TestPageComponent(page: Page, initialXml: =>Node = Group(Nil)) extends Pag
 }
 
 class TestPage(initialXml: TestPage => Node = _ => Group(Nil)) extends Page {
+  lazy val initial = initialXml(this)
 
-  lazy val initial = {
-    val nullTransport = new Transport {
-      def currentPriority = 0
-      def queue[A : CanRender](r: A) = ()
-    }
-    /*withTransport(nullTransport)*/ { initialXml(this) }
-  }
-  object testComponent extends TestPageComponent(this, initial)
-  val pageComponents = testComponent :: Nil
+  object testTransportType extends TestTransportType(this, initial)
+  val transportTypes = testTransportType :: Nil
 
-  testComponent.xml
+  testTransportType.xml
 
-  def collectQueued(f: =>Unit): Seq[String] = testComponent.collectQueued(f)
+  def collectQueued(f: =>Unit): Seq[String] = testTransportType.collectQueued(f)
 }

@@ -7,10 +7,10 @@ import net.liftweb.http.{ GetRequest, LiftRules, OutputStreamResponse, Req, S }
 import net.liftweb.common.Full
 
 /**
- * Contains the [[SsePageComponent.init]] method which must
- * be invoked in `boot` for [[SsePageComponent]] to work.
+ * Contains the [[SseTransportType.init]] method which must
+ * be invoked in `boot` for [[SseTransportType]] to work.
  */
-object SsePageComponent extends PagesCache {
+object SseTransportType extends PagesCache {
   /**
    * Installs the SSE handler into Lift
    */
@@ -18,7 +18,7 @@ object SsePageComponent extends PagesCache {
     LiftRules.dispatch append {
       case req @ Req("__reactive-web-sse" :: PageById(page) :: Nil, "", GetRequest) =>
         S.respondAsync {
-          page.pageComponents.collectFirst { case spc: SsePageComponent => spc } map { spc =>
+          page.transportTypes.collectFirst { case spc: SseTransportType => spc } map { spc =>
             OutputStreamResponse(
               (os: OutputStream) => {
                 val osw = new OutputStreamWriter(os)
@@ -42,7 +42,7 @@ object SsePageComponent extends PagesCache {
  * A [[Page]] that can push events to the browser via SSE (Server Side Events),
  * also known as HTML5 EventSource.
  */
-class SsePageComponent(page: Page) extends PageComponent {
+class SseTransportType(page: Page) extends TransportType {
   /**
    * The longest duration of a connection
    */
@@ -127,5 +127,5 @@ class SsePageComponent(page: Page) extends PageComponent {
 
   linkTransport(sseTransport)
 
-  SsePageComponent.addPage(page)
+  SseTransportType.addPage(page)
 }

@@ -39,8 +39,8 @@ class Boot {
     LiftRules.addToPackages("reactive.web.demo")
 
     AppendToRender.init()
-    SimpleAjaxPageComponent.init()
-    SsePageComponent.init()
+    SimpleAjaxTransportType.init()
+    SseTransportType.init()
     MessagesSnippet.init(Messages.template("alert"))
 
     val mdParser = new net.liftweb.markdown.ActuariusTransformer

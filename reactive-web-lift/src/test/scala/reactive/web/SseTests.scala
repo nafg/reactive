@@ -9,13 +9,13 @@ import scala.concurrent._
 import ExecutionContext.Implicits._
 import java.io._
 
-class SsePageTests extends FunSuite with ShouldMatchers with Eventually with SpanSugar {
-  test("SsePage") {
+class SseTests extends FunSuite with ShouldMatchers with Eventually with SpanSugar {
+  test("SseTransportType") {
     lazy val page = new Page {
-      val spc = new SsePageComponent(this) {
+      val spc = new SseTransportType(this) {
         override def maxTime = 2000
       }
-      val pageComponents = spc :: Nil
+      val transportTypes = spc :: Nil
     }
     val sw = new StringWriter
     val fut = future {

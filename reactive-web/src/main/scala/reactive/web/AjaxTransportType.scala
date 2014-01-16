@@ -10,7 +10,7 @@ import net.liftweb.json._
  * The actual installation and linking of ajax handlers
  * is left to implementors.
  */
-trait AjaxPageComponent extends PageComponent {
+trait AjaxTransportType extends TransportType {
   class AjaxTask(val key: Long, events: List[JValue]) {
     @volatile private var started = false
 

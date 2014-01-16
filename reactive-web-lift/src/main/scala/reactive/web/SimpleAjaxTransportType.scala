@@ -6,10 +6,10 @@ import net.liftweb.http.js.JsCmds
 import net.liftweb.common.Full
 
 /**
- * This is the companion module for [[SimpleAjaxPageComponent]],
- * containing the [[SimpleAjaxPageComponent.init]] method that you must call in `boot`.
+ * This is the companion module for [[SimpleAjaxTransportType]],
+ * containing the [[SimpleAjaxTransportType.init]] method that you must call in `boot`.
  */
-object SimpleAjaxPageComponent extends PagesCache {
+object SimpleAjaxTransportType extends PagesCache {
   /**
    * This keeps a strong reference to pages, within a period of time since their last heartbeat
    */
@@ -36,7 +36,7 @@ object SimpleAjaxPageComponent extends PagesCache {
     pagesSeenTime.get.keys.find(_.id == id) orElse super.getPage(id)
 
   /**
-   * You must call this in `boot` for [[SimpleAjaxPageComponent]] to work.
+   * You must call this in `boot` for [[SimpleAjaxTransportType]] to work.
    */
   def init(): Unit = {
     LiftRules.dispatch append {
@@ -54,7 +54,7 @@ object SimpleAjaxPageComponent extends PagesCache {
         getPage(pageId) match {
           case Some(page) =>
             addPage(page)
-            page.pageComponents.collectFirst { case sapc: SimpleAjaxPageComponent => sapc } flatMap { sapc =>
+            page.transportTypes.collectFirst { case sapc: SimpleAjaxTransportType => sapc } flatMap { sapc =>
               req.json map (json => JavaScriptResponse(JsCmds.Run(sapc.handleAjax(json).mkString(";\n"))))
             }
           case None =>
@@ -68,9 +68,9 @@ object SimpleAjaxPageComponent extends PagesCache {
 /**
  * This is an [[AjaxPage]] that uses a Lift dispatch
  * and plain XMLHttpRequest to install the ajax handler.
- * You must call [[SimpleAjaxPageComponent.init]] in `boot` for it to work.
+ * You must call [[SimpleAjaxTransportType.init]] in `boot` for it to work.
  */
-class SimpleAjaxPageComponent(page: Page) extends AjaxPageComponent {
+class SimpleAjaxTransportType(page: Page) extends AjaxTransportType {
   def heartbeatInterval = 120000
 
   override def render = super.render ++
@@ -103,5 +103,5 @@ class SimpleAjaxPageComponent(page: Page) extends AjaxPageComponent {
       reactive.resetHeartBeat();
     </script>
 
-  SimpleAjaxPageComponent.addPage(page)
+  SimpleAjaxTransportType.addPage(page)
 }
