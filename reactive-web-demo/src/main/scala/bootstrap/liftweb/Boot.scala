@@ -129,7 +129,9 @@ class Boot {
     val menus = docTree.map(itemToMenu(_)) :+ (
       Menu("Scaladocs") / "3" >> PlaceHolder submenus (
         Menu("reactive-core") / "reactive-core-api" / **,
-        Menu("reactive-web") / "reactive-web-api" / **
+        Menu("reactive-routing") / "reactive-routing-api" / **,
+        Menu("reactive-web") / "reactive-web-api" / **,
+        Menu("reactive-web-lift") / "reactive-web-lift-api" / **
       )
     ) :+
         reactive.web.demo.snippet.DemoPane.menu
@@ -137,7 +139,9 @@ class Boot {
     LiftRules.setSiteMapFunc(sitemap)
     LiftRules.liftRequest.append {
       case Req("reactive-core-api" :: _, _, _) => false
+      case Req("reactive-routing-api" :: _, _, _) => false
       case Req("reactive-web-api" :: _, _, _)  => false
+      case Req("reactive-web-lift-api" :: _, _, _)  => false
     }
     LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
     LiftRules.useXhtmlMimeType = false
