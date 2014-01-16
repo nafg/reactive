@@ -26,16 +26,9 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
           def snippet: NodeSeq => NodeSeq = "div" #> Repeater(signal.now.map(x => "span *" #> x).signal)
           <html>{ snippet(template) }</html>
         })
-        // println(Console.BLUE+"\n"+"=" * 25)
-        // println(Console.BLUE+"Testing with: "+xss)
-        // println(Console.BLUE+"js: "+page.testTransport.js)
-        // println(Console.BLUE+"xml: "+page.testTransport.xml)
         for (xs <- xss.tail) {
           try {
-            // println(Console.BLUE+"Setting to "+xs)
             signal () = xs
-            // println(Console.BLUE+"js: "+page.testTransport.js)
-            // println(Console.BLUE+"xml: "+page.testTransport.xml)
             (page.testComponent.xml \\ "span").length should equal (signal.now.length)
             (page.testComponent.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
           } catch {
@@ -46,7 +39,6 @@ class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
               throw e
           }
         }
-        // println(Console.GREEN+"=" * 10+" Ok "+"=" * 11 + Console.RESET)
       }
     }
   }
