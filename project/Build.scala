@@ -91,6 +91,14 @@ object ReactiveBuild extends Build {
     )
   ) dependsOn(reactive_web_lift)
 
+  lazy val reactive_routes = Project(
+    "routes",
+    file("reactive-routes"),
+    settings = publishingDefaults ++ Seq(
+      pomExtra := pomCommon
+    )
+  )
+
   lazy val root = Project(
     "scala-reactive",
     file("."),
