@@ -24,7 +24,7 @@ import reactive.logging.HasLogger
 class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends TransportType with HasLogger {
   case class FiringAjaxEvent(page: Page, event: JValue)
 
-  private var zipper: NodeLoc = _
+  private lazy val zipper = new AtomicRef[NodeLoc](NodeLoc(initialXml))
 
   private var confirms: List[(String, Boolean => Unit)] = Nil
 
@@ -32,21 +32,21 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
   /**
    * The current xml
    */
-  def xml = xmlLazyLock.synchronized {
-    if(zipper eq null)
-      zipper = NodeLoc(initialXml)
-    zipper
-  }
+  def xml = zipper.get
 
   /**
    * All Elems
    */
-  def elems: List[Elem] = zipper.descendantOrSelf.map(_.node).collect{ case e: Elem => e }.toList
+  def elems: List[Elem] = xml.descendantOrSelf.map(_.node).collect{ case e: Elem => e }.toList
 
   /**
    * Get a node by id
    */
-  def apply(id: String): NodeLoc = zipper \\! ("#" + id)
+  def apply(id: String): NodeLoc = xml \\! ("#" + id)
+
+  def transform(f: NodeLoc => NodeLoc) = zipper transform (f andThen (_.top))
+
+  def update(zip: NodeLoc) = zipper transform (_ => zip.top)
 
   /**
    * Update an attribute on this node.
@@ -55,9 +55,9 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
    * @return the new node (searches the testTransport for a node with the same id).
    * @example {{{ testTransport(testTransport.xml \\ "#Id", "value") = "newValue" }}}
    */
-  def update[T: PropertyCodec](node: NodeLoc, name: String, value: T) = synchronized {
-    zipper = zipper.applyDomMutation(DomMutation.UpdateProperty[T](node.id, name, name, value)).top
-    apply(node.id)
+  def update[T: PropertyCodec](node: NodeLoc, name: String, value: T) = zipper.run{ nl =>
+    val newNL = nl.applyDomMutation(DomMutation.UpdateProperty[T](node.id, name, name, value)).top
+    (newNL, newNL \\! s"#${node.id}")
   }
 
   /**
@@ -81,7 +81,7 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
     override def queue[T: CanRender](renderable: T): Unit = synchronized {
       renderable match {
         case dm: DomMutation =>
-          zipper = zipper.applyDomMutation(dm).top
+          transform(_.applyDomMutation(dm))
         case Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg))) => synchronized {
           confirms ::= (msg, b => ajaxEvents.fire((id, JBool(b))))
         }
@@ -180,7 +180,7 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
       props foreach {
         case Regex.Groups(es, id, prop) =>
           val e = if (node.id == id) node else apply(id)
-          val jvalue = JString(e.attr(prop))
+          val jvalue = JString(e.attr.getOrElse(prop, ""))
           logger.trace(FiringAjaxEvent(page, jvalue))
           ajaxEvents.fire((es, jvalue))
       }
