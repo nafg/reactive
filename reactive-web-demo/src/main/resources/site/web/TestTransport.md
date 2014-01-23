@@ -7,9 +7,10 @@ a browser or Jetty, and your tests can have direct access to server
 objects like snippet classes. Here’s a little taste:
 
 <pre class="brush:scala">
-implicit val testPage = new Page { }
-val tt = new TestTransport(&lt;html>&lt;body>&lt;input id="phone"/>&lt;/body>&lt;/html>)
-testPage linkTransport tt
+implicit val testPage = new TestPage(self =>
+  &lt;html&gt;&lt;body&gt;&lt;input id="phone"/&gt;&lt;/body&gt;&lt;/html&gt;
+)
+val ttt = testPage.testTransportType
 def phone = tt.xml \\ "#phone"  // the element with id 'phone'
 // type in it (it's a text input)
 tt.sendKeys(phone, customer.homePhone)
