@@ -232,6 +232,7 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
    * The value of the 'value' attribute
    */
   def value = attr("value")
+  def value_=(s: String): NodeLoc = setAttr("value", Some(s))
 
   /**
    * The attributes, as a Map[String,String]
