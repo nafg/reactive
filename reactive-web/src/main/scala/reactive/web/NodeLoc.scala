@@ -160,44 +160,44 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
   }
 
   // XPath
-  private def iterate[A](start: Option[A])(f: A => Option[A]): Iterator[A] =
-    Iterator
+  private def stream[A](start: Option[A])(f: A => Option[A]): Stream[A] =
+    Stream
       .iterate(start)(_ flatMap f)
       .takeWhile(_.isDefined)
       .map(_.get)
 
-  final def self = Iterator.single(this)
+  final def self = Stream(this)
 
-  final def child = iterate(downOpt(0))(_.rightOpt)
+  final def child = stream(downOpt(0))(_.rightOpt)
 
   final def descendant = child.flatMap(_.descendantOrSelf)
 
-  final def descendantOrSelf: Iterator[NodeLoc] = self ++ descendant
+  final def descendantOrSelf: Stream[NodeLoc] = self ++ descendant
 
   final def parent = upOpt.iterator
 
   final def ancestor = parent.flatMap(_.ancestorOrSelf)
 
-  final def ancestorOrSelf: Iterator[NodeLoc] = self ++ ancestor
+  final def ancestorOrSelf: Stream[NodeLoc] = self ++ ancestor
 
-  final def followingSibling = iterate(rightOpt)(_.rightOpt)
+  final def followingSibling = stream(rightOpt)(_.rightOpt)
 
-  final def precedingSibling = iterate(leftOpt)(_.leftOpt)
+  final def precedingSibling = stream(leftOpt)(_.leftOpt)
 
-  final def following = iterate(followingOpt)(_.followingOpt)
+  final def following = stream(followingOpt)(_.followingOpt)
 
-  final def preceding = iterate(precedingOpt)(_.precedingOpt)
+  final def preceding = stream(precedingOpt)(_.precedingOpt)
 
   private def checkPreds(ps: Seq[NodePredicate]): NodeLoc => Boolean =
     nl => ps forall (_.f(nl))
 
-  def \(preds: NodePredicate*): Iterator[NodeLoc] =
+  def \(preds: NodePredicate*): Stream[NodeLoc] =
     child.filter(checkPreds(preds))
   def \?(preds: NodePredicate*): Option[NodeLoc] =
     child.find(checkPreds(preds))
   def \!(preds: NodePredicate*): NodeLoc = \?(preds: _*).get
 
-  def \\(preds: NodePredicate*): Iterator[NodeLoc] =
+  def \\(preds: NodePredicate*): Stream[NodeLoc] =
     descendantOrSelf.filter(checkPreds(preds))
   def \\?(preds: NodePredicate*): Option[NodeLoc] =
     descendantOrSelf.find(checkPreds(preds))
