@@ -1,8 +1,10 @@
-package reactive.web
-package widgets
+package reactive.web.widgets.lift
 
 import scala.xml.NodeSeq
 import net.liftweb.http.LiftRules
+
+import reactive.web.widgets.Messages
+import reactive.web.lift.AppendToRender
 
 object MessagesSnippet {
   @volatile private var inited = false

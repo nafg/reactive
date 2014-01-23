@@ -1,5 +1,6 @@
 package reactive
 package web
+package lift
 
 import java.io.{ OutputStream, OutputStreamWriter, Writer }
 import scala.annotation.tailrec

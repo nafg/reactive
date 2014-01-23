@@ -1,7 +1,7 @@
 package reactive
 package routing
 
-object LiftRoutes {
+package object lift {
   import net.liftweb.http.{ LiftResponse, Req }
   import net.liftweb.common._
   def reqToLoc(req: Req): Location =

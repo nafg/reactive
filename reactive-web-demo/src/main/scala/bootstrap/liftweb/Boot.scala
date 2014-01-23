@@ -6,8 +6,9 @@ import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.http._
 import net.liftweb.sitemap._
 import Loc._
-import reactive.web._
-import reactive.web.widgets.{ Messages, MessagesSnippet }
+import reactive.web.lift._
+import reactive.web.widgets.Messages
+import reactive.web.widgets.lift.MessagesSnippet
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import net.liftweb.doc.snippet.CodeInjection

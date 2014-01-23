@@ -1,5 +1,6 @@
 package reactive
 package web
+package lift
 
 import reactive.logging._
 

@@ -1,5 +1,6 @@
 package reactive
 package web
+package lift
 
 import net.liftweb.http.{ JavaScriptResponse, LiftRules, OkResponse, PostRequest, Req }
 import net.liftweb.http.js.JsCmds

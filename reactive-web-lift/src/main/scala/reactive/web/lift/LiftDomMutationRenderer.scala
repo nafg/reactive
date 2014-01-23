@@ -1,5 +1,6 @@
 package reactive
 package web
+package lift
 
 import scala.xml.NodeSeq
 import net.liftweb.http.S
