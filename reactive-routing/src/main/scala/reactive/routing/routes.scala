@@ -30,7 +30,7 @@ object Sitelet {
  */
 sealed trait Sitelet[P <: Path, +A] { self =>
   abstract class PathMapper[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]) {
-    def by[B](g: P#Route[A] => hprQ.Route[B]): Sitelet[Q, B]
+    def by[B](g: P#Route[A] => hprQ.Route[B])(implicit clrm: CanLiftRouteMapping[Q]): Sitelet[Q, B]
   }
 
   /**
@@ -63,7 +63,7 @@ sealed trait Sitelet[P <: Path, +A] { self =>
    * by `run` for that same location.
    * @example {{{ "add" :/: arg[Int] >> { _ + 1 } map ("000" + _) }}}
    */
-  def map[B](f: A => B)(implicit cmr: CanLiftRouteMapping[P]): Sitelet[P, B]
+  def map[B](f: A => B): Sitelet[P, B]
   /**
    * Returns an intermediate helper object in order to modify a route by applying a
    * function to the paths and the routing functions.
@@ -75,21 +75,21 @@ sealed trait Sitelet[P <: Path, +A] { self =>
   def mapPath[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]): PathMapper[Q]
 }
 
-abstract class AbstractPathRoute[P <: Path, +A](val path: P)(implicit val hpr: CanRunPath[P]) extends Sitelet[P, A] {
+abstract class AbstractPathRoute[P <: Path, +A](val path: P)(implicit val hpr: CanRunPath[P], val canLiftRouteMapping: CanLiftRouteMapping[P]) extends Sitelet[P, A] {
   abstract class PathMapper[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]) extends super.PathMapper[Q](f) {
-    def by[B](g: P#Route[A] => hprQ.Route[B]): AbstractPathRoute[Q, B]
+    def by[B](g: P#Route[A] => hprQ.Route[B])(implicit clrm: CanLiftRouteMapping[Q]): AbstractPathRoute[Q, B]
   }
 
   def route: P#Route[A]
   def run = hpr.run(path, route)
   val pathRoutes = List(this)
-  def map[B](f: A => B)(implicit cmr: CanLiftRouteMapping[P]): AbstractPathRoute[P, B] = new MappedPathRoute(this, f)
+  def map[B](f: A => B): AbstractPathRoute[P, B] = new MappedPathRoute(this, f)
   override def mapPath[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]): PathMapper[Q]
 }
 
-class PathRoute[P <: Path, +A](path: P, val route: P#Route[A])(implicit hpr: CanRunPath[P]) extends AbstractPathRoute[P, A](path) {
+class PathRoute[P <: Path, +A](path: P, val route: P#Route[A])(implicit hpr: CanRunPath[P], canLiftRouteMapping: CanLiftRouteMapping[P]) extends AbstractPathRoute[P, A](path) {
   class PathMapper[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]) extends super.PathMapper[Q](f) {
-    def by[B](g: P#Route[A] => hprQ.Route[B]): PathRoute[Q, B] = new PathRoute[Q, B](f(path), g(route))
+    def by[B](g: P#Route[A] => hprQ.Route[B])(implicit clrm: CanLiftRouteMapping[Q]): PathRoute[Q, B] = new PathRoute[Q, B](f(path), g(route))
   }
   // if P#Route[A] =:= R and Q#Route[A] =:= Int => String => R, then we need a new run function
   // that whereas until now the run function took a location, compared it down the path,
@@ -107,7 +107,7 @@ class PathRoute[P <: Path, +A](path: P, val route: P#Route[A])(implicit hpr: Can
 
 class MappedPathRoute[P <: Path, A, B](parent: AbstractPathRoute[P, A], f: A => B)(implicit cmr: CanLiftRouteMapping[P], hpr: CanRunPath[P]) extends AbstractPathRoute[P, B](parent.path) { outer =>
   class PathMapper[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]) extends super.PathMapper[Q](f) {
-    def by[C](g: P#Route[B] => hprQ.Route[C]): PathRoute[Q, C] = new PathRoute[Q, C](f(parent.path), g(outer.route))
+    def by[C](g: P#Route[B] => hprQ.Route[C])(implicit clrm: CanLiftRouteMapping[Q]): PathRoute[Q, C] = new PathRoute[Q, C](f(parent.path), g(outer.route))
   }
 
   def route: P#Route[B] = cmr(f)(parent.route)
@@ -126,11 +126,11 @@ class MappedPathRoute[P <: Path, A, B](parent: AbstractPathRoute[P, A], f: A => 
  */
 class RouteSeq[P <: Path, A](val pathRoutes: Seq[AbstractPathRoute[P, A]]) extends Sitelet[P, A] {
   class PathMapper[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]) extends super.PathMapper[Q](f) {
-    def by[B](g: P#Route[A] => hprQ.Route[B]): RouteSeq[Q, B] = new RouteSeq(pathRoutes map (_.mapPath[Q](f).by[B](g)))
+    def by[B](g: P#Route[A] => hprQ.Route[B])(implicit clrm: CanLiftRouteMapping[Q]): RouteSeq[Q, B] = new RouteSeq(pathRoutes map (_.mapPath[Q](f).by[B](g)))
   }
 
   def run = pathRoutes.foldLeft(PartialFunction.empty[Location, A])(_ orElse _.run)
-  def map[B](f: A => B)(implicit cmr: CanLiftRouteMapping[P]) = new RouteSeq(pathRoutes map (_ map f))
+  def map[B](f: A => B) = new RouteSeq(pathRoutes map (_ map f))
   override def mapPath[Q <: Path](f: P => Q)(implicit hprQ: CanRunPath[Q]) = new PathMapper(f)
 }
 

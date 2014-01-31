@@ -25,7 +25,7 @@ object Path {
     def :/:[A](arg: Arg[A]) = PArg[A, P](arg, path)
   }
   implicit class PathRouteOps[P <: Path : CanRunPath](path: P) {
-    def >>[A](route: P#Route[A]): PathRoute[P, A] = new PathRoute[P, A](path, route)
+    def >>[A](route: P#Route[A])(implicit clrm: CanLiftRouteMapping[P]): PathRoute[P, A] = new PathRoute[P, A](path, route)
   }
   implicit class PathEncodeOps[P <: Path](path: P)(implicit protected val ep: CanEncodePath[P]) {
     def construct = ep.encode(path, Location(Nil))

@@ -123,4 +123,16 @@ class RoutingTests extends FunSuite with Matchers with Inside {
 
     res should equal ("00030")
   }
+
+  test("map with various Path types") {
+    val site2 = r & r2
+    val z2 = site2 map ("000" + _)
+    val res2 = z2 run Location(List("add", "15", "plus", "20", "please"))
+    val res3 = z2 run Location(List("addall", "10", "15", "20", "25"))
+    implicitly[res2.type <:< String]
+    implicitly[res3.type <:< String]
+
+    res2 should equal ("00035")
+    res3 should equal ("00070")
+  }
 }
