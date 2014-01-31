@@ -15,7 +15,7 @@ import net.liftweb.util.Helpers.strToCssBindPromoter
 class Template(val path: String, val snippets: Snippet*) extends HtmlResponse {
   /**
    * Loads the template from [[path]] via `S.runTemplate`, using
-   * the specified [[snippets]].
+   * the specified `snippets`.
    */
   def template = S.runTemplate((path split "/").toList, snippets.map(_.asTuple): _*)
 }
