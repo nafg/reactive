@@ -31,7 +31,6 @@ object ReactiveBuild extends Build {
     libraryDependencies ++= List(
       "org.scalatest" %% "scalatest" % "2.0" % "test",
       "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
-      "org.scala-lang" % "scala-actors" % "2.10.0"
     ),
     testOptions in Test += Tests.Argument("-oF")
   )
