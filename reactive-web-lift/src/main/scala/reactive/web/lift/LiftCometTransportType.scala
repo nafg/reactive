@@ -53,7 +53,7 @@ class LiftCometTransportType(page: Page) extends TransportType with HasLogger {
 
   object cometTransport extends Transport {
     def currentPriority: Int = 0
-    def queue[T](renderable: T)(implicit render: CanRender[T]) = comet ! JsCmds.Run(render(renderable))
+    def queue[T](renderable: T)(implicit render: CanRender[T]) = comet ! JsCmds.Run(render(renderable).render)
   }
 
   LiftCometTransportType.overrideCometHack(comet) {

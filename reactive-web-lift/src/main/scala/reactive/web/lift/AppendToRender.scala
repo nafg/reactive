@@ -65,8 +65,8 @@ class RenderTransport extends AccumulatingTransport {
 
 trait AppendToRender extends HasLogger {
   sealed trait DroppedDataLogEvent
-  case class DroppedDataNotHtml(response: LiftResponse, data: Seq[String]) extends DroppedDataLogEvent
-  case class DroppedDataNoBody(response: LiftResponse, data: Seq[String]) extends DroppedDataLogEvent
+  case class DroppedDataNotHtml(response: LiftResponse, data: Seq[Renderable]) extends DroppedDataLogEvent
+  case class DroppedDataNoBody(response: LiftResponse, data: Seq[Renderable]) extends DroppedDataLogEvent
 
   private val currentPageRenders = new AtomicRef(Map.empty[String, RenderTransport])
 

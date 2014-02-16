@@ -75,7 +75,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
     implicit object ext extends Extend[obj, extendObj]
     val obj = jsProxy[obj](())
     implicit val page = new TestPage
-    page.collectQueued {
+    val queued = page.collectQueued {
       Javascript {
         obj.method(obj.method("This is a scala string"))
         JsVar[JsObj] := obj.self
@@ -90,7 +90,8 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
           }
         }
       }
-    } zipAll (List(
+    }
+    val expected = List(
       "obj.method(obj.method(\"This is a scala string\"));",
       "var x$0;",
       "x$0=obj.self;",
@@ -100,7 +101,8 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       """obj["otherProp"]="xyz";""",
       "obj.getSelf(1).getSelf(2);",
       "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4);}));}));"
-    ), "", "") foreach { case (a, b) => a should equal (b) }
+    )
+    (queued, expected).zipped foreach { case (a, b) => a.render should equal (b) }
   }
 
   test("JsStub+Extend"){
@@ -136,7 +138,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
       }
     }
     res.length should equal (1)
-    res zipAll (List(
+    val expected =
       "window.jQueryReady("+
         "(function(arg0){"+
         "return window.setTimeout("+
@@ -149,7 +151,7 @@ class JsTests extends FunSuite with ShouldMatchers with Observing {
         ");"+
         "})"+
         ");"
-    ), "", "") foreach { case (a, b) => a should equal (b) }
+    (res, List(expected)).zipped foreach { case (a, b) => a.render should equal (b) }
   }
 
   test("Function bodies do not get repeated") {

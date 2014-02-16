@@ -62,7 +62,7 @@ trait AjaxTransportType extends TransportType {
    * ajax call is retried we will reuse the same [[AjaxTask]]
    * so work is not done twice.
    */
-  protected def handleAjax(json: =>JValue): Seq[String] = try {
+  protected def handleAjax(json: =>JValue): Seq[Renderable] = try {
     tasks.transform(_ filter (_.completionTime map (System.currentTimeMillis - _ > 60000) getOrElse true))
     json match {
       case JObject(List(JField("unique", JInt(key)), JField("events", JArray(events)))) =>

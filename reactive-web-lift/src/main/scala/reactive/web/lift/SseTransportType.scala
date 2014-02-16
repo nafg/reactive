@@ -107,7 +107,7 @@ class SseTransportType(page: Page) extends TransportType {
       val data = render(renderable)
       val num = counter.run(a => (a + 1, a))
       synchronized {
-        val m = Some(new LinkedList(Message(num, data)))
+        val m = Some(new LinkedList(Message(num, data.render)))
         allMessages.value match {
           case None =>
             allMessages.value = m

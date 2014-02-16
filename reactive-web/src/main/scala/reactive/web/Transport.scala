@@ -23,7 +23,7 @@ trait Transport {
 }
 
 trait AccumulatingTransport extends Transport {
-  protected val dataRef = new AtomicRef(Vector.empty[String])
+  protected val dataRef = new AtomicRef(Vector.empty[Renderable])
 
   def data = dataRef.get
 

@@ -5,16 +5,34 @@ package web
  * Typeclass for types that can be rendered as javascript and sent to the browser
  */
 trait CanRender[-T] {
-  def apply(renderable: T): String
+  def apply(renderable: T): Renderable
 }
 
 object CanRender {
-  def apply[T](f: T => String) = new CanRender[T] {
+  def apply[T](f: T => Renderable) = new CanRender[T] {
     def apply(renderable: T) = f(renderable)
   }
 
-  implicit val string: CanRender[String] = CanRender(identity)
-  implicit val jsStatement: CanRender[javascript.JsStatement] = CanRender(javascript.JsStatement.render)
+  implicit val string: CanRender[String] = CanRender(StringRenderable(_))
+
+  implicit val renderable: CanRender[Renderable] = CanRender(identity)
+
+  implicit val jsStatement: CanRender[javascript.JsStatement] = CanRender(JavascriptStatementRenderable(_))
 
   implicit def domMutation(implicit config: CanRenderDomMutationConfig) = config.domMutationRenderer
+}
+
+/**
+ * Base trait for things that can be sent to the browser
+ */
+trait Renderable {
+  def render: String
+}
+
+case class StringRenderable(string: String) extends Renderable {
+  def render = string
+}
+
+case class JavascriptStatementRenderable(statement: javascript.JsStatement) extends Renderable {
+  def render = javascript.JsStatement.render(statement)
 }

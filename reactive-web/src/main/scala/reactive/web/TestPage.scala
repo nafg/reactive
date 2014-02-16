@@ -69,7 +69,7 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
   object testTransport extends AccumulatingTransport {
     def currentPriority = 1000
 
-    private val queuingNow = new scala.util.DynamicVariable(Vector.empty[String])
+    private val queuingNow = new scala.util.DynamicVariable(Vector.empty[Renderable])
 
     private val ajaxRE = ("""\(function\(arg0\)\{reactive\.queueAjax\((\d+)\)\(arg0\);reactive.doAjax\('"""+page.id+"""'\)\}\)""").r
     private val confirmRE = """window\.confirm\(\"(.*)\"\)""".r
@@ -91,7 +91,7 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
       super.queue(renderable)
     }
 
-    def collectQueued(f: =>Unit): Seq[String] = {
+    def collectQueued(f: =>Unit): Seq[Renderable] = {
       queuingNow.withValue(Vector.empty) {
         f
         queuingNow.value
@@ -193,7 +193,7 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
    * and return the javascript that got queued to this page
    * during the course of running the block
    */
-  def collectQueued(f: =>Unit): Seq[String] = testTransport.collectQueued(f)
+  def collectQueued(f: =>Unit): Seq[Renderable] = testTransport.collectQueued(f)
 
   linkTransport(testTransport)
 }
@@ -206,5 +206,5 @@ class TestPage(initialXml: TestPage => Node = _ => Group(Nil)) extends Page {
 
   testTransportType.xml
 
-  def collectQueued(f: =>Unit): Seq[String] = testTransportType.collectQueued(f)
+  def collectQueued(f: =>Unit): Seq[Renderable] = testTransportType.collectQueued(f)
 }

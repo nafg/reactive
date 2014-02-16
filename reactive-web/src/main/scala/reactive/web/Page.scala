@@ -27,11 +27,13 @@ object Page {
  * element will be kept in sync in both places.
  */
 trait Page extends Logger with IdCounter {
-  case class QueueingJS[T: CanRender](pageId: String, transport: Transport, data: T) {
-    def js: String = implicitly[CanRender[T]] apply data
+  case class QueueingJS(pageId: String, transport: Transport, data: Renderable) {
+    @deprecated("Use `data` directly", "0.4.0")
+    def js: String = data.render
   }
-  case class DroppedNoTransport[T: CanRender](pageId: String, data: T) {
-    def js: String = implicitly[CanRender[T]] apply data
+  case class DroppedNoTransport(pageId: String, data: Renderable) {
+    @deprecated("Use `data` directly", "0.4.0")
+    def js: String = data.render
   }
 
   /**
@@ -52,13 +54,13 @@ trait Page extends Logger with IdCounter {
   /**
    * Queues javascript to be rendered via the available `Transport` with the highest priority
    */
-  def queue[T: CanRender](renderable: T) = {
+  def queue[T](renderable: T)(implicit canRender: CanRender[T]) = {
     val tts = Option(transportTypes) getOrElse Nil
     val transports = pageTransports.get ++ tts.flatMap(_.transports.get)
-    if(transports.isEmpty) warn(DroppedNoTransport(id, renderable))
+    if(transports.isEmpty) warn(DroppedNoTransport(id, canRender(renderable)))
     else {
       val preferredTransport = transports.maxBy(_.currentPriority)
-      trace(QueueingJS(id, preferredTransport, renderable))
+      trace(QueueingJS(id, preferredTransport, canRender(renderable)))
       preferredTransport.queue(renderable)
     }
   }

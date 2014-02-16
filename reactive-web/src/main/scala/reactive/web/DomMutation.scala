@@ -57,7 +57,7 @@ trait DomMutationRenderer extends CanRender[DomMutation] {
       )
     }
 
-  def apply(dm: DomMutation) = dm match {
+  def apply(dm: DomMutation) = DomMutationRenderable(dm)(dm match {
     case InsertChildBefore(parentId, child, prevId) =>
       createElem(parentId, child)("reactive.insertChild('%s',%s,'%s');".format(parentId, _, prevId))
     case AppendChild(parentId, child) =>
@@ -70,10 +70,12 @@ trait DomMutationRenderer extends CanRender[DomMutation] {
       fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s);".format(parentId, _))
     case up @ UpdateProperty(parentId, pname, aname, v) =>
       "reactive.updateProperty('%s','%s',%s);".format(parentId, pname, JsExp render up.codec.toJS(v))
-  }
+  })
 
   //TODO should be written with DSL: JsStub for reactive object
 }
+
+case class DomMutationRenderable(domMutation: DomMutation)(val render: String) extends Renderable
 
 object BasicDomMutationRenderer extends DomMutationRenderer {
   /**
