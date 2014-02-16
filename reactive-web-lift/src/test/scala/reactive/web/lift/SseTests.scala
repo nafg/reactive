@@ -23,7 +23,7 @@ class SseTests extends FunSuite with ShouldMatchers with Eventually with SpanSug
       page.spc.sseTransport.write(sw)
     }
     Thread.sleep(200)
-    page.spc.sseTransport.queue("hello")
+    page.spc.sseTransport.queued fire StringRenderable("hello")
     Await.ready(fut, duration.Duration.Inf)
 
     eventually(timeout(3000.millis)) {

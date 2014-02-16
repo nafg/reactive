@@ -78,17 +78,17 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
       def unapply(a: JsExp[_]) = Some(a.render)
     }
 
-    override def queue[T: CanRender](renderable: T): Unit = synchronized {
-      renderable match {
-        case dm: DomMutation =>
-          transform(_.applyDomMutation(dm))
-        case Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg))) => synchronized {
-          confirms ::= (msg, b => ajaxEvents.fire((id, JBool(b))))
+    queued foreach { renderable =>
+      synchronized {
+        renderable match {
+          case dmr @ DomMutationRenderable(dm) =>
+            transform(_.applyDomMutation(dm))
+          case JavascriptStatementRenderable(Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg)))) =>
+            confirms ::= (msg, b => ajaxEvents.fire((id, JBool(b))))
+          case _ =>
         }
-        case _ =>
+        queuingNow.value :+= renderable
       }
-      queuingNow.value :+= implicitly[CanRender[T]] apply renderable
-      super.queue(renderable)
     }
 
     def collectQueued(f: =>Unit): Seq[Renderable] = {

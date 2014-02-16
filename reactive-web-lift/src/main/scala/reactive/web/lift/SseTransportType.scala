@@ -103,8 +103,7 @@ class SseTransportType(page: Page) extends TransportType {
 
     def currentPriority = 10
 
-    def queue[A](renderable: A)(implicit render: CanRender[A]): Unit = {
-      val data = render(renderable)
+    queued foreach { data =>
       val num = counter.run(a => (a + 1, a))
       synchronized {
         val m = Some(new LinkedList(Message(num, data.render)))

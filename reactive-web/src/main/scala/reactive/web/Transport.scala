@@ -7,11 +7,14 @@ package web
  * by returning it in an ajax response, and via comet.
  */
 trait Transport {
+  protected implicit object observing extends Observing
+
   /**
-   * Send some data to the browser.
-   * The data may be sent immediately, or at a later time.
+   * Data to be sent to the browser.
+   * The data may or may not be sent immediately, depending on the `Transport` implementation
    */
-  def queue[T: CanRender](renderable: T): Unit
+  lazy val queued: EventSource[Renderable] = new EventSource
+
   /**
    * Return a number to help the `Page`
    * select the ideal `Transport` to use.
@@ -27,6 +30,7 @@ trait AccumulatingTransport extends Transport {
 
   def data = dataRef.get
 
-  def queue[T](renderable: T)(implicit canRender: CanRender[T]) =
-    dataRef.transform(_ :+ canRender(renderable))
+  queued foreach { x =>
+    dataRef.transform(_ :+ x)
+  }
 }

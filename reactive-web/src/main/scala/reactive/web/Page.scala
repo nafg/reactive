@@ -61,7 +61,7 @@ trait Page extends Logger with IdCounter {
     else {
       val preferredTransport = transports.maxBy(_.currentPriority)
       trace(QueueingJS(id, preferredTransport, canRender(renderable)))
-      preferredTransport.queue(renderable)
+      preferredTransport.queued.fire(canRender(renderable))
     }
   }
 
