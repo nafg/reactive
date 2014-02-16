@@ -125,7 +125,9 @@ object PropertyVar {
   /**
    * An implicit conversion from PropertyVar to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(dp: PropertyVar[_])(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
+  implicit class toNodeSeqFunc(dp: PropertyVar[_])(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq) = dp.render(page)(ns)
+  }
 
   /**
    * Convenience shortcut for PropertyVar("value"), i.e., returns a PropertyVarFactory for the value attribute/property

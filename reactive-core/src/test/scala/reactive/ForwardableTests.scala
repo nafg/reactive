@@ -1,9 +1,9 @@
 package reactive
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class ForwardableTests extends FunSuite with ShouldMatchers with CollectEvents {
+class ForwardableTests extends FunSuite with Matchers with CollectEvents {
   implicit val observing = new Observing {}
 
   test("thunk") {

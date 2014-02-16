@@ -8,6 +8,8 @@ import java.lang.reflect.{ InvocationHandler, Proxy, Method }
 
 import scala.reflect.{ ClassTag, classTag }
 
+import scala.language.higherKinds
+
 /**
  * Contains types that model javascript types.
  * These classes cannot be instantiated.
@@ -164,8 +166,8 @@ class JsProp(val key: String, v: => JsExp[JsAny]) {
   }
 }
 object JsProp {
-  implicit def pair2prop[A](pair: => (String, A))(implicit conv: ToJsLit[A, _ <: JsAny]): JsProp = new JsProp(pair._1, conv(pair._2))
-  implicit def jspair2prop(pair: (String, JsExp[JsAny])): JsProp = new JsProp(pair._1, pair._2)
+  implicit class pair2prop[A](pair: => (String, A))(implicit conv: ToJsLit[A, _ <: JsAny]) extends JsProp(pair._1, conv(pair._2))
+  implicit class jspair2prop(pair: (String, JsExp[JsAny])) extends JsProp(pair._1, pair._2)
 }
 
 /**

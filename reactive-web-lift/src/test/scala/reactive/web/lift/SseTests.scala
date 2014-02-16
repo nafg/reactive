@@ -3,16 +3,16 @@ package web
 package lift
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.SpanSugar
 import scala.concurrent._
 import ExecutionContext.Implicits._
 import java.io._
 
-class SseTests extends FunSuite with ShouldMatchers with Eventually with SpanSugar {
+class SseTests extends FunSuite with Matchers with Eventually with SpanSugar {
   test("SseTransportType") {
-    lazy val page = new Page {
+    object page extends Page {
       val spc = new SseTransportType(this) {
         override def maxTime = 2000
       }

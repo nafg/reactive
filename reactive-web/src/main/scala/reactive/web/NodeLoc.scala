@@ -10,7 +10,8 @@ import scala.xml._
  */
 class NodePredicate(val f: NodeLoc => Boolean)
 object NodePredicate {
-  implicit def funcPredicate(f: Node => Boolean): NodePredicate = new NodePredicate(f compose (_.node))
+  implicit class funcPredicate(f: Node => Boolean) extends NodePredicate(f compose (_.node))
+
   /**
    * Decodes a node predicate string. The syntax is as follows:
    * {{{
@@ -22,7 +23,7 @@ object NodePredicate {
    *   "label"  -> the node's label must be 'label'
    * }}}
    */
-  implicit def stringPredicate(s: String): NodePredicate = new NodePredicate(finder(s.head)(s.tail))
+  implicit class stringPredicate(s: String) extends NodePredicate(finder(s.head)(s.tail))
 
   private def finder(c: Char): String => NodeLoc => Boolean = s => n => (c, n) match {
     case ('#', nl                 ) => n.attr.get("id") == Some(s)

@@ -5,11 +5,11 @@ import scala.annotation.implicitNotFound
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{ ParallelTestExecution, FunSuite }
 
-class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks with ParallelTestExecution {
+class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with ParallelTestExecution {
   implicit val observing0 = new Observing {}
   val ts = DeltaSeq(1, 2, 3, 4)
 

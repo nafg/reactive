@@ -67,7 +67,9 @@ object RElem {
    */
   def apply(text: String): RElem = new ElemWrapper(<span>{ text }</span>)
 
-  implicit def rElemToNsFunc(rElem: RElem)(implicit page: Page): NodeSeq => NodeSeq = rElem.toNSFunc(page)
+  implicit class rElemToNsFunc(rElem: RElem)(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq) = rElem.toNSFunc(page)(ns)
+  }
 }
 
 /**

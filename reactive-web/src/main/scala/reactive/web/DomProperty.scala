@@ -166,7 +166,9 @@ object DomProperty {
   /**
    * An implicit conversion from DomProperty to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(dp: DomProperty)(implicit page: Page): NodeSeq => NodeSeq = dp.render(page)
+  implicit class toNodeSeqFunc(dp: DomProperty)(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq) = dp.render(page)(ns)
+  }
 
   /**
    * An implicit `CanForwardTo` instance for `DomProperty`s (does not need to be imported).

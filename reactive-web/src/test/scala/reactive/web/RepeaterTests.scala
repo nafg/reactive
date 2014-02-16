@@ -2,14 +2,14 @@ package reactive
 package web
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 
 import scala.xml.{ Elem, NodeSeq }
 
 import net.liftweb.util.Helpers._
 
-class RepeaterTests extends FunSuite with ShouldMatchers with PropertyChecks {
+class RepeaterTests extends FunSuite with Matchers with PropertyChecks {
   test("Repeater should render its children") {
     implicit val page = new TestPage
     val select = html.Select(Val(List(1, 2, 3)))(new Observing {}, Config.defaults)

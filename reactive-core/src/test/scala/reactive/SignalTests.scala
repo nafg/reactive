@@ -1,7 +1,7 @@
 package reactive
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
@@ -9,7 +9,7 @@ import org.scalacheck.Gen
 import scala.concurrent.future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with PropertyChecks {
+class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -150,7 +150,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
   }
 
   test("Signals should fire change event after 'now' is set") {
-    def check[T, S[_] <: Signal[_]](sig: S[T]): S[T] = { sig.change =>> (_ should equal (sig.now)); sig }
+    def check[T, S <: Signal[T]](sig: S with Signal[T]): S = { sig.change =>> (_ should equal (sig.now)); sig }
     val v = check(Var(10))
     val mapped = check(v.map(_ + 10))
     val flatMapped = check(v.flatMap(x => Var(x + 15): Signal[Int]))
@@ -199,7 +199,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
   }
 }
 
-class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {
+class VarTests extends FunSuite with Matchers with CollectEvents with Observing {
   test("<-->") {
     val a = Var(10)
     val b = Var(20) <--> a

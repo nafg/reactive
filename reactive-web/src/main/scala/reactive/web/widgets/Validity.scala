@@ -14,6 +14,8 @@ import scala.reflect.{ ClassTag, classTag }
 
 
 object Validity {
+  import scala.language.implicitConversions
+
   trait FailureMessage[-From, -To, Msg] {
     def apply(value: From): Msg
   }
@@ -75,7 +77,9 @@ case class Invalid[+Msg](messages: Msg*) extends Validity[Nothing, Msg] {
 
 
 object NodeSeqValidity {
+  import scala.language.implicitConversions
   import Validity._
+
   implicit def nodeSeqFailureMessage[From, To](implicit m: Manifest[To], stringMessage: FailureMessage[From, To, String]): FailureMessage[From, To, NodeSeq] = new FailureMessage[From, To, NodeSeq] {
     def apply(value: From) = Text(stringMessage(value))
   }

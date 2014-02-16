@@ -11,6 +11,8 @@ import net.liftweb.util.Helpers._
  * In addition it provides a default per-page instance.
  */
 object Messages {
+  import scala.language.implicitConversions
+
   private object counter extends IdCounter
 
   /**

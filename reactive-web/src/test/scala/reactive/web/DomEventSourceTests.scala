@@ -2,9 +2,9 @@ package reactive
 package web
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class DomEventSourceTests extends FunSuite with ShouldMatchers {
+class DomEventSourceTests extends FunSuite with Matchers {
   test("DomEventSource only renders the current Page's propagation javascript") {
     val property = DomProperty("someName") withEvents DomEventSource.click
     implicit val page = new TestPage

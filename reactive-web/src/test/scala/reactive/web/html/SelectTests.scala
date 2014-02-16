@@ -3,9 +3,9 @@ package web
 package html
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class SelectTests extends FunSuite with ShouldMatchers with Observing {
+class SelectTests extends FunSuite with Matchers with Observing {
   test("Selection should initally be defined") {
     val select = Select(Val(List("A", "B")))
     select.selectedIndex.now.isDefined should be(true)

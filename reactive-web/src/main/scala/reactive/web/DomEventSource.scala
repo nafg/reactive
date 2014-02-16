@@ -12,6 +12,7 @@ import scala.reflect.{ classTag, ClassTag }
 
 import reactive.logging.Logger
 
+import scala.language.higherKinds
 
 class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
   def self = domEventSource
@@ -133,12 +134,14 @@ object DomEventSource {
   /**
    * An implicit conversion from DomEventSource to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
+  implicit class toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq) = des.render(page)(ns)
+  }
 
   /**
    * Implicitly provides the `foreach` method and `Forwardable` methods.
    */
-  implicit def canForeach[T <: DomEvent](des: DomEventSource[T])(implicit page: Page) = new DomEventSourceCanForeach(des)(page)
+  implicit class canForeach[T <: DomEvent](des: DomEventSource[T])(implicit page: Page) extends DomEventSourceCanForeach(des)(page)
 
   /**
    * Creates a new Click DomEventSource

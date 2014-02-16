@@ -103,9 +103,9 @@ trait TableEditor[A] extends TableView[A] {
     lazy val removes = remove.eventStream map (_ => Delete(item))
 
     lazy val modifieds = cols.map {
-      case c: EditableCol[Any] =>
+      case c: EditableCol[_] =>
         actions map (_ exists {
-          case Update(i, `c`, v) if i == item && v != c.get(item) => true
+          case Update(i, col, v) if c == col && i == item && v != c.get(item) => true
           case _ => false
         })
       case _ => Val(false)

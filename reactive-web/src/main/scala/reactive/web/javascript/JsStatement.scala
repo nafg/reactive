@@ -233,9 +233,10 @@ object Do {
   private[javascript] class DoWhile(block: => Unit)(val cond: $[JsBoolean]) extends HasBody(block) with JsStatement {
     def toReplace = Nil
   }
-  def apply(block: => Unit) = new {
-    def While(cond: $[JsBoolean]) = new DoWhile(block)(cond)
+  final class Whileable(block: =>Unit) {
+    def While(cond: JsExp[JsBoolean]) = new DoWhile(block)(cond)
   }
+  def apply(block: => Unit) = new Whileable(block)
 }
 
 sealed trait Match[+T <: JsAny] {

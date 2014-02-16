@@ -5,9 +5,9 @@ package javascript
 import JsTypes._
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class JsTests extends FunSuite with ShouldMatchers with Observing {
+class JsTests extends FunSuite with Matchers with Observing {
   test("Operators") {
     (1.$ + 2).render should equal (new JsOp(1, 2, "+").render)
     (1.$ & 2).render should equal (new JsOp(1, 2, "&").render)

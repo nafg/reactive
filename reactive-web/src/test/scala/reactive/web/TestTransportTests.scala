@@ -2,13 +2,13 @@ package reactive
 package web
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
 import scala.xml.{ NodeSeq, Text }
 
 import net.liftweb.util.Helpers._
 
-class TestTransportTests extends FunSuite with ShouldMatchers with Observing {
+class TestTransportTests extends FunSuite with Matchers with Observing {
 
   test("TestTransport") {
     val template = <span id="span">A</span>

@@ -3,6 +3,8 @@ package web
 
 import scala.reflect.{ classTag, ClassTag }
 
+import scala.language.implicitConversions
+
 package object javascript {
   import JsTypes._
 
