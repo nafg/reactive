@@ -40,7 +40,7 @@ object SseTransportType extends PagesCache {
 }
 
 /**
- * A [[Page]] that can push events to the browser via SSE (Server Side Events),
+ * A [[TransportType]] that can push events to the browser via SSE (Server Side Events),
  * also known as HTML5 EventSource.
  */
 class SseTransportType(page: Page) extends TransportType {

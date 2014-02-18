@@ -96,5 +96,7 @@ object ReactiveBuild extends Build {
     settings = defaults ++ Seq(
       publishArtifact := false
     )
-  ).aggregate(reactive_core, reactive_web, reactive_web_lift, reactive_web_demo, reactive_routing)
+  )
+  .settings(sbtunidoc.Plugin.unidocSettings: _*)
+  .aggregate(reactive_core, reactive_web, reactive_web_lift, reactive_web_demo, reactive_routing)
 }

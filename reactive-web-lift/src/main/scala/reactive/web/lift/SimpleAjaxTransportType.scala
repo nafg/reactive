@@ -67,7 +67,7 @@ object SimpleAjaxTransportType extends PagesCache {
 }
 
 /**
- * This is an [[AjaxPage]] that uses a Lift dispatch
+ * This is an [[AjaxTransportType]] that uses a Lift dispatch
  * and plain XMLHttpRequest to install the ajax handler.
  * You must call [[SimpleAjaxTransportType.init]] in `boot` for it to work.
  */

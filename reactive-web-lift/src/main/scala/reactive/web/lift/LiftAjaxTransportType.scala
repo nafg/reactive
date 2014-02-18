@@ -7,7 +7,7 @@ import net.liftweb.http.S
 import net.liftweb.json.parse
 
 /**
- * This is an [[AjaxPage]] that uses the
+ * This is an [[AjaxTransportType]] that uses the
  * Lift function mapping mechanism and ajax code
  * to install the ajax handler.
  */

@@ -10,7 +10,8 @@ object MessagesSnippet {
   @volatile private var inited = false
 
   /**
-   * Make each [[Page]]'s default Messages instance available as a snippet, `reactive.Messages`.
+   * Make each [[Messages.defaultMessages]] available as a snippet named `"reactive.Messages"`.
+   * The [[Page]] needs to have an [[reactive.web.lift.AppendToRenderTransportType]].
    * @param tmplt The template to use. Defaults to `Messages.template()`.
    */
   def init(tmplt: NodeSeq = Messages.template()) = {

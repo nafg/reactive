@@ -25,15 +25,15 @@ class RenderTransport extends AccumulatingTransport {
   protected val transportTypes = new AtomicRef(List.empty[AppendToRenderTransportType])
   /**
    * Add `page` to this transport
-   * Called by [[Page#linkTransport]] before it actually inserts the transport
+   * Called in the constructor of [[AppendToRenderTransportType]]
    */
   protected[web] def addTransportType(transportType: AppendToRenderTransportType): Unit = transportTypes.transform(transportType :: _)
   /**
    * Remove `page` from this transport
-   * Called by [[Page#unlinkTransport]] after it actually removes the transport
+   * Called by [[destroy]] and [[renderAndDestroy]]
    */
   protected[web] def removeTransportType(transportType: AppendToRenderTransportType): Unit = transportTypes.transform(_ filter (transportType != _))
-  
+
   def destroy() = transportTypes.get foreach { pc =>
     pc unlinkTransport this
     removeTransportType(pc)
@@ -77,7 +77,7 @@ trait AppendToRender extends HasLogger {
   def currentPageRender = currentPageRenders.get.get(S.renderVersion)
 
   /**
-   * The [[AppendToRenderPage]]s that are known to be
+   * The [[Page]]s that are known to be
    * created during the current request
    */
   def currentPages = currentPageRender.toList.flatMap(_.currentPages)
