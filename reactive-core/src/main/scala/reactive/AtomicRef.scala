@@ -1,5 +1,4 @@
 package reactive
-package web
 
 /**
  * A subclass of java.util.concurrent.atomic.AtomicReference[A]
