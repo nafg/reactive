@@ -367,8 +367,11 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
-    observing.addRef(f)
-    observing.addRef(this)
+    val subscription = new Subscription {
+      ref = (f, this)
+      def cleanUp = removeListener(f)
+    }
+    observing.addSubscription(subscription)
     addListener(f)
     trace(AddedForeachListener(f))
     trace(HasListeners(listeners))

@@ -1,5 +1,13 @@
 package reactive
 
+trait Subscription {
+  protected var ref: AnyRef = null
+  final def unsubscribe(): Unit = {
+    cleanUp()
+    ref = null
+  }
+  def cleanUp(): Unit
+}
 
 /**
  * Keeps a list of strong references. Used to control when observers
@@ -23,13 +31,14 @@ trait Observing {
    * Places an implicit reference to 'this' in scope
    */
   implicit val observing: Observing = this
-  private var refs = List[AnyRef]()
-  private[reactive] def addRef(ref: AnyRef): Unit = synchronized { refs ::= ref }
-  private[reactive] def removeRef(ref: AnyRef): Unit = synchronized {
-    refs = refs.span(ref.ne) match {
+  private val subscriptions = new AtomicRef[List[Subscription]](Nil)
+  private[reactive] def addSubscription(subscription: Subscription): Unit = subscriptions.transform(subscription :: _)
+  private[reactive] def removeSubscription(subscription: Subscription): Unit = subscriptions.transform { subs =>
+    subs.span(subscription.ne) match {
       case (nes, firstEqs) => nes ++ firstEqs.drop(1)
     }
   }
+
   /**
    * You can write
    * [observing.] observe(signal){value => action}
@@ -52,5 +61,5 @@ trait Observing {
  */
 trait ObservingGroup extends Observing {
   protected def observings: List[Observing]
-  override private[reactive] def addRef(ref: AnyRef) = observings foreach {_.addRef(ref)}
+  override private[reactive] def addSubscription(subscription: Subscription) = observings foreach (_ addSubscription subscription)
 }
