@@ -218,7 +218,7 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
   private val parentListener: Event[T] => Unit = NamedFunction(debugName+".parentListener")(_ foreach (x => synchronized {
     state = ph(x, state)
   }))
-  parent.change addListener parentListener
+  private val _sub = parent.change subscribe parentListener
 }
 
 protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T, U, Unit](parent, (), _ => f(parent.now)) {
@@ -280,10 +280,9 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapEventStream[U]: CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] = new CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] {
     def flatMap[T](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
       val parentChange = new EventSource[T]
-      val f0 = (t: Event[T]) => t foreach parentChange.fire
-      parent.change addListener f0
+      val sub = parent.change subscribe (_ foreach parentChange.fire)
       new parentChange.FlatMapped(Some(parent.now))(f) {
-        private val f1 = f0
+        private val _sub = sub
         override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
       }
     }
@@ -296,12 +295,12 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
     current = x
     change fire x
   })
-  state.change addListener thunk
+  @volatile private var subscription = state.change subscribe thunk
   def parentHandler = (x, curSig) => {
-    curSig.change removeListener thunk
+    subscription.unsubscribe()
     val newSig = f(x)
     thunk(Event(newSig.now))
-    newSig.change addListener thunk
+    subscription = newSig.change subscribe thunk
     newSig
   }
 }

@@ -178,7 +178,7 @@ trait EventStream[+T] extends Observable[T] {
 
   /**
    * Converts this EventStream of `Either`s into two EventStreams of the
-   * `Left` and `Right` halves, respectively. For each `Left` event that 
+   * `Left` and `Right` halves, respectively. For each `Left` event that
    * this EventStream fires, the first of the returned streams will fire
    * the data inside of that `Left`. Similarly, for each `Right` event
    * that this EventStream fires, the second of the returned streams will
@@ -188,16 +188,13 @@ trait EventStream[+T] extends Observable[T] {
     collect{ case t if ev(t).isLeft => ev(t).left.get } ->
     collect{ case t if ev(t).isRight => ev(t).right.get }
 
-  private[reactive] def addListener(f: Listener): Unit
-  private[reactive] def removeListener(f: Listener): Unit
-
   def debugString: String
   def debugName: String
 }
 
 class NamedFunction[-T, +R](name: => String, f: T => R) extends (T => R) {
   def apply(in: T): R = f(in)
-  override def toString = "%s #%s" format (name, System.identityHashCode(f))
+  override def toString = s"$name #${System.identityHashCode(f)} [$f]"
 }
 object NamedFunction {
   def apply[T, R](name: => String)(f: T => R) = new NamedFunction(name, f)
@@ -213,7 +210,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   case class HasListeners(listeners: List[WeakReference[Listener]])
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
   case class AddingListener(listener: Listener)
-  case class AddedForeachListener(listener: Listener)
+  case class AddedListener(listener: Listener)
 
   /**
    * When n empty WeakReferences are found, purge them
@@ -227,17 +224,17 @@ class EventSource[T] extends EventStream[T] with Logger {
     protected val listener: EventSource[T]#Listener = NamedFunction(debugName+".listener")(_ foreach (v => synchronized {
       state = h(v, state)
     }))
-    parent addListener listener
+    protected val parentSubscription = parent subscribe listener
   }
 
   class FlatMapped[U](initial: Option[T])(val f: T => EventStream[U]) extends ChildEventSource[U, Option[EventStream[U]]](initial map f) {
     override def debugName = "%s.flatMap(%s)" format (EventSource.this.debugName, f)
     val fireFunc: Event[U] => Unit = _ foreach fire
-    state foreach { _ addListener fireFunc }
+    @volatile private var subscription: Option[Subscription] = state map { _ subscribe fireFunc }
     def handler = (parentEvent, lastES) => {
-      lastES foreach { _ removeListener fireFunc }
+      subscription foreach { _.unsubscribe() }
       val newES = Some(f(parentEvent))
-      newES foreach { _ addListener fireFunc }
+      subscription = newES map { _ subscribe fireFunc }
       newES
     }
   }
@@ -297,7 +294,8 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  private var listeners: List[WeakReference[Listener]] = Nil
+  private var listenersRef = new AtomicRef[List[WeakReference[Listener]]](Nil)
+  protected def listeners = listenersRef.get
 
   /**
    * Whether this EventStream has any listeners depending on it
@@ -335,7 +333,7 @@ class EventSource[T] extends EventStream[T] with Logger {
         next(ls.tail)
     }
     next(listeners)
-    if (empty >= purgeThreshold) listeners = listeners.filter(_.get.isDefined)
+    if (empty >= purgeThreshold) listenersRef.transform(_.filter(_.get.isDefined))
   }
 
   def flatMap[U](f: T => EventStream[U]): EventStream[U] =
@@ -358,19 +356,19 @@ class EventSource[T] extends EventStream[T] with Logger {
   }
 
   def subscribe(f: Listener) = {
-    val subscription = new Subscription {
-      ref = (f, this)
-      def cleanUp = removeListener(f)
-    }
-    addListener(f)
-    trace(AddedForeachListener(f))
+    val func: Listener = NamedFunction("ESWrapper")(f) // ensure unique function instance per `subscribe` invocation
+    trace(AddingListener(f))
+    listenersRef.transform(_ :+ new WeakReference(func))
+    trace(AddedListener(f))
     trace(HasListeners(listeners))
-    subscription
+    new Subscription {
+      ref = (func, f, EventSource.this)
+      def cleanUp = listenersRef.transform(_ filterNot (wr => func eq wr.get.orNull))
+    }
   }
 
   def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
     override def debugName = "%s.filter(%s)" format (EventSource.this.debugName, f)
-    val f0 = f
     def handler = (event, _) => if (f(event)) fire(event)
   }
 
@@ -380,7 +378,7 @@ class EventSource[T] extends EventStream[T] with Logger {
       if (p(event))
         fire(event)
       else
-        EventSource.this.removeListener(listener)
+        parentSubscription.unsubscribe()
   }
 
   def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new FoldedLeft(initial, f)
@@ -412,8 +410,8 @@ class EventSource[T] extends EventStream[T] with Logger {
     val parent = EventSource.this
     val f: Event[U] => Unit = _ foreach fire
 
-    EventSource.this addListener f
-    that addListener f
+    private val _sub1 = EventSource.this subscribe f
+    private val _sub2 = that subscribe f
   }
 
   def hold[U >: T](init: U): Signal[U] = new Signal[U] {
@@ -424,8 +422,7 @@ class EventSource[T] extends EventStream[T] with Logger {
 
     val change = EventSource.this
 
-    val f = (v: Event[T]) => v foreach (current = _)
-    change addListener f
+    private val _sub = change subscribe (_ foreach (current = _))
   }
 
   def zipWithStaleness: EventStream[(T, () => Boolean)] = new ChildEventSource[WithVolatility[T], Option[Volatility]](None) {
@@ -442,19 +439,6 @@ class EventSource[T] extends EventStream[T] with Logger {
   def throttle(period: Long): EventStream[T] = new Throttled(period)
 
   def nonblocking: EventStream[T] = new ActorEventStream
-
-  private[reactive] def addListener(f: Listener): Unit = synchronized {
-    trace(AddingListener(f))
-    listeners :+= new WeakReference(f)
-  }
-  private[reactive] def removeListener(f: Listener): Unit = synchronized {
-    //remove the last listener that is identical to f
-    listeners.lastIndexWhere(_.get.map(f.eq) getOrElse false) match {
-      case -1 =>
-      case n =>
-        listeners = listeners.patch(n, Nil, 1)
-    }
-  }
 }
 
 /**
@@ -547,23 +531,20 @@ trait Batchable[A, B] extends EventSource[SeqDelta[A, B]] {
 trait EventStreamProxy[T] extends EventStream[T] {
   protected[this] def underlying: EventStream[T]
 
-  def debugString = underlying.debugString
-  def debugName = underlying.debugName
-  def flatMap[U](f: T => EventStream[U]): EventStream[U] = underlying.flatMap[U](f)
-  def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = underlying.foldLeft[U](z)(f)
-  def map[U](f: T => U): EventStream[U] = underlying.map[U](f)
-  def subscribe(f: Listener): Subscription = underlying.subscribe(f)
-  def |[U >: T](that: EventStream[U]): EventStream[U] = underlying.|(that)
-  def filter(f: T => Boolean): EventStream[T] = underlying.filter(f)
-  def collect[U](pf: PartialFunction[T, U]): EventStream[U] = underlying.collect(pf)
-  def takeWhile(p: T => Boolean): EventStream[T] = underlying.takeWhile(p)
-  def hold[U >: T](init: U): Signal[U] = underlying.hold(init)
-  def nonrecursive: EventStream[T] = underlying.nonrecursive
-  def distinct: EventStream[T] = underlying.distinct
-  def nonblocking: EventStream[T] = underlying.nonblocking
-  def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
-  def throttle(period: Long): EventStream[T] = underlying.throttle(period)
-  private[reactive] def addListener(f: Listener): Unit = underlying.addListener(f)
-  private[reactive] def removeListener(f: Listener): Unit = underlying.removeListener(f)
-
+  override def debugString = underlying.debugString
+  override def debugName = underlying.debugName
+  override def flatMap[U](f: T => EventStream[U]): EventStream[U] = underlying.flatMap[U](f)
+  override def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = underlying.foldLeft[U](z)(f)
+  override def map[U](f: T => U): EventStream[U] = underlying.map[U](f)
+  override def subscribe(f: Listener): Subscription = underlying.subscribe(f)
+  override def |[U >: T](that: EventStream[U]): EventStream[U] = underlying.|(that)
+  override def filter(f: T => Boolean): EventStream[T] = underlying.filter(f)
+  override def collect[U](pf: PartialFunction[T, U]): EventStream[U] = underlying.collect(pf)
+  override def takeWhile(p: T => Boolean): EventStream[T] = underlying.takeWhile(p)
+  override def hold[U >: T](init: U): Signal[U] = underlying.hold(init)
+  override def nonrecursive: EventStream[T] = underlying.nonrecursive
+  override def distinct: EventStream[T] = underlying.distinct
+  override def nonblocking: EventStream[T] = underlying.nonblocking
+  override def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
+  override def throttle(period: Long): EventStream[T] = underlying.throttle(period)
 }

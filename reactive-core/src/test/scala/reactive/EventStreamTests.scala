@@ -38,6 +38,19 @@ class LoggerTests extends FunSuite with Matchers with Observing {
 class EventStreamTests extends FunSuite with Matchers with CollectEvents with ParallelTestExecution {
   implicit val observing = new Observing {}
 
+  test("subscribe / unsubscribe") {
+    var x = false
+    val es = new EventSource[Unit]
+    val sub = es.subscribe(_ => x = true)
+    es.fire(())
+    x should equal (true)
+    x = false
+    sub.unsubscribe()
+    es.fire(())
+    x should equal (false)
+    es.hasListeners should equal (false)
+  }
+
   test("hasListeners") {
     val es = new EventSource[Nothing] {}
     es.hasListeners should equal (false)

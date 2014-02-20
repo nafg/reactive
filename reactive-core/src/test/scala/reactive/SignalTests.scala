@@ -111,6 +111,7 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
     val s = Var(10)
     val es = new EventSource[Int]
     val fm = s.flatMap(x => es.map(x * _))
+    implicitly[fm.type <:< EventStream[Int]]
     collecting(fm){ es fire 3 } should equal(List(30))
     collecting(fm){ s () = 20 } should equal (Nil)
     collecting(fm){ es fire 4 } should equal (List(80))

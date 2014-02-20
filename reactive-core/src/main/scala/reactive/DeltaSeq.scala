@@ -90,7 +90,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
         current.underlying
         change fire now
       }
-      parent.signal.change addListener pc
+      private val _sub = parent.signal.change subscribe pc
       lazy val change = new EventSource[DeltaSeq[V]] {}
     }
   }

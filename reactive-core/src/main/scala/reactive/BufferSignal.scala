@@ -23,7 +23,7 @@ class BufferSignal[T] extends SeqSignal[T] {
     val fd = underlying.messages hold DeltaSeq.startDelta(underlying)
     def fromDelta = fd.now
   }
-  underlying.messages addListener dl
+  private val _sub = underlying.messages subscribe dl
 
   /**
    * Override this to customize the comparator used
