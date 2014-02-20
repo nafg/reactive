@@ -15,7 +15,7 @@ object Signal {
  * @param T the type of value this signal contains
  */
 //TODO provide change veto (cancel) support
-trait Signal[+T] extends Foreachable[T] {
+trait Signal[+T] extends Observable[T] {
   /**
    * Represents the current value. Often, this value does not need to be
    * (or should not be) used explicitly from the outside; instead you can pass functions
@@ -29,9 +29,9 @@ trait Signal[+T] extends Foreachable[T] {
    */
   def change: EventStream[T]
 
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
-    f(now)
-    change.foreach(f)(observing)
+  def subscribe(f: Event[T] => Unit) = {
+    f(Event(now))
+    change.subscribe(f)
   }
 
   /**
@@ -215,9 +215,9 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
 
   protected def parentHandler: (T, S) => S
   private lazy val ph = parentHandler
-  private val parentListener: T => Unit = NamedFunction(debugName+".parentListener")(x => synchronized {
+  private val parentListener: Event[T] => Unit = NamedFunction(debugName+".parentListener")(_ foreach (x => synchronized {
     state = ph(x, state)
-  })
+  }))
   parent.change addListener parentListener
 }
 
@@ -280,7 +280,7 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
   implicit def canFlatMapEventStream[U]: CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] = new CanFlatMapSignal[Signal, EventStream[U], EventStream[U]] {
     def flatMap[T](parent: Signal[T], f: T => EventStream[U]): EventStream[U] = {
       val parentChange = new EventSource[T]
-      val f0 = parentChange.fire _
+      val f0 = (t: Event[T]) => t foreach parentChange.fire
       parent.change addListener f0
       new parentChange.FlatMapped(Some(parent.now))(f) {
         private val f1 = f0
@@ -292,15 +292,15 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
 
 protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) extends ChildSignal[T, U, Signal[U]](parent, f(parent.now), _.now) {
   override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
-  private val thunk: U => Unit = x => synchronized {
+  private val thunk: Event[U] => Unit = _ foreach (x => synchronized {
     current = x
     change fire x
-  }
+  })
   state.change addListener thunk
   def parentHandler = (x, curSig) => {
     curSig.change removeListener thunk
     val newSig = f(x)
-    thunk(newSig.now)
+    thunk(Event(newSig.now))
     newSig.change addListener thunk
     newSig
   }

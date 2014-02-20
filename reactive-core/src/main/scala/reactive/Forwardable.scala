@@ -16,8 +16,15 @@ object CanForwardTo {
   }
 }
 
-trait Foreachable[+A] {
+@deprecated("Use Obervable", "0.4.0")
+trait Foreachable[+A] extends Any {
   def foreach(f: A => Unit)(implicit observing: Observing): Unit
+}
+object Foreachable {
+  @deprecated("Use Obervable", "0.4.0")
+  implicit class wrapObservable[A](val __observable: Observable[A]) extends AnyVal with Foreachable[A] {
+    final def foreach(f: A => Unit)(implicit observing: Observing): Unit = __observable.foreach(f)(observing)
+  }
 }
 
 /**

@@ -33,11 +33,6 @@ trait Observing {
   implicit val observing: Observing = this
   private val subscriptions = new AtomicRef[List[Subscription]](Nil)
   private[reactive] def addSubscription(subscription: Subscription): Unit = subscriptions.transform(subscription :: _)
-  private[reactive] def removeSubscription(subscription: Subscription): Unit = subscriptions.transform { subs =>
-    subs.span(subscription.ne) match {
-      case (nes, firstEqs) => nes ++ firstEqs.drop(1)
-    }
-  }
 
   /**
    * You can write
@@ -45,6 +40,7 @@ trait Observing {
    * as an alternative syntax to
    * signal.change.foreach{value => action} [(observing)]
    */
+  @deprecated("Use signal.foreach", "0.4.0")
   def observe[T](s: Signal[T])(f: T => Unit) = s.change.foreach(f)(this)
   /**
    * You can write
@@ -52,6 +48,7 @@ trait Observing {
    * as an alternative syntax to
    * eventStream.change.foreach{event => action} [(observing)]
    */
+  @deprecated("Use eventStream.foreach", "0.4.0")
   def on[T](e: EventSource[T])(f: T => Unit) = e.foreach(f)(this)
 }
 
@@ -59,6 +56,7 @@ trait Observing {
  * An Observing that, rather than maintaining references itself,
  * maintains a List of Observings that all maintain all references.
  */
+@deprecated("", "0.4.0")
 trait ObservingGroup extends Observing {
   protected def observings: List[Observing]
   override private[reactive] def addSubscription(subscription: Subscription) = observings foreach (_ addSubscription subscription)

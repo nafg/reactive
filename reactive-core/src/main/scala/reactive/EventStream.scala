@@ -43,16 +43,7 @@ object EventStream {
  * @tparam T the type of values fired as events
  * @see EventSource
  */
-trait EventStream[+T] extends Foreachable[T] {
-  /**
-   * Registers a listener function to run whenever
-   * an event is fired. The function is held with a WeakReference
-   * and a strong reference is placed in the Observing, so
-   * the latter determines the function's gc lifetime.
-   * @param f a function to be applied on every event
-   * @param observing the object whose gc lifetime should determine that of the function
-   */
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit
+trait EventStream[+T] extends Observable[T] {
   /**
    * Returns a new EventStream, that for every event that this EventStream
    * fires, that one will fire an event that is the result of
@@ -197,8 +188,8 @@ trait EventStream[+T] extends Foreachable[T] {
     collect{ case t if ev(t).isLeft => ev(t).left.get } ->
     collect{ case t if ev(t).isRight => ev(t).right.get }
 
-  private[reactive] def addListener(f: (T) => Unit): Unit
-  private[reactive] def removeListener(f: (T) => Unit): Unit
+  private[reactive] def addListener(f: Listener): Unit
+  private[reactive] def removeListener(f: Listener): Unit
 
   def debugString: String
   def debugName: String
@@ -219,10 +210,10 @@ object NamedFunction {
  */
 //TODO perhaps EventSource = SimpleEventStream + fire
 class EventSource[T] extends EventStream[T] with Logger {
-  case class HasListeners(listeners: List[WeakReference[T => Unit]])
+  case class HasListeners(listeners: List[WeakReference[Listener]])
   case class FiringEvent(event: T, listenersCount: Int, collectedCount: Int)
-  case class AddingListener(listener: T => Unit)
-  case class AddedForeachListener(listener: T => Unit)
+  case class AddingListener(listener: Listener)
+  case class AddedForeachListener(listener: Listener)
 
   /**
    * When n empty WeakReferences are found, purge them
@@ -233,15 +224,15 @@ class EventSource[T] extends EventStream[T] with Logger {
     private val parent = EventSource.this
     protected def handler: (T, S) => S
     private val h = handler
-    protected val listener: T => Unit = NamedFunction(debugName+".listener")(v => synchronized {
+    protected val listener: EventSource[T]#Listener = NamedFunction(debugName+".listener")(_ foreach (v => synchronized {
       state = h(v, state)
-    })
+    }))
     parent addListener listener
   }
 
   class FlatMapped[U](initial: Option[T])(val f: T => EventStream[U]) extends ChildEventSource[U, Option[EventStream[U]]](initial map f) {
     override def debugName = "%s.flatMap(%s)" format (EventSource.this.debugName, f)
-    val fireFunc: U => Unit = fire _
+    val fireFunc: Event[U] => Unit = _ foreach fire
     state foreach { _ addListener fireFunc }
     def handler = (parentEvent, lastES) => {
       lastES foreach { _ removeListener fireFunc }
@@ -306,7 +297,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  private var listeners: List[WeakReference[T => Unit]] = Nil
+  private var listeners: List[WeakReference[Listener]] = Nil
 
   /**
    * Whether this EventStream has any listeners depending on it
@@ -336,11 +327,11 @@ class EventSource[T] extends EventStream[T] with Logger {
     )
     trace(HasListeners(listeners))
     var empty = 0
-    @tailrec def next(ls: List[WeakReference[T => Unit]]): Unit = ls match {
+    @tailrec def next(ls: List[WeakReference[Listener]]): Unit = ls match {
       case Nil =>
       case xs =>
         val l = xs.head.get
-        if (l.isDefined) l.get apply event else empty += 1
+        if (l.isDefined) l.get apply Event(event) else empty += 1
         next(ls.tail)
     }
     next(listeners)
@@ -366,15 +357,15 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
+  def subscribe(f: Listener) = {
     val subscription = new Subscription {
       ref = (f, this)
       def cleanUp = removeListener(f)
     }
-    observing.addSubscription(subscription)
     addListener(f)
     trace(AddedForeachListener(f))
     trace(HasListeners(listeners))
+    subscription
   }
 
   def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
@@ -419,7 +410,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   def |[U >: T](that: EventStream[U]): EventStream[U] = new EventSource[U] {
     override def debugName = "("+EventSource.this.debugName+" | "+that.debugName+")"
     val parent = EventSource.this
-    val f: U => Unit = fire _
+    val f: Event[U] => Unit = _ foreach fire
 
     EventSource.this addListener f
     that addListener f
@@ -433,7 +424,7 @@ class EventSource[T] extends EventStream[T] with Logger {
 
     val change = EventSource.this
 
-    val f = (v: T) => current = v
+    val f = (v: Event[T]) => v foreach (current = _)
     change addListener f
   }
 
@@ -452,11 +443,11 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   def nonblocking: EventStream[T] = new ActorEventStream
 
-  private[reactive] def addListener(f: T => Unit): Unit = synchronized {
+  private[reactive] def addListener(f: Listener): Unit = synchronized {
     trace(AddingListener(f))
     listeners :+= new WeakReference(f)
   }
-  private[reactive] def removeListener(f: T => Unit): Unit = synchronized {
+  private[reactive] def removeListener(f: Listener): Unit = synchronized {
     //remove the last listener that is identical to f
     listeners.lastIndexWhere(_.get.map(f.eq) getOrElse false) match {
       case -1 =>
@@ -480,11 +471,11 @@ trait TracksAlive[T] extends EventSource[T] {
    * is being listened to
    */
   val alive: Signal[Boolean] = aliveVar.map{ x => x } // read only
-  override def foreach(f: T => Unit)(implicit observing: Observing) {
+  override def subscribe(f: Listener) = {
     if (!aliveVar.now) {
       aliveVar() = true
     }
-    super.foreach(f)(observing)
+    super.subscribe(f)
   }
 }
 
@@ -561,7 +552,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def flatMap[U](f: T => EventStream[U]): EventStream[U] = underlying.flatMap[U](f)
   def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = underlying.foldLeft[U](z)(f)
   def map[U](f: T => U): EventStream[U] = underlying.map[U](f)
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
+  def subscribe(f: Listener): Subscription = underlying.subscribe(f)
   def |[U >: T](that: EventStream[U]): EventStream[U] = underlying.|(that)
   def filter(f: T => Boolean): EventStream[T] = underlying.filter(f)
   def collect[U](pf: PartialFunction[T, U]): EventStream[U] = underlying.collect(pf)
@@ -572,7 +563,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def nonblocking: EventStream[T] = underlying.nonblocking
   def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
   def throttle(period: Long): EventStream[T] = underlying.throttle(period)
-  private[reactive] def addListener(f: (T) => Unit): Unit = underlying.addListener(f)
-  private[reactive] def removeListener(f: (T) => Unit): Unit = underlying.removeListener(f)
+  private[reactive] def addListener(f: Listener): Unit = underlying.addListener(f)
+  private[reactive] def removeListener(f: Listener): Unit = underlying.removeListener(f)
 
 }

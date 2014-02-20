@@ -28,10 +28,10 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
   }
 
   def startDelta[A](xs: Seq[A], off: Int = 0): SeqDelta[A, A] = Batch(xs.zipWithIndex map { case (v, i) => Include(i + off, v) }: _*)
-  def fromSeq[A](xs: Seq[A]) = new DeltaSeq[A] {
+  def fromSeq[A](xs: Seq[A]): DeltaSeq[A] = new DeltaSeq[A] {
     val underlying = xs
     val fromDelta = startDelta(xs)
-    val signal: SeqSignal[A] = new Val(this) with SeqSignal[A]
+    val signal: SeqSignal[A] = new Val[DeltaSeq[A]](this) with SeqSignal[A]
   }
   override def apply[A](xs: A*) = fromSeq(xs)
 
@@ -85,7 +85,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       private var current: This = Transformed.this.asInstanceOf[This]
       current.underlying
       def now = current
-      val pc: DeltaSeq[T] => Unit = { ds =>
+      val pc: Event[DeltaSeq[T]] => Unit = _ foreach { ds =>
         current = current.updatedFromParent(ds.immutableCopy).asInstanceOf[This]
         current.underlying
         change fire now
