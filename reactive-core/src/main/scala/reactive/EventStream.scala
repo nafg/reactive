@@ -213,18 +213,15 @@ class EventSource[T] extends EventStream[T] with Logger {
   case class AddedListener(listener: Listener)
 
   /**
-   * When n empty WeakReferences are found, purge them
+   * When n empty WeakReferences are found, purge all of them
    */
   protected val purgeThreshold = 10
 
   abstract class ChildEventSource[U, S](protected var state: S) extends EventSource[U] {
-    private val parent = EventSource.this
     protected def handler: (T, S) => S
-    private val h = handler
-    protected val listener: EventSource[T]#Listener = NamedFunction(debugName+".listener")(_ foreach (v => synchronized {
-      state = h(v, state)
+    protected val parentSubscription = EventSource.this subscribe NamedFunction(debugName+".listener")(_ foreach (v => synchronized {
+      state = handler(v, state)
     }))
-    protected val parentSubscription = parent subscribe listener
   }
 
   class FlatMapped[U](initial: Option[T])(val f: T => EventStream[U]) extends ChildEventSource[U, Option[EventStream[U]]](initial map f) {
@@ -269,7 +266,6 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   class Collected[U](pf: PartialFunction[T, U]) extends ChildEventSource[U, Unit] {
     override def debugName = "%s.collect(%s)" format (EventSource.this.debugName, pf)
-    private val pf0 = pf
     def handler = (event, _) => {
       if (pf.isDefinedAt(event))
         fire(pf apply event)
