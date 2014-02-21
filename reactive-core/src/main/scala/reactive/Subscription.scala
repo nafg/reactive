@@ -1,12 +1,20 @@
 package reactive
 
 trait Subscription {
+  def unsubscribe(): Unit
+}
+
+trait SimpleSubscription extends Subscription {
   protected var ref: AnyRef = null
   final def unsubscribe(): Unit = {
     cleanUp()
     ref = null
   }
   def cleanUp(): Unit
+}
+
+class SubscriptionProxy(@volatile var subscription: Subscription) extends Subscription {
+  def unsubscribe() = subscription.unsubscribe
 }
 
 /**

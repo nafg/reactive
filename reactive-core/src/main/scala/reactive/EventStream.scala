@@ -357,7 +357,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     listenersRef.transform(_ :+ new WeakReference(func))
     trace(AddedListener(f))
     trace(HasListeners(listeners))
-    new Subscription {
+    new SimpleSubscription {
       ref = (func, f, EventSource.this)
       def cleanUp = listenersRef.transform(_ filterNot (wr => func eq wr.get.orNull))
     }
