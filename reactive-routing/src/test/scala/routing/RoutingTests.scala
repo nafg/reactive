@@ -11,6 +11,18 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     def format = _.toString
     def parse = s => try Some(s.toInt) catch { case _: Exception => None }
   }
+  implicit object strStringable extends Stringable[String] {
+    def format = identity
+    def parse = Some(_)
+  }
+  implicit object boolStringable extends Stringable[Boolean] {
+    def format = _.toString
+    def parse = {
+      case "true" => Some(true)
+      case "false" => Some(false)
+      case _ => None
+    }
+  }
 
   val p = "add" :/: arg[Int] :/: "plus" :/: arg[Int] :/: "please"
   val p2 = "addall" :/: **
@@ -112,7 +124,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
 
   test("map") {
     val site = r & r
-    val z =  site map ("000" + _)
+    val z = site map ("000" + _)
 
     val l = z.construct.map(_(10)(20))
     l should equal (site.construct.map(_(10)(20)))
@@ -134,5 +146,13 @@ class RoutingTests extends FunSuite with Matchers with Inside {
 
     res2 should equal ("00035")
     res3 should equal ("00070")
+  }
+
+  test("Can & together sitelets even if implicit resolution doesn't find a LUB") {
+    val s1 = "a" :/: arg[Int] >> { i => i }
+    val s2 = "b" :/: arg[String] >> { i => i }
+    val s3 = "c" :/: arg[Boolean] >> { i => i }
+    val s4 = s1 & s2 & s3
+    implicitly[s4.type <:< Sitelet[Path, Any]]
   }
 }
