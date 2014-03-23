@@ -56,7 +56,7 @@ object SimpleAjaxTransportType extends PagesCache {
           case Some(page) =>
             addPage(page)
             page.transportTypes.collectFirst { case sapc: SimpleAjaxTransportType => sapc } flatMap { sapc =>
-              req.json map (json => JavaScriptResponse(JsCmds.Run(sapc.handleAjax(json).mkString(";\n"))))
+              req.json map (json => JavaScriptResponse(JsCmds.Run(sapc.handleAjax(json).map(_.render).mkString(";\n"))))
             }
           case None =>
             Full(JavaScriptResponse(JsCmds.Run("alert('Server state was lost, please reload the page.')")))
