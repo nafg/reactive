@@ -38,6 +38,8 @@ class RenderTransport extends AccumulatingTransport {
     pc unlinkTransport this
     removeTransportType(pc)
   }
+
+  def renderData: String = data.map(_.render).mkString(";\n")
   
   /**
    * Remove connection with all pages,
@@ -52,7 +54,7 @@ class RenderTransport extends AccumulatingTransport {
     val include = <script type="text/javascript" src="/classpath/reactive-web.js"/>
     val js =
       <script type="text/javascript">
-        { Unparsed("// <![CDATA[\n" + data.mkString(";\n") + "// ]]>") }
+        { Unparsed("// <![CDATA[\n" + renderData + "// ]]>") }
       </script>
     if (pcs.nonEmpty) include +: pcs.flatMap(_.page.render) :+ js
     else Nil
