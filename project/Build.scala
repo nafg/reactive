@@ -77,7 +77,7 @@ object ReactiveBuild extends Build {
   lazy val reactive_web_lift = Project(
     "web-lift",
     file("reactive-web-lift"),
-    settings = defaults ++ Seq(
+    settings = publishingDefaults ++ Seq(
       pomExtra := pomCommon
     )
   ).dependsOn(reactive_web, reactive_routing)
