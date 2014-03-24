@@ -116,12 +116,14 @@ case class PArg[A, Next <: Path](arg: Arg[A], next: Next) extends Path {
 sealed trait PParamBase extends Path
 
 /**
- * `PParam` is a named url query parameter that is converted to and
+ * `PParam` is an optional named url query parameter that is converted to and
  * from a typed value. The actual conversion is provided by `arg`.
+ * The routing function receives None if the url does not contain the query parameter.
+ * However if it contains it, but `param` does not parse it, then the `Path` does not match.
  */
 case class PParam[A, Next <: Path](param: Param[A], next: Next) extends PParamBase {
-  type Route[+R] = A => Next#Route[R]
-  type EncodeFuncType = A => Next#EncodeFuncType
+  type Route[+R] = Option[A] => Next#Route[R]
+  type EncodeFuncType = Option[A] => Next#EncodeFuncType
 
   private[routing] val locParam = new Extractor((_: Location).takeParam(param.key))
 }

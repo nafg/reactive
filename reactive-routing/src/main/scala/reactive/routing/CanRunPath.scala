@@ -48,11 +48,14 @@ object CanRunPath {
   implicit def param[A, N <: Path](implicit next: CanRunPath[N]): CanRunPath[PParam[A, N]] = new CanRunPath[PParam[A, N]] {
     def isDefinedAt(path: PParam[A, N]) = {
       case path.locParam(path.param(a), loc2) if next.isDefinedAt(path.next)(loc2) => true
+      case loc if loc.query.forall(_._1 != path.param.key) && next.isDefinedAt(path.next)(loc) => true
       case _ => false
     }
-    override def run[R](path: PParam[A, N], f: A => N#Route[R]): PartialFunction[Location, R] = {
+    override def run[R](path: PParam[A, N], f: Option[A] => N#Route[R]): PartialFunction[Location, R] = {
       case path.locParam(path.param(a), loc2) if next.isDefinedAt(path.next)(loc2) =>
-        next.run(path.next, f(a))(loc2)
+        next.run(path.next, f(Some(a)))(loc2)
+      case loc if loc.query.forall(_._1 != path.param.key) && next.isDefinedAt(path.next)(loc) =>
+        next.run(path.next, f(None))(loc)
     }
   }
   implicit def params[A, N <: Path](implicit next: CanRunPath[N]): CanRunPath[PParams[A, N]] = new CanRunPath[PParams[A, N]] {

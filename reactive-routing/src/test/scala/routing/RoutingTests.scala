@@ -33,7 +33,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
 
   val r = p >> { a => b => a + b }
   val r2 = p2 >> { xs => xs.map(intStringable.parse).flatten.sum }
-  val r3 = p3 >> { x => test1 => test2 => test3 => s"test/$x?test1=$test1&test2=$test2" }
+  val r3 = p3 >> { x => test1 => test2 => test3 => (x, test1, test2, test3) }
 
   test("Constructing links") {
     val c = p.construct(10)(30)
@@ -44,7 +44,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     c2.path should equal ("addall" :: "1" :: "2" :: Nil)
     c2.query should equal (Nil)
 
-    val c3 = p3.construct(10)(20)(30)(List(1,2,3,4))
+    val c3 = p3.construct(10)(Some(20))(Some(30))(List(1,2,3,4))
     c3.path should equal ("test" :: "10" :: Nil)
     c3.query should equal (("test3", "1") :: ("test3", "2") :: ("test3", "3") :: ("test3", "4") :: ("test2", "30") :: ("test1", "20") :: Nil)
   }
@@ -70,7 +70,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
 
     r3.run(
       Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "30", "test2" -> "40", "test3" -> "1", "test3" -> "2", "test3" -> "a"))
-    ) should equal ("test/10?test1=20&test2=30")
+    ) should equal ((10, Some(20), Some(30), List(1, 2)))
     r3.run.isDefinedAt(Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "X30", "test2" -> "40", "test3" -> "1", "test3" -> "2"))) should equal (false)
   }
 
@@ -97,7 +97,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
       Some(1),
       Some(3),
       Some(6),
-      Some("test/10?test1=20&test2=30"),
+      Some((10, Some(20), Some(30), List(1, 2))),
       None
     ))
   }
