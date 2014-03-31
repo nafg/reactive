@@ -113,14 +113,14 @@ object PropertyVar {
    * @example PropertyVar(name)(init)
    * @param name the attribute and property name of the DomProperty
    */
-  def apply[T](name: String) = new PropertyVarFactory(name, name)
+  def apply(name: String) = new PropertyVarFactory(name, name)
   /**
    * Returns a PropertyVarFactory.
    * @example PropertyVar(name, attrName)(init)
    * @param name the property name of the DomProperty (used for javascript reads and writes)
    * @param attributeName the attribute name of the DomProperty (used for initial rendering of element)
    */
-  def apply[T](name: String, attributeName: String) = new PropertyVarFactory(name, attributeName)
+  def apply(name: String, attributeName: String) = new PropertyVarFactory(name, attributeName)
 
   /**
    * An implicit conversion from PropertyVar to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
