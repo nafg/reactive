@@ -125,9 +125,9 @@ class Paginator(val rowsPerPage: Int, rows: Signal[() => Int])(implicit observin
             )
         } andThen
         (nextSelector+" [class+]") #> (if (curPage < pages - 1) "" else disabledClass) andThen
-        (nextSelector+" *") #> (linkSelector #> onServer { _: Click => value() = curPage + 1 min pages - 1 }) andThen
+        (nextSelector+" *") #> (linkSelector #> onServer { _: Click => value() = curPage + 1 min pages - 1 max 0 }) andThen
         (lastSelector+" [class+]") #> (if (curPage < pages - 1) "" else disabledClass) andThen
-        (lastSelector+" *") #> (linkSelector #> onServer { _: Click => value() = pages - 1 })
+        (lastSelector+" *") #> (linkSelector #> onServer { _: Click => value() = pages - 1 max 0 })
     }
   }
 }
