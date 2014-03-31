@@ -279,7 +279,7 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  class Collected[U](pf: PartialFunction[T, U]) extends ChildEventSource[U, Unit] {
+  class Collected[U](pf: PartialFunction[T, U]) extends ChildEventSource[U, Unit](()) {
     override def debugName = "%s.collect(%s)" format (EventSource.this.debugName, pf)
     private val pf0 = pf
     def handler = (event, _) => {
@@ -359,7 +359,7 @@ class EventSource[T] extends EventStream[T] with Logger {
   def collect[U](pf: PartialFunction[T, U]): EventStream[U] = new Collected(pf)
 
   def map[U](f: T => U): EventStream[U] = {
-    new ChildEventSource[U, Unit] {
+    new ChildEventSource[U, Unit](()) {
       override def debugName = "%s.map(%s)" format (EventSource.this.debugName, f)
       val f0 = f
       def handler = (event, _) => this fire f(event)
@@ -377,13 +377,13 @@ class EventSource[T] extends EventStream[T] with Logger {
     trace(HasListeners(listeners))
   }
 
-  def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
+  def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit](()) {
     override def debugName = "%s.filter(%s)" format (EventSource.this.debugName, f)
     val f0 = f
     def handler = (event, _) => if (f(event)) fire(event)
   }
 
-  def takeWhile(p: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit] {
+  def takeWhile(p: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit](()) {
     override def debugName = EventSource.this.debugName+".takeWhile("+p+")"
     def handler = (event, _) =>
       if (p(event))
@@ -394,7 +394,7 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   def foldLeft[U](initial: U)(f: (U, T) => U): EventStream[U] = new FoldedLeft(initial, f)
 
-  def nonrecursive: EventStream[T] = new ChildEventSource[T, Unit] {
+  def nonrecursive: EventStream[T] = new ChildEventSource[T, Unit](()) {
     override def debugName = "%s.nonrecursive" format (EventSource.this.debugName)
     protected val firing = new scala.util.DynamicVariable(false)
     def handler = (event, _) => if (!firing.value) firing.withValue(true) {
