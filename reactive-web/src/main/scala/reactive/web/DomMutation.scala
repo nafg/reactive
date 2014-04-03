@@ -5,12 +5,16 @@ import javascript._
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.Group
-import net.liftweb.util.Helpers.encJs
 import scala.xml.Node
 import scala.xml.UnprefixedAttribute
 import scala.xml.Null
 import java.io.Writer
+
 import net.liftweb.util.Helpers._
+import net.liftweb.json.Extraction.decompose
+import net.liftweb.json.JsonAST.compactRender
+import net.liftweb.json.DefaultFormats
+
 import scala.collection.mutable.ListBuffer
 
 trait DomMutationRenderer extends CanRender[DomMutation] {
@@ -51,7 +55,7 @@ trait DomMutationRenderer extends CanRender[DomMutation] {
       f(
         "reactive.createElem('%s',%s,%s)".format(
           e.label,
-          e.attributes.map{ md => "'" + md.key + "':'" + md.value.text + "'" }.mkString("{", ",", "}"),
+          compactRender(decompose(e.attributes.asAttrMap)(DefaultFormats)),
           s
         )
       )
