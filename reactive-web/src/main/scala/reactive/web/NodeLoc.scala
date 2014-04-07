@@ -23,7 +23,9 @@ object NodePredicate {
    *   "label"  -> the node's label must be 'label'
    * }}}
    */
-  implicit class stringPredicate(s: String) extends NodePredicate(finder(s.head)(s.tail))
+  implicit class stringPredicate(s: String) extends NodePredicate(finder(s.head)(s.tail)) {
+    override def toString = '"' + s + '"'
+  }
 
   private def finder(c: Char): String => NodeLoc => Boolean = s => n => (c, n) match {
     case ('#', nl                 ) => n.attr.get("id") == Some(s)
@@ -274,7 +276,7 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
    * It is an error if none exists.
    * @group XPath
    */
-  def \!(preds: NodePredicate*): NodeLoc = \?(preds: _*).get
+  def \!(preds: NodePredicate*): NodeLoc = \?(preds: _*).getOrElse(sys.error("Could not find any node with predicates "+preds.mkString(", ")))
 
   /**
    * Returns a `Stream` of all descendants matching the [[NodePredicate]]
@@ -294,7 +296,7 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
    * It is an error if none exists.
    * @group XPath
    */
-  def \\!(preds: NodePredicate*): NodeLoc = \\?(preds: _*).get
+  def \\!(preds: NodePredicate*): NodeLoc = \\?(preds: _*).getOrElse(sys.error("Could not find any node with predicates "+preds.mkString(", ")))
 
   // Attributes
 
