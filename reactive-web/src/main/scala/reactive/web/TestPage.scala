@@ -82,7 +82,12 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
       synchronized {
         renderable match {
           case dmr @ DomMutationRenderable(dm) =>
-            transform(_.applyDomMutation(dm))
+            try transform(_.applyDomMutation(dm))
+            catch {
+              case e: Exception =>
+                Console.err.println("TestPage: Could not apply DomMutation " + dm)
+                e.printStackTrace
+            }
           case JavascriptStatementRenderable(Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg)))) =>
             confirms ::= (msg, b => ajaxEvents.fire((id, JBool(b))))
           case _ =>
