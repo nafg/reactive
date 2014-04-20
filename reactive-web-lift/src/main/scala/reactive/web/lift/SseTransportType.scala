@@ -119,7 +119,7 @@ class SseTransportType(page: Page) extends TransportType {
   }
 
   override def render = super.render ++ <script type="text/javascript">
-    reactive.sse = new EventSource('/__reactive-web-sse/{ page.id }');
+    reactive.sse = new EventSource('{ S.contextPath }/__reactive-web-sse/{ page.id }');
     reactive.sse.addEventListener('message', function(e) {{
       eval(e.data);
     }}, false)

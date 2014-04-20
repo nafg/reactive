@@ -51,7 +51,7 @@ class RenderTransport extends AccumulatingTransport {
       pc unlinkTransport this
       removeTransportType(pc)
     }
-    val include = <script type="text/javascript" src="/classpath/reactive-web.js"/>
+    val include = <script type="text/javascript" src={ S.contextPath + "/classpath/reactive-web.js" }/>
     val js =
       <script type="text/javascript">
         { Unparsed("// <![CDATA[\n" + renderData + "// ]]>") }

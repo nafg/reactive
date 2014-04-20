@@ -5,6 +5,7 @@ package lift
 import net.liftweb.http.{ JavaScriptResponse, LiftRules, OkResponse, PostRequest, Req }
 import net.liftweb.http.js.JsCmds
 import net.liftweb.common.Full
+import net.liftweb.http.S
 
 /**
  * This is the companion module for [[SimpleAjaxTransportType]],
@@ -94,11 +95,11 @@ class SimpleAjaxTransportType(page: Page) extends AjaxTransportType {
         this.heartBeatTimeout = window.setTimeout(function() {{ reactive.doHeartBeat() }}, { heartbeatInterval });
       }};
       reactive.doHeartBeat = function() {{
-        this.ajaxImpl("/__reactive-web-ajax/heartbeat", JSON.stringify(this.pageIds));
+        this.ajaxImpl("{ S.contextPath }/__reactive-web-ajax/heartbeat", JSON.stringify(this.pageIds));
         this.resetHeartBeat();
       }};
       reactive.sendAjax['{ page.id }'] = function(jsonStr) {{
-        reactive.ajaxImpl("/__reactive-web-ajax/{ page.id }", jsonStr);
+        reactive.ajaxImpl("{ S.contextPath }/__reactive-web-ajax/{ page.id }", jsonStr);
         reactive.resetHeartBeat();
       }};
       reactive.resetHeartBeat();
