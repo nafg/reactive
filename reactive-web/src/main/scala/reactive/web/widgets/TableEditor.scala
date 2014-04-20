@@ -111,10 +111,9 @@ trait TableEditor[A] extends TableView[A] {
 
     lazy val modifieds = cols.map {
       case c: EditableCol[_] =>
-        actions map (_ exists {
-          case Update(i, col, v) if c == col && i == item && v != c.get(item) => true
-          case _ => false
-        })
+        val v = c.validity(this)
+        val initial = v.now
+        v.map(_ != initial)
       case _ => Val(false)
     }
 
@@ -141,7 +140,7 @@ trait TableEditor[A] extends TableView[A] {
           before ++ at.drop(1)
         case _ => xs //TODO apply updates that don't come from UI
       }
-      val current = actions.now.foldLeft(is)(applyAction(_)(_))
+      val current = actions.now.reverse.foldLeft(is)(applyAction(_)(_))
       SeqSignal(actions).deltas.map(d => SeqDelta.flatten(d :: Nil)).foldLeft(current){
         case (xs0, ds) =>
           ds.sortBy{
@@ -224,7 +223,7 @@ trait TableEditor[A] extends TableView[A] {
         def doSave {
           Try {
             println("actions.now: "+actions.now)
-            save(actions.now)
+            save(actions.now.reverse)
             refreshes fire ()
           } match {
             case Failure(e) =>
