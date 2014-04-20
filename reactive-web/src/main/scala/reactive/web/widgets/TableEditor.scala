@@ -3,14 +3,13 @@ package web
 package widgets
 
 import scala.xml.NodeSeq
-
-import net.liftweb.common.Failure
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
-
 import reactive._
 import reactive.web._
 import reactive.web.javascript._
+import scala.util.Try
+import scala.util.Failure
 
 /**
  * Renders a table editor
@@ -58,13 +57,21 @@ trait TableEditor[A] extends TableView[A] {
    * editor turns that into a NodeSeq=>NodeSeq
    */
   class EditableCol[T](val selector: String, val get: A => T, val set: T => A => A, editor: T => Editor[T])(implicit observing: Observing) extends Col {
-    import scala.collection.mutable.Map
-    val validities = Map.empty[RowType, Signal[Validity[T, NodeSeq]]]
-    def validity(row: RowType): Signal[Validity[T, NodeSeq]] = validities getOrElseUpdate (row, renderer(row).value)
+    private def rowMap[TT] = new AtomicRef(Vector.empty[(RowType, TT)])
+    private def getOrElseUpdate[TT](map: AtomicRef[Vector[(RowType, TT)]])(row: RowType, makeNew: => TT): TT = map.run { xs =>
+      xs.find(_._1 eq row) match {
+        case Some((_, x)) => (xs, x)
+        case None =>
+          val x = makeNew
+          (xs :+ (row, x), x)
+      }
+    }
+    val validities = rowMap[Signal[Validity[T, NodeSeq]]]
+    def validity(row: RowType): Signal[Validity[T, NodeSeq]] = getOrElseUpdate(validities)(row, renderer(row).value)
 
-    val editors = Map.empty[A, Editor[T]]
+    val editors = rowMap[Editor[T]]
     val renderer = { row: RowType =>
-      editors.getOrElseUpdate(row.item, editor(get(row.item)))
+      getOrElseUpdate(editors)(row, editor(get(row.item)))
     }
 
     override def render(row: RowType)(implicit page: Page) = {
@@ -162,8 +169,8 @@ trait TableEditor[A] extends TableView[A] {
   })
   edits foreach { e => println("Edit: "+e) }
   actions <<: (edits.map(Left(_)) | refreshes.map(Right(_))).foldLeft(actions.now){
-    case (as, Left(e)) => e :: as
-    case _             => Nil
+    case (as, Left(e))  => e :: as
+    case (_, Right(())) => Nil
   }
   redoActions <<: (edits | refreshes).map(_ => List.empty[Edit])
 
@@ -215,19 +222,19 @@ trait TableEditor[A] extends TableView[A] {
       } &
       ".save" #> onServer[Click]{ _ => //TODO use nonblocking
         def doSave {
-          tryo {
+          Try {
             println("actions.now: "+actions.now)
             save(actions.now)
             refreshes fire ()
           } match {
-            case Failure(msg, _, _) =>
-              messages += "Save failed: "+msg
+            case Failure(e) =>
+              messages += "Save failed: "+e.getMessage
             case _ =>
               messages += "Saved successfully!"
           }
         }
         val (warnings, errors) = cols.collect {
-          case c: EditableCol[_] => c.validities.values.map(_.now)
+          case c: EditableCol[_] => c.validities.get.map(_._2.now)
         }.flatten.foldLeft((List[Warning[_, NodeSeq]](), List[Invalid[NodeSeq]]())){
           case ((ws, is), v: Valid[_])      => (ws, is)
           case ((ws, is), w: Warning[_, _]) => (w :: ws, is)
@@ -240,7 +247,7 @@ trait TableEditor[A] extends TableView[A] {
             <xml:group>
               <p>
                 Some values have warnings.
-              Are you sure you want to save anyway?
+                Are you sure you want to save anyway?
               </p>
               <p><button class="btn btn-danger" onclick={ onServer[Click]{ _ => messages -= msg; doSave }.js }>Yes</button></p>
             </xml:group>
