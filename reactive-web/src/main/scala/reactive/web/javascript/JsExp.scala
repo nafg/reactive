@@ -34,7 +34,7 @@ import JsTypes._
 
 object JsExp extends ToJsHigh {
   implicit def canForwardTo[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp], page: Page): CanForwardTo[JsExp[J =|> JsVoid], T] = new CanForwardTo[$[J =|> JsVoid], T] {
-    def forwarder(target: => $[J =|> JsVoid]) = v => page.queue(target apply conv(v))
+    def forwarder(target: $[J =|> JsVoid]) = v => page.queue(target apply conv(v))
   }
 
   /**
