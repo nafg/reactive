@@ -164,7 +164,7 @@ object PropertyVar {
   def toggleClass(cls: String)(signal: Signal[Boolean])(implicit page: Page, observing: Observing): NodeSeq => NodeSeq = RElem.withElemId { id =>
     signal
       .map { b =>
-        "(function(){var e=document.getElementById('$id');" +
+        s"(function(){var e=document.getElementById('$id');" +
           (
             if (b)
               s"if(!/\\b$cls\\b/.test(e.className)) e.className+=' $cls'"
