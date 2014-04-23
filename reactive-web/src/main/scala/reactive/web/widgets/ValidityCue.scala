@@ -11,18 +11,29 @@ import net.liftweb.util.Helpers._
 object ValidityCue {
   class ValidityCueConfig {
     /**
-     * The css selector for the element to add a class for the validity state
+     * The css selector for the element to which classes for the validity states should be added
      */
     def validitySelector = ".val"
+    /**
+     * The css selector for the element to which validity messagese added
+     */
     def messageSelector = ".msg"
+    /**
+     * The css selector for the element to which the [[Editor]] should be rendered
+     */
     def editorSelector = ".edit"
     def validClass: Option[String] = None
     def invalidClass = "error"
     def warningClass = "warning"
-    def validityClass[A](v: Validity[A, NodeSeq]): Option[String] = v match {
-      case _: Valid[_]      => validClass
-      case _: Warning[_, _] => Some(warningClass)
-      case _: Invalid[_]    => Some(invalidClass)
+    def applyClasses[A](v: Signal[Validity[A, NodeSeq]])(implicit page: Page, obs: Observing): NodeSeq => NodeSeq = {
+      val classes = v map {
+        case _: Valid[_]      => (true, false, false)
+        case _: Warning[_, _] => (false, true, false)
+        case _: Invalid[_]    => (false, false, true)
+      }
+      validClass.fold(identity[NodeSeq] _)(c => PropertyVar.toggleClass(c)(classes.map(_._1))) andThen
+        PropertyVar.toggleClass(warningClass)(classes.map(_._2)) andThen
+        PropertyVar.toggleClass(invalidClass)(classes.map(_._3))
     }
     def message[A](v: Validity[A, NodeSeq]): NodeSeq => NodeSeq = v match {
       case Valid(_) => _ => NodeSeq.Empty
@@ -32,7 +43,7 @@ object ValidityCue {
   def validityCue[A](editor: Editor[A])(implicit observing: Observing, page: Page, config: ValidityCueConfig): Editor[A] = {
     import config._
     new Editor(
-      validitySelector #> PropertyVar.appendClass(editor.value map validityClass) andThen
+      validitySelector #> applyClasses(editor.value) andThen
         messageSelector #> reactive.web.Cell(editor.value map message) andThen
         editorSelector #> editor,
       editor.value,

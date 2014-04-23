@@ -79,7 +79,7 @@ trait TableEditor[A] extends TableView[A] {
 
       def opt(i: Int) = Some(i) filter (-1 != _)
       selector #> (renderer(row) andThen
-        PropertyVar.appendClass{ row.modifieds(cols.indexOf(this)).distinct.map(m => Some("modified") filter (_ => m)) } andThen
+        PropertyVar.toggleClass("modified")(row.modifieds(cols.indexOf(this)).distinct) andThen
         onServer[KeyUp]{ // we have to go to the server because we don't know what rows will be adjacent at the moment the key is pressed until then.
           case KeyUp(38, _) => //Up
             opt(rows.now.indexOf(row)) filter (_ > 0) foreach { i =>
