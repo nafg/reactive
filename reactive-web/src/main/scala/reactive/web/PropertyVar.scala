@@ -92,8 +92,9 @@ object PropertyVar {
      * }}}
      */
     def transform[A](f: Option[String] => Signal[A])(implicit codec: PropertyCodec[A], observing: Observing, config: CanRenderDomMutationConfig, page: Page): ElemFuncWrapper = new ElemFuncWrapper({ elem =>
-      val s = f(elem.attributes.asAttrMap get dom.attributeName)
-      val pv = new PropertyVar[A](dom(config))(s.now) <<: s
+      val domProp = dom(config)
+      val s = f(elem.attributes.asAttrMap get domProp.attributeName)
+      val pv = new PropertyVar[A](domProp)(s.now) <<: s
       pv.render(elem)
     })
 
@@ -142,11 +143,38 @@ object PropertyVar {
   /**
    * Convenience shortcut to append optional text to the class attribute based on a Signal[String].
    * Note that multiple invocations of appendClass for the same element will override each other,
-   * so you should unify all the classes you may want to add in one appendClass invocation.
+   * so either unify all the classes you may want to add into one signal, if possible,
+   * or use [[toggleClass]] if applicable.
+   * @see [[toggleClass]].
    * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) }) }}}
    */
   def appendClass(s: Signal[Option[String]])(implicit observing: Observing, page: Page) = className transform { cs: Option[String] =>
     s map { _ map { c => cs.filter(_.nonEmpty) map (_+" "+c) getOrElse c } getOrElse cs.getOrElse(""): String }
+  }
+
+  //TODO use js api
+  //TODO does it belong in PropertyVar?
+  /**
+   * A `NodeSeq` function (using [[RElem.withElemId]])
+   * that will toggle a class on and off in response to a `Boolean` `Signal`.
+   * @param cls the class to toggle
+   * @param signal the `Signal` that indicates when to toggle the class on and when to toggle it off
+   * @return a function that will toggle the class of the given element
+   */
+  def toggleClass(cls: String)(signal: Signal[Boolean])(implicit page: Page, observing: Observing): NodeSeq => NodeSeq = RElem.withElemId { id =>
+    signal
+      .map { b =>
+        "(function(){var e=document.getElementById('$id');" +
+          (
+            if (b)
+              s"if(!/\\b$cls\\b/.test(e.className)) e.className+=' $cls'"
+            else
+              s"e.className=e.className.replace(/\\b$cls\\b/, '')"
+          ) +
+            ";})()"
+      }
+      .foreach(page.queue)
+    identity
   }
 }
 
