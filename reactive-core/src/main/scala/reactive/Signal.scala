@@ -228,6 +228,7 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
     current = u
     change.fire(u)
   }
+  override def toString = debugName
 }
 
 protected class NonBlockingSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
@@ -376,7 +377,7 @@ class Var[T](initial: T) extends Signal[T] {
     override def debugName = Var.this.debugName+".change"
   }
 
-  override def toString = "Var("+now+")"
+  override def toString = debugName
 
   def <-->(other: Var[T])(implicit observing: Observing): this.type = {
     this.distinct >> other
