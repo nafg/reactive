@@ -242,7 +242,8 @@ protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], p
 }
 
 protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T, U, Unit](parent, (), _ => f(parent.now)) {
-  override def debugName = parent.debugName+".map("+f+")"
+  val sourceLoc = Thread.currentThread().getStackTrace().drop(5).take(3).mkString(" <- ")
+  override def debugName = s"${ parent.debugName }.map($f) [at $sourceLoc]"
   def parentHandler = (x, _) => {
     val u = f(x)
     current = u
@@ -364,7 +365,8 @@ object Var {
  * A signal whose value can be changed directly
  */
 class Var[T](initial: T) extends Signal[T] {
-  override def debugName = "Var(%s)" format now
+  val sourceLoc = Thread.currentThread().getStackTrace().drop(3).take(3).mkString(" <- ")
+  override def debugName = s"Var($now) [at: $sourceLoc]"
   private var _value = initial
 
   def now = value
