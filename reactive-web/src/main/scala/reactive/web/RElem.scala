@@ -36,6 +36,28 @@ object RElem {
     case Some(id) => elem
     case None     => elem % new UnprefixedAttribute("id", Option(page).map(_.nextId) getOrElse "reactiveWebId_" + randomString(7), Null)
   }
+
+  /**
+   * Wrap a `NodeSeq` function so that it can access the element's id
+   * @param f a curried function that takes the element's id and then
+   * the element.
+   * @return a function that takes a `NodeSeq` and calls `f` with the
+   * element's id and the element. If the `NodeSeq` is not an `Elem`
+   * it is converted to one via [[reactive.web.nodeSeqToElem]]. If
+   * it has no `id` attribute one is added, via [[withId]].
+   * @example {{{
+   *   ".sel" #> RElem.withElemId { id =>
+   *     onServer[Click]{ _ => println(s"Clicked elem \$id") }
+   *   }
+   * }}}
+   */
+  def withElemId[R](f: String => Elem => R)(implicit page: Page): NodeSeq => R = { ns =>
+    val e = nodeSeqToElem(ns)
+    val el = RElem.withId(e)
+    val id = el.attributes("id").text
+    f(id)(el)
+  }
+
   /**
    * An RElem based on a scala.xml.Elem.
    * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
