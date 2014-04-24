@@ -164,14 +164,14 @@ object PropertyVar {
   def toggleClass(cls: String)(signal: Signal[Boolean])(implicit page: Page, observing: Observing): NodeSeq => NodeSeq = RElem.withElemId { id =>
     signal
       .map { b =>
-        s"(function(){var e=document.getElementById('$id');" +
+        s"try{(function(){var e=document.getElementById('$id');if(!e)reactive.error('Cannot toggle class $cls: no element with id $id'); else " +
           (
             if (b)
               s"if(!/\\b$cls\\b/.test(e.className)) e.className+=' $cls'"
             else
               s"e.className=e.className.replace(/\\b$cls\\b/, '')"
           ) +
-            ";})()"
+            ";})()}catch(e){reactive.error(e)}"
       }
       .foreach(page.queue)
     identity
