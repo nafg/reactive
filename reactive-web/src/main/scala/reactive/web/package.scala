@@ -2,13 +2,32 @@ package reactive
 
 import scala.xml.{ Elem, Group, Node, NodeSeq }
 import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
-
 import reactive.logging.Logger
+import net.liftweb.util.CanBind
+
+package web {
+  trait CanBindLowPriorityImplicit {
+    implicit def canBindSignal[A](implicit cba: CanBind[A], page: Page): CanBind[Signal[A]] = new CanBind[Signal[A]] {
+      def apply(sig: => Signal[A])(ns: NodeSeq) = Cell {
+        sig.map(a => (ns: NodeSeq) => cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _))
+      } apply ns
+    }
+  }
+  trait CanBindImplicits extends CanBindLowPriorityImplicit {
+    implicit def canBindSeqSignal[A](implicit cba: CanBind[A], page: Page): CanBind[SeqSignal[A]] = new CanBind[SeqSignal[A]] {
+      def apply(sig: => SeqSignal[A])(ns: NodeSeq) = Repeater {
+        sig.now.map(a => (ns: NodeSeq) =>
+          cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _)
+        ).signal
+      } apply ns
+    }
+  }
+}
 
 /**
  * reactive-web package
  */
-package object web {
+package object web extends CanBindImplicits {
   object packageLogger extends Logger {
     case class WrappedNonElemInSpan(xml: NodeSeq)
   }
@@ -109,6 +128,4 @@ package object web {
     val dropEnd = name.replaceAll("""(\$\d*)*\z""", "")
     dropEnd.toList.reverse.takeWhile('$' != _).reverse.mkString
   }
-
-//  implicit def toForwardable[A : CanForwardFrom]
 }
