@@ -155,4 +155,15 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val s4 = s1 & s2 & s3
     implicitly[s4.type <:< Sitelet[Path, Any]]
   }
+
+  test("Can & together sitelets, not only Sitelet&PathRoute") {
+    val rt1 = "plus1" :/: arg[Int] >> (_ + 1)
+    val rt2 = "plus2" :/: arg[Int] >> (_ + 2)
+    val rt3 = "plus3" :/: arg[Int] >> (_ + 3)
+    val s1 = rt2 & rt3
+    val sitelet = rt1 & s1
+    sitelet.run(Location("plus1" :: "10" :: Nil)) shouldBe 11
+    val pathMapped = sitelet.mapPath("base" :/: _).by(identity)
+    pathMapped.pathRoutes.head.path.construct(10) shouldBe Location("base" :: "plus1" :: "10" :: Nil)
+  }
 }

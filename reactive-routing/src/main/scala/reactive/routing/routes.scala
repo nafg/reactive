@@ -49,10 +49,10 @@ sealed trait Sitelet[P <: Path, +A] { self =>
   /**
    * Appends a `PathRoute` to yield a `RouteSeq`
    */
-  def &[C >: A, Q <: Path, R <: Path](that: AbstractPathRoute[Q, C])(implicit lub: Lub[P,Q,R] = Lub.lub[Path]): RouteSeq[R, C] = {
+  def &[C >: A, Q <: Path, R <: Path](that: Sitelet[Q, C])(implicit lub: Lub[P,Q,R] = Lub.lub[Path]): RouteSeq[R, C] = {
     //TODO are these casts safe?
     val own = this.pathRoutes.map(_.asInstanceOf[AbstractPathRoute[R, C]])
-    new RouteSeq[R, C](own :+ that.asInstanceOf[AbstractPathRoute[R, C]])
+    new RouteSeq[R, C](own ++ that.pathRoutes.map(_.asInstanceOf[AbstractPathRoute[R, C]]))
   }
 
   /**
