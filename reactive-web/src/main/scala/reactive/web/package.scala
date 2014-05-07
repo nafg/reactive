@@ -6,30 +6,38 @@ import reactive.logging.Logger
 import net.liftweb.util.CanBind
 
 package web {
-  trait CanBindLowPriorityImplicit {
-    implicit def canBindSignal[A](implicit cba: CanBind[A], page: Page): CanBind[Signal[A]] = new CanBind[Signal[A]] {
-      def apply(sig: => Signal[A])(ns: NodeSeq) = Cell {
+  class CanBindIndirection[-A](val f: A => NodeSeq => Seq[NodeSeq])
+  trait CanBindIndirectionLow {
+    implicit def canBindSignal[A](implicit cba: CanBind[A], page: Page): CanBindIndirection[Signal[A]] = new CanBindIndirection[Signal[A]](
+      sig => ns => Cell {
         sig.map(a => (ns: NodeSeq) => cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _))
       } apply ns
-    }
+    )
   }
-  trait CanBindImplicits extends CanBindLowPriorityImplicit {
-    implicit def canBindSeqSignal[A](implicit cba: CanBind[A], page: Page): CanBind[SeqSignal[A]] = new CanBind[SeqSignal[A]] {
-      def apply(sig: => SeqSignal[A])(ns: NodeSeq) = Repeater {
+  object CanBindIndirection extends CanBindIndirectionLow {
+    implicit def canBindPropertyVar[A](implicit page: Page): CanBindIndirection[PropertyVar[A]] = new CanBindIndirection[PropertyVar[A]](
+      pv => ns => pv.render(page) apply ns
+    )
+    implicit def canBindSeqSignal[A](implicit cba: CanBind[A], page: Page): CanBindIndirection[SeqSignal[A]] = new CanBindIndirection[SeqSignal[A]](
+      sig => ns => Repeater {
         sig.now.map(a => (ns: NodeSeq) =>
           cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _)
         ).signal
       } apply ns
-    }
+    )
   }
 }
 
 /**
  * reactive-web package
  */
-package object web extends CanBindImplicits {
+package object web {
   object packageLogger extends Logger {
     case class WrappedNonElemInSpan(xml: NodeSeq)
+  }
+
+  implicit def canBindFromInv[A](implicit cb: CanBindIndirection[A]): CanBind[A] = new CanBind[A] {
+    def apply(a: =>A)(ns: NodeSeq) = cb.f(a)(ns)
   }
 
   /**
