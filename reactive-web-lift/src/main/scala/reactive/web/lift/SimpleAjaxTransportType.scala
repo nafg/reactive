@@ -37,6 +37,9 @@ object SimpleAjaxTransportType extends PagesCache {
   override protected def getPage(id: String) =
     pagesSeenTime.get.keys.find(_.id == id) orElse super.getPage(id)
 
+  def defaultLostStateHeartbeatAction = StringRenderable("alert('Some server state was lost, please reload the page.')")
+  def defaultLostStateAjaxCallAction = StringRenderable("alert('Server state was lost, please reload the page.')")
+
   /**
    * You must call this in `boot` for [[SimpleAjaxTransportType]] to work.
    */
@@ -50,8 +53,9 @@ object SimpleAjaxTransportType extends PagesCache {
         pages foreach (_ foreach addPage)
         if(pages.forall(_.isDefined))
           Full(OkResponse())
-        else
-          Full(JavaScriptResponse(JsCmds.Run("alert('Some server state was lost, please reload the page.')")))
+        else {
+          Full(JavaScriptResponse(JsCmds.Run("reactive.onHeartbeatLostServerState()")))
+        }
       case req @ Req("__reactive-web-ajax" :: pageId :: Nil, "", PostRequest) => () =>
         getPage(pageId) match {
           case Some(page) =>
@@ -60,7 +64,7 @@ object SimpleAjaxTransportType extends PagesCache {
               req.json map (json => JavaScriptResponse(JsCmds.Run(sapc.handleAjax(json).map(_.render).mkString(";\n"))))
             }
           case None =>
-            Full(JavaScriptResponse(JsCmds.Run("alert('Server state was lost, please reload the page.')")))
+            Full(JavaScriptResponse(JsCmds.Run("reactive.onAjaxCallLostServerState()")))
         }
     }
     LiftRules.unloadHooks append { () => shutDown = true }
@@ -68,22 +72,43 @@ object SimpleAjaxTransportType extends PagesCache {
 }
 
 /**
+ * @param beforeAjaxCall Javascript to run before sending ajax data to the server
+ * @param afterAjaxCall Javascript to run after receiving the server's response
+ * @param ajaxCallLostServerState Javascript to run if ajax data is sent to the server and the server reports that it has lost the page's state
+ * @param heartbeatLostServerState Javascript to run if the server reports that it has lost the page's state during a heartbeat ping
+ */
+case class SimpleAjaxHooks(
+  beforeAjaxCall: Renderable = StringRenderable(""),
+  afterAjaxCall: Renderable = StringRenderable(""),
+  ajaxCallLostServerState: Renderable = SimpleAjaxTransportType.defaultLostStateAjaxCallAction,
+  heartbeatLostServerState: Renderable = SimpleAjaxTransportType.defaultLostStateHeartbeatAction
+)
+
+/**
  * This is an [[AjaxTransportType]] that uses a Lift dispatch
  * and plain XMLHttpRequest to install the ajax handler.
  * You must call [[SimpleAjaxTransportType.init]] in `boot` for it to work.
+ * @param heartbeatInterval How often to send a heart beat. Pages with no heart beat in 10 minutes may be "forgotten" by the server
+ * @param hooks Customization of javascript behavior
  */
-class SimpleAjaxTransportType(page: Page) extends AjaxTransportType {
-  def heartbeatInterval = 120000
-
+class SimpleAjaxTransportType(page: Page, heartbeatInterval: Int = 120000, hooks: SimpleAjaxHooks = SimpleAjaxHooks()) extends AjaxTransportType {
   override def render = super.render ++
     <script type="text/javascript">
+      reactive.onBeforeAjaxCall = function() {{ { hooks.beforeAjaxCall.render } }}
+      reactive.onAfterAjaxCall = function() {{ { hooks.afterAjaxCall.render } }}
+      reactive.onAjaxCallLostServerState = function() {{ { hooks.ajaxCallLostServerState.render } }}
+      reactive.onHeartbeatLostServerState = function() {{ { hooks.heartbeatLostServerState.render } }}
       reactive.ajaxImpl = function(url, str) {{
+        reactive.onBeforeAjaxCall();
         var http = new XMLHttpRequest();
         http.open("POST", url);
         http.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
         http.onreadystatechange = function() {{
-          if(http.readyState == 4 {"&&"} http.status == 200)
-            eval(http.responseText);
+          if(http.readyState == 4) {{
+            reactive.onAfterAjaxCall();
+            if(http.status == 200)
+              eval(http.responseText);
+            }}
         }}
         http.send(str);
       }};
