@@ -63,9 +63,9 @@ object RElem {
    * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
    * @param children any addition RElems to append
    */
-  case class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
-    val baseElem = parent
-    val properties, events = Nil
+  class ElemWrapper(val baseElem: Elem, children: RElem*) extends RElem {
+    def properties = Nil
+    def events = Nil
     override def renderer(implicit p: Page) = e => {
       val sup = super.renderer(p)(e)
       sup.copy(child = {
