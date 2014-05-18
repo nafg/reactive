@@ -8,7 +8,9 @@ private class Extractor[-A, +B](f: A => Option[B]) {
 }
 
 object Path {
-  /** from https://gist.github.com/milessabin/c9f8befa932d98dcc7a4 */
+  /** from https://gist.github.com/milessabin/c9f8befa932d98dcc7a4
+   * @author Miles Sabin
+   */
   private object nsub {
     // Encoding for "A is not a subtype of B"
     trait <:!<[A, B]
@@ -24,8 +26,11 @@ object Path {
     def :/:(s: String) = PLit[P](s, path)
     def :/:[A](arg: Arg[A]) = PArg[A, P](arg, path)
   }
-  implicit class PathRouteOps[P <: Path : CanRunPath](path: P) {
-    def >>[A](route: P#Route[A])(implicit clrm: CanLiftRouteMapping[P]): PathRoute[P, A] = new PathRoute[P, A](path, route)
+  implicit class PathRouteOps[P <: Path](path: P)(implicit canRunPath: CanRunPath[P]) {
+    def >>[A](route: P#Route[A])(implicit clrm: CanLiftRouteMapping[P]): PathRoute[P, A] = new PathRoute[P, A](path, canRunPath.wholeToPartial(route))
+  }
+  implicit class PathRoutePFOps[P <: Path](path: P)(implicit canRunPath: CanRunPath[P]) {
+    def >>?[A](route: P#PartialRoute[A])(implicit clrm: CanLiftRouteMapping[P]): PathRoute[P, A] = new PathRoute[P, A](path, route)
   }
   implicit class PathEncodeOps[P <: Path](path: P)(implicit protected val ep: CanEncodePath[P]) {
     def construct = ep.encode(path, Location(Nil))
@@ -55,9 +60,13 @@ class Params[A](val key: String, val stringable: Stringable[A]) extends HasStrin
  */
 sealed trait Path {
   /**
-   * The kind of route needed for this type of `Path`
+   * The kind of route needed for this type of `Path` when using whole functions
    */
   type Route[+R]
+  /**
+   * The kind of route needed for this type of `Path` when using partial functions
+   */
+  type PartialRoute[+R]
   /**
    * The type of encoder function needed
    * for this type of `Path`
@@ -74,6 +83,7 @@ sealed trait Path {
  */
 sealed trait PNil extends Path {
   type Route[+R] = R
+  type PartialRoute[+R] = R
   type EncodeFuncType = Location
 }
 
@@ -90,6 +100,7 @@ private case object PNil0 extends PNil
 // TODO no reason not to use an Arg-like typesafe bijection
 sealed trait PAny extends Path {
   type Route[+R] = List[String] => R
+  type PartialRoute[+R] = PartialFunction[List[String], R]
   type EncodeFuncType = List[String] => Location
 }
 
@@ -101,6 +112,7 @@ private case object PAny0 extends PAny
  */
 case class PLit[Next <: Path](component: String, next: Next) extends Path {
   type Route[+R] = Next#Route[R]
+  type PartialRoute[+R] = Next#PartialRoute[R]
   type EncodeFuncType = Next#EncodeFuncType
 }
 
@@ -110,6 +122,7 @@ case class PLit[Next <: Path](component: String, next: Next) extends Path {
  */
 case class PArg[A, Next <: Path](arg: Arg[A], next: Next) extends Path {
   type Route[+R] = A => Next#Route[R]
+  type PartialRoute[+R] = PartialFunction[A, Next#PartialRoute[R]]
   type EncodeFuncType = A => Next#EncodeFuncType
 }
 
@@ -123,6 +136,7 @@ sealed trait PParamBase extends Path
  */
 case class PParam[A, Next <: Path](param: Param[A], next: Next) extends PParamBase {
   type Route[+R] = Option[A] => Next#Route[R]
+  type PartialRoute[+R] = PartialFunction[Option[A], Next#PartialRoute[R]]
   type EncodeFuncType = Option[A] => Next#EncodeFuncType
 
   private[routing] val locParam = new Extractor((_: Location).takeParam(param.key))
@@ -134,6 +148,7 @@ case class PParam[A, Next <: Path](param: Param[A], next: Next) extends PParamBa
  */
 case class PParams[A, Next <: Path](params: Params[A], next: Next) extends PParamBase {
   type Route[+R] = List[A] => Next#Route[R]
+  type PartialRoute[+R] = PartialFunction[List[A], Next#PartialRoute[R]]
   type EncodeFuncType = List[A] => Next#EncodeFuncType
 
   private[routing] val locParams = new Extractor((loc: Location) => Some(loc.takeParams(params.key)))

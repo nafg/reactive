@@ -166,4 +166,20 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val pathMapped = sitelet.mapPath("base" :/: _).by(identity)
     pathMapped.pathRoutes.head.path.construct(10) shouldBe Location("base" :: "plus1" :: "10" :: Nil)
   }
+
+  test("Route can be a PartialFunction") {
+    val rt = arg[Int] >>? { case i if i > 10 => i * 2 }
+    rt.run.isDefinedAt(Location("10" :: Nil)) shouldBe false
+    rt.run.isDefinedAt(Location("11" :: Nil)) shouldBe true
+    rt.run.apply(Location("11" :: Nil)) shouldBe 22
+  }
+
+  test("Can mapPath by a PartialFunction") {
+    val rt = arg[Int] >>? { case i if i > 10 => (i * 2).toDouble }
+    val pathMapped = rt.mapPath(arg[String] :/: _) byPF (pf => { case str if str.length == 3 => pf })
+    pathMapped.run.isDefinedAt(Location("aaa" :: "10" :: Nil)) shouldBe false
+    pathMapped.run.isDefinedAt(Location("aaaa" :: "11" :: Nil)) shouldBe false
+    pathMapped.run.isDefinedAt(Location("aaa" :: "11" :: Nil)) shouldBe true
+    pathMapped.run.apply(Location("aaa" :: "11" :: Nil)) shouldBe 22
+  }
 }
