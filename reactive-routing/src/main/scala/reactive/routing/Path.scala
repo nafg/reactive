@@ -22,7 +22,7 @@ object Path {
   }
   import nsub._
 
-  implicit class PathOps[P <: Path](val path: P)(implicit nsub: P <:!< PParamBase) { ops =>
+  implicit class PathOps[P <: Path](val path: P)(implicit nsub: P <:!< PParamBase) {
     def :/:(s: String) = PLit[P](s, path)
     def :/:[A](arg: Arg[A]) = PArg[A, P](arg, path)
   }
@@ -43,13 +43,14 @@ object Path {
   }
 }
 
-sealed trait HasStringable[A] {
-  def stringable: Stringable[A]
-  final def unapply(s: String) = stringable.parse(s)
+sealed trait HasStringMapping[A] {
+  val stringMapping: StringMapping[A]
+  type Failure = stringMapping.Failure
+  final def unapply(s: String) = Some(stringMapping.parse(s))
 }
-class Arg[A](val stringable: Stringable[A]) extends HasStringable[A]
-class Param[A](val key: String, val stringable: Stringable[A]) extends HasStringable[A]
-class Params[A](val key: String, val stringable: Stringable[A]) extends HasStringable[A]
+class Arg[A](val stringMapping: StringMapping[A]) extends HasStringMapping[A]
+class Param[A](val key: String, val stringMapping: StringMapping[A]) extends HasStringMapping[A]
+class Params[A](val key: String, val stringMapping: StringMapping[A]) extends HasStringMapping[A]
 
 /**
  * A path is a typesafe URL template.
@@ -59,6 +60,7 @@ class Params[A](val key: String, val stringable: Stringable[A]) extends HasStrin
  * representations of some value
  */
 sealed trait Path {
+  type Failure
   /**
    * The kind of route needed for this type of `Path` when using whole functions
    */
@@ -121,6 +123,7 @@ case class PLit[Next <: Path](component: String, next: Next) extends Path {
  * from a typed value. The actual conversion is provided by `arg`.
  */
 case class PArg[A, Next <: Path](arg: Arg[A], next: Next) extends Path {
+  type Failure = Either[arg.Failure, next.Failure]
   type Route[+R] = A => Next#Route[R]
   type PartialRoute[+R] = PartialFunction[A, Next#PartialRoute[R]]
   type EncodeFuncType = A => Next#EncodeFuncType
@@ -135,6 +138,7 @@ sealed trait PParamBase extends Path
  * However if it contains it, but `param` does not parse it, then the `Path` does not match.
  */
 case class PParam[A, Next <: Path](param: Param[A], next: Next) extends PParamBase {
+  type Failure = Either[param.Failure, next.Failure]
   type Route[+R] = Option[A] => Next#Route[R]
   type PartialRoute[+R] = PartialFunction[Option[A], Next#PartialRoute[R]]
   type EncodeFuncType = Option[A] => Next#EncodeFuncType
@@ -147,10 +151,11 @@ case class PParam[A, Next <: Path](param: Param[A], next: Next) extends PParamBa
  * is converted to and from a typed `List` of values. The actual conversion is provided by `arg`.
  */
 case class PParams[A, Next <: Path](params: Params[A], next: Next) extends PParamBase {
+  type Failure = Either[params.Failure, next.Failure]
   type Route[+R] = List[A] => Next#Route[R]
   type PartialRoute[+R] = PartialFunction[List[A], Next#PartialRoute[R]]
   type EncodeFuncType = List[A] => Next#EncodeFuncType
 
   private[routing] val locParams = new Extractor((loc: Location) => Some(loc.takeParams(params.key)))
-  private[routing] val parseAll = new Extractor((xs: List[String]) => Some(xs.map(params.stringable.parse).flatten))
+  private[routing] val parseAll = new Extractor((xs: List[String]) => Some(xs.map(params.stringMapping.parse)))
 }

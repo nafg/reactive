@@ -22,15 +22,15 @@ object CanEncodePath {
     def encode(p: PLit[N], loc: Location) = next.encode(p.next, loc :+ p.component)
   }
   implicit def arg[A, N <: Path](implicit next: CanEncodePath[N]): CanEncodePath[PArg[A, N]] = new CanEncodePath[PArg[A, N]] {
-    def encode(p: PArg[A, N], loc: Location) = (a: A) => next.encode(p.next, loc :+ p.arg.stringable.format(a))
+    def encode(p: PArg[A, N], loc: Location) = (a: A) => next.encode(p.next, loc :+ p.arg.stringMapping.format(a))
   }
   implicit def param[A, N <: Path](implicit next: CanEncodePath[N]): CanEncodePath[PParam[A, N]] = new CanEncodePath[PParam[A, N]] {
     def encode(p: PParam[A, N], loc: Location) = { (ao: Option[A]) =>
-      val loc2 = ao.fold(loc)(a => loc & (p.param.key, p.param.stringable format a))
+      val loc2 = ao.fold(loc)(a => loc & ((p.param.key, p.param.stringMapping format a)))
       next.encode(p.next, loc2)
     }
   }
   implicit def params[A, N <: Path](implicit next: CanEncodePath[N]): CanEncodePath[PParams[A, N]] = new CanEncodePath[PParams[A, N]] {
-    def encode(p: PParams[A, N], loc: Location) = (as: List[A]) => next.encode(p.next, loc && (p.params.key, as map p.params.stringable.format))
+    def encode(p: PParams[A, N], loc: Location) = (as: List[A]) => next.encode(p.next, loc && ((p.params.key, as map p.params.stringMapping.format)))
   }
 }

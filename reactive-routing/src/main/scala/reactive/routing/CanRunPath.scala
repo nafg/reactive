@@ -35,14 +35,14 @@ object CanRunPath {
   }
   implicit def arg[A, N <: Path](implicit next: CanRunPath[N]): CanRunPath[PArg[A, N]] = new CanRunPath[PArg[A, N]] {
     def run[R](path: PArg[A, N], f: PArg[A, N]#PartialRoute[R]) = {
-      case loc @ Location(path.arg(a) :: _, _) if f.isDefinedAt(a) && next.run(path.next, f(a)).isDefinedAt(loc.tail) =>
+      case loc @ Location(path.arg(Right(a)) :: _, _) if f.isDefinedAt(a) && next.run(path.next, f(a)).isDefinedAt(loc.tail) =>
         next.run(path.next, f(a))(loc.tail)
     }
     def wholeToPartial[R](w: A => N#Route[R]): PartialFunction[A, N#PartialRoute[R]] = { case a => next.wholeToPartial(w(a)) }
   }
   implicit def param[A, N <: Path](implicit next: CanRunPath[N]): CanRunPath[PParam[A, N]] = new CanRunPath[PParam[A, N]] {
     override def run[R](path: PParam[A, N], f: PParam[A, N]#PartialRoute[R]): PartialFunction[Location, R] = {
-      case path.locParam(path.param(a), loc2) if f.isDefinedAt(Some(a)) && next.run(path.next, f(Some(a))).isDefinedAt(loc2) =>
+      case path.locParam(path.param(Right(a)), loc2) if f.isDefinedAt(Some(a)) && next.run(path.next, f(Some(a))).isDefinedAt(loc2) =>
         next.run(path.next, f(Some(a)))(loc2)
       case loc if loc.query.forall(_._1 != path.param.key) && f.isDefinedAt(None) && next.run(path.next, f(None)).isDefinedAt(loc) =>
         next.run(path.next, f(None))(loc)
@@ -51,7 +51,7 @@ object CanRunPath {
   }
   implicit def params[A, N <: Path](implicit next: CanRunPath[N]): CanRunPath[PParams[A, N]] = new CanRunPath[PParams[A, N]] {
     override def run[R](path: PParams[A, N], f: PParams[A, N]#PartialRoute[R]): PartialFunction[Location, R] = {
-      case path.locParams(path.parseAll(as), loc2) if f.isDefinedAt(as) && next.run(path.next, f(as)).isDefinedAt(loc2) =>
+      case path.locParams(path.parseAll(as), loc2) if f.isDefinedAt(as.collect{case Right(a)=>a}) && next.run(path.next, f(as)).isDefinedAt(loc2) =>
         next.run(path.next, f(as))(loc2)
     }
     def wholeToPartial[R](w: List[A] => N#Route[R]): PartialFunction[List[A], N#PartialRoute[R]] = { case a => next.wholeToPartial(w(a)) }

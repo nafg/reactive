@@ -15,19 +15,19 @@ package object routing {
    * Declare a path component that is converted to and from a value
    * @example {{{ "main" :/: arg[Int]   // e.g. /main/10 }}}
    */
-  def arg[A](implicit stringable: Stringable[A]) = new Arg[A](stringable)
+  def arg[A](implicit mapping: StringMapping[A]) = new Arg[A](mapping)
   /**
    * Declare a url query parameter that is converted to and from a value
    * @param key the query parameter key
    * @example {{{ "main" :/: param[Int]("item")   // e.g. /main?item=10 }}}
    */
-  def param[A](key: String)(implicit stringable: Stringable[A]) = new Param[A](key, stringable)
+  def param[A](key: String)(implicit mapping: StringMapping[A]) = new Param[A](key, mapping)
   /**
    * Declare a repeatable url query parameter that is converted to and from a value
    * @param key the query parameter key
    * @example {{{ "main" :/: param[Int]("options")   // e.g. /main/options=10&options=20 }}}
    */
-  def params[A](key: String)(implicit stringable: Stringable[A]) = new Params[A](key, stringable)
+  def params[A](key: String)(implicit mapping: StringMapping[A]) = new Params[A](key, mapping)
 
   implicit class StringPathOps(s: String) {
     type P = PLit[PNil]
