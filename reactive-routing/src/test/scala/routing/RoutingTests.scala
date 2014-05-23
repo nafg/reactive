@@ -148,12 +148,13 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     res3 should equal ("00070")
   }
 
-  test("Can & together sitelets even if implicit resolution doesn't find a LUB") {
+  test("Can & together sitelets of different types") {
     val s1 = "a" :/: arg[Int] >> { i => i }
     val s2 = "b" :/: arg[String] >> { i => i }
     val s3 = "c" :/: arg[Boolean] >> { i => i }
     val s4 = s1 & s2 & s3
-    implicitly[s4.type <:< Sitelet[Path, Any]]
+
+    s4.mapPath(_ => PLit("hello", PNil)) by identity
   }
 
   test("Can & together sitelets, not only Sitelet&PathRoute") {
@@ -164,7 +165,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val sitelet = rt1 & s1
     sitelet.run(Location("plus1" :: "10" :: Nil)) shouldBe 11
     val pathMapped = sitelet.mapPath("base" :/: _).by(identity)
-    pathMapped.pathRoutes.head.path.construct(10) shouldBe Location("base" :: "plus1" :: "10" :: Nil)
+    pathMapped.construct.head(10) shouldBe Location("base" :: "plus1" :: "10" :: Nil)
   }
 
   test("Route can be a PartialFunction") {
