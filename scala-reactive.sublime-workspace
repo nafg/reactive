@@ -1,0 +1,1290 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"Part",
+				"PartialRoute"
+			],
+			[
+				"whol",
+				"wholeToPartial"
+			],
+			[
+				"CanB",
+				"CanBindIndirection"
+			],
+			[
+				"Def",
+				"DefaultFormats"
+			],
+			[
+				"exu",
+				"executionContext"
+			],
+			[
+				"un",
+				"underlying"
+			],
+			[
+				"sub",
+				"subscription"
+			],
+			[
+				"subs",
+				"subscription"
+			],
+			[
+				"list",
+				"listeners"
+			],
+			[
+				"Su",
+				"Subscription"
+			],
+			[
+				"Ob",
+				"Observable"
+			],
+			[
+				"obser",
+				"observing"
+			],
+			[
+				"Tran",
+				"TransportType"
+			],
+			[
+				"AppendTo",
+				"AppendToRenderTransportType"
+			],
+			[
+				"remo",
+				"removeListener"
+			],
+			[
+				"Run",
+				"Runnable"
+			],
+			[
+				"Entit",
+				"EntityTable"
+			],
+			[
+				"Keyed",
+				"KeyedTable"
+			],
+			[
+				"Key",
+				"KeyedTableQuery"
+			],
+			[
+				"base",
+				"baseTableRow"
+			],
+			[
+				"KeyedTableQ",
+				"KeyedTableQuery"
+			],
+			[
+				"Keye",
+				"KeyedTable"
+			],
+			[
+				"BaseCol",
+				"BaseColumnType"
+			],
+			[
+				"wa",
+				"watchState"
+			],
+			[
+				"Ent",
+				"EntityTable"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "reactive-routing/src/main/scala/reactive/routing/package.scala",
+			"settings":
+			{
+				"buffer_size": 3115,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-routing/src/main/scala/reactive/routing/Stringable.scala",
+			"settings":
+			{
+				"buffer_size": 180,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-web-demo/src/main/scala/reactive/web/demo/snippet/SelectDemo.scala",
+			"settings":
+			{
+				"buffer_size": 1312,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-web/src/main/scala/reactive/web/html/Select.scala",
+			"settings":
+			{
+				"buffer_size": 6756,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-web/src/main/scala/reactive/web/widgets/TableView.scala",
+			"settings":
+			{
+				"buffer_size": 3954,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-routing/src/main/scala/reactive/routing/Path.scala",
+			"settings":
+			{
+				"buffer_size": 5547,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-routing/src/main/scala/reactive/routing/routes.scala",
+			"settings":
+			{
+				"buffer_size": 6861,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala",
+			"settings":
+			{
+				"buffer_size": 3081,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-routing/src/main/scala/reactive/routing/CanLiftRouteMapping.scala",
+			"settings":
+			{
+				"buffer_size": 1696,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reactive-routing/src/test/scala/routing/RoutingTests.scala",
+			"settings":
+			{
+				"buffer_size": 6715,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "package reactive\npackage routing\n\nsealed trait WholeToPartial0[P <: Path] {\n  def apply[R](w: P#Route[R]): P#RoutePF[R]\n}\nobject WholeToPartial0 {\n  implicit val nil: WholeToPartial0[PNil] = new WholeToPartial0[PNil] {\n    def apply[R](w: R) = w\n  }\n  implicit val any: WholeToPartial0[PAny] = new WholeToPartial0[PAny] {\n    def apply[R](w: List[String] => R) = PartialFunction(w)\n  }\n  implicit def lit[N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PLit[N]] = new WholeToPartial0[PLit[N]] {\n    def apply[R](w: N#Route[R]) = w2p(w)\n  }\n  implicit def arg[A, N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PArg[A, N]] = new WholeToPartial0[PArg[A, N]] {\n    def apply[R](w: A => N#Route[R]): PartialFunction[A, N#RoutePF[R]] = { case a => w2p(w(a)) }\n  }\n  implicit def param[A, N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PParam[A, N]] = new WholeToPartial0[PParam[A, N]] {\n    def apply[R](w: Option[A] => N#Route[R]): PartialFunction[Option[A], N#RoutePF[R]] = { case a => w2p(w(a)) }\n  }\n  implicit def params[A, N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PParams[A, N]] = new WholeToPartial0[PParams[A, N]] {\n    def apply[R](w: List[A] => N#Route[R]): PartialFunction[List[A], N#RoutePF[R]] = { case a => w2p(w(a)) }\n  }\n}\n",
+			"file": "reactive-routing/src/main/scala/reactive/routing/WholeToPartial.scala",
+			"file_size": -1,
+			"file_write_time": -1,
+			"settings":
+			{
+				"buffer_size": 1298,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+			[
+				"diff",
+				"Git: Diff Current File"
+			],
+			[
+				"sb",
+				"SBT: Start Continuous Test-Quick"
+			],
+			[
+				"sbt",
+				"SBT: Start Continuous Test-Quick"
+			],
+			[
+				"switch",
+				"Legit: Switch"
+			]
+		],
+		"width": 449.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": false,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-core-api/reactive/EventSource$FlatMapped.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/EventStream_flatMap.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/EventStream_takeWhile.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/test/scala/reactive/web/DomEventSourceTests.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-web-api/reactive/web/EventEncoder$.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-lift/src/main/scala/reactive/web/widgets/lift/MessagesSnippet.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/target/scala-2.10/api/lib/modernizr.custom.js",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/webapp/reactive-routing-api/reactive/routing/MappedPathRoute.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/webapp/reactive-routing-api/reactive/routing/Sitelet$PathMapper.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-lift/src/main/scala/reactive/web/lift/AppendToRender.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/target/scala-2.10/api/reactive/MappedSignal.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/target/scala-2.10/api/reactive/web/DomMutation$$AppendChild.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/target/scala-2.10/api/reactive/web/StringRenderable.html",
+		"/home/naftoli/dev/github/reactive/reactive-core/target/streams/test/test/$global/succeeded_tests",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/Subscription.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/target/scala-2.10/api/reactive/web/javascript/Window$HTMLDocument.html",
+		"/home/naftoli/dev/github/reactive/project/web.sbt",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/Cell.scala",
+		"/home/naftoli/dev/github/reactive/reactive-routing/src/main/scala/reactive/routing/WholeToPartial.scala",
+		"/home/naftoli/dev/github/reactive/reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/CanRender.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/target/scala-2.10/api/reactive/CanForwardTo$.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/target/scala-2.10/api/reactive/web/javascript/CanApply$.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/target/scala-2.10/api/reactive/web/javascript/Function$.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/target/scala-2.10/api/reactive/web/widgets/FilterUI.html",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/Forwardable.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/webapp/reactive-routing-api/reactive/routing/Param.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/package.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/webapp/reactive-routing-api/reactive/routing/PathRoute.html",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/Repeater.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/javascript/JsEventStream.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/test/scala/reactive/web/PropertyVarTests.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/RElem.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/PropertyVar.scala",
+		"/home/naftoli/dev/github/reactive/reactive-routing/src/main/scala/reactive/routing/CanLiftRouteMapping.scala",
+		"/home/naftoli/dev/github/reactive/reactive-routing/src/main/scala/reactive/routing/routes.scala",
+		"/home/naftoli/dev/github/reactive/reactive-routing/src/test/scala/routing/RoutingTests.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/webapp/reactive-web-api/reactive/web/html/TextArea$$toNodeSeqFunc.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-routing-api/reactive/routing/Path$$WholeToPartial$$PF.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-routing-api/reactive/routing/WholeToPartial.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-routing-api/reactive/routing/WholeToPartial$.html",
+		"/home/naftoli/dev/github/reactive/project/target/resolution-cache/reports/default-reactive-build-optional.xml",
+		"/home/naftoli/dev/github/reactive/README.textile",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/html/Select.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/SeqSignal.scala",
+		"/home/naftoli/dev/lrbcol/disp/src/main/scala/lrbcol/snippet/EquipmentScans.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/widgets/MessagesDemo.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/package.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/EventStream.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/javascript/package.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/PagesCache.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/TestPage.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/widgets/TableEditor.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/Signal.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/DeltaSeq.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/test/scala/reactive/web/RepeaterTests.scala",
+		"/home/naftoli/file",
+		"/home/naftoli/dev/lrbcol/disp/src/test/scala/lrbcol/snippet/EquipmentScansSignalSpecs.scala",
+		"/home/naftoli/dev/lrbcol/disp/src/main/scala/lrbcol/snippet/EquipmentScansSignal.scala",
+		"/home/naftoli/dev/lrbcol/disp/src/test/scala/lrbcol/snippet/EquipmentScansSpecs.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/resources/site/web/Properties.md",
+		"/home/naftoli/dev/github/reactive/reactive-routing/target/scala-2.10/api/reactive/routing/Path$$PathRouteOps.html",
+		"/home/naftoli/dev/github/reactive/reactive-routing/target/scala-2.10/api/reactive/routing/PathRoute.html",
+		"/home/naftoli/dev/github/reactive/reactive-core/src/test/scala/reactive/SignalTests.scala",
+		"/home/naftoli/dev/github/reactive/reactive-routing/src/main/scala/reactive/routing/package.scala",
+		"/home/naftoli/dev/github/reactive/reactive-core/target/scala-2.10/api/package.html",
+		"/home/naftoli/dev/github/reactive/reactive-routing/target/scala-2.10/api/reactive/routing/package$$ArgPathOps.html",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/webapp/vendors/bootstrap/css/bootstrap.css",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/webapp/vendors/bootstrap/js/bootstrap.js",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/bootstrap/liftweb/Boot.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/build.sbt",
+		"/home/naftoli/dev/github/reactive/target/streams/compile/compile/$global/export",
+		"/home/naftoli/dev/lrbcol/disp/target/scala-2.10/test-classes...",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/package.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-actors-2.10.2/scala/actors/package.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/reflect/package.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-compiler-2.10.0/scala/tools/nsc/PhaseAssembly.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/Predef.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/DomProperty.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/test/scala/reactive/web/TestTransportTests.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/NodeLoc.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-actors-2.10.2/scala/actors/ActorTask.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/collection/parallel/Tasks.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/test-interface-1.0/sbt/testing/Task.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/collection/parallel/TaskSupport.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalatest/TagAnnotation.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/util/Try.scala",
+		"/home/naftoli/dev/lrbcol/disp/sbt.txt",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-webkit_2.10-2.5/toserve/jlift.js",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/commons-codec-1.6/META-INF/NOTICE.txt",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/DomMutation.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/DomEventSource.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/build.sbt",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalatest/concurrent/SelectorInterruptor.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/Serializable.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/test-interface-1.0/sbt/testing/Selector.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/jetty-util-6.1.26/org/mortbay/log/StdErrLog.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/collection/SeqExtractors.scala",
+		"/home/naftoli/dev/github/reactive/scala-reactive.sublime-project",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-compiler-2.10.0/scala/tools/nsc/backend/icode/ICodeCheckers.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/TestTransport.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/resources/site/web/TestTransport.md",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/classes/site/web/TestTransport.md",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalatest/concurrent/TestThreadsStartingCounter.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalacheck_2.10-1.11.3/org/scalacheck/Test.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalatest/exceptions/TestPendingException.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalautils/TripleEqualsSupport.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalautils/TripleEquals.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/xml/Node.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/webapp/templates-hidden/celldemo.html",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/commons-codec-1.6/org/apache/commons/codec/CharEncoding.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/Char.scala",
+		"/net/liftweb/lift-testkit_2.10/2.6-SNAPSHOT/maven-metadata.xml",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-json_2.10-2.5/net/liftweb/json/JsonAST.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-json_2.10-2.5/net/liftweb/json/package.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/jetty-6.1.26/org/mortbay/io/View.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/jetty-6.1.26/org/mortbay/io/Buffer.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/jetty-6.1.26/org/mortbay/io/AbstractBuffer.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-json_2.10-2.5/net/liftweb/json/Extraction.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/joda-time-2.1/org/joda/time/format/PeriodFormatterBuilder.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/joda-time-2.1/org/joda/time/format/DateTimeFormatterBuilder.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/xml/Elem.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/xml/MetaData.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-json_2.10-2.5/net/liftweb/json/Meta.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/activation-1.1/javax/activation/MimeType.java",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/MatchError.scala",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/mail-1.4.4/META-INF/mailcap",
+		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalatest/mock/EasyMockSugar.scala"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			"*.scala,/home/naftoli/dev/github/reactive/reactive-routing",
+			"*.scala",
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"RoutePF",
+			"type Route[+R]",
+			"WholeToPartial",
+			"def isDefinedAt",
+			"isDefinedAt",
+			"A",
+			"ValueChainedPath",
+			"ValChainPath",
+			"def by",
+			"by",
+			"isDefinedAt",
+			"isDefindAt",
+			"Run",
+			"run",
+			"Run",
+			"run",
+			"Run",
+			"run",
+			"isDefinedAt",
+			"CanRunPath",
+			"CanBindInv",
+			"s",
+			"S",
+			"CanBind",
+			"\"item",
+			"\"item1\"",
+			"'item",
+			"'nlt",
+			"'nat",
+			"'nat1",
+			"'nat",
+			"'nat1",
+			"'nlt1",
+			"'item",
+			"item4",
+			"'item3",
+			"'item2",
+			"'item1",
+			"'item2",
+			"'item1",
+			"'initNat",
+			"'nlt2",
+			"'nlt3",
+			"/*None, */",
+			"/*Option('nat), */",
+			"/*Some('nat), */",
+			"/*, Some('nlt3)*/",
+			"/*, Some('nlt2)*/",
+			"/*, None*/",
+			"/*, Some('nlt1)*/",
+			"ItemData",
+			"ItemD",
+			"ItemData",
+			"(\"item",
+			", Some(\"",
+			", Some",
+			", Some(\"0\")",
+			", Some",
+			"count",
+			"doSave",
+			"queueAjax",
+			"init",
+			"onTimer",
+			"geronimo",
+			"[33m",
+			"[2K",
+			"M",
+			"[0m",
+			"0minfo",
+			"[0minfo",
+			"[0m",
+			"geronimo",
+			"tc",
+			"xmlLazyLock",
+			"javascript._",
+			"reactive.web.javascript",
+			"ChildEventSource",
+			"Subsc",
+			"SeqSignal",
+			"subscribe",
+			"sub",
+			"addListener",
+			"removeListener",
+			"listeners",
+			"Listeners",
+			"listeners",
+			"Listeners",
+			"listeners",
+			"AddedForeachListener",
+			"addListener",
+			"removeSubscription",
+			"/*\n",
+			"removeListener",
+			"Event[T] => Unit",
+			"Foreachable",
+			"removeTransportType",
+			"addTransportType",
+			"spac",
+			"  \"",
+			"ChangeListener",
+			"Runnable",
+			"renderable",
+			"data",
+			"onetomanyl",
+			"K, A, T",
+			"KeyedTableQuery",
+			"OneToMany[T2]",
+			"TB",
+			"OneToMany[T2]",
+			"T2#Value",
+			"TB",
+			"VB",
+			"KB",
+			"TB#Key",
+			"TB#Value",
+			"= t",
+			"TB#Key",
+			"EntityTableBase",
+			"deleteQuery",
+			"TB",
+			"private[KeyedTable]",
+			" A",
+			" A ",
+			" A",
+			"A",
+			"import simple",
+			": Session",
+			"Session"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			""
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "reactive-routing/src/main/scala/reactive/routing/package.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3115,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1212,
+								1212
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 337.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "reactive-routing/src/main/scala/reactive/routing/Stringable.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 180,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								180,
+								180
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "reactive-web-demo/src/main/scala/reactive/web/demo/snippet/SelectDemo.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1312,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								608,
+								608
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "reactive-web/src/main/scala/reactive/web/html/Select.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6756,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								682,
+								682
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "reactive-web/src/main/scala/reactive/web/widgets/TableView.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3954,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1755.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "reactive-routing/src/main/scala/reactive/routing/Path.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5547,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								883,
+								883
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 31.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "reactive-routing/src/main/scala/reactive/routing/routes.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6861,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1015,
+								1015
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 93.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3081,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								808,
+								808
+							],
+							[
+								1513,
+								1513
+							],
+							[
+								2020,
+								2020
+							],
+							[
+								2763,
+								2763
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": -0.0,
+						"translation.y": 175.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "reactive-routing/src/main/scala/reactive/routing/CanLiftRouteMapping.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1696,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								653,
+								653
+							],
+							[
+								679,
+								679
+							],
+							[
+								1084,
+								1084
+							],
+							[
+								1116,
+								1116
+							],
+							[
+								1354,
+								1354
+							],
+							[
+								1388,
+								1388
+							],
+							[
+								1630,
+								1630
+							],
+							[
+								1665,
+								1665
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "reactive-routing/src/test/scala/routing/RoutingTests.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6715,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								299,
+								299
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "reactive-routing/src/main/scala/reactive/routing/WholeToPartial.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1298,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								62,
+								62
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 33.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.sbt":
+	{
+		"height": 370.0
+	},
+	"output.sbt_error":
+	{
+		"height": 268.0
+	},
+	"project": "scala-reactive.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"stringa",
+				"reactive/reactive-routing/src/main/scala/reactive/routing/Stringable.scala"
+			],
+			[
+				"whol",
+				"reactive/reactive-routing/src/main/scala/reactive/routing/WholeToPartial.scala"
+			],
+			[
+				"canrun",
+				"reactive/reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala"
+			],
+			[
+				"path",
+				"reactive/reactive-routing/src/main/scala/reactive/routing/Path.scala"
+			],
+			[
+				"param",
+				"reactive/reactive-web-demo/target/webapp/reactive-routing-api/reactive/routing/Param.html"
+			],
+			[
+				"routingt",
+				"reactive/reactive-routing/src/test/scala/routing/RoutingTests.scala"
+			],
+			[
+				"selectd",
+				"reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/SelectDemo.scala"
+			],
+			[
+				"prop",
+				"reactive/reactive-web/src/main/scala/reactive/web/PropertyVar.scala"
+			],
+			[
+				"propertyvart",
+				"reactive/reactive-web/src/test/scala/reactive/web/PropertyVarTests.scala"
+			],
+			[
+				"propertyv",
+				"reactive/reactive-web/src/main/scala/reactive/web/PropertyVar.scala"
+			],
+			[
+				"sign",
+				"reactive/reactive-core/src/main/scala/reactive/Signal.scala"
+			],
+			[
+				"seqis",
+				"reactive/reactive-core/src/main/scala/reactive/SeqSignal.scala"
+			],
+			[
+				"signal.sc",
+				"reactive/reactive-core/src/main/scala/reactive/Signal.scala"
+			],
+			[
+				"pac.sc",
+				"reactive/reactive-web/src/main/scala/reactive/web/package.scala"
+			],
+			[
+				"",
+				"~/dev/lrbcol/disp/src/main/scala/lrbcol/snippet/EquipmentScans.scala"
+			],
+			[
+				"eq",
+				"~/dev/lrbcol/disp/src/test/scala/lrbcol/snippet/EquipmentScansSpecs.scala"
+			],
+			[
+				"equscspec",
+				"~/dev/lrbcol/disp/src/test/scala/lrbcol/snippet/EquipmentScansSignalSpecs.scala"
+			],
+			[
+				"reactive/package.sc",
+				"reactive/reactive-core/src/main/scala/reactive/package.scala"
+			],
+			[
+				"jsev",
+				"reactive/reactive-web/src/main/scala/reactive/web/javascript/JsEventStream.scala"
+			],
+			[
+				"nodel",
+				"reactive/reactive-web/src/main/scala/reactive/web/NodeLoc.scala"
+			],
+			[
+				"select.scala",
+				"reactive/reactive-web/src/main/scala/reactive/web/html/Select.scala"
+			],
+			[
+				"testt",
+				"reactive/reactive-web/src/main/scala/reactive/web/TestTransport.scala"
+			],
+			[
+				"testtrat",
+				"reactive/reactive-web/src/test/scala/reactive/web/TestTransportTests.scala"
+			],
+			[
+				"cell.sc",
+				"reactive/reactive-web/src/main/scala/reactive/web/Cell.scala"
+			],
+			[
+				"metada",
+				"External Libraries/scala-library-2.10.3/scala/xml/MetaData.scala"
+			],
+			[
+				"elem",
+				"External Libraries/scala-library-2.10.3/scala/xml/Elem.scala"
+			],
+			[
+				"domm",
+				"reactive/reactive-web/src/main/scala/reactive/web/DomMutation.scala"
+			],
+			[
+				"appe",
+				"reactive/reactive-web-lift/src/main/scala/reactive/web/lift/AppendToRender.scala"
+			],
+			[
+				"jseve",
+				"reactive/reactive-web/src/main/scala/reactive/web/javascript/JsEventStream.scala"
+			],
+			[
+				"dompr",
+				"reactive/reactive-web/src/main/scala/reactive/web/DomProperty.scala"
+			],
+			[
+				"eventstreamt",
+				"reactive/reactive-core/src/test/scala/reactive/EventStreamTests.scala"
+			],
+			[
+				"eve",
+				"reactive/reactive-core/src/main/scala/reactive/EventStream.scala"
+			],
+			[
+				"build",
+				"reactive/reactive-web/build.sbt"
+			],
+			[
+				"atom",
+				"reactive/reactive-core/src/main/scala/reactive/AtomicRef.scala"
+			],
+			[
+				"eventstr",
+				"reactive/reactive-core/src/main/scala/reactive/EventStream.scala"
+			],
+			[
+				"subs",
+				"reactive/reactive-core/src/main/scala/reactive/Subscription.scala"
+			],
+			[
+				"signaltes",
+				"reactive/reactive-core/src/test/scala/reactive/SignalTests.scala"
+			],
+			[
+				"seqs",
+				"reactive/reactive-core/src/main/scala/reactive/SeqSignal.scala"
+			],
+			[
+				"eventstrtes",
+				"reactive/reactive-core/src/test/scala/reactive/EventStreamTests.scala"
+			],
+			[
+				"bui",
+				"reactive/reactive-web-demo/build.sbt"
+			],
+			[
+				"sub",
+				"reactive/reactive-core/src/main/scala/reactive/Subscription.scala"
+			],
+			[
+				"obs",
+				"reactive/reactive-core/src/main/scala/reactive/Observable.scala"
+			],
+			[
+				"messages",
+				"reactive/reactive-web-lift/src/main/scala/reactive/web/widgets/lift/MessagesSnippet.scala"
+			],
+			[
+				"domevents",
+				"reactive/reactive-web/src/main/scala/reactive/web/DomEventSource.scala"
+			],
+			[
+				"observing",
+				"reactive/reactive-core/src/main/scala/reactive/Observing.scala"
+			],
+			[
+				"events",
+				"reactive/reactive-core/src/main/scala/reactive/EventStream.scala"
+			],
+			[
+				"tablequery",
+				"slick-additions/target/External Libraries/slick_2.10-2.0.0/scala/slick/lifted/Query.scala"
+			],
+			[
+				"ketes.sc",
+				"slick-additions/src/test/scala/scala/slick/additions/KeyedTableTests.scala"
+			],
+			[
+				"keysc",
+				"slick-additions/src/main/scala/scala/slick/additions/KeyedTable.scala"
+			],
+			[
+				"talmid",
+				"chavrusa/common/src/main/scala/chavrusa/model/Talmid.scala"
+			],
+			[
+				"chmodpack",
+				"chavrusa/common/src/main/scala/chavrusa/model/package.scala"
+			],
+			[
+				"box",
+				"External Libraries/lift-common_2.10-2.6-SNAPSHOT/net/liftweb/common/Box.scala"
+			],
+			[
+				"optio",
+				"External Libraries/scala-library-2.10.3/scala/Option.scala"
+			],
+			[
+				"box.sc",
+				"External Libraries/lift-common_2.10-2.6-SNAPSHOT/net/liftweb/common/Box.scala"
+			],
+			[
+				"try",
+				"External Libraries/scala-library-2.10.3/scala/util/Try.scala"
+			],
+			[
+				"dbse",
+				"External Libraries/h2-1.2.147/org/h2/constant/DbSettings.java"
+			],
+			[
+				"matchsp",
+				"chavrusa/common/src/test/scala/chavrusa/MatchSpecs.scala"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+			[
+				"",
+				"~/dev/lrbcol/disp/lrbcol-lift.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 159.0,
+		"selected_items":
+		[
+			[
+				"canforwardjs",
+				"CanForwardJs"
+			],
+			[
+				"canforwardt",
+				"CanForwardTo"
+			],
+			[
+				"event",
+				"Event"
+			],
+			[
+				"try",
+				"Try"
+			],
+			[
+				"signal",
+				"Signal"
+			],
+			[
+				"executionc",
+				"ExecutionContext"
+			],
+			[
+				"mappedsca",
+				"MappedScalaProductShape"
+			],
+			[
+				"jdbcp",
+				"JdbcProfile"
+			],
+			[
+				"jdbcpro",
+				"JdbcProfile"
+			],
+			[
+				"table",
+				"Table"
+			],
+			[
+				"abstractta",
+				"AbstractTable"
+			],
+			[
+				"defaultset",
+				"DefaultSettings"
+			],
+			[
+				"tryo",
+				"tryo"
+			],
+			[
+				"dbset",
+				"DbSettings"
+			],
+			[
+				"chavr",
+				"ChavrusaDatabase"
+			]
+		],
+		"width": 392.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 329.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
