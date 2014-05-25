@@ -8,9 +8,9 @@ package routing
  * For instance for PAny lift an `(A => B)` to a `(List[String] => A) => (List[String] => B)`.
  * Used by [[Sitelet#map]]
  */
-trait CanLiftRouteMapping1[P <: Path] {
-  def apply[A, B](f: A => B): P#PartialRoute[A] => P#PartialRoute[B]
-}
+//trait CanLiftRouteMapping1[P <: Path] {
+//  def apply[A, B](f: A => B): P#PartialRoute[A] => P#PartialRoute[B]
+//}
 object CanLiftRouteMapping1 {
 //  implicit def all[P]: CanLiftRouteMapping[P] = new CanLiftRouteMapping[P] {
 //    def apply[A, B](f: A => B): P#PartialRoute[A] => P#PartialRoute[B] = 

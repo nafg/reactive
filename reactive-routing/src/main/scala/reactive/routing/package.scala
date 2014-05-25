@@ -29,40 +29,16 @@ package object routing {
    */
   def params[A](key: String)(implicit stringable: Stringable[A]) = new Params[A](key, stringable)
 
-  implicit class StringPathOps(s: String) {
-    type P = PLit[PNil]
-    def path: P = PLit(s, PNil)
-    def :/:(s: String) = PLit[P](s, path)
-    def :/:[A](arg: Arg[A]) = PArg[A, P](arg, path)
-    def >>[A](rte: A): PathRoute[P, A] = new PathRoute[P, A](path) { val route = rte }
-    def >>?[A](rte: A): PathRoute[P, A] = new PathRoute[P, A](path) { val route = rte }
+  implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RouteConst] with Path.PathRouteOpsBase[RouteConst] {
+    def path = PLit(s, PNil)
   }
-  implicit class ArgPathOps[A](arg: Arg[A]) {
-    type P = PArg[A, PNil]
-    def path: P = PArg(arg, PNil)
-    def :/:(s: String) = PLit[P](s, path)
-    def :/:[B](arg2: Arg[B]) = PArg[B, P](arg2, path)
-    def >>[B](rte: A => B): PathRoute[P, B] = new PathRoute[P, B](path) { val route = PartialFunction(rte) }
-    def >>?[B](rte: P#PartialRoute[B]): PathRoute[P, B] = new PathRoute[P, B](path) { val route = rte }
+  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[RoutePFK[A, RouteConst]#Route] with Path.PathRouteOpsBase[RoutePFK[A, RouteConst]#Route] {
+    def path = PArg(arg, PNil)
   }
-  implicit class ParamPathOps[A](param: Param[A]) {
-    type P = PParam[A, PNil]
-    def path: P = PParam(param, PNil)
-    def :&:(s: String) = PLit[P](s, path)
-    def :&:[B](arg: Arg[B]) = PArg[B, P](arg, path)
-    def :&:[B](p: Param[B]) = PParam[B, P](p, path)
-    def :&:[B](p: Params[B]) = PParams[B, P](p, path)
-    def >>[B](rte: Option[A] => B): PathRoute[P, B] = new PathRoute[P, B](path) { val route = PartialFunction(rte) }
-    def >>?[B](rte: P#PartialRoute[B]): PathRoute[P, B] = new PathRoute[P, B](path) { val route = rte }
+  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[RoutePFK[Option[A], RouteConst]#Route] with Path.PathRouteOpsBase[RoutePFK[Option[A], RouteConst]#Route] {
+    def path = PParam(param, PNil)
   }
-  implicit class ParamsPathOps[A](params: Params[A]) {
-    type P = PParams[A, PNil]
-    def path: P = PParams(params, PNil)
-    def :&:(s: String) = PLit[P](s, path)
-    def :&:[B](arg: Arg[B]) = PArg[B, P](arg, path)
-    def :&:[B](p: Param[B]) = PParam[B, P](p, path)
-    def :&:[B](p: Params[B]) = PParams[B, P](p, path)
-    def >>[B](rte: List[A] => B): PathRoute[P, B] = new PathRoute[P, B](path) { val route = PartialFunction(rte) }
-    def >>?[B](rte: P#PartialRoute[B]): PathRoute[P, B] = new PathRoute[P, B](path) { val route = rte }
+  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[RoutePFK[List[A], RouteConst]#Route] with Path.PathRouteOpsBase[RoutePFK[List[A], RouteConst]#Route] {
+    def path = PParams[A, RouteConst](params, PNil)
   }
 }

@@ -111,7 +111,7 @@
 			"file": "reactive-routing/src/main/scala/reactive/routing/package.scala",
 			"settings":
 			{
-				"buffer_size": 3115,
+				"buffer_size": 2895,
 				"line_ending": "Unix"
 			}
 		},
@@ -124,34 +124,10 @@
 			}
 		},
 		{
-			"file": "reactive-web-demo/src/main/scala/reactive/web/demo/snippet/SelectDemo.scala",
-			"settings":
-			{
-				"buffer_size": 1312,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "reactive-web/src/main/scala/reactive/web/html/Select.scala",
-			"settings":
-			{
-				"buffer_size": 6756,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "reactive-web/src/main/scala/reactive/web/widgets/TableView.scala",
-			"settings":
-			{
-				"buffer_size": 3954,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"file": "reactive-routing/src/main/scala/reactive/routing/Path.scala",
 			"settings":
 			{
-				"buffer_size": 5547,
+				"buffer_size": 7334,
 				"line_ending": "Unix"
 			}
 		},
@@ -159,7 +135,7 @@
 			"file": "reactive-routing/src/main/scala/reactive/routing/routes.scala",
 			"settings":
 			{
-				"buffer_size": 6861,
+				"buffer_size": 6113,
 				"line_ending": "Unix"
 			}
 		},
@@ -167,7 +143,7 @@
 			"file": "reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala",
 			"settings":
 			{
-				"buffer_size": 3081,
+				"buffer_size": 497,
 				"line_ending": "Unix"
 			}
 		},
@@ -175,7 +151,7 @@
 			"file": "reactive-routing/src/main/scala/reactive/routing/CanLiftRouteMapping.scala",
 			"settings":
 			{
-				"buffer_size": 1696,
+				"buffer_size": 576,
 				"line_ending": "Unix"
 			}
 		},
@@ -183,18 +159,15 @@
 			"file": "reactive-routing/src/test/scala/routing/RoutingTests.scala",
 			"settings":
 			{
-				"buffer_size": 6715,
+				"buffer_size": 6731,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "package reactive\npackage routing\n\nsealed trait WholeToPartial0[P <: Path] {\n  def apply[R](w: P#Route[R]): P#RoutePF[R]\n}\nobject WholeToPartial0 {\n  implicit val nil: WholeToPartial0[PNil] = new WholeToPartial0[PNil] {\n    def apply[R](w: R) = w\n  }\n  implicit val any: WholeToPartial0[PAny] = new WholeToPartial0[PAny] {\n    def apply[R](w: List[String] => R) = PartialFunction(w)\n  }\n  implicit def lit[N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PLit[N]] = new WholeToPartial0[PLit[N]] {\n    def apply[R](w: N#Route[R]) = w2p(w)\n  }\n  implicit def arg[A, N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PArg[A, N]] = new WholeToPartial0[PArg[A, N]] {\n    def apply[R](w: A => N#Route[R]): PartialFunction[A, N#RoutePF[R]] = { case a => w2p(w(a)) }\n  }\n  implicit def param[A, N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PParam[A, N]] = new WholeToPartial0[PParam[A, N]] {\n    def apply[R](w: Option[A] => N#Route[R]): PartialFunction[Option[A], N#RoutePF[R]] = { case a => w2p(w(a)) }\n  }\n  implicit def params[A, N <: Path](implicit w2p: WholeToPartial0[N]): WholeToPartial0[PParams[A, N]] = new WholeToPartial0[PParams[A, N]] {\n    def apply[R](w: List[A] => N#Route[R]): PartialFunction[List[A], N#RoutePF[R]] = { case a => w2p(w(a)) }\n  }\n}\n",
 			"file": "reactive-routing/src/main/scala/reactive/routing/WholeToPartial.scala",
-			"file_size": -1,
-			"file_write_time": -1,
 			"settings":
 			{
-				"buffer_size": 1298,
+				"buffer_size": 1472,
 				"line_ending": "Unix"
 			}
 		}
@@ -242,6 +215,15 @@
 	},
 	"file_history":
 	[
+		"/home/naftoli/dev/github/reactive/.idea_modules/scala-reactive-build.iml",
+		"/home/naftoli/dev/lrbcol/disp/src/main/scala/bootstrap/liftweb/Boot.scala",
+		"/home/naftoli/dev/lrbcol/disp/src/main/scala/lrbcol/package.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/widgets/TableView.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/html/Select.scala",
+		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/SelectDemo.scala",
+		"/home/naftoli/dev/lrbcol/kiosk/kiosk/src/main/scala/lrbcol/kiosk/HospitalsAdminView.scala",
+		"/home/naftoli/dev/lrbcol/kiosk/kiosk/src/main/scala/lrbcol/kiosk/LoginFirst.scala",
+		"/home/naftoli/dev/lrbcol/kiosk/kiosk/src/main/scala/lrbcol/kiosk/MenuItems.scala",
 		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-core-api/reactive/EventSource$FlatMapped.html",
 		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/EventStream_flatMap.scala",
 		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/EventStream_takeWhile.scala",
@@ -285,7 +267,6 @@
 		"/home/naftoli/dev/github/reactive/reactive-web-demo/target/scala-2.10/resource_managed/main/copied-docs/reactive-routing-api/reactive/routing/WholeToPartial$.html",
 		"/home/naftoli/dev/github/reactive/project/target/resolution-cache/reports/default-reactive-build-optional.xml",
 		"/home/naftoli/dev/github/reactive/README.textile",
-		"/home/naftoli/dev/github/reactive/reactive-web/src/main/scala/reactive/web/html/Select.scala",
 		"/home/naftoli/dev/github/reactive/reactive-core/src/main/scala/reactive/SeqSignal.scala",
 		"/home/naftoli/dev/lrbcol/disp/src/main/scala/lrbcol/snippet/EquipmentScans.scala",
 		"/home/naftoli/dev/github/reactive/reactive-web-demo/src/main/scala/reactive/web/demo/snippet/widgets/MessagesDemo.scala",
@@ -361,19 +342,11 @@
 		"/home/naftoli/dev/github/reactive/target/External Libraries/jetty-6.1.26/org/mortbay/io/Buffer.java",
 		"/home/naftoli/dev/github/reactive/target/External Libraries/jetty-6.1.26/org/mortbay/io/AbstractBuffer.java",
 		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-json_2.10-2.5/net/liftweb/json/Extraction.scala",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/joda-time-2.1/org/joda/time/format/PeriodFormatterBuilder.java",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/joda-time-2.1/org/joda/time/format/DateTimeFormatterBuilder.java",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/xml/Elem.scala",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/xml/MetaData.scala",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/lift-json_2.10-2.5/net/liftweb/json/Meta.scala",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/activation-1.1/javax/activation/MimeType.java",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/scala-library-2.10.3/scala/MatchError.scala",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/mail-1.4.4/META-INF/mailcap",
-		"/home/naftoli/dev/github/reactive/target/External Libraries/scalatest_2.10-2.1.2/org/scalatest/mock/EasyMockSugar.scala"
+		"/home/naftoli/dev/github/reactive/target/External Libraries/joda-time-2.1/org/joda/time/format/PeriodFormatterBuilder.java"
 	],
 	"find":
 	{
-		"height": 35.0
+		"height": 31.0
 	},
 	"find_in_files":
 	{
@@ -387,9 +360,28 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": false,
+		"case_sensitive": true,
 		"find_history":
 		[
+			"#Route",
+			"\\WRoute",
+			"[\\W]Route",
+			"[^\\w]Route",
+			"(?:\\w)Route",
+			"(?!\\w)Route",
+			"Route",
+			"\\bRoute\\b",
+			"RoutePF",
+			"\\bRoute\\b",
+			"\\bRoute",
+			"\\bRoute\\b",
+			"route",
+			"Route",
+			"new PathRoute",
+			"route",
+			"Route",
+			"route",
+			" ::",
 			"RoutePF",
 			"type Route[+R]",
 			"WholeToPartial",
@@ -498,33 +490,16 @@
 			"KeyedTableQuery",
 			"OneToMany[T2]",
 			"TB",
-			"OneToMany[T2]",
-			"T2#Value",
-			"TB",
-			"VB",
-			"KB",
-			"TB#Key",
-			"TB#Value",
-			"= t",
-			"TB#Key",
-			"EntityTableBase",
-			"deleteQuery",
-			"TB",
-			"private[KeyedTable]",
-			" A",
-			" A ",
-			" A",
-			"A",
-			"import simple",
-			": Session",
-			"Session"
+			"OneToMany[T2]"
 		],
 		"highlight": true,
 		"in_selection": false,
 		"preserve_case": false,
-		"regex": false,
+		"regex": true,
 		"replace_history":
 		[
+			"#WholeRoute",
+			"WholeRoute",
 			""
 		],
 		"reverse": false,
@@ -536,7 +511,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 4,
 			"sheets":
 			[
 				{
@@ -545,15 +520,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3115,
+						"buffer_size": 2895,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1212,
-								1212
+								1690,
+								1690
 							]
 						],
 						"settings":
@@ -563,10 +538,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 337.0,
+						"translation.y": 528.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
@@ -582,13 +557,105 @@
 						"selection":
 						[
 							[
-								180,
-								180
+								119,
+								119
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Scala/Scala.tmLanguage"
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "reactive-routing/src/main/scala/reactive/routing/Path.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7334,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2337,
+								2337
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1086.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "reactive-routing/src/main/scala/reactive/routing/routes.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6113,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4085,
+								4085
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1741.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 497,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								473,
+								473
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Scala/Scala.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -598,72 +665,12 @@
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "reactive-web-demo/src/main/scala/reactive/web/demo/snippet/SelectDemo.scala",
+					"buffer": 5,
+					"file": "reactive-routing/src/main/scala/reactive/routing/CanLiftRouteMapping.scala",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1312,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								608,
-								608
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Scala/Scala.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 10,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "reactive-web/src/main/scala/reactive/web/html/Select.scala",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 6756,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								682,
-								682
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Scala/Scala.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 9,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "reactive-web/src/main/scala/reactive/web/widgets/TableView.scala",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3954,
+						"buffer_size": 576,
 						"regions":
 						{
 						},
@@ -681,37 +688,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1755.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "reactive-routing/src/main/scala/reactive/routing/Path.scala",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 5547,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								883,
-								883
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Scala/Scala.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 31.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 5,
@@ -719,141 +696,11 @@
 				},
 				{
 					"buffer": 6,
-					"file": "reactive-routing/src/main/scala/reactive/routing/routes.scala",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 6861,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1015,
-								1015
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Scala/Scala.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 93.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 7,
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "reactive-routing/src/main/scala/reactive/routing/CanRunPath.scala",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3081,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								808,
-								808
-							],
-							[
-								1513,
-								1513
-							],
-							[
-								2020,
-								2020
-							],
-							[
-								2763,
-								2763
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Scala/Scala.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": -0.0,
-						"translation.y": 175.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 8,
-					"file": "reactive-routing/src/main/scala/reactive/routing/CanLiftRouteMapping.scala",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1696,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								653,
-								653
-							],
-							[
-								679,
-								679
-							],
-							[
-								1084,
-								1084
-							],
-							[
-								1116,
-								1116
-							],
-							[
-								1354,
-								1354
-							],
-							[
-								1388,
-								1388
-							],
-							[
-								1630,
-								1630
-							],
-							[
-								1665,
-								1665
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Scala/Scala.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"type": "text"
-				},
-				{
-					"buffer": 9,
 					"file": "reactive-routing/src/test/scala/routing/RoutingTests.scala",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6715,
+						"buffer_size": 6731,
 						"regions":
 						{
 						},
@@ -874,24 +721,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
-					"buffer": 10,
+					"buffer": 7,
 					"file": "reactive-routing/src/main/scala/reactive/routing/WholeToPartial.scala",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1298,
+						"buffer_size": 1472,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								62,
-								62
+								248,
+								248
 							]
 						],
 						"settings":
@@ -904,7 +751,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 1,
 					"type": "text"
 				}
 			]
@@ -912,7 +759,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 23.0
+		"height": 31.0
 	},
 	"input":
 	{
@@ -956,7 +803,7 @@
 	"project": "scala-reactive.sublime-project",
 	"replace":
 	{
-		"height": 42.0
+		"height": 72.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -1281,7 +1128,7 @@
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
+	"side_bar_visible": false,
 	"side_bar_width": 329.0,
 	"status_bar_visible": true,
 	"template_settings":
