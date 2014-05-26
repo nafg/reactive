@@ -139,7 +139,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
 
   test("map with various Path types") {
     val site2 = r & r2
-    val z2 = site2 map ("000" + _)
+    val z2 = site2.map("000" + _)
     val res2 = z2 run Location(List("add", "15", "plus", "20", "please"))
     val res3 = z2 run Location(List("addall", "10", "15", "20", "25"))
     implicitly[res2.type <:< String]
@@ -153,8 +153,11 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val s1 = "a" :/: arg[Int] >> { i => i }
     val s2 = "b" :/: arg[String] >> { i => i }
     val s3 = "c" :/: arg[Boolean] >> { i => i }
+//    implicitly[CanMapRoute[RouteType.PF[String with Int, RouteType.Const]]](CanMapRoute.pf)
+    val s4_1 = s1 & s2
     val s4 = s1 & s2 & s3
-    implicitly[s4.type <:< Sitelet[Path[_], Any]]
+    
+    implicitly[s4.type <:< Sitelet[_, Any]]
   }
 
   test("Can & together sitelets, not only Sitelet&PathRoute") {
