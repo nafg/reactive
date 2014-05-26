@@ -26,26 +26,26 @@ object Path {
   }
   import nsub._
 
-  trait PathComponentOpsBase[R[X] <: Route[X]] extends Any {
+  trait PathComponentOpsBase[R <: RouteType] extends Any {
     protected def path: Path[R]
     def :/:(s: String) = PLit[R](s, path)
     def :/:[A](arg: Arg[A]) = PArg[A, R](arg, path)
   }
-  trait PathRouteOpsBase[R[X] <: Route[X]] extends Any {
+  trait PathRouteOpsBase[R <: RouteType] extends Any {
     def path: Path[R]
-    def >>?[A](rte: R[A]#PV)(implicit lift: CanLiftRoute[R, A, R[A]#PV]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
-    def >>[A](rte: R[A]#WV)(implicit lift: CanLiftRoute[R, A, R[A]#WV]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
+    def >>?[A](rte: R#Route[A]): PathRoute[R, A] = new PathRoute[R, A](path, rte)
+    def >>[A](rte: R#Func[A])(implicit lift: FnToPF[R]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
   }
-  trait PathParamOpsBase[R[X] <: Route[X]] extends Any {
+  trait PathParamOpsBase[R <: RouteType] extends Any {
     def path: Path[R]
     def :&:(s: String) = PLit[R](s, path)
     def :&:[A](arg: Arg[A]) = PArg[A, R](arg, path)
     def :&:[A](p: Param[A]) = PParam[A, R](p, path)
     def :&:[A](p: Params[A]) = PParams[A, R](p, path)
   }
-  implicit class PathOps[R[X] <: Route[X]](val path: Path[R])(implicit nsub: Path[R] <:!< PParamBase[R]) extends PathComponentOpsBase[R]
-  implicit class PathRouteOps[R[X] <: Route[X]](val path: Path[R]) extends AnyVal with PathRouteOpsBase[R]
-  implicit class PParamBaseOps[R[X] <: Route[X]](val path: PParamBase[R]) extends AnyVal with PathParamOpsBase[R]
+  implicit class PathOps[R <: RouteType](val path: Path[R])(implicit nsub: Path[R] <:!< PParamBase[R]) extends PathComponentOpsBase[R]
+  implicit class PathRouteOps[R <: RouteType](val path: Path[R]) extends AnyVal with PathRouteOpsBase[R]
+  implicit class PParamBaseOps[R <: RouteType](val path: PParamBase[R]) extends AnyVal with PathParamOpsBase[R]
 }
 
 sealed trait HasStringable[A] {
@@ -56,35 +56,47 @@ class Arg[A](val stringable: Stringable[A]) extends HasStringable[A]
 class Param[A](val key: String, val stringable: Stringable[A]) extends HasStringable[A]
 class Params[A](val key: String, val stringable: Stringable[A]) extends HasStringable[A]
 
-trait CanMapRoute[R[X] <: Route[X]] {
-  def map[A, B](f: A => B): R[A] => R[B]
+trait CanMapRoute[R <: RouteType] {
+  def map[A, B](f: A => B): R#Route[A] => R#Route[B]
 }
-trait CanLiftRoute[R[X] <: Route[X], A, V] {
-  def apply(v: V): R[A]
+trait FnToPF[R <: RouteType] {
+  type Partial[A] = R#Route[A]
+  type Whole[A] = R#Func[A]
+  def apply[A](v: Whole[A]): Partial[A]
 }
-object CanLiftRoute {
-  implicit def const[A]: CanLiftRoute[RouteConst, A, A] = new CanLiftRoute[RouteConst, A, A] {
-    def apply(a: A) = new RouteConst[A] { val value = a }
+object FnToPF {
+  type >>:[A, R <: RouteType] = RouteType.PF[A, R]
+  type RConst = RouteType.Const
+  type X = Int >>: Int >>: RConst
+  implicitly[RouteType.Const#Func[Int] =:= Int]
+  implicitly[FnToPF[RConst]]
+  implicitly[FnToPF[RouteType.PF[Int, RConst]]]
+  fun[Int, RConst]
+  implicit val const: FnToPF[RouteType.Const] = new FnToPF[RouteType.Const] {
+    override def apply[A](a: A) = a
   }
-  implicit def pf[In, R, N[R] <: Route[R]](implicit next: CanLiftRoute[N, R, N[R]#PV]) = new CanLiftRoute[RoutePFK[In, N]#Route, R, PartialFunction[In, N[R]#PV]] {
-    override def apply(a: PartialFunction[In, N[R]#PV]) = new RoutePF[In, R] {
-      type Next[X] = N[X]
-      val value: PartialFunction[In, Next[R]] = {
-        case x if a isDefinedAt x => next(a(x))
-      }
+  implicit def fun[In, N <: RouteType](implicit next: FnToPF[N]): FnToPF[RouteType.PF[In, N]] = new FnToPF[RouteType.PF[In, N]] {
+    override def apply[R](a: In => N#Func[R]) = {
+      case x => next(a(x))
     }
   }
-  implicit def fun[In, R, N[R] <: Route[R]](implicit next: CanLiftRoute[N, R, N[R]#WV]) = new CanLiftRoute[RoutePFK[In, N]#Route, R, In => N[R]#WV] {
-    override def apply(a: In => N[R]#WV) = new RoutePF[In, R] {
-      type Next[X] = N[X]
-      val value: PartialFunction[In, N[R]] = {
-        case x => next(a(x))
-      }
-    }
+}
+
+sealed trait RouteType {
+  type Route[R]
+  type Func[R]
+}
+object RouteType {
+  trait Const extends RouteType {
+    type Route[R] = R
+    type Func[R] = R
+  }
+  trait PF[In, N <: RouteType] extends RouteType {
+    type Route[R] = PartialFunction[In, N#Route[R]]
+    type Func[R] = In => N#Func[R]
   }
 }
-sealed trait Route[R] {
-  type R
+/*sealed trait Route[R] {
   type K[_]
   type W[_]
   type P[_]
@@ -108,6 +120,7 @@ trait RoutePF[In, R] extends Route[R] {
   type P[T] = PartialFunction[In, Next[R]#P[T]]
   type W[T] = In => Next[R]#W[T]
 }
+*/
 
 /**
  * A path is a typesafe URL template.
@@ -116,7 +129,7 @@ trait RoutePF[In, R] extends Route[R] {
  * which may be fixed strings, or string
  * representations of some value
  */
-sealed trait Path[RT[X] <: Route[X]] {
+sealed trait Path[RT <: RouteType] {
   /**
    * The type of encoder function needed
    * for this type of `Path`
@@ -127,9 +140,9 @@ sealed trait Path[RT[X] <: Route[X]] {
 
   def construct: EncodeFuncType = encode(Location(Nil))
 
-  def run[R](route: RT[R]#V): PartialFunction[Location, R]
+  def run[R](route: RT#Route[R]): PartialFunction[Location, R]
 
-  private[routing] def downcast[S[X] >: RT[X] <: Route[X]]: Path[S] = ??? //this
+  private[routing] def downcast[S >: RT <: RouteType]: Path[S] = ??? //this
 }
 
 /**
@@ -139,18 +152,16 @@ sealed trait Path[RT[X] <: Route[X]] {
  * aliased as `PNil`.
  * However you don't have to write actually write `PNil`.
  */
-sealed trait PNil extends Path[RouteConst] {
+sealed trait PNil extends Path[RouteType.Const] {
   type EncodeFuncType = Location
 
   def encode(l: Location) = l
-  def run[R](r: R) = {
+  override def run[R](r: R): PartialFunction[Location, R] = {
     case loc if loc.path.isEmpty => r
   }
 }
 
 private case object PNil0 extends PNil
-
-import Path.PFFrom
 
 /**
  * Every `Path` chain ends with `PNil`,
@@ -161,12 +172,12 @@ import Path.PFFrom
  * aliased as `PAny`.
  */
 // TODO no reason not to use an Arg-like typesafe bijection
-sealed trait PAny extends Path[RoutePFK[List[String], RouteConst]#Route] {
+sealed trait PAny extends Path[RouteType.PF[List[String], RouteType.Const]] {
   type EncodeFuncType = List[String] => Location
 
   def encode(l: Location) = l ++ _
-  override def run[R](f: PartialFunction[List[String], RouteConst[R]]): PartialFunction[Location, R] = {
-    case loc if f.isDefinedAt(loc.path) => f(loc.path).value
+  override def run[R](f: PartialFunction[List[String], R]): PartialFunction[Location, R] = {
+    case loc if f.isDefinedAt(loc.path) => f(loc.path)
   }
 }
 
@@ -176,11 +187,11 @@ private case object PAny0 extends PAny
  * `PLit` is a fixed-string url path component. It
  * is not converted to or from a value.
  */
-case class PLit[NR[X] <: Route[X]](component: String, next: Path[NR]) extends Path[NR] {
+case class PLit[NR <: RouteType](component: String, next: Path[NR]) extends Path[NR] {
   type EncodeFuncType = next.EncodeFuncType
 
   def encode(l: Location) = next.encode(l :+ component)
-  def run[R](f: NR[R]#V) = {
+  override def run[R](f: NR#Route[R]): PartialFunction[Location, R] = {
     case loc @ Location(component :: _, _) if next.run(f).isDefinedAt(loc.tail) =>
       next.run(f)(loc.tail)
   }
@@ -190,17 +201,17 @@ case class PLit[NR[X] <: Route[X]](component: String, next: Path[NR]) extends Pa
  * `PArg` is a url path component that is converted to and
  * from a typed value. The actual conversion is provided by `arg`.
  */
-case class PArg[A, NR[X] <: Route[X]](arg: Arg[A], next: Path[NR]) extends Path[RoutePFK[A, NR]#Route] {
+case class PArg[A, NR <: RouteType](arg: Arg[A], next: Path[NR]) extends Path[RouteType.PF[A, NR]] {
   type EncodeFuncType = A => next.EncodeFuncType
 
   def encode(l: Location) = a => next.encode(l :+ arg.stringable.format(a))
-  override def run[R](f: PartialFunction[A, NR[R]]): PartialFunction[Location, R] = {
-    case loc @ Location(arg(a) :: _, _) if f.isDefinedAt(a) && next.run(f(a).value).isDefinedAt(loc.tail) =>
-      next.run(f(a).value)(loc.tail)
+  override def run[R](f: PartialFunction[A, NR#Route[R]]): PartialFunction[Location, R] = {
+    case loc @ Location(arg(a) :: _, _) if f.isDefinedAt(a) && next.run(f(a)).isDefinedAt(loc.tail) =>
+      next.run(f(a))(loc.tail)
   }
 }
 
-sealed trait PParamBase[NR[X] <: Route[X]] extends Path[NR]
+sealed trait PParamBase[NR <: RouteType] extends Path[NR]
 
 /**
  * `PParam` is an optional named url query parameter that is converted to and
@@ -208,7 +219,7 @@ sealed trait PParamBase[NR[X] <: Route[X]] extends Path[NR]
  * The routing function receives None if the url does not contain the query parameter.
  * However if it contains it, but `param` does not parse it, then the `Path` does not match.
  */
-case class PParam[A, NR[X] <: Route[X]](param: Param[A], next: Path[NR]) extends PParamBase[RoutePFK[Option[A], NR]#Route] {
+case class PParam[A, NR <: RouteType](param: Param[A], next: Path[NR]) extends PParamBase[RouteType.PF[Option[A], NR]] {
   type EncodeFuncType = Option[A] => next.EncodeFuncType
 
   private[routing] val locParam = new Extractor((_: Location).takeParam(param.key))
@@ -220,11 +231,11 @@ case class PParam[A, NR[X] <: Route[X]](param: Param[A], next: Path[NR]) extends
     }
     next.encode(loc2)
   }
-  override def run[R](f: PartialFunction[Option[A], NR[R]]): PartialFunction[Location, R] = {
-    case locParam(param(a), loc2) if f.isDefinedAt(Some(a)) && next.run(f(Some(a)).value).isDefinedAt(loc2) =>
-      next.run(f(Some(a)).value)(loc2)
-    case loc if loc.query.forall(_._1 != param.key) && f.isDefinedAt(None) && next.run(f(None).value).isDefinedAt(loc) =>
-      next.run(f(None).value)(loc)
+  override def run[R](f: PartialFunction[Option[A], NR#Route[R]]): PartialFunction[Location, R] = {
+    case locParam(param(a), loc2) if f.isDefinedAt(Some(a)) && next.run(f(Some(a))).isDefinedAt(loc2) =>
+      next.run(f(Some(a)))(loc2)
+    case loc if loc.query.forall(_._1 != param.key) && f.isDefinedAt(None) && next.run(f(None)).isDefinedAt(loc) =>
+      next.run(f(None))(loc)
   }
 }
 
@@ -232,15 +243,15 @@ case class PParam[A, NR[X] <: Route[X]](param: Param[A], next: Path[NR]) extends
  * `PParams` is a repeatable named url query parameter, each occurence of which
  * is converted to and from a typed `List` of values. The actual conversion is provided by `arg`.
  */
-case class PParams[A, NR[X] <: Route[X]](params: Params[A], next: Path[NR]) extends PParamBase[RoutePFK[List[A], NR]#Route] {
+case class PParams[A, NR <: RouteType](params: Params[A], next: Path[NR]) extends PParamBase[RouteType.PF[List[A], NR]] {
   type EncodeFuncType = List[A] => next.EncodeFuncType
 
   private[routing] val locParams = new Extractor((loc: Location) => Some(loc.takeParams(params.key)))
   private[routing] val parseAll = new Extractor((xs: List[String]) => Some(xs.map(params.stringable.parse).flatten))
 
   def encode(loc: Location) = as => next.encode(loc && ((params.key, as map params.stringable.format)))
-  override def run[R](f: PartialFunction[List[A], NR[R]]): PartialFunction[Location, R] = {
-    case locParams(parseAll(as), loc2) if f.isDefinedAt(as) && next.run(f(as).value).isDefinedAt(loc2) =>
-      next.run(f(as).value)(loc2)
+  override def run[R](f: PartialFunction[List[A], NR#Route[R]]): PartialFunction[Location, R] = {
+    case locParams(parseAll(as), loc2) if f.isDefinedAt(as) && next.run(f(as)).isDefinedAt(loc2) =>
+      next.run(f(as))(loc2)
   }
 }
