@@ -109,31 +109,6 @@ object RouteType {
     type EncodeFunc = In => N#EncodeFunc
   }
 }
-/*sealed trait Route[R] {
-  type K[_]
-  type W[_]
-  type P[_]
-  type Ret = R
-  type V = K[R]
-  type PV = P[R]
-  type WV = W[R]
-  val value: V
-}
-trait RouteConst[R] extends Route[R] {
-  type K[T] = T
-  type W[T] = T
-  type P[T] = T
-}
-final class RoutePFK[In, N[X] <: Route[X]] private {
-  type Route[R] = RoutePF[In, R] { type Next[X] = N[X] }
-}
-trait RoutePF[In, R] extends Route[R] {
-  type Next[X] <: Route[X]
-  type K[T] = PartialFunction[In, Next[R]]
-  type P[T] = PartialFunction[In, Next[R]#P[T]]
-  type W[T] = In => Next[R]#W[T]
-}
-*/
 
 /**
  * A path is a typesafe URL template.
@@ -198,7 +173,7 @@ private case object PAny0 extends PAny
 case class PLit[NR <: RouteType, N <: Path[NR]](component: String, next: N with Path[NR]) extends Path[NR] {
   def encode(l: Location) = next.encode(l :+ component)
   override def run[R](f: NR#Route[R]): PartialFunction[Location, R] = {
-    case loc @ Location(component :: _, _) if next.run(f).isDefinedAt(loc.tail) =>
+    case loc @ Location(`component` :: _, _) if next.run(f).isDefinedAt(loc.tail) =>
       next.run(f)(loc.tail)
   }
 }
