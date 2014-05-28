@@ -24,20 +24,6 @@ object Lub {
 object Sitelet {
   def empty[A, R <: RouteType]: Sitelet[R, A] = RouteSeq()
   implicit class SiteletOps[R1 <: RouteType, A, S[R <: RouteType, Y] <: Sitelet[R, Y]](s: S[R1, A]) {
-    class PathMapper[R2 <: RouteType: CanLiftRouteMapping](f: Path[R1] => Path[R2]) {
-      def by[B](g: R1#Route[A] => R2#Func[B])(implicit lift: FnToPF[R2]): S[R1, A]#PathMapped[R2, B] = s.mapPathImpl(f, ra => lift(g(ra)))
-      def byPF[B](g: R1#Route[A] => R2#Route[B]): S[R1, A]#PathMapped[R2, B] = s.mapPathImpl(f, g)
-    }
-    /**
-     * Returns an intermediate helper object in order to modify a route by applying a
-     * function to the paths and the routing functions.
-     * @example {{{
-     * val inc = "add" :/: arg[Int] >> { _ + 1 }
-     * val add = inc mapPath (arg[Int] :/: _) by { f => x => y => f(x) + y }
-     * }}}
-     */
-    def mapPath[S <: RouteType: CanLiftRouteMapping](f: Path[R1] => Path[S]): PathMapper[S] = new PathMapper[S](f)
-
     def &[R2 <: RouteType, R3 <: RouteType, B, C](that: Sitelet[R2, B])(implicit canAnd: CanAndSitelet[R1, R2, R3], lub: Lub[A, B, C]) = canAnd(s, that)
   }
 }
@@ -47,6 +33,25 @@ object Sitelet {
  */
 sealed trait Sitelet[R <: RouteType, +A] {
   type PathMapped[S <: RouteType, B] <: Sitelet[S, B]
+  class PathMapper[R2 <: RouteType: CanLiftRouteMapping](f: Path[R] => Path[R2]) {
+    def by[B](g: R#Route[A] => R2#Func[B])(implicit lift: FnToPF[R2]): PathMapped[R2, B] = mapPathImpl(f, ra => lift(g(ra)))
+    def byPF[B](g: R#Route[A] => R2#Route[B]): PathMapped[R2, B] = mapPathImpl(f, g)
+  }
+
+  /**
+   * A little DSL for modifying a `Sitelet`'s [[Path]](s).
+   * @param f a function that transforms the `Path`(s) represented by this sitelet.
+   * @return an intermediate helper object that has methods that take
+   *         corresponding transforms of the routing function(s).
+   * @example {{{
+   *   val inc = "add" :/: arg[Int] >> { _ + 1 }
+   *   val add = inc mapPath (arg[Int] :/: _) by { f => x => y => f(x) + y }
+   *   // or
+   *   inc mapPath (arg[Int] :/: _) byPF (f => { case x if x>10 => case y => f(x) + y })
+   * }}}
+   */
+  def mapPath[S <: RouteType: CanLiftRouteMapping](f: Path[R] => Path[S]): PathMapper[S] = new PathMapper[S](f)
+
   /**
    * Computes the [[Location]]s for each [[PathRoute]]
    */
@@ -69,6 +74,9 @@ sealed trait Sitelet[R <: RouteType, +A] {
    */
   def map[B](f: A => B): Sitelet[R, B]
 
+  /**
+   * The underlying method used by [[mapPath]]
+   */
   def mapPathImpl[S <: RouteType: CanLiftRouteMapping, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]): PathMapped[S, B]
 }
 
