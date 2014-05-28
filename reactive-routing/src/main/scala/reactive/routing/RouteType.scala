@@ -11,8 +11,9 @@ sealed trait RouteType {
   type Func[R]
   type EncodeFunc
 }
+
 /**
- * Indicates a [[Path]] that is parameterized, or
+ * Indicates a [[Path]] that is not parameterized, or
  * a route that does not take any parameters.
  * @note Cannot be instantiated.
  */
@@ -21,6 +22,7 @@ final class RConst private extends RouteType {
   type Func[R] = R
   type EncodeFunc = Location
 }
+
 /**
  * Indicates a [[Path]] that is parameterized, or a route
  * that takes a parameter. Chains to another [[RouteType]].
