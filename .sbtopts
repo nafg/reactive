@@ -1,7 +1,0 @@
--J-XX:MaxPermSize=512m
--J-Xms1g
--J-Xmx2g
--J-Xss2m
--J-XX:+CMSClassUnloadingEnabled
--J-XX:+UseConcMarkSweepGC
-
