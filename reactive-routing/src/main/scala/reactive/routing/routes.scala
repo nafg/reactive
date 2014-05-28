@@ -11,43 +11,20 @@ import scala.language.higherKinds
  * @author Miles Sabin
  */
 trait Lub[-A, -B, +Out] {
-  def left(a : A) : Out
-  def right(b : B) : Out
+  def left(a: A): Out
+  def right(b: B): Out
 }
 object Lub {
   implicit def lub[T] = new Lub[T, T, T] {
-    def left(a : T) : T = a
-    def right(b : T) : T = b
+    def left(a: T): T = a
+    def right(b: T): T = b
   }
-}
-
-trait CanMapPath[In[R <: RouteType, Y] <: Sitelet[R, Y]] {
-  type Out[R <: RouteType, X] <: Sitelet[R, X]
-  def apply[R1 <: RouteType, R2 <: RouteType : CanMapRoute, A, B](s: In[R1, A], f: Path[R1] => Path[R2], g: R1#Route[A] => R2#Route[B]): Out[R2, B]
-}
-object CanMapPath {
-  class pathRoute extends CanMapPath[PathRoute] {
-    type Out[R <: RouteType, Y] = PathRoute[R, Y]
-    override def apply[R1 <: RouteType, R2 <: RouteType : CanMapRoute, A, B](s: PathRoute[R1, A], f: Path[R1] => Path[R2], g: R1#Route[A] => R2#Route[B]) = new PathRoute[R2, B](f(s.path), g(s.route))
-  }
-  class routeSeq extends CanMapPath[RouteSeq] {
-    type Out[R <: RouteType, Y] = RouteSeq[R, Y]
-    override def apply[R1 <: RouteType, R2 <: RouteType : CanMapRoute, A, B](s: RouteSeq[R1, A], f: Path[R1] => Path[R2], g: R1#Route[A] => R2#Route[B]) =
-      new RouteSeq[R2, B](s.pathRoutes map (pr => new PathRoute(f(pr.path), g(pr.route))))
-  }
-  class concatSame extends CanMapPath[SiteletConcatSame] {
-    type Out[R <: RouteType, Y] = SiteletConcatSame[R, Y]
-    override def apply[RP <: RouteType, RR <: RouteType : CanMapRoute, A, B](s: SiteletConcatSame[RP,A], f: Path[RP] => Path[RR], g: RP#Route[A] => RR#Route[B]): SiteletConcatSame[RR,B] =
-      new SiteletConcatSame[RR, B](s.s1.mapPathImpl(f, g), s.s2.mapPathImpl(f, g))
-  }
-  implicit def pathRoute = new pathRoute
-  implicit def routeSeq = new routeSeq
 }
 
 object Sitelet {
   def empty[A, R <: RouteType]: Sitelet[R, A] = RouteSeq()
   implicit class SiteletOps[R1 <: RouteType, A, S[R <: RouteType, Y] <: Sitelet[R, Y]](s: S[R1, A]) {
-    class PathMapper[R2 <: RouteType : CanMapRoute](f: Path[R1] => Path[R2]) {
+    class PathMapper[R2 <: RouteType: CanLiftRouteMapping](f: Path[R1] => Path[R2]) {
       def by[B](g: R1#Route[A] => R2#Func[B])(implicit lift: FnToPF[R2]): S[R1, A]#PathMapped[R2, B] = s.mapPathImpl(f, ra => lift(g(ra)))
       def byPF[B](g: R1#Route[A] => R2#Route[B]): S[R1, A]#PathMapped[R2, B] = s.mapPathImpl(f, g)
     }
@@ -59,43 +36,9 @@ object Sitelet {
      * val add = inc mapPath (arg[Int] :/: _) by { f => x => y => f(x) + y }
      * }}}
      */
-    def mapPath[S <: RouteType : CanMapRoute](f: Path[R1] => Path[S]): PathMapper[S] = new PathMapper[S](f)
+    def mapPath[S <: RouteType: CanLiftRouteMapping](f: Path[R1] => Path[S]): PathMapper[S] = new PathMapper[S](f)
 
-    def &[R2 <: RouteType, R3 <: RouteType, B, C](that: Sitelet[R2, B])(implicit canAnd: CanAndSitelet[R1, R2, R3], lub: Lub[A,B,C]) = canAnd(s, that)
-  }
-}
-
-abstract class SiteletConcat[R1 <: RouteType, R2 <: RouteType, R3 <: RouteType, A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C], val canAnd: CanAndSitelet[R1,R2,R3]) extends Sitelet[R3, C] {
-  def run = s1.run.andThen(lub.left) orElse s2.run.andThen(lub.right)
-  def map[D](f: C => D) = s1.map(a => f(lub.left(a))) & s2.map(b => f(lub.right(b)))
-}
-class SiteletConcatSame[R <: RouteType, A](val s1: Sitelet[R, A], val s2: Sitelet[R, A]) extends SiteletConcat[R, R, R, A, A, A](s1, s2) {
-  type PathMapped[S <: RouteType, B] = SiteletConcat[S, S, S, B, B, B]
-  def construct = s1.construct ++ s2.construct
-  def mapPathImpl[S <: RouteType : CanMapRoute, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]) = s1.mapPathImpl(f, g) & s2.mapPathImpl(f, g)
-}
-
-trait CanAndSitelet[R1 <: RouteType, R2 <: RouteType, R3 <: RouteType] {
-  def apply[A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C]): SiteletConcat[R1, R2, R3, A, B, C]
-}
-trait CanAndSiteletLow {
-  implicit def other[R1 <: RouteType, R2 <: RouteType]: CanAndSitelet[R1, R2, RouteType] = new CanAndSitelet[R1, R2, RouteType] {
-    def apply[A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C]) =
-      new SiteletConcat[R1, R2, RouteType, A, B, C](s1, s2) {
-        def construct = s1.construct ++ s2.construct
-        override def mapPathImpl[S <: RouteType : CanMapRoute, B](f: Path[RouteType] => Path[S], g: RouteType#Route[C] => S#Route[B]) = ???
-    }
-  }
-}
-object CanAndSitelet extends CanAndSiteletLow {
-  import RouteType._
-  implicit def same[R <: RouteType]: CanAndSitelet[R, R, R] = new CanAndSitelet[R, R, R] {
-    def apply[A, B, C](s1: Sitelet[R, A], s2: Sitelet[R, B])(implicit lub: Lub[A, B, C]) =
-      new SiteletConcat[R, R, R, A, B, C](s1, s2) {
-        type PathMapped[S <: RouteType, B] = SiteletConcat[S, S, S, B, B, B]
-        def construct = s1.construct ++ s2.construct
-        override def mapPathImpl[S <: RouteType : CanMapRoute, D](f: Path[R] => Path[S], g: R#Route[C] => S#Route[D]) = s1.map(lub.left).mapPathImpl(f,g) & s2.map(lub.right).mapPathImpl(f, g)
-      }
+    def &[R2 <: RouteType, R3 <: RouteType, B, C](that: Sitelet[R2, B])(implicit canAnd: CanAndSitelet[R1, R2, R3], lub: Lub[A, B, C]) = canAnd(s, that)
   }
 }
 
@@ -103,8 +46,11 @@ object CanAndSitelet extends CanAndSiteletLow {
  * A `Sitelet` can handle routes (convert locations to values)
  */
 sealed trait Sitelet[R <: RouteType, +A] {
-  def construct: Seq[R#EncodeFunc]
   type PathMapped[S <: RouteType, B] <: Sitelet[S, B]
+  /**
+   * Computes the [[Location]]s for each [[PathRoute]]
+   */
+  def construct: Seq[R#EncodeFunc]
   /**
    * Computes the value, if any, for the specified location.
    * The location is parsed by each path until a path is found
@@ -123,29 +69,66 @@ sealed trait Sitelet[R <: RouteType, +A] {
    */
   def map[B](f: A => B): Sitelet[R, B]
 
-  def mapPathImpl[S <: RouteType : CanMapRoute, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]): PathMapped[S, B]
-}
-
-class PathRoute[R <: RouteType, +A](val path: Path[R], val route: R#Route[A])(implicit mapRoute: CanMapRoute[R]) extends Sitelet[R, A] {
-  type PathMapped[S <: RouteType, B] = PathRoute[S, B]
-  def run = path run route
-  val pathRoutes = List(this)
-  def construct: Seq[R#EncodeFunc] = List(path.construct)
-  override def map[B](f: A => B): PathRoute[R, B] = new PathRoute(path, mapRoute(f)(route))
-  override def mapPathImpl[S <: RouteType : CanMapRoute, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]) = new PathRoute[S, B](f(path), g(route))
+  def mapPathImpl[S <: RouteType: CanLiftRouteMapping, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]): PathMapped[S, B]
 }
 
 /**
- * A [[Sitelet]] consisting of a sequence of [[PathRoute]]s
+ * The elementary [[Sitelet]]: a pair of a [[Path]] and a [[RouteType#Route]].
+ */
+class PathRoute[R <: RouteType, +A](val path: Path[R], val route: R#Route[A])(implicit mapRoute: CanLiftRouteMapping[R]) extends Sitelet[R, A] {
+  type PathMapped[S <: RouteType, B] = PathRoute[S, B]
+  override def run = path run route
+  override def construct: Seq[R#EncodeFunc] = List(path.construct)
+  override def map[B](f: A => B): PathRoute[R, B] = new PathRoute(path, mapRoute(f)(route))
+  override def mapPathImpl[S <: RouteType: CanLiftRouteMapping, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]) = new PathRoute[S, B](f(path), g(route))
+}
+
+/**
+ * A [[Sitelet]] that wraps a sequence of [[PathRoute]]s
  */
 class RouteSeq[R <: RouteType, +A](val pathRoutes: Seq[PathRoute[R, A]]) extends Sitelet[R, A] {
   type PathMapped[S <: RouteType, B] = RouteSeq[S, B]
-  def run = pathRoutes.foldLeft(PartialFunction.empty[Location, A])(_ orElse _.run)
-  def construct: Seq[R#EncodeFunc] = pathRoutes.map(_.path.construct)
+  override def run = pathRoutes.foldLeft(PartialFunction.empty[Location, A])(_ orElse _.run)
+  override def construct: Seq[R#EncodeFunc] = pathRoutes.map(_.path.construct)
   override def map[B](f: A => B) = new RouteSeq(pathRoutes map (_ map f))
-  def mapPathImpl[S <: RouteType : CanMapRoute, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]) = new RouteSeq[S, B](pathRoutes.map(_.mapPathImpl(f, g)))
+  override def mapPathImpl[S <: RouteType: CanLiftRouteMapping, B](f: Path[R] => Path[S], g: R#Route[A] => S#Route[B]) = new RouteSeq[S, B](pathRoutes.map(_.mapPathImpl(f, g)))
 }
 
 object RouteSeq {
   def apply[R <: RouteType, A](pathRoutes: PathRoute[R, A]*) = new RouteSeq(pathRoutes)
+}
+
+/**
+ * A [[Sitelet]] that acts as the composition of two sitelets.
+ */
+abstract class SiteletConcat[R1 <: RouteType, R2 <: RouteType, R3 <: RouteType, A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C], val canAnd: CanAndSitelet[R1, R2, R3]) extends Sitelet[R3, C] {
+  override def run = s1.run.andThen(lub.left) orElse s2.run.andThen(lub.right)
+  override def map[D](f: C => D) = s1.map(a => f(lub.left(a))) & s2.map(b => f(lub.right(b)))
+}
+
+trait CanAndSitelet[R1 <: RouteType, R2 <: RouteType, R3 <: RouteType] {
+  def apply[A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C]): SiteletConcat[R1, R2, R3, A, B, C]
+}
+trait CanAndSiteletLow {
+  implicit def other[R1 <: RouteType, R2 <: RouteType]: CanAndSitelet[R1, R2, RouteType] = new CanAndSitelet[R1, R2, RouteType] {
+    def apply[A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C]) =
+      new SiteletConcat[R1, R2, RouteType, A, B, C](s1, s2) {
+        type PathMapped[S <: RouteType, D] = Sitelet[S, D]
+        override def construct = s1.construct ++ s2.construct
+        override def mapPathImpl[S <: RouteType: CanLiftRouteMapping, D](f: Path[RouteType] => Path[S], g: RouteType#Route[C] => S#Route[D]) =
+          s1.map(lub.left).mapPathImpl(f, g) & s2.map(lub.right).mapPathImpl(f, g)
+      }
+  }
+}
+
+object CanAndSitelet extends CanAndSiteletLow {
+  import RouteType._
+  implicit def same[R <: RouteType]: CanAndSitelet[R, R, R] = new CanAndSitelet[R, R, R] {
+    def apply[A, B, C](s1: Sitelet[R, A], s2: Sitelet[R, B])(implicit lub: Lub[A, B, C]) =
+      new SiteletConcat[R, R, R, A, B, C](s1, s2) {
+        type PathMapped[S <: RouteType, D] = SiteletConcat[S, S, S, D, D, D]
+        override def construct = s1.construct ++ s2.construct
+        override def mapPathImpl[S <: RouteType: CanLiftRouteMapping, D](f: Path[R] => Path[S], g: R#Route[C] => S#Route[D]) = s1.map(lub.left).mapPathImpl(f, g) & s2.map(lub.right).mapPathImpl(f, g)
+      }
+  }
 }

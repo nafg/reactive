@@ -29,16 +29,11 @@ package object routing {
    */
   def params[A](key: String)(implicit stringable: Stringable[A]) = new Params[A](key, stringable)
 
-  implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RouteType.Const, PLit[RouteType.Const, PNil]] with Path.PathRouteOpsBase[RouteType.Const] {
-    def path = PLit(s, PNil)
-  }
-  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[RouteType.PF[A, RouteType.Const], PArg[A, RouteType.Const, PNil]] with Path.PathRouteOpsBase[RouteType.PF[A, RouteType.Const]] {
-    def path = PArg(arg, PNil)
-  }
-  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[RouteType.PF[Option[A], RouteType.Const], PParam[A, RouteType.Const, PNil]] with Path.PathRouteOpsBase[RouteType.PF[Option[A], RouteType.Const]] {
-    def path = PParam(param, PNil)
-  }
-  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[RouteType.PF[List[A], RouteType.Const], PParams[A, RouteType.Const, PNil]] with Path.PathRouteOpsBase[RouteType.PF[List[A], RouteType.Const]] {
-    def path = PParams(params, PNil)
-  }
+  implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RouteType.Const, PLit[RouteType.Const, PNil]](PLit(s, PNil))
+
+  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[RouteType.PF[A, RouteType.Const], PArg[A, RouteType.Const, PNil]](PArg(arg, PNil))
+
+  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[RouteType.PF[Option[A], RouteType.Const], PParam[A, RouteType.Const, PNil]](PParam(param, PNil))
+
+  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[RouteType.PF[List[A], RouteType.Const], PParams[A, RouteType.Const, PNil]](PParams(params, PNil))
 }
