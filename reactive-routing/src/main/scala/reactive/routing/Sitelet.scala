@@ -130,7 +130,6 @@ trait CanAndSiteletLow {
 }
 
 object CanAndSitelet extends CanAndSiteletLow {
-  import RouteType._
   implicit def same[R <: RouteType]: CanAndSitelet[R, R, R] = new CanAndSitelet[R, R, R] {
     def apply[A, B, C](s1: Sitelet[R, A], s2: Sitelet[R, B])(implicit lub: Lub[A, B, C]) =
       new SiteletConcat[R, R, R, A, B, C](s1, s2) {
