@@ -102,7 +102,7 @@ sealed trait RunnablePath[RT <: RouteType] extends Path[RT] {
  * aliased as `PNil`.
  * However the DSL does not require you to actually write `PNil`.
  */
-sealed trait PNil extends RunnablePath[RouteType.Const] {
+sealed trait PNil extends RunnablePath[RConst] {
   override def encode(l: Location): Location = l
   override def run[R](r: R): PartialFunction[Location, R] = {
     case loc if loc.path.isEmpty => r
@@ -120,7 +120,7 @@ private case object PNil0 extends PNil
  * aliased as `PAny`.
  */
 // TODO no reason not to use an Arg-like typesafe bijection
-sealed trait PAny extends RunnablePath[RouteType.PF[List[String], RouteType.Const]] {
+sealed trait PAny extends RunnablePath[RFunc[List[String], RConst]] {
   override def encode(l: Location): List[String] => Location = l ++ _
   override def run[R](f: PartialFunction[List[String], R]): PartialFunction[Location, R] = {
     case loc if f.isDefinedAt(loc.path) => f(loc.path)
@@ -145,7 +145,7 @@ case class PLit[NR <: RouteType, N <: Path[NR]](component: String, next: N with 
  * `PArg` is a url path component that is converted to and
  * from a typed value. The actual conversion is provided by `arg`.
  */
-case class PArg[A, NR <: RouteType, N <: Path[NR]](arg: Arg[A], next: N) extends RunnablePath[RouteType.PF[A, NR]] {
+case class PArg[A, NR <: RouteType, N <: Path[NR]](arg: Arg[A], next: N) extends RunnablePath[RFunc[A, NR]] {
   override def encode(l: Location): A => NR#EncodeFunc = a => next.encode(l :+ arg.stringable.format(a))
   override def run[R](f: PartialFunction[A, NR#Route[R]]): PartialFunction[Location, R] = {
     case loc @ Location(arg(a) :: _, _) if f.isDefinedAt(a) && next.run(f(a)).isDefinedAt(loc.tail) =>
@@ -164,7 +164,7 @@ sealed trait PParamBase[NR <: RouteType] extends RunnablePath[NR]
  * The routing function receives None if the url does not contain the query parameter.
  * However if it contains it, but `param` does not parse it, then the `Path` does not match.
  */
-case class PParam[A, NR <: RouteType, N <: Path[NR]](param: Param[A], next: N) extends PParamBase[RouteType.PF[Option[A], NR]] {
+case class PParam[A, NR <: RouteType, N <: Path[NR]](param: Param[A], next: N) extends PParamBase[RFunc[Option[A], NR]] {
   private val locParam = new Extractor((_: Location).takeParam(param.key))
 
   override def encode(l: Location): Option[A] => NR#EncodeFunc = { ao =>
@@ -186,7 +186,7 @@ case class PParam[A, NR <: RouteType, N <: Path[NR]](param: Param[A], next: N) e
  * `PParams` is a repeatable named url query parameter, each occurence of which
  * is converted to and from a typed `List` of values. The actual conversion is provided by `arg`.
  */
-case class PParams[A, NR <: RouteType, N <: Path[NR]](params: Params[A], next: N) extends PParamBase[RouteType.PF[List[A], NR]] {
+case class PParams[A, NR <: RouteType, N <: Path[NR]](params: Params[A], next: N) extends PParamBase[RFunc[List[A], NR]] {
   private val locParams = new Extractor((loc: Location) => Some(loc.takeParams(params.key)))
   private val parseAll = new Extractor((xs: List[String]) => Some(xs.map(params.stringable.parse).flatten))
 
