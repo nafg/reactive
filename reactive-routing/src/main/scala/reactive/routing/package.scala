@@ -12,7 +12,7 @@ package object routing {
   val ** : PAny = PAny0
 
   /**
-   * An alias for [[RFunc]], allowing longer [[RouteType]s to be written like
+   * An alias for [[RFunc]], allowing longer [[RouteType]]s to be written like
    * `Int >>: String >>: Double >>: RConst`
    */
   type >>:[In, Next <: RouteType] = RFunc[In, Next]
