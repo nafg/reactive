@@ -2,7 +2,8 @@ package reactive
 package routing
 
 /**
- * 
+ * Represents the structure of a [[Path]] or [[Sitelet]]. See subclasses, [[RConst]] and [[RFunc]].
+ * @note There are no actual instances of [[RouteType]]. It is used for its type projections.
  */
 sealed trait RouteType {
   import scala.language.higherKinds
@@ -10,12 +11,24 @@ sealed trait RouteType {
   type Func[R]
   type EncodeFunc
 }
-trait RConst extends RouteType {
+/**
+ * Indicates a [[Path]] that is parameterized, or
+ * a route that does not take any parameters.
+ * @note Cannot be instantiated.
+ */
+final class RConst private extends RouteType {
   type Route[+R] = R
   type Func[R] = R
   type EncodeFunc = Location
 }
-trait RFunc[In, N <: RouteType] extends RouteType {
+/**
+ * Indicates a [[Path]] that is parameterized, or a route
+ * that takes a parameter. Chains to another [[RouteType]].
+ * @note Cannot be instantiated.
+ * @tparam In the parameter type
+ * @tparam N the next `RouteType` to chain to
+ */
+final class RFunc[In, N <: RouteType] private extends RouteType {
   type Route[+R] = PartialFunction[In, N#Route[R]]
   type Func[R] = In => N#Func[R]
   type EncodeFunc = In => N#EncodeFunc

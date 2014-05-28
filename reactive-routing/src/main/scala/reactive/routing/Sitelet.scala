@@ -31,7 +31,7 @@ object Sitelet {
 /**
  * A `Sitelet` can handle routes (convert locations to values)
  */
-sealed trait Sitelet[R <: RouteType, +A] {
+trait Sitelet[R <: RouteType, +A] {
   type PathMapped[S <: RouteType, B] <: Sitelet[S, B]
   class PathMapper[R2 <: RouteType: CanLiftRouteMapping](f: Path[R] => Path[R2]) {
     def by[B](g: R#Route[A] => R2#Func[B])(implicit lift: FnToPF[R2]): PathMapped[R2, B] = mapPathImpl(f, ra => lift(g(ra)))

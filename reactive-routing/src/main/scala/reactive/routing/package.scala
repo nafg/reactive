@@ -12,6 +12,12 @@ package object routing {
   val ** : PAny = PAny0
 
   /**
+   * An alias for [[RFunc]], allowing longer [[RouteType]s to be written like
+   * `Int >>: String >>: Double >>: RConst`
+   */
+  type >>:[In, Next <: RouteType] = RFunc[In, Next]
+
+  /**
    * Declare a path component that is converted to and from a value
    * @example {{{ "main" :/: arg[Int]   // e.g. /main/10 }}}
    */
@@ -31,9 +37,9 @@ package object routing {
 
   implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RConst, PLit[RConst, PNil]](PLit(s, PNil))
 
-  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[RFunc[A, RConst], PArg[A, RConst, PNil]](PArg(arg, PNil))
+  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[A >>: RConst, PArg[A, RConst, PNil]](PArg(arg, PNil))
 
-  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[RFunc[Option[A], RConst], PParam[A, RConst, PNil]](PParam(param, PNil))
+  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[Option[A] >>: RConst, PParam[A, RConst, PNil]](PParam(param, PNil))
 
-  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[RFunc[List[A], RConst], PParams[A, RConst, PNil]](PParams(params, PNil))
+  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[List[A] >>: RConst, PParams[A, RConst, PNil]](PParams(params, PNil))
 }
