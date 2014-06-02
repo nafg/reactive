@@ -14,7 +14,7 @@ trait Button extends RElem {
   val click = DomEventSource.click
 
   def baseElem = <button type={ buttonType.toString.toLowerCase }/>
-  def events = List(click)
+  def events: Seq[DomEventSource[_ <: DomEvent]] = List(click)
   def properties: Seq[PropertyVar[_]] = Nil
 
   /**

@@ -102,8 +102,8 @@ class Select[T](
   }.nonrecursive =>> { x: Option[T] => trace(UpdatedItemFromIndex(x)) })
 
   def baseElem = <select size={ size.toString }/>
-  def properties = List(selectedIndex)
-  def events = List(change, click, keyUp)
+  def properties: Seq[PropertyVar[_]] = List(selectedIndex)
+  def events: Seq[DomEventSource[_ <: DomEvent]] = List(change, click, keyUp)
 }
 
 /**

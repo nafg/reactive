@@ -25,8 +25,8 @@ class CheckboxInput(_value: Var[Boolean] = Var(false))(implicit observing: Obser
    */
   val checked = CheckboxInput.checked(_value.now) <--> _value updateOn change
   
-  def events = List(dblClick, keyUp, change)
-  def properties = List(checked)
+  def events: Seq[DomEventSource[_ <: DomEvent]] = List(dblClick, keyUp, change)
+  def properties: Seq[PropertyVar[_]] = List(checked)
   def baseElem = <input type="checkbox"/>
 }
 

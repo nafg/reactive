@@ -16,8 +16,8 @@ trait Div extends RElem {
    */
   lazy val keyUp = DomEventSource.keyUp
   
-  def events = List(dblClick, keyUp)
-  def properties = Nil
+  def events: Seq[DomEventSource[_ <: DomEvent]] = List(dblClick, keyUp)
+  def properties: Seq[PropertyVar[_]] = Nil
   def baseElem = <div />
 }
 

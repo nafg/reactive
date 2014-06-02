@@ -34,8 +34,8 @@ class TextInput(val initialValue: String = "")(implicit observing: Observing) ex
    */
   val size = TextInput.size(None)
 
-  def events = List(dblClick, keyUp, change)
-  def properties = List(value, size)
+  def events: Seq[DomEventSource[_ <: DomEvent]] = List(dblClick, keyUp, change)
+  def properties: Seq[PropertyVar[_]] = List(value, size)
   def baseElem = <input type="text" />
 }
 
