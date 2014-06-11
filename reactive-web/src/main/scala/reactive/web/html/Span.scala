@@ -10,9 +10,9 @@ import scala.xml.NodeSeq
  * Represents a span element in the DOM
  */
 trait Span extends RElem {
-  val baseElem = <span/>
-  val events = Nil
-  val properties = Nil
+  def baseElem = <span/>
+  def events: Seq[DomEventSource[_ <: DomEvent]] = Nil
+  def properties: Seq[PropertyVar[_]] = Nil
   
   override def toString = "Span(" + baseElem + ")"
 }
