@@ -13,7 +13,7 @@ object ReactiveBuild extends Build {
     <developers><developer><id>nafg</id></developer></developers>
   </xml:group>
 
-  val sonatypeSnapshots = "http://oss.sonatype.org/content/repositories/snapshots/"
+  val sonatypeSnapshots = "https://oss.sonatype.org/content/repositories/snapshots/"
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
   val defaults = Defaults.defaultSettings ++ Seq(
