@@ -1,5 +1,7 @@
 package reactive
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 object Signal {
   def unapply[T](s: Signal[T]) = Some(s.now)
 
@@ -140,12 +142,18 @@ trait Signal[+T] extends Foreachable[T] {
   private type WithVolatility[T] = (T, () => Boolean)
 
   /**
-   * Returns a derived signal in which value propagation does not happen on the thread triggering the change and block it.
+   * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
+   * but instead is executed by the global `ExecutionContext`.
    * This is helpful when handling values can be time consuming.
-   * The implementation delegates propagation to an actor (scala standard library), so
-   * values are handled sequentially.
    */
-  def nonblocking: Signal[T] = new NonBlockingSignal[T](this)
+  def nonblocking: Signal[T] = async(ExecutionContext.global)
+
+  /**
+   * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
+   * but instead is executed by the provided `ExecutionContext`.
+   * Chained `Future`s are used to ensure values are handled sequentially.
+   */
+  def async(implicit executionContext: ExecutionContext): Signal[T] = new AsyncSignal[T](this)
 
   /**
    * Returns a tuple-valued Signal whose value includes a function for testing staleness.
@@ -233,21 +241,16 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
   override def toString = debugName
 }
 
-protected class NonBlockingSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
-  override def debugName = parent.debugName+".nonblocking"
-  import scala.actors.Actor._
-  private val delegate = actor {
-    loop {
-      receive {
-        case x: T =>
-          current = x
-          change.fire(x)
-      }
-    }
-  }
+protected class AsyncSignal[T](parent: Signal[T])(implicit executionContext: ExecutionContext) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
+  override def debugName = parent.debugName+".async"
+  private val future = new AtomicRef(Future.successful(()))
   def parentHandler = {
     case (x, _) =>
-      delegate ! x
+      future.transform( _ andThen {
+        case _ =>
+          current = x
+          change.fire(x)
+      })
   }
 }
 

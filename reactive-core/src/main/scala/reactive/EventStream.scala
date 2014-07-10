@@ -3,6 +3,7 @@ package reactive
 import scala.ref.WeakReference
 import scala.util.DynamicVariable
 import scala.annotation.tailrec
+import scala.concurrent.{ ExecutionContext, Future }
 
 import reactive.logging.Logger
 
@@ -143,12 +144,14 @@ trait EventStream[+T] extends Foreachable[T] {
   def distinct: EventStream[T]
 
   /**
-   * Returns a derived event stream in which event propagation does not happen on the thread firing it and block it.
-   * This is helpful when handling events can be time consuming.
-   * The implementation delegates propagation to an actor (scala standard library), so
-   * events are handled sequentially.
+   * Returns a derived event stream in which event propagation does not happen on the thread firing
+   * the event, but instead is executed by the provided `ExecutionContext`.
+   * Chained `Future`s are used to ensure the propagation happens sequentially.
    */
-  def nonblocking: EventStream[T]
+  def async(implicit executionContext: ExecutionContext): EventStream[T]
+
+  @deprecated("Use `async`", "0.4.0")
+  final def nonblocking = async(ExecutionContext.global)
 
   /**
    * Returns an EventStream whose tuple-valued events include a function for testing staleness.
@@ -290,19 +293,14 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   private type WithVolatility[T] = (T, () => Boolean)
 
-  class ActorEventStream extends ChildEventSource[T, Unit](()) {
-    override def debugName = "%s.nonblocking" format (EventSource.this.debugName)
-    import scala.actors.Actor._
-    private val delegate = actor {
-      loop {
-        receive {
-          case x: T => fire(x)
-        }
-      }
-    }
+  class AsyncEventStream(implicit executionContext: ExecutionContext) extends ChildEventSource[T, Unit](()) {
+    override def debugName = "%s.async" format (EventSource.this.debugName)
+    private val future = new AtomicRef(Future.successful(()))
     def handler = {
       case (parentEvent, _) =>
-        delegate ! parentEvent
+        future.transform( _ andThen {
+          case _ => fire(parentEvent)
+        })
     }
   }
 
@@ -450,7 +448,7 @@ class EventSource[T] extends EventStream[T] with Logger {
 
   def throttle(period: Long): EventStream[T] = new Throttled(period)
 
-  def nonblocking: EventStream[T] = new ActorEventStream
+  override def async(implicit executionContext: ExecutionContext): EventStream[T] = new AsyncEventStream()(executionContext)
 
   private[reactive] def addListener(f: T => Unit): Unit = synchronized {
     trace(AddingListener(f))
@@ -569,7 +567,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   def hold[U >: T](init: U): Signal[U] = underlying.hold(init)
   def nonrecursive: EventStream[T] = underlying.nonrecursive
   def distinct: EventStream[T] = underlying.distinct
-  def nonblocking: EventStream[T] = underlying.nonblocking
+  def async(implicit ec: ExecutionContext): EventStream[T] = underlying.async(ec)
   def zipWithStaleness: EventStream[(T, () => Boolean)] = underlying.zipWithStaleness
   def throttle(period: Long): EventStream[T] = underlying.throttle(period)
   private[reactive] def addListener(f: (T) => Unit): Unit = underlying.addListener(f)
