@@ -41,6 +41,14 @@ trait Signal[+T] extends Foreachable[T] {
     change.foreach(f)(observing)
   }
 
+  def subscribe(f: T => Unit): Subscription =
+    change subscribe f
+
+  def subscribeNow(f: T => Unit): Subscription = {
+    f(now)
+    change subscribe f
+  }
+
   /**
    * Return a new Signal whose value is computed from the value
    * of this Signal, transformed by f. It fires change events

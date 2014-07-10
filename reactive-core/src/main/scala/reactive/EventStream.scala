@@ -47,13 +47,31 @@ object EventStream {
 trait EventStream[+T] extends Foreachable[T] {
   /**
    * Registers a listener function to run whenever
-   * an event is fired. The function is held with a WeakReference
-   * and a strong reference is placed in the Observing, so
-   * the latter determines the function's gc lifetime.
+   * an event is fired. The function may be held in a `WeakReference`.
+   * A strong reference is placed in the `Observing`, so
+   * if the `Observing` is garbage collected,
+   * the listener may be as well.
    * @param f a function to be applied on every event
    * @param observing the object whose gc lifetime should determine that of the function
    */
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit
+  def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
+    val subscription = subscribe(f)
+    observing.addSubscription(subscription)
+  }
+
+  /**
+   * Registers a listener function to run whenever
+   * an event is fired, and a returns a [[Subscription]]
+   * that can be used to remove the listener.
+   * The function may be held in a `WeakReference`.
+   * A strong reference is placed in the `Subscription`, so
+   * the `Subscription` is garbage collected,
+   * the listener may be as well.
+   * @param f a function to be applied on every event
+   * @param observing the object whose gc lifetime should determine that of the function
+   */
+  def subscribe(f: T => Unit): Subscription
+
   /**
    * Returns a new EventStream, that for every event that this EventStream
    * fires, that one will fire an event that is the result of
@@ -364,15 +382,19 @@ class EventSource[T] extends EventStream[T] with Logger {
     }
   }
 
-  def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
+  override def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
+    super.foreach(f)(observing)
+    trace(AddedForeachListener(f))
+  }
+
+  def subscribe(f: T => Unit): Subscription = {
     val subscription = new Subscription {
       ref = (f, this)
       def cleanUp = removeListener(f)
     }
-    observing.addSubscription(subscription)
     addListener(f)
-    trace(AddedForeachListener(f))
     trace(HasListeners(listeners))
+    subscription
   }
 
   def filter(f: T => Boolean): EventStream[T] = new ChildEventSource[T, Unit](()) {
@@ -559,7 +581,7 @@ trait EventStreamProxy[T] extends EventStream[T] {
   override def flatMap[U](f: T => EventStream[U]): EventStream[U] = underlying.flatMap[U](f)
   override def foldLeft[U](z: U)(f: (U, T) => U): EventStream[U] = underlying.foldLeft[U](z)(f)
   override def map[U](f: T => U): EventStream[U] = underlying.map[U](f)
-  override def foreach(f: T => Unit)(implicit observing: Observing): Unit = underlying.foreach(f)(observing)
+  override def subscribe(f: T => Unit): Subscription = underlying.subscribe(f)
   override def |[U >: T](that: EventStream[U]): EventStream[U] = underlying.|(that)
   override def filter(f: T => Boolean): EventStream[T] = underlying.filter(f)
   override def collect[U](pf: PartialFunction[T, U]): EventStream[U] = underlying.collect(pf)
