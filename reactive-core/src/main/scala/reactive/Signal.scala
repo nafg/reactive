@@ -2,6 +2,11 @@ package reactive
 
 object Signal {
   def unapply[T](s: Signal[T]) = Some(s.now)
+
+  implicit object Applicative extends Applicative[Signal] {
+    def ap[A, B](f: Signal[A => B])(a: Signal[A]): Signal[B] = a.flatMap(aa => f.map(_(aa)))
+    def point[A](a: => A) = Val(a)
+  }
 }
 
 /**
@@ -113,11 +118,8 @@ trait Signal[+T] extends Foreachable[T] {
    * @param that the other Signal
    * @return the Tuple2-valued Signal
    */
-  def zip[U](that: Signal[U]): Signal[(T, U)] = this flatMap { v1 =>
-    that map { v2 =>
-      (v1, v2)
-    }
-  }
+  def zip[U](that: Signal[U]): Signal[(T, U)] = (this :@: that) apPoint { t => u => (t, u) }
+
   /**
    * Returns a derived Signal that does not fire change events
    * during a prior call to fire on the same thread, thus

@@ -7,4 +7,7 @@ package object reactive {
       self
     }
   }
+
+  implicit def appplicative[M[_], A](ma: M[A])(implicit m: Applicative[M]): Applicative.ApplicativeBuilder[M, Applicative.ApType.One[A]] =
+    new Applicative.ApplicativeBuilder.One[M, A](ma)(m)
 }
