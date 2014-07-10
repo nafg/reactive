@@ -3,13 +3,14 @@ package reactive
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
+import org.scalatest.concurrent.AsyncAssertions
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
 import scala.concurrent.future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks {
+class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with AsyncAssertions {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -127,19 +128,26 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
     } should equal (List(4, 2))
   }
 
-  test("nonblocking: no re-entry") {
+  test("async: no re-entry") {
     val v0 = Var(0)
     val v = Var(1)
 
+    val waiter = new Waiter
     var n = 0
     for {
       _ <- v0
-      _ <- v.nonblocking
+      _ <- v.async
     } {
       n += 1
-      n should equal (1)
+      val nn = n
+      waiter {
+        nn should equal (1)
+      }
+      waiter.dismiss()
       n -= 1
     }
+
+    waiter.await(Dismissals(1))
 
     for (a <- (1 to 10).toList) {
       future {
@@ -147,6 +155,8 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
           v () = v.now + 1
       }
     }
+
+    waiter.await(Dismissals(100))
   }
 
   test("Signals should fire change event after 'now' is set") {
