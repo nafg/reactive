@@ -29,7 +29,7 @@ object ReactiveBuild extends Build {
       Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl, "-doc-title", "Scaladocs - scala-reactive", "-groups")
     }),
     libraryDependencies ++= List(
-      "org.scalatest" %% "scalatest" % "2.1.2" % "test",
+      "org.scalatest" %% "scalatest" % "2.2.0" % "test",
       "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
     ),
     testOptions in Test += Tests.Argument("-oF")
