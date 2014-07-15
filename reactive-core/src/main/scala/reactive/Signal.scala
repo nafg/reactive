@@ -152,9 +152,9 @@ trait Signal[+T] extends Foreachable[T] {
   /**
    * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
    * but instead is executed by the global `ExecutionContext`.
-   * This is helpful when handling values can be time consuming.
+   * Chained `Future`s are used to ensure values are handled sequentially.
    */
-  def nonblocking: Signal[T] = async(ExecutionContext.global)
+  final def nonblocking: Signal[T] = async(ExecutionContext.global)
 
   /**
    * Returns a derived signal in which value propagation does not happen on the thread triggering the change,

@@ -168,7 +168,11 @@ trait EventStream[+T] extends Foreachable[T] {
    */
   def async(implicit executionContext: ExecutionContext): EventStream[T]
 
-  @deprecated("Use `async`", "0.4.0")
+  /**
+   * Returns a derived event stream in which event propagation does not happen on the thread firing
+   * the event, but instead is executed by the global `ExecutionContext`.
+   * Chained `Future`s are used to ensure the propagation happens sequentially.
+   */
   final def nonblocking = async(ExecutionContext.global)
 
   /**
