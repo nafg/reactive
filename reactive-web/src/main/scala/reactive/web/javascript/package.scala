@@ -8,12 +8,15 @@ import scala.language.implicitConversions
 package object javascript {
   import JsTypes._
 
-  implicit def toJsLiterable[T](x: T)(implicit c: ToJsLit[T, _]): JsLiterable[T] =
-    new JsLiterable[T](x)
-  implicit def toJsIdentable(s: Symbol): JsIdentable = JsIdentable(s)
-  implicit def toMatchable[T <: JsAny](against: $[T]) = new Matchable(against)
+  implicit class JsLiterable[T](x: T) {
+    def $[J <: JsAny](implicit conv: ToJsLit[T, J]) = conv(x)
+  }
+  implicit class JsIdentable(s: Symbol) {
+    def $[J <: JsAny] = JsIdent[J](s)
+  }
+  implicit class matchable[T <: JsAny](against: $[T]) extends Matchable(against)
 
-  implicit def jsExpMethods[T <: JsAny](exp: JsExp[T]): JsExpMethods[T] = new JsExpMethods(exp)
+  implicit class jsExpMethods[T <: JsAny](exp: JsExp[T]) extends JsExpMethods(exp)
 
   /**
    * A type alias for JsExp

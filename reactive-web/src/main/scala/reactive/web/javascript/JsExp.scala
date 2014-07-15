@@ -183,18 +183,12 @@ object JsIdent {
    */
   def apply[T <: JsAny](id: Symbol) = new JsIdent[T] { def ident = id }
 }
-case class JsIdentable(symbol: Symbol) {
-  def $[J <: JsAny] = JsIdent[J](symbol)
-}
 /**
  * A JsExp that represents a literal value
  */
 trait JsLiteral[+T <: JsAny] extends JsExp[T]
 object JsLiteral {
   def apply[T, J <: JsAny](x: T)(implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
-}
-case class JsLiterable[T](x: T) {
-  def $[J <: JsAny](implicit conv: ToJsLit[T, J]): JsLiteral[J] = conv(x)
 }
 
 /**
