@@ -2,6 +2,8 @@ package reactive
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+import scala.language.higherKinds
+
 object Signal {
   def unapply[T](s: Signal[T]) = Some(s.now)
 

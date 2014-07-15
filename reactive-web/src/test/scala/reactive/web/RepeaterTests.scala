@@ -24,7 +24,7 @@ class RepeaterTests extends FunSuite with Matchers with PropertyChecks {
   test("Repeater should send correct deltas") {
     val template = <div><span></span></div>
     import org.scalacheck.Gen._
-    forAll(listOf1(listOf(alphaUpperChar map (_.toString))), maxSize(10)) { xss: List[List[String]] =>
+    forAll(nonEmptyListOf(listOf(alphaUpperChar map (_.toString))), maxSize(10)) { xss: List[List[String]] =>
       whenever(xss.length >= 2) {
         val signal = BufferSignal(xss.head: _*)
         implicit val page = new TestPage({ implicit page =>

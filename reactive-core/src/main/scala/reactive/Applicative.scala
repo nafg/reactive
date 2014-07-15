@@ -1,6 +1,7 @@
 package reactive
 
 import scala.language.higherKinds
+
 trait Applicative[M[_]] {
   def ap[A, B](f: M[A => B])(a: M[A]): M[B]
   def point[A](a: => A): M[A]
