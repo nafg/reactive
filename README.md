@@ -1,0 +1,7 @@
+This is the reactive top-level repository. It contains the following subprojects:
+
+* reactive-core: This is the general-purpose FRP library
+* reactive-web: This allows you do create dynamic Lift pages with FRP
+* reactive-web-demo: demo, serves as documentation for the above two, and can be viewed live at http://scalareactive.org
+
+See the READMEs in the individual projects, and the wiki pages, for more details.
