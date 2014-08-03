@@ -13,173 +13,9 @@ import reactive.Applicative.ApType
 import reactive.web.Page
 import reactive.web.html.TextInput
 
-import Applicative.ApType
-
-class ErrorSourceId(val underlying: Int) extends AnyVal
-
-object Id {
-  val next: () => ErrorSourceId = {
-    val current = new AtomicInteger(0)
-    () => new ErrorSourceId(current.incrementAndGet())
-  }
-}
-
-final case class ErrorMessage(message: String, source: ErrorSourceId)
-object ErrorMessage {
-  /** Create an error message associated with the given reader. */
-  def create[A](message: String)(reader: Reader[A]): ErrorMessage = apply(message, reader.id)
-}
-
-sealed trait Result[+A] {
-  def isSucess: Boolean = this match {
-    case Result.Success(_) => true
-    case Result.Failure(_) => false
-  }
-  def map[B](f: A => B): Result[B] = Result.map(f)(this)
-}
-object Result {
-  case class Success[+A](a: A) extends Result[A]
-  case class Failure(errors: List[ErrorMessage]) extends Result[Nothing]
-
-  def failWith[A](message: String): Result[A] = Failure(List(ErrorMessage(message, new ErrorSourceId(0))))
-  def ap[A, B](r1: Result[A => B], r2: Result[A]): Result[B] = (r1, r2) match {
-    case (Success(f), Success(x))   => Success(f(x))
-    case (Failure(m), Success(_))   => Failure(m)
-    case (Success(_), Failure(m))   => Failure(m)
-    case (Failure(m1), Failure(m2)) => Failure(m1 ++ m2)
-  }
-  def join[A](r: Result[Result[A]]): Result[A] = r match {
-    case Failure(m)          => Failure(m)
-    case Success(Failure(m)) => Failure(m)
-    case Success(Success(x)) => Success(x)
-  }
-  def map[A, B](f: A => B)(ra: Result[A]): Result[B] = ra match {
-    case Success(x) => Success(f(x))
-    case Failure(m) => Failure(m)
-  }
-  def map2[A, B, C](f: A => B => C)(ra: Result[A])(rb: Result[B]): Result[C] = (ra, rb) match {
-    case (Success(a), Success(b))   => Success(f(a)(b))
-    case (Failure(ma), Failure(mb)) => Failure(ma ++ mb)
-    case (Failure(m), _)            => Failure(m)
-    case (_, Failure(m))            => Failure(m)
-  }
-  def iter[A](f: A => Unit) = (_: Result[A]) match {
-    case Success(x) => f(x)
-    case _          => ()
-  }
-  def bind[A, B](f: A => Result[B]): Result[A] => Result[B] = _ match {
-    case Success(x) => f(x)
-    case Failure(m) => Failure(m)
-  }
-}
 import Result.{ Failure, Success }
 
-abstract class Reader[+A](val id: ErrorSourceId) {
-  def latest: Result[A]
-  def subscribe(f: Result[A] => Unit): Subscription
-  def subscribeImmediate(f: Result[A] => Unit): Subscription = {
-    f(latest)
-    subscribe(f)
-  }
-  def through[B](r: Reader[B]): Reader[A] = {
-    val out = Stream(latest)
-    r.subscribe {
-      case Success(_) => out.trigger(latest)
-      case Failure(msgs) =>
-        (latest, msgs filter (_.source == id)) match {
-          case (_, Nil)         => out.trigger(latest)
-          case (Success(x), l)  => out.trigger(Failure(l))
-          case (Failure(l), l2) => out.trigger(Failure(l ++ l2))
-        }
-    }
-    out
-  }
-}
-
-object Reader {
-  def mapResult[A, B](f: Result[B] => Result[A])(r: Reader[B]): Reader[A] = {
-    val out = Stream[A](f(r.latest))
-    r.subscribe(out.trigger compose f)
-    out
-  }
-  def mapResult2[A, B, C](f: Result[B] => Result[C] => Result[A])(rb: Reader[B])(rc: Reader[C]): Reader[A] = {
-    val out = Stream[A](f(rb.latest)(rc.latest))
-    rb.subscribe(b => out.trigger(f(b)(rc.latest)))
-    rc.subscribe(c => out.trigger(f(rb.latest)(c)))
-    out
-  }
-  def map[A, B](f: B => A)(r: Reader[B]): Reader[A] = mapResult[A, B](Result.map[B, A](f) _)(r)
-  def map2[A, B, C](f: B => C => A)(rb: Reader[B])(rc: Reader[C]): Reader[A] =
-    mapResult2[A, B, C](b => c => Result.map2[B, C, A](f)(b)(c))(rb)(rc)
-  def mapToResult[A, B](f: B => Result[A])(r: Reader[B]): Reader[A] = mapResult[A, B](Result.bind(f))(r)
-}
-trait Writer[-A] {
-  def trigger: Result[A] => Unit
-}
-final case class Stream[A](init: Result[A], override val id: ErrorSourceId = Id.next()) extends Reader[A](id) with Writer[A] {
-  val s = Var[Result[A]](init)
-  override def latest: Result[A] = s.now
-  override def subscribe(f: Result[A] => Unit): Subscription = s subscribe f
-  def trigger: Result[A] => Unit = s.update _
-  /** Return a new Writer that sends x to this when triggered. */
-  def write(x: A): Writer[Unit] = new ConcreteWriter[Unit]({
-    case Failure(m)  => trigger(Failure(m))
-    case Success(()) => trigger(Success(x))
-  })
-  def map[B](a2b: A => B)(b2a: B => A): Stream[B] = {
-    val s2 = Stream[B](Result.map(a2b)(latest), id)
-    val pa = new AtomicRef(latest)
-    val pb = new AtomicRef(s2.latest)
-    subscribe(a => if (pa.get != a) {
-      pb.set(Result.map(a2b)(a))
-      s2.trigger(pb.get)
-    })
-    s2.subscribe(b => if (pb.get != b) {
-      pa.set(Result.map(b2a)(b))
-      trigger(pa.get)
-    })
-    s2
-  }
-}
-object Stream {
-  def ap[A, B](sf: Stream[A => B])(sx: Stream[A]): Stream[B] = {
-    val out = Stream(Result.ap(sf.latest, sx.latest))
-    sf.subscribe(f => out.trigger(Result.ap(f, sx.latest)))
-    sx.subscribe(x => out.trigger(Result.ap(sf.latest, x)))
-    out
-  }
-  def apJoin[A, B](sf: Stream[A => B])(sx: Stream[Result[A]]): Stream[B] = {
-    val out = Stream(Result.ap(sf.latest, Result.join(sx.latest)))
-    sf.subscribe(f => out.trigger(Result.ap(f, Result.join(sx.latest))))
-    sx.subscribe(x => out.trigger(Result.ap(sf.latest, Result.join(x))))
-    out
-  }
-  def map[A, B](a2b: A => B)(b2a: B => A)(s: Stream[A]): Stream[B] = s.map(a2b)(b2a)
-}
-final class ConcreteWriter[A](val trigger: Result[A] => Unit) extends Writer[A]
-object ConcreteWriter {
-  def apply[A](trigger: A => Unit) = new ConcreteWriter[A]({
-    case Success(x) => trigger(x)
-    case Failure(_) => ()
-  })
-}
-final class ConcreteReader[A](val latest: Result[A], subscribeFn: (Result[A] => Unit) => Subscription) extends Reader[A](Id.next()) {
-  def subscribe(f: Result[A] => Unit): Subscription = subscribe(f)
-}
-final class Submitter[A](val input: Reader[A], clearError: Boolean) extends Reader[A](Id.next()) with Writer[Unit] {
-  val output = Stream[A](Failure(Nil))
-  val writer: Writer[Unit] = new ConcreteWriter[Unit](UnitIn => (UnitIn, input.latest) match {
-    case (Failure(m1), Failure(m2)) => output.trigger(Failure(m1 ++ m2))
-    case (Failure(m), Success(_))   => output.trigger(Failure(m))
-    case (Success(_), Failure(m))   => output.trigger(Failure(m))
-    case (Success(()), Success(x))  => output.trigger(Success(x))
-  })
-  if (clearError)
-    input.subscribe(_ => output.trigger(Failure(Nil)))
-  def trigger = _ => writer.trigger(Success(()))
-  def latest: Result[A] = output.latest
-  def subscribe(f: Result[A] => Unit): Subscription = output.subscribe(f)
-}
+import Applicative.ApType
 
 object Pervasives {
   implicit class Ext_<<^[A, B, C](v: A => B => C) {
@@ -255,6 +91,7 @@ trait PigletValidationMethods[A, V] { this: Piglet[A, V] =>
 
 trait Yielder[A] {
   def apply[B](f: A => B): B
+  def toFn[B]: (A => B) => B = apply[B] _
 }
 case class SimpleYielder[A](a: A) extends Yielder[A] {
   def apply[B](f: A => B) = f(a)
@@ -270,7 +107,7 @@ object Piglet {
   def create[A, V](s: Stream[A])(v: V): Piglet[A, V] = Piglet(s, v)
 
   /** Map the arguments passed to the view. */
-  def mapViewArgs[A, VA, VB, VC](p: Piglet[A, VA => VB])(view: VA): Piglet[A, (VB => VC) => VC] =
+  def mapViewArgs[A, VA, VB](p: Piglet[A, VA => VB])(view: VA): Piglet[A, Yielder[VB]] =
     Piglet(p.stream, p.view >>^ view)
 
   /** Create a Piglet initialized with x that passes its stream to the view */
@@ -315,14 +152,14 @@ object Piglet {
   }
 
   /** Create a Piglet that returns many values, each created according to the given Piglet. */
-  def many[A, V, W, X](init: A)(p: (A => Piglet[A, V => W])): Piglet[Seq[A], (Many.UnitStream[A, V, W] => X) => X] = manyInit(List(init))(init)(p)
+  def many[A, V, W](init: A)(p: (A => Piglet[A, V => W])): Piglet[Seq[A], Yielder[Many.UnitStream[A, V, W]]] = manyInit(List(init))(init)(p)
 
   /** Create a Piglet that returns many values, each created according to the given Piglet. */
-  def manyInit[A, V, W, X](inits: Seq[A])(init: A)(p: (A => Piglet[A, V => W])): Piglet[Seq[A], (Many.UnitStream[A, V, W] => X) => X] = {
+  def manyInit[A, V, W](inits: Seq[A])(init: A)(p: (A => Piglet[A, V => W])): Piglet[Seq[A], Yielder[Many.UnitStream[A, V, W]]] = {
     val s = Stream(Success(inits))
     val _init = p(init)
     val m = new Many.UnitStream[A, V, W](p, s, _init, init)
-    Piglet(s, _(m))
+    Piglet(s, SimpleYielder(m))
   }
 
   /** Create a Piglet that allows the user to choose between several options. */
@@ -456,9 +293,9 @@ object Piglet {
    *  @param validate a function that transforms a Piglet's view type from `(Stream[A]=>B)=>B` to `(C=>D=>(C,D)) => Stream[A] => E`
    *  @param nomatch the error message for when the two don't match
    */
-  def confirm[A, B, C, D, E, F](init: A)(validate: Piglet[A, (Stream[A] => B) => B] => Piglet[A, (C => D => (C, D)) => Stream[A] => E])(nomatch: String): Piglet[A, ((E => F) => F)] = {
-    val first: Piglet[A, (Stream[A] => B) => B] = `yield`(init)
-    val second: Piglet[A, (Stream[A] => E) => E] = `yield`(init)
+  def confirm[A, B, C, D, E](init: A)(validate: Piglet[A, (Stream[A] => B) => B] => Piglet[A, (C => D => (C, D)) => Stream[A] => E])(nomatch: String): Piglet[A, Yielder[E]] = {
+    val first = `yield`(init).mapView(_.apply[B] _)
+    val second = `yield`(init).mapView(_.apply[E] _)
     val x1 = validate(first) :@: second apRet { a => b => (a, b) }
     val x2 = x1.validate(ErrorMessage.create(nomatch)(second.stream)) { case (a, b) => a == b }
     mapViewArgs(x2.map(_._1)) { a => b => (a, b) }
@@ -489,103 +326,6 @@ trait Container[In, Out] {
   def container: Out
 }
 
-object Many {
-  class Operations(deleteFn: () => Unit, val moveUp: Submitter[Unit], val moveDown: Submitter[Unit]) {
-    def delete: Writer[Unit] = ConcreteWriter(_ => deleteFn())
-  }
-
-  class Stream[A, V, W, Y, Z](p: A => Piglet[A, V => W], out: widgets.Stream[Seq[A]], adder: Piglet[A, Y => Z]) extends Reader[Seq[A]](out.id) {
-    var streams = Vector.empty[widgets.Stream[A]]
-    def update() = {
-      val res = streams.foldLeft(Success(Nil): Result[List[A]]) {
-        case (acc, cur) => (acc, cur.latest) match {
-          case (Success(l), Success(x))   => Success(x :: l)
-          case (Failure(m), Success(_))   => Failure(m)
-          case (Success(_), Failure(m))   => Failure(m)
-          case (Failure(m1), Failure(m2)) => Failure(m1 ++ m2)
-        }
-      }.map(_.reverse: Seq[A])
-      out.trigger(res)
-    }
-    def subscribe(f: Result[Seq[A]] => Unit): Subscription = out.subscribe(f)
-    def latest = out.latest
-    /**
-     * Render the element collection inside this Piglet
-     * inside the given container and with the provided
-     * rendering function
-     */
-    def render[U](c: Container[W, U])(f: Operations => V): U = {
-      def add(x: A) = {
-        val piglet = p(x)
-        streams :+= piglet.stream
-        piglet.stream.subscribeImmediate(_ => update())
-        def getThisIndex = streams.indexWhere(_.id == piglet.stream.id)
-        def moveBy(i: Int) = synchronized {
-          if (i > 0 && i < streams.length) {
-            streams = streams.patch(i - 1, streams.slice(i - 1, i), 2)
-            c.moveUp(i)
-            update()
-          }
-        }
-        def moveDown() = moveBy(getThisIndex + 1)
-        def moveUp() = moveBy(getThisIndex)
-        def canMoveUp = if (getThisIndex > 0) Success(()) else Failure(Nil)
-        def canMoveDown = if (getThisIndex < streams.length) Success(()) else Failure(Nil)
-        val inMoveUp = Stream(canMoveUp)
-        val inMoveDown = Stream(canMoveDown)
-        val outSubscription = out.subscribe(_ => {
-          inMoveUp.trigger(canMoveUp)
-          inMoveDown.trigger(canMoveDown)
-        })
-        val subMoveUp = new Submitter(inMoveUp, false)
-        val subMoveDown = new Submitter(inMoveDown, false)
-        val subUpSubscription = subMoveUp.subscribe(Result.iter(_ => moveUp()))
-        val subDownSubscription = subMoveDown.subscribe(Result.iter(_ => moveDown()))
-        def delete() = {
-          val i = synchronized {
-            val i = getThisIndex
-            streams = streams.patch(i, Nil, 1)
-            i
-          }
-          c.remove(i)
-          outSubscription.unsubscribe()
-          subUpSubscription.unsubscribe()
-          subDownSubscription.unsubscribe()
-          update()
-        }
-        c.add(piglet.view(f(new Operations(delete, subMoveUp, subMoveDown))))
-      }
-      out.latest match {
-        case Failure(_)  => ()
-        case Success(xs) => xs foreach add
-      }
-      adder.stream.subscribe {
-        case Failure(_)    => ()
-        case Success(init) => add(init)
-      }
-      c.container
-    }
-
-    /** Stream where new elements for the collection are written */
-    def addA: Writer[A] = adder.stream
-    /** Function that provides the Adder Piglet with a rendering function */
-    def addRender(f: Y): Z = adder.view(f)
-  }
-
-  class UnitStream[A, V, W](p: A => Piglet[A, V => W], out: widgets.Stream[Seq[A]], init: Piglet[A, V => W], default: A) extends Stream[A, V, W, V, W](p, out, init) {
-    val submitStream = {
-      val submitter = Stream[Unit](Failure(Nil))
-      val trigger = init.stream.trigger
-      submitter.subscribe {
-        case Failure(msgs) => trigger(Failure(msgs))
-        case Success(())   => trigger(Success(default))
-      }
-      submitter
-    }
-    /** Add an element to the collection set to the default values */
-    def addU: Writer[Unit] = submitStream
-  }
-}
 object Choose {
   class Stream[O, I, U, V, W, X](chooser: Piglet[I, U => V], choice: I => Piglet[O, W => X], out: widgets.Stream[O]) extends Reader[O](out.id) with Subscription {
     val pStream = Stream[(I, Piglet[O, W => X])](Failure(Nil))
@@ -765,42 +505,23 @@ object TestPiglets {
   val dictionary = Set(("Alonzo", "Church"), "Alan" -> "Turing", "Edsger" -> "Dijkstra", "Charles" -> "Babbage")
   val defaultPet = Pet(species = Species.Piglet, name = "Spot")
 
-  def petPiglet(init: Pet) = {
-    val pn = init.name.toP.validate("Please enter the pet's name")(_ != "")
-    val ps = init.species.toP
+  def petPiglet(init: Pet): Piglet[Pet, (Stream[Species] => (Stream[String] => Stream[String])) => Stream[String]] = {
+    val pn = init.name.toP.mapView(_.toFn[Stream[String]]).validate("Please enter the pet's name")(_ != "")
+    val ps = init.species.toP.mapView(_.toFn[Stream[String] => Stream[String]])
     ps :@: pn apRet { s: Species => n: String => Pet(s, n) }
   }
 
-  def personPiglet(init: Person) = {
-    val pf = init.first.toP.validate("Please enter a first name")(_ != "")
-    val pl = init.last.toP.validate("Please enter a last name")(_ != "")
-    val pp =
-      Piglet.many[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String], Int](defaultPet)(petPiglet)
-    val pp1 = PigletApOne(pp).:@:(pl)
-    // val pp2 = (pf :@: pl :@: pp) apRet { first => last => pets => Person(first, last, pets)}
-    // val pv = pp2.validate("Unknown user")(dictionary.contains)
+  def personPiglet[X](init: Person): Piglet[Person, (Stream[String] => (Stream[String] => (Many.UnitStream[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]] => Submitter[Person] => X))) => X] = {
+    type SS = Submitter[Person] => X
+    type M = Many.UnitStream[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]]
+    val pf = init.first.toP.mapView(_.toFn[Stream[String] => M => SS]).validate("Please enter a first name")(_ != "")
+    val pl = init.last.toP.mapView(_.toFn[M => SS]).validate("Please enter a last name")(_ != "")
+    val pp: Piglet[Seq[Pet], (M => SS) => SS] = Piglet.many[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]](defaultPet)(petPiglet).mapView(_.toFn[SS])
+    val pp2 = (pf :@: pl :@: pp) apRet { first => last => pets => Person(first, last, pets) }
+    val pv = pp2.validate("Unknown user")(p => dictionary.contains((p.first, p.last)))
+    Piglet.withSubmit(pv)
   }
 
-  /*
- 0 let PersonPiglet (init: Person) =
-31 Return (fun first last pets →
-32 { first = first;
-33 last = last;
-34 pets = pets })
-35 ⊗ (Yield init.first
-36 |> Validation.Is Validation.NotEmpty
-37 "Please enter a first name.")
-38 ⊗ (Yield init.last
-39 |> Validation.Is Validation.NotEmpty
-40 "Please enter a last name.")
-41 ⊗ Many defaultPet PetPiglet
-42 |> Validation.Is (fun fullName →
-43 dictionary.Contains
-44 (fullName.first, fullName.last))
-45 "Unknown user."
-46 |> WithSubmit
-47
-48 let initUser =
-49 {first = "Alonzo"; last = "Church"; pets = [||]}
-   */
+  val initUser = Person("Alonzo", "Church", Nil)
+
 }
