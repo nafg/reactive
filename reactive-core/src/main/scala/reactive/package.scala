@@ -9,5 +9,5 @@ package object reactive {
     }
   }
 
-  implicit class appplicative[M[_], A](ma: M[A])(implicit m: Applicative[M]) extends Applicative.ApplicativeBuilder.One[M, A](ma)(m)
+  implicit class applicative[M[_], A](ma: M[A])(implicit m: Applicative[M]) extends Applicative.ApplicativeBuilder.One[M, A](ma)(m)
 }
