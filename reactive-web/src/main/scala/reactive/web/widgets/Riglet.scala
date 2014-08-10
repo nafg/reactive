@@ -14,6 +14,9 @@ import Result.{ Failure, Success }
 import Applicative.ApType
 import scala.xml.NodeSeq
 
+import shapeless.~>
+import shapeless.TypeOperators.Id
+
 object Pervasives {
   implicit class Ext_<<^[A, B, C](v: A => B => C) {
     /**
@@ -41,7 +44,7 @@ object Pervasives {
   }
 
   implicit class toPigletOps[A](a: A) {
-    def toP[B] = Piglet.`yield`[A, B](a)
+    def toP: Piglet[A, FnFrom[Stream[A]]#T ~> Id] = Piglet.yielder[A](a)
   }
 
   import Applicative.ApType
@@ -86,10 +89,12 @@ trait PigletValidationMethods[A, V] { this: Piglet[A, V] =>
 // (f: A => B) => f(a) : (A => B) => B
 // (f: A => ?) => f(a) : (A => ?) => ?
 
-trait Yielder[A] {
-  def apply[B](f: A => B): B
-  def toFn[B]: (A => B) => B = apply[B] _
+class FnFrom[A] {
+  type T[B] = A => B
 }
+
+trait Yielder[A] extends (FnFrom[A]#T ~> Id)
+
 case class SimpleYielder[A](a: A) extends Yielder[A] {
   def apply[B](f: A => B) = f(a)
 }
@@ -126,11 +131,11 @@ object Piglet {
   def create[A, V](s: Stream[A])(v: V): Piglet[A, V] = Piglet(s, v)
 
   /** Map the arguments passed to the view. */
-  def mapViewArgs[A, VA, VB](p: Piglet[A, VA => VB])(view: VA): Piglet[A, Yielder[VB]] =
+  def mapViewArgs[A, VA, VB](p: Piglet[A, VA => VB])(view: VA): Piglet[A, FnFrom[VB]#T ~> Id] =
     Piglet(p.stream, p.view >>^ view)
 
   /** Create a Piglet initialized with x that passes its stream to the view */
-  def yielder[A](x: A): Piglet[A, Yielder[Stream[A]]] = {
+  def yielder[A](x: A): Piglet[A, FnFrom[Stream[A]]#T ~> Id] = {
     val s = Stream(Success(x))
     Piglet(s, SimpleYielder(s))
   }
@@ -149,8 +154,8 @@ object Piglet {
    * The stream passed is a non-optional stream,
    * and the given noneValue is mapped to None.
    */
-  def yieldOption[A, B](x: Option[A])(none: A): Piglet[Option[A], Yielder[Stream[A]]] = {
-    val p = yielder(x).mapView(_.apply[Stream[A]] _)
+  def yieldOption[A, B](x: Option[A])(none: A): Piglet[Option[A], FnFrom[Stream[A]]#T ~> Id] = {
+    val p = `yield`[Option[A], Stream[A]](x)
     val v = (_: Stream[Option[A]]).map[A](_ getOrElse none)((Some(_) filter (_ != none)))
     mapViewArgs(p)(v)
   }
@@ -316,7 +321,7 @@ object Piglet {
    *  @param validate a function that transforms a Piglet's view type from `(Stream[A]=>B)=>B` to `(C=>D=>(C,D)) => Stream[A] => E`
    *  @param nomatch the error message for when the two don't match
    */
-  def confirm[A, B, C, D, E](init: A)(validate: Piglet[A, (Stream[A] => B) => B] => Piglet[A, (C => D => (C, D)) => Stream[A] => E])(nomatch: String): Piglet[A, Yielder[E]] = {
+  def confirm[A, B, C, D, E](init: A)(validate: Piglet[A, (Stream[A] => B) => B] => Piglet[A, (C => D => (C, D)) => Stream[A] => E])(nomatch: String): Piglet[A, FnFrom[E]#T ~> Id] = {
     def first[X] = `yield`[A, X](init)
     def second[X] = `yield`[A, X](init)
     val x1 = apF(validate(first), second[E]){ a => b => (a, b) }
@@ -539,7 +544,7 @@ object TestPiglets {
     type M = Many.UnitStream[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]]
     def pf[X] = init.first.toP[X].validate("Please enter a first name")(_ != "")  //Stream[String] => M => SS
     def pl[X] = init.last.toP[X].validate("Please enter a last name")(_ != "")  //M => SS
-    def pp[X]: Piglet[Seq[Pet], (M => X) => X] = Piglet.many[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]](defaultPet)(petPiglet).mapView(_.toFn[X]) // SS
+    def pp[X]: Piglet[Seq[Pet], (M => X) => X] = Piglet.many[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]](defaultPet)(petPiglet).mapView(_.caseUniv[X]) // SS
     val pp2 = Piglet.apF(pf[Stream[String] => M => SS], pl[M => SS], pp[SS]){ first => last => pets => Person(first, last, pets) }
     val pv = pp2.validate("Unknown user")(p => dictionary.contains((p.first, p.last)))
     Piglet.withSubmit(pv)

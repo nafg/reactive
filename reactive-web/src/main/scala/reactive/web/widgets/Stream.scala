@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class ErrorSourceId(val underlying: Int) extends AnyVal
 
-object Id {
+object Ids {
   val next: () => ErrorSourceId = {
     val current = new AtomicInteger(0)
     () => new ErrorSourceId(current.incrementAndGet())
@@ -104,7 +104,7 @@ object Reader {
 trait Writer[-A] {
   def trigger: Result[A] => Unit
 }
-final case class Stream[A](init: Result[A], override val id: ErrorSourceId = Id.next()) extends Reader[A](id) with Writer[A] {
+final case class Stream[A](init: Result[A], override val id: ErrorSourceId = Ids.next()) extends Reader[A](id) with Writer[A] {
   val s = Var[Result[A]](init)
   override def latest: Result[A] = s.now
   override def subscribe(f: Result[A] => Unit): Subscription = s subscribe f
@@ -150,10 +150,10 @@ object ConcreteWriter {
     case Failure(_) => ()
   })
 }
-final class ConcreteReader[A](val latest: Result[A], subscribeFn: (Result[A] => Unit) => Subscription) extends Reader[A](Id.next()) {
+final class ConcreteReader[A](val latest: Result[A], subscribeFn: (Result[A] => Unit) => Subscription) extends Reader[A](Ids.next()) {
   def subscribe(f: Result[A] => Unit): Subscription = subscribe(f)
 }
-final class Submitter[A](val input: Reader[A], clearError: Boolean) extends Reader[A](Id.next()) with Writer[Unit] {
+final class Submitter[A](val input: Reader[A], clearError: Boolean) extends Reader[A](Ids.next()) with Writer[Unit] {
   val output = Stream[A](Failure(Nil))
   val writer: Writer[Unit] = new ConcreteWriter[Unit](UnitIn => (UnitIn, input.latest) match {
     case (Failure(m1), Failure(m2)) => output.trigger(Failure(m1 ++ m2))
