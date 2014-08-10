@@ -54,7 +54,7 @@ class RenderTransport extends AccumulatingTransport {
     // Append a query parameter, v, to escape browser caching. The number should be incremented whenever
     // the script file is updated.
     //TODO need a better way of managing the version number
-    val include = <script type="text/javascript" src={ S.contextPath + "/classpath/reactive-web.js?v=12" }/>
+    val include = <script type="text/javascript" src={ S.contextPath + "/classpath/reactive-web.js?v=13" }/>
     val js =
       <script type="text/javascript">
         { Unparsed("// <![CDATA[\n" + renderData + "// ]]>") }
