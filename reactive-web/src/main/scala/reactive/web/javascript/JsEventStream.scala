@@ -162,3 +162,88 @@ trait JsForwardable[T <: JsAny] {
     this
   }
 }
+
+
+object JS extends App {
+  import org.jscala._
+  @Javascript(json = false)
+  class EventStream[A] {
+    val listeners = JArray[A => Unit]()
+    def foreach(f: A => Unit) = {
+      listeners.push(f)
+    }
+    def addListener(f: A => Unit) = foreach(f)
+    def removeListener(f: A => Unit) = {
+      def loop(i: Int): Unit = if(i < listeners.length) {
+        if(listeners(i) == f) listeners.delete(i)
+        else loop(i + 1)
+      }
+      loop(0)
+    }
+    val fire: A => Unit = { v =>
+      forIn(listeners.as[Seq[A => Unit]])(listeners(_)(v))
+    }
+    def map[B](f: A => B) = {
+      val mapped: EventStream[B] = new EventStream[B]()
+      addListener(a => mapped.fire(f(a)))
+      mapped
+    }
+    def flatMap[B](f: A => EventStream[B]) = {
+      val flatMapped = new EventStream[B]
+      var lastES: EventStream[B] = null
+      addListener{v =>
+        if(lastES != null) lastES.removeListener(flatMapped.fire)
+        lastES = f(v)
+        lastES.addListener(flatMapped.fire)
+      }
+      flatMapped
+    }
+    def filter(f: A => Boolean) = {
+      val filtered = new EventStream[A]
+      addListener(v => if(f(v)) filtered.fire(v))
+      filtered
+    }
+    def throttle(period: Int) = {
+      val throttled = new EventStream[A]
+      var last: A = null.asInstanceOf[A]
+      val onTimer = () => {
+        if(last != null) throttled.fire(last) // TODO should be !== undefined
+        last = null.asInstanceOf[A]
+      }
+      var to = window.setTimeout(onTimer, period)
+      addListener{ v =>
+        window.clearTimeout(to)
+        last = v
+        to = window.setTimeout(onTimer, period)
+      }
+      throttled
+    }
+  }
+  object EventStream
+  println(EventStream.javascript.asString)
+
+  println(javascript {
+    window.reactive = new {
+      def error(e: String) = if(window.console.as[Boolean]) window.console.error(e)
+      var queuedAjaxEvents = JArray[Any]()
+      var unique = 0
+      var eventStreams = collection.mutable.Map[Int, EventStream[Any]]()
+      def fire(i: Int, value: Any) = {
+        if(!eventStreams(i).as[Boolean])
+          eventStreams(i) = new EventStream[Any]
+        eventStreams(i).fire(value)
+      }
+      def queueAjax(id: Int) = { (value: Any) =>
+        val e = collection.mutable.Map[Int, Any]()
+        e(id) = value
+        queuedAjaxEvents push e
+        ()
+      }
+      def doAjax(pageId: String) = {
+        val q = queuedAjaxEvents
+        queuedAjaxEvents = JArray()
+//        val s = JSON.stringify
+      }
+    }
+  }.asString)
+}
