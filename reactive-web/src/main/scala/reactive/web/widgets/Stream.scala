@@ -128,21 +128,20 @@ final case class Stream[A](init: Result[A], override val id: ErrorSourceId = Id.
     })
     s2
   }
-}
-object Stream {
-  def ap[A, B](sf: Stream[A => B])(sx: Stream[A]): Stream[B] = {
-    val out = Stream(Result.ap(sf.latest, sx.latest))
-    sf.subscribe(f => out.trigger(Result.ap(f, sx.latest)))
-    sx.subscribe(x => out.trigger(Result.ap(sf.latest, x)))
+  def ap[B](that: Stream[A => B]): Stream[B] = {
+    val out = Stream(Result.ap(that.latest, this.latest))
+    that.subscribe(f => out.trigger(Result.ap(f, this.latest)))
+    this.subscribe(x => out.trigger(Result.ap(that.latest, x)))
     out
   }
+}
+object Stream {
   def apJoin[A, B](sf: Stream[A => B])(sx: Stream[Result[A]]): Stream[B] = {
     val out = Stream(Result.ap(sf.latest, Result.join(sx.latest)))
     sf.subscribe(f => out.trigger(Result.ap(f, Result.join(sx.latest))))
     sx.subscribe(x => out.trigger(Result.ap(sf.latest, Result.join(x))))
     out
   }
-  def map[A, B](a2b: A => B)(b2a: B => A)(s: Stream[A]): Stream[B] = s.map(a2b)(b2a)
 }
 final class ConcreteWriter[A](val trigger: Result[A] => Unit) extends Writer[A]
 object ConcreteWriter {

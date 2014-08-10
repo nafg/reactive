@@ -3,19 +3,16 @@ package web
 package widgets
 
 import java.util.concurrent.atomic.AtomicInteger
-
 import scala.collection.mutable.{ ArrayBuffer, SynchronizedBuffer }
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.xml.Elem
-
 import reactive.{ Observing, Subscription }
 import reactive.Applicative.ApType
 import reactive.web.Page
 import reactive.web.html.TextInput
-
 import Result.{ Failure, Success }
-
 import Applicative.ApType
+import scala.xml.NodeSeq
 
 object Pervasives {
   implicit class Ext_<<^[A, B, C](v: A => B => C) {
@@ -32,7 +29,7 @@ object Pervasives {
   }
   implicit class Ext_<*>[A, B, C, D](f: Piglet[A => B, C => D]) {
     /** Apply a Piglet function to a Piglet value */
-    def <*>[E](x: Piglet[A, D => E]): Piglet[B, C => E] = Piglet.ap(f)(x)
+    def <*>[E](x: Piglet[A, D => E]): Piglet[B, C => E] = Piglet.ap(x)(f)
   }
   implicit class Ext_<*?>[A, B, C, D](f: Piglet[A => B, C => D]) {
     /** Apply a Piglet function to a Piglet Result */
@@ -44,7 +41,7 @@ object Pervasives {
   }
 
   implicit class toPigletOps[A](a: A) {
-    def toP = Piglet.`yield`[A](a)
+    def toP[B] = Piglet.`yield`[A, B](a)
   }
 
   import Applicative.ApType
@@ -56,10 +53,10 @@ object Pervasives {
       new PigletApMore[B, V0, V1, VLast, AT](p, this)
   }
   implicit class PigletApOne[A, V1, VLast](val in: Piglet[A, V1 => VLast]) extends PigletApBase[V1, VLast, ApType.One[A]] {
-    override def ap[Z, V0](f: Piglet[A => Z, V0 => V1]): Piglet[Z, V0 => VLast] = Piglet.ap(f)(in)
+    override def ap[Z, V0](f: Piglet[A => Z, V0 => V1]): Piglet[Z, V0 => VLast] = Piglet.ap(in)(f)
   }
   class PigletApMore[A, V1, V2, VLast, N <: ApType](val p: Piglet[A, V1 => V2], val next: PigletApBase[V2, VLast, N]) extends PigletApBase[V1, VLast, ApType.More[A, N]] {
-    override def ap[Z, V0](f: Piglet[A => N#FS[Z], V0 => V1]): Piglet[Z, V0 => VLast] = next.ap(Piglet.ap(f)(p))
+    override def ap[Z, V0](f: Piglet[A => N#FS[Z], V0 => V1]): Piglet[Z, V0 => VLast] = next.ap(Piglet.ap(p)(f))
   }
 }
 
@@ -100,8 +97,30 @@ case class SimpleYielder[A](a: A) extends Yielder[A] {
 object Piglet {
   import Pervasives._
 
-  def ap[A, B, C, D, E](f: Piglet[A => B, C => D])(x: Piglet[A, D => E]): Piglet[B, C => E] =
-    Piglet(Stream.ap(f.stream)(x.stream), f.view andThen x.view)
+  /**
+   * Applicative-like operation
+   */
+  def ap[PS, PV, PW, FS, FV](p: Piglet[PS, PV => PW])(f: Piglet[PS => FS, FV => PV]): Piglet[FS, FV => PW] =
+    Piglet(p.stream ap f.stream, f.view andThen p.view)
+  def ap[P1S, P1V, P1W, P2S, P2W, FS, FV](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W])(f: Piglet[P1S => P2S => FS, FV => P1V]): Piglet[FS, FV => P2W] =
+    ap(p2)(ap(p1)(f))
+  def ap[P1S, P1V, P1W, P2S, P2W, P3S, P3W, FS, FV](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W], p3: Piglet[P3S, P2W => P3W])(f: Piglet[P1S => P2S => P3S => FS, FV => P1V]): Piglet[FS, FV => P3W] =
+    ap(p3)(ap(p2)(ap(p1)(f)))
+  def ap[P1S, P1V, P1W, P2S, P2W, P3S, P3W, P4S, P4W, FS, FV](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W], p3: Piglet[P3S, P2W => P3W], p4: Piglet[P4S, P3W => P4W])(f: Piglet[P1S => P2S => P3S => P4S => FS, FV => P1V]): Piglet[FS, FV => P4W] =
+    ap(p4)(ap(p3)(ap(p2)(ap(p1)(f))))
+  def ap[P1S, P1V, P1W, P2S, P2W, P3S, P3W, P4S, P4W, P5S, P5W, FS, FV](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W], p3: Piglet[P3S, P2W => P3W], p4: Piglet[P4S, P3W => P4W], p5: Piglet[P5S, P4W => P5W])(f: Piglet[P1S => P2S => P3S => P4S => P5S => FS, FV => P1V]): Piglet[FS, FV => P5W] =
+    ap(p5)(ap(p4)(ap(p3)(ap(p2)(ap(p1)(f)))))
+
+  def apF[PS, PV, PW, FS](p: Piglet[PS, PV => PW])(f: PS => FS): Piglet[FS, PV => PW] =
+    ap(p)(Piglet.`return`[PS => FS, PV](f))
+  def apF[P1S, P1V, P1W, P2S, P2W, FS](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W])(f: P1S => P2S => FS): Piglet[FS, P1V => P2W] =
+    ap(p2)(apF(p1)(f))
+  def apF[P1S, P1V, P1W, P2S, P2W, P3S, P3W, FS](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W], p3: Piglet[P3S, P2W => P3W])(f: P1S => P2S => P3S => FS): Piglet[FS, P1V => P3W] =
+    ap(p3)(ap(p2)(apF(p1)(f)))
+  def apF[P1S, P1V, P1W, P2S, P2W, P3S, P3W, P4S, P4W, FS](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W], p3: Piglet[P3S, P2W => P3W], p4: Piglet[P4S, P3W => P4W])(f: P1S => P2S => P3S => P4S => FS): Piglet[FS, P1V => P4W] =
+    ap(p4)(ap(p3)(ap(p2)(apF(p1)(f))))
+  def apF[P1S, P1V, P1W, P2S, P2W, P3S, P3W, P4S, P4W, P5S, P5W, FS](p1: Piglet[P1S, P1V => P1W], p2: Piglet[P2S, P1W => P2W], p3: Piglet[P3S, P2W => P3W], p4: Piglet[P4S, P3W => P4W], p5: Piglet[P5S, P4W => P5W])(f: P1S => P2S => P3S => P4S => P5S => FS): Piglet[FS, P1V => P5W] =
+    ap(p5)(ap(p4)(ap(p3)(ap(p2)(apF(p1)(f)))))
 
   /** Create a Piglet from a stream and a view. */
   def create[A, V](s: Stream[A])(v: V): Piglet[A, V] = Piglet(s, v)
@@ -111,9 +130,13 @@ object Piglet {
     Piglet(p.stream, p.view >>^ view)
 
   /** Create a Piglet initialized with x that passes its stream to the view */
-  def `yield`[A](x: A): Piglet[A, Yielder[Stream[A]]] = {
+  def yielder[A](x: A): Piglet[A, Yielder[Stream[A]]] = {
     val s = Stream(Success(x))
     Piglet(s, SimpleYielder(s))
+  }
+  def `yield`[A, B](x: A): Piglet[A, (Stream[A] => B) => B] = {
+    val s = Stream(Success(x))
+    Piglet(s, _(s))
   }
   /** Create a Piglet initialized with failure that passes its stream to the view */
   def yieldFailure[A](): Piglet[A, Yielder[Stream[A]]] = {
@@ -126,8 +149,8 @@ object Piglet {
    * The stream passed is a non-optional stream,
    * and the given noneValue is mapped to None.
    */
-  def yieldOption[A, B](x: Option[A])(none: A) = {
-    val p = `yield`(x).mapView(_.apply[Stream[A]] _)
+  def yieldOption[A, B](x: Option[A])(none: A): Piglet[Option[A], Yielder[Stream[A]]] = {
+    val p = yielder(x).mapView(_.apply[Stream[A]] _)
     val v = (_: Stream[Option[A]]).map[A](_ getOrElse none)((Some(_) filter (_ != none)))
     mapViewArgs(p)(v)
   }
@@ -294,9 +317,9 @@ object Piglet {
    *  @param nomatch the error message for when the two don't match
    */
   def confirm[A, B, C, D, E](init: A)(validate: Piglet[A, (Stream[A] => B) => B] => Piglet[A, (C => D => (C, D)) => Stream[A] => E])(nomatch: String): Piglet[A, Yielder[E]] = {
-    val first = `yield`(init).mapView(_.apply[B] _)
-    val second = `yield`(init).mapView(_.apply[E] _)
-    val x1 = validate(first) :@: second apRet { a => b => (a, b) }
+    def first[X] = `yield`[A, X](init)
+    def second[X] = `yield`[A, X](init)
+    val x1 = apF(validate(first), second[E]){ a => b => (a, b) }
     val x2 = x1.validate(ErrorMessage.create(nomatch)(second.stream)) { case (a, b) => a == b }
     mapViewArgs(x2.map(_._1)) { a => b => (a, b) }
   }
@@ -309,7 +332,7 @@ object Piglet {
 
     def returnFrom[A, V]: Piglet[A, V] => Piglet[A, V] = identity
 
-    def `yield`[A]: A => Piglet[A, Yielder[Stream[A]]] = Piglet.`yield`[A]
+    def `yield`[A, X]: A => Piglet[A, (Stream[A] => X) => X] = Piglet.`yield`[A, X]
 
     def yieldFrom[A, V]: Piglet[A, V] => Piglet[A, V] = identity
 
@@ -502,26 +525,35 @@ object TestPiglets {
   }
   case class Pet(species: Species, name: String)
   case class Person(first: String, last: String, pets: Seq[Pet])
-  val dictionary = Set(("Alonzo", "Church"), "Alan" -> "Turing", "Edsger" -> "Dijkstra", "Charles" -> "Babbage")
+  val dictionary = Set("Alonzo" -> "Church", "Alan" -> "Turing", "Edsger" -> "Dijkstra", "Charles" -> "Babbage")
   val defaultPet = Pet(species = Species.Piglet, name = "Spot")
 
   def petPiglet(init: Pet): Piglet[Pet, (Stream[Species] => (Stream[String] => Stream[String])) => Stream[String]] = {
-    val pn = init.name.toP.mapView(_.toFn[Stream[String]]).validate("Please enter the pet's name")(_ != "")
-    val ps = init.species.toP.mapView(_.toFn[Stream[String] => Stream[String]])
-    ps :@: pn apRet { s: Species => n: String => Pet(s, n) }
+    def pn[X] = init.name.toP[X].validate("Please enter the pet's name")(_ != "")
+    def ps[X] = init.species.toP[X]
+    Piglet.apF(ps[Stream[String] => Stream[String]], pn[Stream[String]]){ s: Species => n: String => Pet(s, n) }
   }
 
   def personPiglet[X](init: Person): Piglet[Person, (Stream[String] => (Stream[String] => (Many.UnitStream[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]] => Submitter[Person] => X))) => X] = {
     type SS = Submitter[Person] => X
     type M = Many.UnitStream[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]]
-    val pf = init.first.toP.mapView(_.toFn[Stream[String] => M => SS]).validate("Please enter a first name")(_ != "")
-    val pl = init.last.toP.mapView(_.toFn[M => SS]).validate("Please enter a last name")(_ != "")
-    val pp: Piglet[Seq[Pet], (M => SS) => SS] = Piglet.many[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]](defaultPet)(petPiglet).mapView(_.toFn[SS])
-    val pp2 = (pf :@: pl :@: pp) apRet { first => last => pets => Person(first, last, pets) }
+    def pf[X] = init.first.toP[X].validate("Please enter a first name")(_ != "")  //Stream[String] => M => SS
+    def pl[X] = init.last.toP[X].validate("Please enter a last name")(_ != "")  //M => SS
+    def pp[X]: Piglet[Seq[Pet], (M => X) => X] = Piglet.many[Pet, Stream[Species] => (Stream[String] => Stream[String]), Stream[String]](defaultPet)(petPiglet).mapView(_.toFn[X]) // SS
+    val pp2 = Piglet.apF(pf[Stream[String] => M => SS], pl[M => SS], pp[SS]){ first => last => pets => Person(first, last, pets) }
     val pv = pp2.validate("Unknown user")(p => dictionary.contains((p.first, p.last)))
     Piglet.withSubmit(pv)
   }
 
   val initUser = Person("Alonzo", "Church", Nil)
 
+  val p = personPiglet[NodeSeq](initUser)
+  p.view{
+    first => last => pets => submit =>
+      <div>
+       {
+//         pets.r
+       }
+      </div>
+  }
 }
