@@ -7,7 +7,7 @@ import org.scalatest.concurrent.AsyncAssertions
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
-import scala.concurrent.future
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with AsyncAssertions {
@@ -150,7 +150,7 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
     waiter.await(Dismissals(1))
 
     for (a <- (1 to 10).toList) {
-      future {
+      Future {
         for (b <- 1 to 10)
           v () = v.now + 1
       }

@@ -56,6 +56,14 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_
   Seq[File]()
 }
 
+// Automatically copy the unified API Docs into the "copied-docs" managed resource folder
+resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (root, ScalaUnidoc)) map {
+  (dir, docs) =>
+  val dest = dir / "copied-docs" / "unidoc"
+  IO.copyDirectory(docs, dest)
+  Seq[File]()
+}
+
 // Use the copied-docs folder as an addition to the webapp resources.
 // When the resourceGenerators run, this dir will contain
 // "reactive-core-api" and "reactive-web-api" directories.

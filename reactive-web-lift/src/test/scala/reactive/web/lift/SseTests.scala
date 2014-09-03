@@ -19,7 +19,7 @@ class SseTests extends FunSuite with Matchers with Eventually with SpanSugar {
       val transportTypes = spc :: Nil
     }
     val sw = new StringWriter
-    val fut = future {
+    val fut = Future {
       page.spc.sseTransport.write(sw)
     }
     Thread.sleep(200)

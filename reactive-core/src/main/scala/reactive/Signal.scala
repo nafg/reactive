@@ -2,6 +2,8 @@ package reactive
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+import scala.language.higherKinds
+
 object Signal {
   def unapply[T](s: Signal[T]) = Some(s.now)
 
@@ -39,6 +41,14 @@ trait Signal[+T] extends Foreachable[T] {
   def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
     f(now)
     change.foreach(f)(observing)
+  }
+
+  def subscribe(f: T => Unit): Subscription =
+    change subscribe f
+
+  def subscribeNow(f: T => Unit): Subscription = {
+    f(now)
+    change subscribe f
   }
 
   /**
@@ -144,9 +154,9 @@ trait Signal[+T] extends Foreachable[T] {
   /**
    * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
    * but instead is executed by the global `ExecutionContext`.
-   * This is helpful when handling values can be time consuming.
+   * Chained `Future`s are used to ensure values are handled sequentially.
    */
-  def nonblocking: Signal[T] = async(ExecutionContext.global)
+  final def nonblocking: Signal[T] = async(ExecutionContext.global)
 
   /**
    * Returns a derived signal in which value propagation does not happen on the thread triggering the change,

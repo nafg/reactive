@@ -40,7 +40,7 @@ class RenderTransport extends AccumulatingTransport {
   }
 
   def renderData: String = data.map(_.render).mkString(";\n")
-  
+
   /**
    * Remove connection with all pages,
    * and return the queued data
@@ -51,7 +51,10 @@ class RenderTransport extends AccumulatingTransport {
       pc unlinkTransport this
       removeTransportType(pc)
     }
-    val include = <script type="text/javascript" src={ S.contextPath + "/classpath/reactive-web.js" }/>
+    // Append a query parameter, v, to escape browser caching. The number should be incremented whenever
+    // the script file is updated.
+    //TODO need a better way of managing the version number
+    val include = <script type="text/javascript" src={ S.contextPath + "/classpath/reactive-web.js?v=13" }/>
     val js =
       <script type="text/javascript">
         { Unparsed("// <![CDATA[\n" + renderData + "// ]]>") }
@@ -59,9 +62,9 @@ class RenderTransport extends AccumulatingTransport {
     if (pcs.nonEmpty) include +: pcs.flatMap(_.page.render) :+ js
     else Nil
   }
-  
+
   override def toString = s"RenderTransport{transportTypes = $transportTypes, data = $data}"
-  
+
   private[web] def currentPages = transportTypes.get.map(_.page)
 }
 

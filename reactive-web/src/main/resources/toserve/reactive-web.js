@@ -59,6 +59,7 @@ EventStream.prototype = {
       last = v
       to = window.setTimeout(onTimer, period)
     })
+    return throttled;
   }
 };
 JSON.stringify = JSON.stringify || function(v) {

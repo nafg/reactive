@@ -13,7 +13,9 @@ trait PagesCache {
    */
   def addPage(page: Page): Unit = pagesWeakMap += page -> ()
 
-  protected def getPage(id: String) = pagesWeakMap.keys.find(_.id == id)
+  private def keys = pagesWeakMap.synchronized { pagesWeakMap.keySet.toSeq }
+
+  protected def getPage(id: String) = keys.toList.find(_.id == id)
 
   /**
    * An extractor to locate a `Page` by its id

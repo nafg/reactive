@@ -43,11 +43,6 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   private val jsEventStreams = new scala.collection.mutable.WeakHashMap[Page, JsEventStream[_]]
 
   /**
-   * The Page and value whose ajax event for this property the current thread is responding to, if any
-   */
-  private[web] val currentPropagateSource = new scala.util.DynamicVariable[Option[(Page, String)]](None)
-
-  /**
    * The javascript expression that evaluates to the value of this property
    */
   def readJS(id: String): JsExp[JsTypes.JsAny] = window.document.getElementById(id).get(name)
@@ -76,10 +71,11 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
      * the value Var is updated.
      */
     def propagate(v: String) {
-      currentPropagateSource.withValue(Some((page, v))) {
-        valuesES fire v
-        update(v)
-      }
+      valuesES fire v
+      // Send to all other pages the javascript to apply the new value,
+      // other than the page on which this property started this ajax call
+      // since the browser already has that value.
+      updateImpl(v)(_ != page)
     }
 
     if (eventSources.nonEmpty) jsEventStreams.getOrElseUpdate(page, {
@@ -142,22 +138,17 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   def render(e: Elem)(implicit page: Page): Elem =
     new PropertyRenderer()(page) apply e
 
+  protected def updateImpl[A : PropertyCodec](a: A)(pagePred: Page => Boolean): Unit =
+    pageIds
+      .filter{ case (p, _) => pagePred(p) }
+      .foreach{ case (page, id) =>
+        page.queue(DomMutation.UpdateProperty(id, name, attributeName, a))
+      }
+
   /**
    * Change the value of this property in the browser DOM on all pages
    */
-  def update[T: PropertyCodec](value: T) {
-    // Send to all other pages javascript to apply
-    // the new value, other than the page on which this property started this ajax call, if it's the same value that was sent to us.
-    // That is because the browser already has that value.
-    def shouldUpdate(page: Page) = currentPropagateSource.value match {
-      case Some((`page`, `value`)) => false
-      case _                       => true
-    }
-    for {
-      (page, id) <- pageIds
-      if shouldUpdate(page)
-    } page queue DomMutation.UpdateProperty(id, name, attributeName, value)
-  }
+  def update[T : PropertyCodec](value: T) = updateImpl[T](value)(_ => true)
 
   override def toString = "DomProperty(name=%s,attributeName=%s)" format (name, attributeName)
 }
