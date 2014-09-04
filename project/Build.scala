@@ -18,8 +18,8 @@ object ReactiveBuild extends Build {
 
   val defaults = Seq(
     organization := "cc.co.scala-reactive",
-    crossScalaVersions := Seq("2.11.1", "2.10.4"),
-    scalaVersion := "2.11.1",
+    crossScalaVersions := Seq("2.11.2", "2.10.4"),
+    scalaVersion := "2.11.2",
     resolvers ++= List(
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
