@@ -11,3 +11,11 @@ This is the reactive top-level repository. It contains the following subprojects
 * reactive-web-demo: demo, serves as documentation for the above, and can be viewed live at http://scalareactive.org
 
 See the site for more details (http://scalareactive.org)
+
+
+#### Acknowledgement
+
+> [![YourKit](http://goo.gl/Eb8iOQ)](http://www.yourkit.com) is providing a free open source license for their full-featured Java Profiler for use with this project.
+> YourKit, LLC makes leading profilers for Java and .NET.
+> * Java: http://www.yourkit.com/java/profiler/index.jsp
+> * .NET: http://www.yourkit.com/.net/profiler/index.jsp
