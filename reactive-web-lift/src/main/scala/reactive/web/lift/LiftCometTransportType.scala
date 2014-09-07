@@ -17,6 +17,8 @@ import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object LiftCometTransportType {
+  private val contType = "reactive.web.ReactionsComet"
+  
   private val _overrideCometHack = new scala.util.DynamicVariable(Option.empty[LiftCometTransportType#PageComet])
   private var initted = false
 
@@ -31,9 +33,10 @@ object LiftCometTransportType {
    */
   def init(): Unit = {
     LiftRules.cometCreation.append {
-      case CometCreationInfo("reactive.web.ReactionsComet", name, defaultXml, attributes, session) if _overrideCometHack.value.isDefined =>
+      case CometCreationInfo(t, name, defaultXml, attributes, session) 
+      if _overrideCometHack.value.isDefined && t == contType =>
         val comet = _overrideCometHack.value.get
-        comet.initCometActor(session, Full("reactive.web.ReactionsComet"), name, defaultXml, attributes)
+        comet.initCometActor(session, Full(t), name, defaultXml, attributes)
         comet
     }
     initted = true
@@ -52,7 +55,7 @@ class LiftCometTransportType(page: Page) extends TransportType with HasLogger {
       initPromise success t
     }
 
-    override def lifespan = Full(60 seconds)
+    override def lifespan = Full(60.seconds)
 
     def render = <span/>
 
@@ -67,12 +70,12 @@ class LiftCometTransportType(page: Page) extends TransportType with HasLogger {
   object cometTransport extends Transport {
     def currentPriority: Int = 0
 
-    queued =>> { renderable => comet ! JsCmds.Run(renderable.render) }
+    queued foreach { renderable => comet ! JsCmds.Run(renderable.render) }
   }
 
   LiftCometTransportType.overrideCometHack(comet) {
     // This is how we install our own comet actors in Lift
-    S.withAttrs(new UnprefixedAttribute("type", "reactive.web.ReactionsComet", new UnprefixedAttribute("name", page.id, Null))) {
+    S.withAttrs(new UnprefixedAttribute("type", LiftCometTransportType.contType, new UnprefixedAttribute("name", page.id, Null))) {
       net.liftweb.builtin.snippet.Comet.render(NodeSeq.Empty)
     }
   }
@@ -80,7 +83,7 @@ class LiftCometTransportType(page: Page) extends TransportType with HasLogger {
   // Ask comet actor for render after his initialization for avoid NPE
   val askRender = Future {
     initFuture onSuccess {
-      case Full("reactive.web.ReactionsComet") =>
+      case Full(_) =>
         comet !? (comet.cometRenderTimeout, AskRender) foreach {
           case AnswerRender(_, _, when, _) =>
             page.queue(s"var lift_toWatch = lift_toWatch || {}; lift_toWatch['${comet.uniqueId}'] = $when;")
