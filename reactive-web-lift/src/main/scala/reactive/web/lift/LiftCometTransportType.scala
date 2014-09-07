@@ -2,9 +2,6 @@ package reactive
 package web
 package lift
 
-import java.util.concurrent.TimeUnit
-
-import scala.concurrent.duration.Duration
 import scala.xml.{ NodeSeq, Null, UnprefixedAttribute }
 import net.liftweb.common._
 import net.liftweb.util.Helpers._
@@ -13,7 +10,7 @@ import net.liftweb.http.js.{ JsCmd, JsCmds }
 
 import reactive.logging.HasLogger
 
-import scala.concurrent._
+import scala.concurrent.{Await, future, promise}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object LiftCometTransportType {
@@ -88,7 +85,8 @@ class LiftCometTransportType(page: Page) extends TransportType with HasLogger {
     }
   }
   // Waiting for comet actor answer for render lift_toWatch
-  Await.result(askRender, Duration(5, TimeUnit.SECONDS))
+  import scala.concurrent.duration._
+  Await.result(askRender, 0 nanos)
 
   override def render = super.render ++ S.session.map{ session =>
     // TODO ensure that it's not already rendered
