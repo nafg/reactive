@@ -42,6 +42,7 @@ class Boot {
     AppendToRender.init()
     SimpleAjaxTransportType.init()
     SseTransportType.init()
+    LiftCometTransportType.init()
     MessagesSnippet.init(Messages.template("alert"))
 
     val mdParser = new net.liftweb.markdown.ActuariusTransformer

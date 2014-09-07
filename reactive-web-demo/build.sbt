@@ -2,14 +2,19 @@ name := "reactive-web-demo"
 
 seq(webSettings: _*)
 
-libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test")
+libraryDependencies += ("org.eclipse.jetty" % "jetty-webapp" % "8.1.14.v20131031" % "container,test")
 
-libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6-M2"
+libraryDependencies += ("net.liftweb" %% "lift-markdown" % "2.6-RC1")
+
+libraryDependencies ++= Seq(
+  "org.slf4j" % "slf4j-api" % "1.7.5" % "compile->default",
+  "org.slf4j" % "slf4j-simple" % "1.7.5" % "compile->default"
+)
 
 scanDirectories in Compile := Nil
 
 // To change the default port, use the following line
-// (port in container.Configuration) := 9999
+//(port in container.Configuration) := 9999
 
 // Automatically copy the scala source directory into a managed resources folder,
 // to use as runtime resources under the "/scala-sources" path
