@@ -67,7 +67,10 @@ object SimpleAjaxTransportType extends PagesCache {
             Full(JavaScriptResponse(JsCmds.Run("reactive.onAjaxCallLostServerState()")))
         }
     }
-    LiftRules.unloadHooks append { () => shutDown = true }
+    LiftRules.unloadHooks append { () =>
+      shutDown = true // end the Timer
+      pagesSeenTime.set(Map.empty)
+    }
   }
 }
 
