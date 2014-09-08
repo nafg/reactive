@@ -57,7 +57,7 @@ object ReactiveBuild extends Build {
     pomExtra := pomCommon
   )
 
-  val nonPublishingSettings = defaults :+ (publishArtifact := false)
+  val nonPublishingSettings = defaults :+ (publish := ())
 
   lazy val reactive_core = Project("core", file("reactive-core"))
     .settings(publishingSettings: _*)
