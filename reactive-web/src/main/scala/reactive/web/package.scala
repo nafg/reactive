@@ -40,6 +40,8 @@ package object web {
     def apply(a: =>A)(ns: NodeSeq) = cb.f(a)(ns)
   }
 
+  implicit class JsInterpolatorImpl(val sc: StringContext) extends AnyVal with JsInterpolator
+
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
    * provided PartialFunction.
