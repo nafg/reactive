@@ -9,8 +9,9 @@ import JsTypes._
  * will be sent to the browser.
  */
 object Javascript {
-  def apply[A](f: => A)(implicit page: Page): A = {
-    val (ret, js) = JsStatement.inScope(f)
+  def apply[A](f: JsStatementStack => A)(implicit page: Page): A = {
+    val stack = new JsStatementStack
+    val (ret, js) = stack.inScope(f(stack))
     js foreach { s => page.queue(s) }
     ret
   }
@@ -62,7 +63,7 @@ object Ajax {
  * A scala representation of a javascript statement.
  * On instantiation, puts itself on the current JsStatement stack.
  */
-sealed trait JsStatement {
+sealed abstract class JsStatement(implicit stack: JsStatementStack) {
   /**
    * A list of JsStatements that if they are
    * on the top of the JsStatement stack should be replaced
@@ -70,17 +71,63 @@ sealed trait JsStatement {
    */
   def toReplace: List[JsStatement]
 
-  for (e <- toReplace; head <- JsStatement.peek)
+  for (e <- toReplace; head <- stack.peek)
     if (e eq head)
-      JsStatement.pop
+      stack.pop
     else println("'"+JsStatement.render(head)+"' is the top of the stack, not '"+JsStatement.render(e)+
       "', when applying toReplace for '"+JsStatement.render(this)+"'")
 
-  JsStatement.push(this)
+  stack.push(this)
 }
+
 /**
  * Maintains a thread-local stack of statement blocks
  */
+class JsStatementStack {
+  var debug = false
+  private def indent = "  " * stack.value.length
+  /**
+   * A dynamically-scoped stack of blocks of JsStatements
+   */
+  val stack = new scala.util.DynamicVariable[List[List[JsStatement]]](List(Nil))
+  /**
+   * The top JsStatement block
+   */
+  def currentScope: List[JsStatement] = stack.value.head
+  /**
+   * Sets the top JsStatement block
+   */
+  def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
+  /**
+   * Returns true if there is no other statement block on the stack
+   */
+  def bottomScope = stack.value.tail.isEmpty
+  /**
+   * Evaluates p in a new scope, and returns the top of the stack
+   * (JsStatements pushed during evaluation of p)
+   */
+  def inScope[A](p: => A): (A, List[JsStatement]) = {
+    if (debug) println(indent + "Entering new scope")
+    val res = stack.withValue(Nil :: stack.value) {
+      (p, currentScope.reverse)
+    }
+    if (debug) println(indent + "Leaving scope, contained: " + res._2.map(JsStatement.render))
+    res
+  }
+
+  def push(s: JsStatement) = {
+    if(debug) println(s"${indent}pushing ${JsStatement render s} on ${currentScope map JsStatement.render}")
+    currentScope ::= s
+  }
+  def pop: JsStatement = {
+    val ret = currentScope.head
+    currentScope = currentScope.tail
+    if(debug) println(s"${indent}popped ${JsStatement render ret} from ${currentScope map JsStatement.render}")
+    ret
+  }
+  def peek = currentScope.headOption
+}
+
 object JsStatement {
   /**
    * `Some` to pretty print at the given indent, `None` for compressed output
@@ -131,52 +178,18 @@ object JsStatement {
     case Return(e)                       => "return "+JsExp.render(e)+";"
     case f: Function[_]                  => "function "+f.ident.name+"(arg0)"+render(f.body)
   }
-
-  /**
-   * A dynamically-scoped stack of blocks of JsStatements
-   */
-  val stack = new scala.util.DynamicVariable[List[List[JsStatement]]](List(Nil))
-  /**
-   * The top JsStatement block
-   */
-  def currentScope: List[JsStatement] = stack.value.head
-  /**
-   * Sets the top JsStatement block
-   */
-  def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
-  /**
-   * Returns true if there is no other statement block on the stack
-   */
-  def bottomScope = stack.value.tail.isEmpty
-  /**
-   * Evaluates p in a new scope, and returns the top of the stack
-   * (JsStatements pushed during evaluation of p)
-   */
-  def inScope[A](p: => A): (A, List[JsStatement]) = stack.withValue(Nil :: stack.value){
-    (p, currentScope.reverse)
-  }
-
-  def push(s: JsStatement) = {
-    currentScope ::= s
-  }
-  def pop: JsStatement = {
-    val ret = currentScope.head
-    currentScope = currentScope.tail
-    ret
-  }
-  def peek = currentScope.headOption
 }
 
-final private class Block(block: => Unit) extends JsStatement {
-  lazy val (_, body) = JsStatement.inScope(block)
+final private class Block(block: => Unit)(implicit stack: JsStatementStack) extends JsStatement {
+  lazy val (_, body) = stack.inScope(block)
   def toReplace = Nil
 }
 
-sealed class HasBody(block: => Unit) {
+sealed abstract class HasBody(block: => Unit)(implicit stack: JsStatementStack) extends JsStatement {
   private[javascript] lazy val body = new Block(block)
 }
 
-case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*) extends JsStatement with JsExp[R] {
+case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*)(implicit stack: JsStatementStack) extends JsStatement with JsExp[R] {
   def toReplace = args.toList.collect { case s: JsStatement => s }
   def render = JsExp.render(f) + args.map(JsExp.render).mkString("(", ",", ")")
 }
@@ -184,7 +197,7 @@ case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*) ex
 class ProxyField[R <: JsAny](ident: String, name: String) extends Assignable[R] {
   def render = ident+"."+name
 }
-class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[Any], oldToReplace: List[JsStatement]) extends JsStatement with Assignable[R] {
+class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Method, args: Seq[Any], oldToReplace: List[JsStatement])(implicit stack: JsStatementStack) extends JsStatement with Assignable[R] {
   // TODO detect varargs better
   lazy val flat =
     if (method.getParameterTypes.toList == List(classOf[scala.collection.Seq[_]]) && args.length == 1)
@@ -205,36 +218,36 @@ class ApplyProxyMethod[R <: JsAny](ident: String, method: java.lang.reflect.Meth
 
 object If {
   trait Elseable { this: JsStatement =>
-    def Else(block: => Unit) = new Else(block)
-    def ElseIf(cond: $[JsBoolean])(block: => Unit) = new ElseIf(cond)(block)
-    class ElseIf(private[javascript] val cond: $[JsBoolean])(block: => Unit) extends HasBody(block) with Elseable with JsStatement {
+    def Else(block: => Unit)(implicit stack: JsStatementStack) = new Else(block)
+    def ElseIf(cond: $[JsBoolean])(block: => Unit)(implicit stack: JsStatementStack) = new ElseIf(cond)(block)
+    class ElseIf(private[javascript] val cond: $[JsBoolean])(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) with Elseable {
       private[reactive] lazy val outer = Elseable.this
       def toReplace = List(outer)
     }
-    class Else(block: => Unit) extends HasBody(block) with JsStatement {
+    class Else(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) {
       private[javascript] lazy val outer = Elseable.this
-      def toReplace = List(outer)
+      def toReplace = List(body, outer)
     }
   }
-  def apply(cond: $[JsBoolean])(block: => Unit): JsStatement with Elseable = new If(cond, block)
-  private[javascript] class If(val cond: $[JsBoolean], block: => Unit) extends HasBody(block) with Elseable with JsStatement {
-    def toReplace = Nil
+  def apply(cond: $[JsBoolean])(block: => Unit)(implicit stack: JsStatementStack): JsStatement with Elseable = new If(cond, block)
+  private[javascript] class If(val cond: $[JsBoolean], block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) with Elseable {
+    def toReplace = List(body)
   }
 }
 
 object While {
-  private[javascript] class While(val cond: $[JsBoolean])(block: => Unit) extends HasBody(block) with JsStatement {
+  private[javascript] class While(val cond: $[JsBoolean])(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) {
     def toReplace = Nil
   }
-  def apply(cond: $[JsBoolean])(block: => Unit) = new While(cond)(block)
+  def apply(cond: $[JsBoolean])(block: => Unit)(implicit stack: JsStatementStack) = new While(cond)(block)
 }
 
 object Do {
-  private[javascript] class DoWhile(block: => Unit)(val cond: $[JsBoolean]) extends HasBody(block) with JsStatement {
+  private[javascript] class DoWhile(block: => Unit)(val cond: $[JsBoolean])(implicit stack: JsStatementStack) extends HasBody(block) {
     def toReplace = Nil
   }
   final class Whileable(block: =>Unit) {
-    def While(cond: JsExp[JsBoolean]) = new DoWhile(block)(cond)
+    def While(cond: JsExp[JsBoolean])(implicit stack: JsStatementStack) = new DoWhile(block)(cond)
   }
   def apply(block: => Unit) = new Whileable(block)
 }
@@ -243,9 +256,9 @@ sealed trait Match[+T <: JsAny] {
   def against: $[T]
   def code: List[JsStatement]
 }
-class Matchable[+T <: JsAny](against: $[T]) { matchable =>
+class Matchable[+T <: JsAny](against: $[T])(implicit stack: JsStatementStack) { matchable =>
   def :>(code: => Unit) = {
-    lazy val (_, block) = JsStatement.inScope(code)
+    lazy val (_, block) = stack.inScope(code)
     new Match[T] {
       def against = matchable.against
       def code = block :+ Break
@@ -253,27 +266,27 @@ class Matchable[+T <: JsAny](against: $[T]) { matchable =>
   }
 }
 
-class Break extends JsStatement {
+class Break(implicit stack: JsStatementStack) extends JsStatement {
   def toReplace = Nil
 }
 
 object Switch {
-  private[javascript] class Switch[T <: JsAny](val input: $[T])(val matches: Match[T]*) extends JsStatement {
+  private[javascript] class Switch[T <: JsAny](val input: $[T])(val matches: Match[T]*)(implicit stack: JsStatementStack) extends JsStatement {
     def toReplace = Nil
   }
-  def apply[T <: JsAny](input: $[T])(matches: Match[T]*) = new Switch(input)(matches: _*)
+  def apply[T <: JsAny](input: $[T])(matches: Match[T]*)(implicit stack: JsStatementStack) = new Switch(input)(matches: _*)
 }
 
 trait Assignable[T <: JsAny] extends JsExp[T] {
-  def :=(exp: $[T]): Assignment[T, Assignable[T]] = new Assignment(this, exp)
+  def :=(exp: JsExp[T])(implicit stack: JsStatementStack): Assignment[T, Assignable[T]] = new Assignment(this, exp)
 }
-class Assignment[T <: JsAny, +A <: Assignable[T]](assignable: A, private[javascript] val init: JsExp[T]) extends JsStatement {
+class Assignment[T <: JsAny, +A <: Assignable[T]](assignable: A, private[javascript] val init: JsExp[T])(implicit stack: JsStatementStack) extends JsStatement {
   lazy val ident: String = JsExp.render(assignable)
   def toReplace = List(init) collect { case s: JsStatement => s }
 }
 
-class JsVar[T <: JsAny] extends NamedIdent[T] with Assignable[T] with JsStatement {
-  override def :=(exp: $[T]): Assignment[T, JsVar[T]] = new Assignment(this, exp)
+class JsVar[T <: JsAny](implicit stack: JsStatementStack) extends JsStatement with NamedIdent[T] with Assignable[T] {
+  override def :=(exp: $[T])(implicit stack: JsStatementStack): Assignment[T, JsVar[T]] = new Assignment(this, exp)
   def toReplace = Nil
 }
 
@@ -281,7 +294,7 @@ object JsVar {
   /**
    * Create a JsVar with a fresh name
    */
-  def apply[T <: JsAny]()(implicit idc: IdCounter) = new JsVar[T] {
+  def apply[T <: JsAny]()(implicit idc: IdCounter, stack: JsStatementStack) = new JsVar[T] {
     override val ident = Symbol("x$"+idc.nextNumber)
   }
 }
@@ -291,71 +304,71 @@ object For {
     private[javascript] val init: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]],
     private[javascript] val cond: $[JsBoolean],
     private[javascript] val inc: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]]
-  )(block: => Unit) extends HasBody(block) with JsStatement {
+  )(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) {
     def toReplace = (inc ++ init).toList
   }
   def apply(
     init: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]],
     cond: $[JsBoolean],
     inc: Seq[Assignment[_ <: JsAny, JsVar[_ <: JsAny]]]
-  )(block: => Unit) = new For(init, cond, inc)(block)
+  )(block: => Unit)(implicit stack: JsStatementStack) = new For(init, cond, inc)(block)
 }
 
 case class ForInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
-  class ForIn(private[javascript] val v: JsVar[JsNumber], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit) extends HasBody(block) with JsStatement {
+  class ForIn(private[javascript] val v: JsVar[JsNumber], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) {
     def toReplace = List(v)
   }
-  def foreach(f: JsIdent[JsNumber] => Unit)(implicit idc: IdCounter) = {
+  def foreach(f: JsIdent[JsNumber] => Unit)(implicit idc: IdCounter, stack: JsStatementStack) = {
     val v = JsVar[JsNumber]()
     new ForIn(v, exp)(f(v))
   }
 }
 case class ForEachInable[T <: JsAny](exp: JsExp[JsArray[T]]) {
-  class ForEachIn(private[javascript] val v: JsVar[T], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit) extends HasBody(block) with JsStatement {
+  class ForEachIn(private[javascript] val v: JsVar[T], private[javascript] val exp: JsExp[JsArray[T]])(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) {
     def toReplace = List(v)
   }
-  def foreach(f: JsIdent[T] => Unit)(implicit idc: IdCounter) = {
+  def foreach(f: JsIdent[T] => Unit)(implicit idc: IdCounter, stack: JsStatementStack) = {
     val v = JsVar[T]()
     new ForEachIn(v, exp)(f(v))
   }
 }
 
-case class Throw[T <: JsAny](exp: JsExp[T]) extends JsStatement {
+case class Throw[T <: JsAny](exp: JsExp[T])(implicit stack: JsStatementStack) extends JsStatement {
   def toReplace = Nil
 }
 
 object Try {
   trait Finallyable { this: JsStatement =>
-    def Finally(block: => Unit) = new Finally(block)
-    class Finally(block: => Unit) extends HasBody(block) with JsStatement {
+    def Finally(block: => Unit)(implicit stack: JsStatementStack) = new Finally(block)
+    class Finally(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) {
       private[javascript] lazy val outer = Finallyable.this
       def toReplace = List(outer)
     }
   }
-  def apply(block: => Unit) = new Try(block)
-  private[javascript] class Try(block: => Unit) extends HasBody(block) with Finallyable with JsStatement {
+  def apply(block: => Unit)(implicit stack: JsStatementStack) = new Try(block)
+  private[javascript] class Try(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) with Finallyable {
     def toReplace = Nil
     def Catch(b: JsIdent[JsAny] => Unit)(implicit idc: IdCounter) = {
       val v = JsVar[JsAny]()
       new Catch(v)(b(v))
     }
-    class Catch(private[javascript] val v: JsVar[JsAny])(block: => Unit) extends HasBody(block) with Finallyable with JsStatement {
+    class Catch(private[javascript] val v: JsVar[JsAny])(block: => Unit)(implicit stack: JsStatementStack) extends HasBody(block) with Finallyable {
       private[javascript] lazy val outer = Try.this
       def toReplace = List(v, outer)
     }
   }
 }
 
-class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAny] with JsStatement {
+class Function[P <: JsAny](val capt: $[P] => Unit)(implicit stack: JsStatementStack) extends JsStatement with NamedIdent[P =|> JsAny] {
   private[javascript] lazy val body = new Block(capt('arg0.$))
   def toReplace = Nil
 }
 object Function {
-  def apply[P <: JsAny](capt: $[P] => Unit)(implicit idc: IdCounter) = new Function[P](capt) {
+  def apply[P <: JsAny](capt: $[P] => Unit)(implicit idc: IdCounter, stack: JsStatementStack) = new Function[P](capt) {
     override val ident = Symbol("f$"+idc.nextNumber)
   }
 }
 
-case class Return[T <: JsAny](exp: JsExp[T] = JsRaw("")) extends JsStatement {
+case class Return[T <: JsAny](exp: JsExp[T] = JsRaw(""))(implicit stack: JsStatementStack) extends JsStatement {
   def toReplace = Nil
 }

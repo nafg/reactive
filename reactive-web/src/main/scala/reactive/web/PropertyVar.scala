@@ -35,18 +35,18 @@ trait PropertyCodec[T] {
 object PropertyCodec {
   implicit val string: PropertyCodec[String] = new PropertyCodec[String] {
     def fromString = s => s
-    val toJS = implicitly[String => $[JsTypes.JsString]]
+    val toJS: String => JsLiteral[JsTypes.JsString] = JsExp.string(_)
     def toAttributeValue = v => _ => Some(v)
   }
   implicit val int: PropertyCodec[Int] = new PropertyCodec[Int] {
     def fromString = _.toInt
-    val toJS = implicitly[Int => $[JsTypes.JsNumber]]
+    val toJS: Int => JsLiteral[JsTypes.JsNumber] = JsExp.int(_)
     def toAttributeValue = (v: Int) => _ => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
     def fromString = _.toInt match { case -1 => None case n => Some(n) }
     val toJS = { io: Option[Int] =>
-      val i = implicitly[Int => $[JsTypes.JsNumber]]
+      val i = JsExp.int
       i(io getOrElse -1: Int)
     }
     def toAttributeValue = v => _ => v.map(_.toString)

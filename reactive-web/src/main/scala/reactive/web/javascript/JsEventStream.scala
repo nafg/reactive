@@ -63,20 +63,20 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
     page queue s"window.setTimeout(function() { reactive.doAjax('${page.id}') }, 500)"
   }
 
-  protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
+  protected[reactive] def foreachImpl(f: JsExp[T =|> JsVoid]) {
     init
     page queue render+".foreach("+JsExp.render(f)+")"
   }
   /**
    * Register a javascript callback function with the javascript event stream.
    */
-  def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F) {
+  override def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F) {
     foreachImpl(f)
   }
   /**
    * Register a javascript callback function with the javascript event stream.
    */
-  def foreach(f: $[T =|> JsVoid]) {
+  override def foreach(f: JsExp[T =|> JsVoid]) {
     foreachImpl(f)
   }
   /**
@@ -138,8 +138,10 @@ trait CanForwardJs[-T, V <: JsAny] {
 }
 object CanForwardJs {
   implicit def jes[V <: JsAny] = new CanForwardJs[JsEventStream[V], V] {
-    def forward(s: JsForwardable[V], t: JsEventStream[V]) =
-      s.foreach((x: $[V]) => t.fireExp(x))
+    def forward(s: JsForwardable[V], t: JsEventStream[V]) = {
+      implicit val stack = new JsStatementStack
+      s.foreach((x: JsExp[V]) => t.fireExp(x))
+    }
   }
 }
 
@@ -151,7 +153,7 @@ object CanForwardJs {
  */
 trait JsForwardable[T <: JsAny] {
   def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F)
-  def foreach(f: $[T =|> JsVoid])
+  def foreach(f: JsExp[T =|> JsVoid])
 
   /**
    * Forwards values to something whose type has an implicit CanForwardJs defined,

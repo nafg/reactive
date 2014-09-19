@@ -9,12 +9,12 @@ package object javascript {
   import JsTypes._
 
   implicit class JsLiterable[T](x: T) {
-    def $[J <: JsAny](implicit conv: ToJsLit[T, J]) = conv(x)
+    def $[J <: JsAny](implicit conv: ToJsLit[T, J]): JsExp[J] = conv(x)
   }
   implicit class JsIdentable(s: Symbol) {
     def $[J <: JsAny] = JsIdent[J](s)
   }
-  implicit class matchable[T <: JsAny](against: $[T]) extends Matchable(against)
+  implicit class matchable[T <: JsAny](against: JsExp[T])(implicit stack: JsStatementStack) extends Matchable[T](against)
 
   implicit class jsExpMethods[T <: JsAny](exp: JsExp[T]) extends JsExpMethods(exp)
 
@@ -30,7 +30,7 @@ package object javascript {
 
   implicit def toForInable[T <: JsAny](exp: JsExp[JsArray[T]]) = ForInable(exp)
   def Each[T <: JsAny](exp: $[JsArray[T]]) = ForEachInable(exp)
-  def Break = new Break
+  def Break(implicit stack: JsStatementStack) = new Break
 
   /**
    * Returns a JsIdent with the specified name
@@ -51,7 +51,7 @@ package object javascript {
    * @usecase def jsProxy[MyStub](symbol: Symbol): MyStub = ???
    * @usecase def jsProxy[MyStub](string: String): MyStub = ???
    */
-  def jsProxy[T <: JsStub: ClassTag](ident: ProxyName[T], toReplace: List[JsStatement] = Nil): T = {
+  def jsProxy[T <: JsStub: ClassTag](ident: ProxyName[T], toReplace: List[JsStatement] = Nil)(implicit stack: JsStatementStack): T = {
     val ih = new StubInvocationHandler[T](ident.value, toReplace)
     java.lang.reflect.Proxy.newProxyInstance(
       getClass.getClassLoader,
@@ -63,5 +63,5 @@ package object javascript {
   /**
    * A proxy to the browser's window object
    */
-  val window = jsProxy[Window]('window)
+  def window(implicit stack: JsStatementStack) = jsProxy[Window]('window)
 }

@@ -154,7 +154,7 @@ object Object {
   )
 }
 class JsProp(val key: String, v: => JsExp[JsAny]) {
-  lazy val (value, statements) = JsStatement.inScope(v)
+  lazy val (value, statements) = (new JsStatementStack).inScope(v)
   def renderValue = {
     val rendered = statements.map(JsStatement.render) :+ JsExp.render(value)
     val noDup = rendered.splitAt(rendered.length - 2) match {
@@ -202,16 +202,16 @@ object JsRaw {
 /**
  * A typeclass to convert a scala value to a JsExp
  */
-trait ToJs[-S, J <: JsAny, +E[K <: JsAny] <: JsExp[K]] extends (S => E[J])
+trait ToJs[-S, J <: JsAny, +E[K <: JsAny] <: JsExp[K]] extends ((=>S) => E[J])
 class ToJsExp[-S, J <: JsAny](renderer: S => String) extends ToJs[S, J, JsExp] {
-  def apply(s: S) = JsRaw[J](renderer(s))
+  def apply(s: =>S) = JsRaw[J](renderer(s))
 }
 class ToJsLit[-S, J <: JsAny](f: S => JsLiteral[J]) extends ToJs[S, J, JsLiteral] {
   def this(renderer: S => String, dummy: Unit*) = this({ s: S =>
     val r = renderer(s)
     new JsRaw[J](r) with JsLiteral[J]
   })
-  def apply(s: S) = f(s)
+  def apply(s: =>S) = f(s)
 }
 
 abstract class FuncXLit[+R <: JsAny, +J <: JsAny](num: Int) extends JsLiteral[J] {
@@ -225,43 +225,44 @@ abstract class FuncXLit[+R <: JsAny, +J <: JsAny](num: Int) extends JsLiteral[J]
         else Some(Proxy.getInvocationHandler(x)).collect{ case mih: MethodInvocationHandler[_] => mih }
     }
     val args = (0 until num).map("arg" + _).mkString("(", ",", ")")
+    implicit val stack = new JsStatementStack
     "(function"+args + JsStatement.renderBlock(
       (statements.lastOption, exp) match {
         case (Some(_: Return[_]), _)             => statements
-        case (Some(s), e) if s eq e              => statements.dropRight(1) ++ JsStatement.inScope(Return(exp))._2
-        case (Some(s), MIH(mih)) if mih.apm eq s => statements.dropRight(1) ++ JsStatement.inScope(Return(exp))._2
-        case _                                   => statements ++ JsStatement.inScope(Return(exp))._2
+        case (Some(s), e) if s eq e              => statements.dropRight(1) ++ stack.inScope(Return(exp))._2
+        case (Some(s), MIH(mih)) if mih.apm eq s => statements.dropRight(1) ++ stack.inScope(Return(exp))._2
+        case _                                   => statements ++ stack.inScope(Return(exp))._2
       }
     )+")"
   }
 }
-class Func0Lit[+R <: JsAny](f: () => JsExp[R]) extends FuncXLit[R, JsFunction0[R]](0) {
-  lazy val (exp, statements) = JsStatement.inScope { f() }
+class Func0Lit[+R <: JsAny](f: () => JsExp[R])(implicit stack: JsStatementStack) extends FuncXLit[R, JsFunction0[R]](0) {
+  lazy val (exp, statements) = stack.inScope { f() }
 }
-class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R]) extends FuncXLit[R, P =|> R](1) {
-  lazy val (exp, statements) = JsStatement.inScope {
+class Func1Lit[-P <: JsAny, +R <: JsAny](f: JsExp[P] => JsExp[R])(implicit stack: JsStatementStack) extends FuncXLit[R, P =|> R](1) {
+  lazy val (exp, statements) = stack.inScope {
     f(JsIdent('arg0))
   }
 }
-class Func2Lit[-P1 <: JsAny, -P2 <: JsAny, +R <: JsAny](f: (JsExp[P1], JsExp[P2]) => JsExp[R]) extends FuncXLit[R, JsFunction2[P1, P2, R]](2) {
-  lazy val (exp, statements) = JsStatement.inScope {
+class Func2Lit[-P1 <: JsAny, -P2 <: JsAny, +R <: JsAny](f: (JsExp[P1], JsExp[P2]) => JsExp[R])(implicit stack: JsStatementStack) extends FuncXLit[R, JsFunction2[P1, P2, R]](2) {
+  lazy val (exp, statements) = stack.inScope {
     f(JsIdent('arg0), JsIdent('arg1))
   }
 }
 trait ToJsLow { // make sure Map has a higher priority than a regular function
-  implicit def func0[R <: JsAny]: ToJsLit[() => JsExp[R], JsFunction0[R]] =
+  implicit def func0[R <: JsAny](implicit stack: JsStatementStack): ToJsLit[() => JsExp[R], JsFunction0[R]] =
     new ToJsLit[() => JsExp[R], JsFunction0[R]]((f: () => JsExp[R]) => new Func0Lit(f))
-  implicit def func1[P <: JsAny, R <: JsAny]: ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
+  implicit def func1[P <: JsAny, R <: JsAny](implicit stack: JsStatementStack): ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]] =
     new ToJsLit[JsExp[P] => JsExp[R], JsFunction1[P, R]]((f: JsExp[P] => JsExp[R]) => new Func1Lit(f))
-  implicit def func2[P1 <: JsAny, P2 <: JsAny, R <: JsAny]: ToJsLit[(JsExp[P1], JsExp[P2]) => JsExp[R], JsFunction2[P1, P2, R]] =
+  implicit def func2[P1 <: JsAny, P2 <: JsAny, R <: JsAny](implicit stack: JsStatementStack): ToJsLit[(JsExp[P1], JsExp[P2]) => JsExp[R], JsFunction2[P1, P2, R]] =
     new ToJsLit[(JsExp[P1], JsExp[P2]) => JsExp[R], JsFunction2[P1, P2, R]]((f: (JsExp[P1], JsExp[P2]) => JsExp[R]) => new Func2Lit(f))
 }
 trait ToJsMedium extends ToJsLow {
-  implicit val voidFunc0: ToJsLit[() => JsStatement, JsFunction0[JsVoid]] =
+  implicit def voidFunc0(implicit stack: JsStatementStack): ToJsLit[() => JsStatement, JsFunction0[JsVoid]] =
     new ToJsLit[() => JsStatement, JsFunction0[JsVoid]]((f: () => JsStatement) => new Func0Lit(() => { f(); JsRaw("") }))
-  implicit def voidFunc1[P <: JsAny]: ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] =
+  implicit def voidFunc1[P <: JsAny](implicit stack: JsStatementStack): ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid] =
     new ToJsLit[JsExp[P] => JsStatement, P =|> JsVoid]((f: JsExp[P] => JsStatement) => new Func1Lit({ x: JsExp[P] => f(x); JsRaw("") }))
-  implicit def voidFunc2[P1 <: JsAny, P2 <: JsAny]: ToJsLit[(JsExp[P1], JsExp[P2]) => JsStatement, JsFunction2[P1, P2, JsVoid]] =
+  implicit def voidFunc2[P1 <: JsAny, P2 <: JsAny](implicit stack: JsStatementStack): ToJsLit[(JsExp[P1], JsExp[P2]) => JsStatement, JsFunction2[P1, P2, JsVoid]] =
     new ToJsLit[(JsExp[P1], JsExp[P2]) => JsStatement, JsFunction2[P1, P2, JsVoid]](
       (f: (JsExp[P1], JsExp[P2]) => JsStatement) => new Func2Lit({ (arg0: JsExp[P1], arg1: JsExp[P2]) => f(arg0, arg1); JsRaw("") })
     )
@@ -376,6 +377,7 @@ class CanOp[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) exte
 }
 
 object CanApply {
+  private implicit def stack: JsStatementStack = new JsStatementStack
   implicit def canApply0[R <: JsAny]: CanApply[JsFunction0[R], Unit, R] = new CanApply[JsFunction0[R], Unit, R](f => _ => Apply(f))
   implicit def canApply1[P <: JsAny, R <: JsAny]: CanApply[P =|> R, JsExp[P], R] = new CanApply[P =|> R, JsExp[P], R](f => p => Apply(f, p))
   implicit def canApply2[P1 <: JsAny, P2 <: JsAny, R <: JsAny]: CanApply[JsFunction2[P1, P2, R], (JsExp[P1], JsExp[P2]), R] =
@@ -424,10 +426,10 @@ trait JsStub extends NamedIdent[JsObj]
  *   implicit object addWindowFunctions extends Extend[Window, MyWindow]
  * }}}
  */
-class Extend[Old <: JsExp[_], New <: JsStub: ClassTag] extends (Old => New) {
+class Extend[Old <: JsExp[_], New <: JsStub: ClassTag] {
   val cache = new scala.collection.mutable.WeakHashMap[Old, New]
 
-  def apply(old: Old): New = cache.getOrElseUpdate(old,
+  def apply(old: Old)(implicit stack: JsStatementStack): New = cache.getOrElseUpdate(old,
     if (!Proxy.isProxyClass(old.getClass)) jsProxy[New](old.render, Nil)
     else Proxy.getInvocationHandler(old) match {
       case sih: StubInvocationHandler[Old] =>
@@ -435,8 +437,12 @@ class Extend[Old <: JsExp[_], New <: JsStub: ClassTag] extends (Old => New) {
     }
   )
 }
+object Extend {
+  import scala.language.implicitConversions
+  implicit def anyToExtended[Old <: JsExp[_], New <: JsStub : ClassTag](old: Old)(implicit ext: Extend[Old, New], stack: JsStatementStack): New = ext(old)
+}
 
-private[javascript] class StubInvocationHandler[T <: JsStub: ClassTag](val ident: String, val toReplace: List[JsStatement] = Nil) extends InvocationHandler {
+private[javascript] class StubInvocationHandler[T <: JsStub: ClassTag](val ident: String, val toReplace: List[JsStatement] = Nil)(implicit stack: JsStatementStack) extends InvocationHandler {
   def invoke(proxy: AnyRef, method: Method, args0: scala.Array[AnyRef]): AnyRef = {
     val retType = method.getReturnType
     val args = args0 match { case null => scala.Array.empty case x => x }
@@ -483,10 +489,10 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassTag](val ident
           else java.lang.reflect.Proxy.newProxyInstance(
             getClass.getClassLoader,
             retType.getInterfaces :+ retType,
-            new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(retType))
+            new MethodInvocationHandler(proxy, toReplace2)(scala.reflect.Manifest.classType(retType), stack)
           )
       }
     }
   }
 }
-private[javascript] class MethodInvocationHandler[A <: JsStub: ClassTag](val apm: JsExp[_ <: JsAny], tr: List[JsStatement]) extends StubInvocationHandler[A](JsExp.render(apm), tr)
+private[javascript] class MethodInvocationHandler[A <: JsStub: ClassTag](val apm: JsExp[_ <: JsAny], tr: List[JsStatement])(implicit stack: JsStatementStack) extends StubInvocationHandler[A](JsExp.render(apm), tr)

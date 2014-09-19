@@ -1,7 +1,7 @@
 package reactive
 
 import scala.xml.{ Elem, Group, Node, NodeSeq }
-import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
+import web.javascript.{ JsExp, JsTypes, =|>, Javascript, JsStatementStack,window, Ajax }
 import reactive.logging.Logger
 import net.liftweb.util.CanBind
 
@@ -34,7 +34,7 @@ package web {
 package object web {
   object packageLogger extends Logger {
     case class WrappedNonElemInSpan(xml: NodeSeq)
-  }
+  } 
 
   implicit def canBindFromInv[A](implicit cb: CanBindIndirection[A]): CanBind[A] = new CanBind[A] {
     def apply(a: =>A)(ns: NodeSeq) = cb.f(a)(ns)
@@ -50,7 +50,7 @@ package object web {
    */
   //TODO should we optimize so ajax call is only made for response.isDefinedAt case?
   //  down side is that a nondeterministic PF (e.g. {case _ if random>.5 => } etc.) won't work
-  def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page, observing: Observing): Unit = Javascript {
+  def confirm(message: String)(response: PartialFunction[Boolean, Unit])(implicit page: Page, observing: Observing): Unit = Javascript { implicit stack =>
     Ajax { response.orElse[Boolean, Unit] { case _ => } } apply window.confirm(message)
   }
 
@@ -59,7 +59,7 @@ package object web {
    * exist, in the server scope of the implicit page parameter.
    * @param message the text to display
    */
-  def alert(message: String)(implicit page: Page) = javascript.Javascript {
+  def alert(message: String)(implicit page: Page) = javascript.Javascript { implicit stack =>
     window.alert(message)
   }
 

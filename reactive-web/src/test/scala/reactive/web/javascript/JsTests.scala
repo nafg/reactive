@@ -20,13 +20,23 @@ class JsTests extends FunSuite with Matchers with Observing {
   }
 
   test("Functions") {
+    implicit val stack = new JsStatementStack
+
     { () => 1.$ }.$.render should equal ("(function(){return 1;})")
+    
+    println("stack is now " + stack.currentScope)
 
     { x: $[JsNumber] => x + 1.$ }.$.render should equal ("(function(arg0){return (arg0+1);})")
+
+    println("stack is now " + stack.currentScope)
 
     { (x: JsExp[JsNumber], y: JsExp[JsNumber]) => x + y }.$.render should equal (
       "(function(arg0,arg1){return (arg0+arg1);})"
     )
+
+    println("stack is now " + stack.currentScope)
+
+    stack.debug = true
 
     { () =>
       If(true) {
@@ -37,6 +47,8 @@ class JsTests extends FunSuite with Matchers with Observing {
     }.$.render should equal (
       "(function(){if(true) {window.alert(\"Greater\");} else {window.alert(\"Small\");}return ;})"
     )
+
+    stack.debug = false
 
     { x: $[JsNumber] =>
       If(x > 10) {
@@ -60,6 +72,8 @@ class JsTests extends FunSuite with Matchers with Observing {
   }
 
   test("JsStub") {
+    implicit val stack: JsStatementStack = new JsStatementStack
+    import Extend._
     sealed trait obj extends JsStub {
       def method(s: $[JsString]): $[JsString]
       var self: obj
@@ -76,7 +90,7 @@ class JsTests extends FunSuite with Matchers with Observing {
     val obj = jsProxy[obj](())
     implicit val page = new TestPage
     val queued = page.collectQueued {
-      Javascript {
+      Javascript { implicit stack =>
         obj.method(obj.method("This is a scala string"))
         JsVar[JsObj] := obj.self
         obj.nullary
@@ -85,7 +99,7 @@ class JsTests extends FunSuite with Matchers with Observing {
         obj.get("otherProp") := "xyz"
         obj.getSelf(1).getSelf(2)
         obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
-          obj.takeCallback2{ _: JsExp[JsTypes.JsVoid] =>
+          obj takeCallback2 JsExp.func1.apply{ _: JsExp[JsTypes.JsVoid] =>
             obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)
           }
         }
@@ -106,7 +120,9 @@ class JsTests extends FunSuite with Matchers with Observing {
   }
 
   test("JsStub+Extend"){
+    implicit val stack: JsStatementStack = new JsStatementStack
     import JsTypes._
+    import Extend._
     trait JQuery extends JsStub
     trait JQueryElem extends JsStub {
       def bind(eventName: JsExp[JsString])(handler: JsExp[JsTypes.JsObj =|> JsTypes.JsAny]): JQueryElem
@@ -123,7 +139,7 @@ class JsTests extends FunSuite with Matchers with Observing {
 
     implicit val page = new TestPage
     val res = page.collectQueued {
-      Javascript {
+      Javascript { _ =>
         window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
           window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
             //TODO not chained
@@ -155,8 +171,9 @@ class JsTests extends FunSuite with Matchers with Observing {
   }
 
   test("Function bodies do not get repeated") {
+    implicit val stack = new JsStatementStack
     def isClean = window.get("isClean").asInstanceOf[Assignable[JsTypes.JsBoolean]]
-    val stmts = JsStatement.inScope{
+    val stmts = stack.inScope{
       // This does not create a  statement
       { e: $[JsTypes.JsObj] =>
         Return()
@@ -181,12 +198,13 @@ class JsTests extends FunSuite with Matchers with Observing {
   }
 
   test("Statements") {
+    implicit val stack = new JsStatementStack
     window.alert(window.encodeURIComponent("Message"))
-    JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"));")
+    JsStatement.render(stack.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"));")
 
     implicit val page = new TestPage
 
-    val (_, theStatements) = JsStatement.inScope{
+    val (_, theStatements) = stack.inScope{
       If(true) {
         window.alert("True")
       }.ElseIf (false){

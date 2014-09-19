@@ -4,6 +4,7 @@ package demo
 package snippet
 
 import reactive.web.html._
+import reactive.web.javascript.Javascript
 
 import net.liftweb.util.Helpers._
 
@@ -48,7 +49,9 @@ class ContactsPage extends PageSnippet {
             "input" #> input &
               ".deletephone" #> (DomEventSource.click ->> {
                 phones.value.indexOf(phone) match {
-                  case -1 => javascript.window.alert("Error")
+                  case -1 => Javascript { implicit stack =>
+                    javascript.window.alert("Error")
+                  }
                   case n  => phones.value remove n
                 }
               })

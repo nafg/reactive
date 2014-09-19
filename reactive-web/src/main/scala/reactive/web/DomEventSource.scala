@@ -28,11 +28,11 @@ class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])
   /**
    * Calls jsEventStream.foreach
    */
-  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F) = domEventSource.jsEventStream(page).foreach(f)
+  override def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F) = domEventSource.jsEventStream(page).foreach(f)
   /**
    * Calls jsEventStream.foreach
    */
-  def foreach(f: $[JsObj =|> JsVoid]) = domEventSource.jsEventStream(page).foreach(f)
+  override def foreach(f: JsExp[JsObj =|> JsVoid]) = domEventSource.jsEventStream(page).foreach(f)
 }
 
 /**

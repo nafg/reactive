@@ -84,14 +84,14 @@ trait TableEditor[A] extends TableView[A] {
           case KeyUp(38, _) => //Up
             opt(rows.now.indexOf(row)) filter (_ > 0) foreach { i =>
               val prevId = renderer(rows.now(i - 1)).id
-              Javascript {
+              Javascript { implicit stack =>
                 window.document.getElementById(prevId).focus()
               }
             }
           case KeyUp(40, _) => //Down
             opt(rows.now.indexOf(row)) filter (_ < rows.now.size - 1) foreach { i =>
               val nextId = renderer(rows.now(i + 1)).id
-              Javascript {
+              Javascript { implicit stack =>
                 window.document.getElementById(nextId).focus()
               }
             }
@@ -258,12 +258,16 @@ trait TableEditor[A] extends TableView[A] {
 }
 
 trait TableEditorPlus[A] extends TableEditor[A] {
-  def isClean = window.get("isClean").asInstanceOf[Assignable[JsTypes.JsBoolean]]
-  actions.distinct foreach { as => Javascript { isClean := as.isEmpty } }
+  def isClean(implicit stack: JsStatementStack) = window.get("isClean").asInstanceOf[Assignable[JsTypes.JsBoolean]]
+  actions.distinct foreach { as =>
+    Javascript { implicit stack =>
+      isClean := as.isEmpty
+    }
+  }
 
   override def render = {
-    Javascript {
-      window.onbeforeunload := { e: JsExp[JsTypes.JsObj] =>
+    Javascript { implicit stack =>
+      window.onbeforeunload := JsExp.voidFunc1.apply{ e: JsExp[JsTypes.JsObj] =>
         If(!isClean) {
           val reply = JsVar[JsTypes.JsString]()
           reply := "You have unsaved changes!"

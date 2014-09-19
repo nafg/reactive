@@ -45,7 +45,10 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS(id: String): JsExp[JsTypes.JsAny] = window.document.getElementById(id).get(name)
+  def readJS(id: String): JsExp[JsTypes.JsAny] = {
+    implicit val stack = new JsStatementStack
+    window.document.getElementById(id).get(name)
+  }
 
   /**
    * Registers a Page with this JSProperty.
@@ -174,8 +177,10 @@ object DomProperty {
    * An implicit `CanForwardJs` instance for `DomProperty`s.
    */
   implicit def canForwardJs[A <: JsTypes.JsAny](implicit page: Page): CanForwardJs[DomProperty, A] = new CanForwardJs[DomProperty, A] {
-    def forward(s: JsForwardable[A], t: DomProperty) =
-      s.foreach{ x: JsExp[A] => t.readJS(t.id).asInstanceOf[Assignable[A]] := x }
+    def forward(s: JsForwardable[A], t: DomProperty) = {
+      implicit val stack = new JsStatementStack
+      s.foreach { x: JsExp[A] => t.readJS(t.id).asInstanceOf[Assignable[A]] := x }
+    }
   }
 
   /**
