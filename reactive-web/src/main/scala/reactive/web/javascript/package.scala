@@ -64,4 +64,6 @@ package object javascript {
    * A proxy to the browser's window object
    */
   val window = jsProxy[Window]('window)
+
+  def buildJs[A](f: => A): A = JsStatement.inScope(f)._1
 }

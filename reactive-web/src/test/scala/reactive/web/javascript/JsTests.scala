@@ -181,8 +181,10 @@ class JsTests extends FunSuite with Matchers with Observing {
   }
 
   test("Statements") {
-    window.alert(window.encodeURIComponent("Message"))
-    JsStatement.render(JsStatement.pop) should equal ("window.alert(window.encodeURIComponent(\"Message\"));")
+    JsStatement.inScope {
+      window.alert(window.encodeURIComponent("Message"))
+      JsStatement.render(JsStatement.pop) should equal("window.alert(window.encodeURIComponent(\"Message\"));")
+    }
 
     implicit val page = new TestPage
 

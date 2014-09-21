@@ -45,7 +45,9 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
   /**
    * The javascript expression that evaluates to the value of this property
    */
-  def readJS(id: String): JsExp[JsTypes.JsAny] = window.document.getElementById(id).get(name)
+  def readJS(id: String): JsExp[JsTypes.JsAny] = buildJs {
+    window.document.getElementById(id).get(name)
+  }
 
   /**
    * Registers a Page with this JSProperty.

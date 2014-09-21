@@ -132,6 +132,8 @@ object JsStatement {
     case f: Function[_]                  => "function "+f.ident.name+"(arg0)"+render(f.body)
   }
 
+  private val isInScope = new scala.util.DynamicVariable(false)
+
   /**
    * A dynamically-scoped stack of blocks of JsStatements
    */
@@ -143,7 +145,10 @@ object JsStatement {
   /**
    * Sets the top JsStatement block
    */
-  def currentScope_=(ss: List[JsStatement]) = stack.value = ss :: stack.value.tail
+  def currentScope_=(ss: List[JsStatement]) = {
+    require(isInScope.value, "Cannot modify nonexistent javascript scope")
+    stack.value = ss :: stack.value.tail
+  }
   /**
    * Returns true if there is no other statement block on the stack
    */
@@ -153,7 +158,9 @@ object JsStatement {
    * (JsStatements pushed during evaluation of p)
    */
   def inScope[A](p: => A): (A, List[JsStatement]) = stack.withValue(Nil :: stack.value){
-    (p, currentScope.reverse)
+    isInScope.withValue(true) {
+      (p, currentScope.reverse)
+    }
   }
 
   def push(s: JsStatement) = {
@@ -173,7 +180,7 @@ final private class Block(block: => Unit) extends JsStatement {
 }
 
 sealed class HasBody(block: => Unit) {
-  private[javascript] lazy val body = new Block(block)
+  private[javascript] lazy val body = buildJs(new Block(block))
 }
 
 case class Apply[+R <: JsAny](f: JsExp[_ <: JsAny], args: JsExp[_ <: JsAny]*) extends JsStatement with JsExp[R] {
@@ -248,7 +255,7 @@ class Matchable[+T <: JsAny](against: $[T]) { matchable =>
     lazy val (_, block) = JsStatement.inScope(code)
     new Match[T] {
       def against = matchable.against
-      def code = block :+ Break
+      def code = buildJs(block :+ Break)
     }
   }
 }
@@ -347,7 +354,7 @@ object Try {
 }
 
 class Function[P <: JsAny](val capt: $[P] => Unit) extends NamedIdent[P =|> JsAny] with JsStatement {
-  private[javascript] lazy val body = new Block(capt('arg0.$))
+  private[javascript] lazy val body = buildJs(new Block(capt('arg0.$)))
   def toReplace = Nil
 }
 object Function {
