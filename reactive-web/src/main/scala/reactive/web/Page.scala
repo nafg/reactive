@@ -15,8 +15,18 @@ trait IdCounter {
 }
 
 object Page {
-  def apply(ttypes: (Page => TransportType)*) = new Page {
-    lazy val transportTypes = ttypes map (_(this))
+  def apply(ttypes: (Page => TransportType)*): Page = new DfltPage(ttypes)
+  private final class DfltPage(ttypes: Seq[Page => TransportType]) extends Page {
+    private var initted = false
+    lazy val transportTypes = {
+      val ret = ttypes map (_(this))
+      initted = true
+      ret
+    }
+    override def toString = {
+      val ttStr = if(!initted) "?" else transportTypes.map(_.getClass.getSimpleName).mkString(",")
+      s"Page[id = $id, [$ttStr]]"
+    }
   }
 }
 
