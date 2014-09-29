@@ -3,7 +3,6 @@ package web
 
 import scala.xml.NodeSeq
 
-import net.liftweb.util.Helpers.randomString
 import net.liftweb.json.JsonAST.JValue
 
 import reactive.logging.Logger
@@ -51,7 +50,7 @@ trait Page extends Logger with IdCounter {
    */
   implicit object observing extends Observing
 
-  val id = randomString(20)
+  val id = (1 to 20).map(_ => (scala.util.Random.nextInt(26) + 'A').toChar).mkString
 
   def nextId = f"reactiveWebId_$id%s_$nextNumber%06d"
 
