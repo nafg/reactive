@@ -29,7 +29,7 @@ trait Button extends RElem {
  * Provides several factories for creating Buttons
  */
 object Button {
-  def disabled(init: Boolean = false)(implicit observing: Observing) = PropertyVar("disabled")(init)
+  def disabled(init: Boolean = false)(implicit observing: Observing, rdmConfig: CanRenderDomMutationConfig) = PropertyVar("disabled")(init)
 
   /**
    * Creates a Button Cell of the specified type and with the specified contents

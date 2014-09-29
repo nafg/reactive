@@ -110,7 +110,7 @@ class Select[T](
  * Provides several factories for creating Selects
  */
 object Select {
-  def selectedIndex(init: Option[Int] = None)(implicit observing: Observing): PropertyVar[Option[Int]] = PropertyVar("selectedIndex")(init)
+  def selectedIndex(init: Option[Int] = None)(implicit observing: Observing, rdmConfig: CanRenderDomMutationConfig): PropertyVar[Option[Int]] = PropertyVar("selectedIndex")(init)
 
   /**
    * @tparam T the type of the items

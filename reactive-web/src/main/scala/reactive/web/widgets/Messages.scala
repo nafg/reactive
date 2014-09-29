@@ -98,7 +98,7 @@ class Messages {
   /**
    * Returns `NodeSeq => NodeSeq` that renders a Repeater that displays the messages
    */
-  def render(implicit page: Page): NodeSeq => NodeSeq = Repeater(
+  def render(implicit page: Page, rdmConfig: CanRenderDomMutationConfig): NodeSeq => NodeSeq = Repeater(
     messages.now.map{ m =>
       ".text *" #> m &
         ".close" #> onServer[Click]{ _ => messages.value -= m }
@@ -107,6 +107,6 @@ class Messages {
   /**
    * Render the Repeater with a template
    */
-  def renderWithTemplate(template: NodeSeq = Messages.template())(implicit page: Page): NodeSeq =
+  def renderWithTemplate(template: NodeSeq = Messages.template())(implicit page: Page, rdmConfig: CanRenderDomMutationConfig): NodeSeq =
     render apply template
 }

@@ -148,7 +148,7 @@ object PropertyVar {
    * @see [[toggleClass]].
    * @example {{{  "input" #> appendClass(isValid map {v => Some("invalid") filter (_ => v) }) }}}
    */
-  def appendClass(s: Signal[Option[String]])(implicit observing: Observing, page: Page) = className transform { cs: Option[String] =>
+  def appendClass(s: Signal[Option[String]])(implicit observing: Observing, page: Page, rdmConfig: CanRenderDomMutationConfig) = className transform { cs: Option[String] =>
     s map { _ map { c => cs.filter(_.nonEmpty) map (_+" "+c) getOrElse c } getOrElse cs.getOrElse(""): String }
   }
 

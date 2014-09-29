@@ -4,7 +4,7 @@ package widgets
 
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
-import net.liftweb.util._
+import net.liftweb.util.{ A => _, _ }
 import reactive._
 import reactive.web._
 import reactive.web.javascript._

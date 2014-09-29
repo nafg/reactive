@@ -29,6 +29,8 @@ trait TableView[A] {
    */
   def repeaterSelector = ".items"
 
+  implicit def canRenderDomMutationConfig: CanRenderDomMutationConfig
+
   /**
    * A column -- binds one value of a row
    */

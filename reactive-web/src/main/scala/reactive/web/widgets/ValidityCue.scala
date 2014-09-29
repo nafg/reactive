@@ -40,8 +40,8 @@ object ValidityCue {
       case v        => _ => v.messages.map(ns => <p>{ ns }</p>)
     }
   }
-  def validityCue[A](editor: Editor[A])(implicit observing: Observing, page: Page, config: ValidityCueConfig): Editor[A] = {
-    import config._
+  def validityCue[A](editor: Editor[A])(implicit observing: Observing, page: Page, cueConfig: ValidityCueConfig, rdmConfig: CanRenderDomMutationConfig): Editor[A] = {
+    import cueConfig._
     new Editor(
       validitySelector #> applyClasses(editor.value) andThen
         messageSelector #> reactive.web.Cell(editor.value map message) andThen

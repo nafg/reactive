@@ -39,7 +39,7 @@ trait FilterUI {
  * @param rows        A function-valued signal, where the function returns the total number of rows.
  *                    You can have the signal depend on other filters that affect the number of rows.
  */
-class Paginator(val rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, val page: Page) extends Filter[Int] with FilterUI {
+class Paginator(val rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, val page: Page, rdmConfig: CanRenderDomMutationConfig) extends Filter[Int] with FilterUI {
   /**
    * The page number
    */
@@ -167,7 +167,7 @@ trait PostFilter[RowType] { this: Filter[_] =>
 /**
  * A subclass of `Paginator` that works in memory
  */
-class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, page: Page) extends Paginator(rowsPerPage, rows) with PostFilter[RowType] {
+class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, page: Page, rdmConfig: CanRenderDomMutationConfig) extends Paginator(rowsPerPage, rows) with PostFilter[RowType] {
   lazy val filter = first map { f => { (_: Seq[RowType]) drop f take rowsPerPage } }
 }
 
