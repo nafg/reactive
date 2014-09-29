@@ -1,6 +1,6 @@
 name := "reactive-web"
 
-description := "FRP-based abstractions for Ajax and Comet"
+description := "FRP-based abstractions to control the browser from the server"
 
 libraryDependencies += "net.liftweb" %% "lift-util" % "2.6" exclude("ch.qos.logback","logback-classic")
 

@@ -42,6 +42,10 @@ package object web {
 
   implicit def jsInterpolator(sc: StringContext): JsInterpolator = new JsInterpolator(sc)
 
+  implicit val canRenderJsStatement: CanRender[javascript.JsStatement] = CanRender(JavascriptStatementRenderable(_))
+
+  implicit def canRenderDomMutation(implicit config: CanRenderDomMutationConfig) = config.domMutationRenderer
+
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
    * provided PartialFunction.

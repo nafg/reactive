@@ -63,9 +63,13 @@ object ReactiveBuild extends Build {
   lazy val reactive_routing = Project("routing", file("reactive-routing"))
     .settings(publishingSettings: _*)
 
-  lazy val reactive_web = Project("web", file("reactive-web"))
+  lazy val reactive_transport = Project("transport", file("reactive-transport"))
     .settings(publishingSettings: _*)
     .dependsOn(reactive_core)
+
+  lazy val reactive_web = Project("web", file("reactive-web"))
+    .settings(publishingSettings: _*)
+    .dependsOn(reactive_core, reactive_transport)
 
   lazy val reactive_web_lift = Project("web-lift", file("reactive-web-lift"))
     .settings(publishingSettings: _*)
