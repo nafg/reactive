@@ -16,10 +16,6 @@ object CanRender {
   implicit val string: CanRender[String] = CanRender(StringRenderable(_))
 
   implicit val renderable: CanRender[Renderable] = CanRender(identity)
-
-  implicit val jsStatement: CanRender[javascript.JsStatement] = CanRender(JavascriptStatementRenderable(_))
-
-  implicit def domMutation(implicit config: CanRenderDomMutationConfig) = config.domMutationRenderer
 }
 
 /**
@@ -31,8 +27,4 @@ trait Renderable {
 
 case class StringRenderable(string: String) extends Renderable {
   def render = string
-}
-
-case class JavascriptStatementRenderable(statement: javascript.JsStatement) extends Renderable {
-  def render = javascript.JsStatement.render(statement)
 }
