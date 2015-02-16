@@ -52,7 +52,7 @@ trait Page extends Logger with IdCounter {
 
 
   /**
-   * Queues javascript to be rendered via the available `Transport` with the highest priority
+   * Queues javascript to be rendered via whichever available [[Transport ]]has the highest priority
    */
   def queue[T](renderable: T)(implicit canRender: CanRender[T]) = {
     val tts = Option(transportTypes) getOrElse Nil

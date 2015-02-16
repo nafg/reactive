@@ -1,14 +1,14 @@
 package reactive
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
-import org.scalatest.prop.PropertyChecks
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.{FunSuite, Matchers}
 import org.scalatest.concurrent.AsyncAssertions
-import org.scalacheck.Arbitrary
-import org.scalacheck.Gen
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
+import org.scalatest.prop.PropertyChecks
+import org.scalatest.time.{Seconds, Span}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with AsyncAssertions {
   implicit val observing = new Observing {}
@@ -156,7 +156,7 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
       }
     }
 
-    waiter.await(Dismissals(100))
+    waiter.await(Timeout(Span(2, Seconds)), Dismissals(100))
   }
 
   test("Signals should fire change event after 'now' is set") {

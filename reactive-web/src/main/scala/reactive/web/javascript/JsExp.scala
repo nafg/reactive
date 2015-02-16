@@ -194,11 +194,9 @@ object JsLiteral {
 /**
  * A JsExp whose javascript representation is specified directly
  */
-class JsRaw[T <: JsAny](rendering: => String) extends JsExp[T] {
-  def render = rendering
-}
+class JsRaw[T <: JsAny](val render: String) extends JsExp[T]
 object JsRaw {
-  def apply[T <: JsAny](rendering: => String) = new JsRaw[T](rendering)
+  def apply[T <: JsAny](rendering: String) = new JsRaw[T](rendering)
 }
 
 /**
