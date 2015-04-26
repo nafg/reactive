@@ -61,9 +61,17 @@ object ReactiveBuild extends Build {
     .settings(publishingSettings: _*)
     .dependsOn(core, transport)
 
+  lazy val web_html = (project in file("reactive-web-html"))
+    .settings(publishingSettings: _*)
+    .dependsOn(web)
+
+  lazy val web_widgets = (project in file("reactive-web-widgets"))
+    .settings(publishingSettings: _*)
+    .dependsOn(web_html)
+
   lazy val web_lift = (project in file("reactive-web-lift"))
     .settings(publishingSettings: _*)
-    .dependsOn(web, routing)
+    .dependsOn(web_widgets, routing)
 
   lazy val web_demo = (project in file("reactive-web-demo"))
     .settings(nonPublishingSettings: _*)

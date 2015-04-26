@@ -17,7 +17,16 @@ class RepeaterTests extends FunSuite with Matchers with PropertyChecks {
 
   test("Repeater should render its children") {
     implicit val page = new TestPage
-    val select = html.Select(Val(List(1, 2, 3)))(new Observing {}, Config.defaults)
+    val repeater = new Repeater {
+      def children = SeqSignal(Val(List(1, 2, 3))).now.map { item =>
+        RElem(<option>{ item.toString }</option>)
+      }.signal
+      def baseElem = <select />
+      def properties = Nil
+      def events = Nil
+      def renderer = Config.defaults.domMutationRenderer
+    }
+    val select = repeater
     select(<select/>).asInstanceOf[Elem].child.length should equal(3)
   }
 

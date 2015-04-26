@@ -1,0 +1,1 @@
+name := "reactive-web-widgets"
