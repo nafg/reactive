@@ -3,7 +3,7 @@ import Keys._
 
 object ReactiveBuild extends Build {
   val pomCommon = <xml:group>
-    <url>http://reactive-web.tk</url>
+    <url>http://scalareactive.org</url>
     <licenses><license><name>Modified Apache</name></license></licenses>
     <scm>
       <connection>scm:git:git://github.com/nafg/reactive.git</connection>
