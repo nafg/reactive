@@ -6,13 +6,11 @@ object ReactiveBuild extends Build {
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
   val defaults = Seq(
-    organization := "cc.co.scala-reactive",
     resolvers ++= List(
       "Sonatype snapshots" at sonatypeSnapshots,
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
     ),
     checksums in update := Nil,
-    scalacOptions in (Compile, compile) += "-deprecation",
     scalacOptions in (Compile, doc) ++= Seq(
       "-sourcepath",
       baseDirectory.value.getAbsolutePath,
@@ -21,11 +19,7 @@ object ReactiveBuild extends Build {
       "-doc-title",
       "Scaladocs - scala-reactive", "-groups"
     ),
-    libraryDependencies ++= List(
-      "org.scalatest" %% "scalatest" % "2.2.5" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.12.1" % "test"
-    ),
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oF")
+    testOptions in Test += Tests.Argument("-oF")
   )
 
   val publishingSettings = defaults ++ Seq(
