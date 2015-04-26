@@ -2,14 +2,10 @@ import sbt._
 import Keys._
 
 object ReactiveBuild extends Build {
-  val sonatypeSnapshots = "https://oss.sonatype.org/content/repositories/snapshots/"
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
   val defaults = Seq(
-    resolvers ++= List(
-      "Sonatype snapshots" at sonatypeSnapshots,
-      "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
-    ),
+    resolvers += Resolver.sonatypeRepo("snapshots") ,
     checksums in update := Nil,
     scalacOptions in (Compile, doc) ++= Seq(
       "-sourcepath",
@@ -25,7 +21,7 @@ object ReactiveBuild extends Build {
   val publishingSettings = defaults ++ Seq(
     publishTo := (
       if (version.value.trim.endsWith("SNAPSHOT"))
-        Some("snapshots" at sonatypeSnapshots)
+        Some(Resolver.sonatypeRepo("snapshots") )
       else
         Some("staging" at sonatypeStaging)
     ),
