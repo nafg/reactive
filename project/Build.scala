@@ -78,5 +78,12 @@ object ReactiveBuild extends Build {
   lazy val root = Project("scala-reactive", file("."))
     .settings(nonPublishingSettings: _*)
     .settings(sbtunidoc.Plugin.unidocSettings: _*)
-    .aggregate(reactive_core, reactive_web, reactive_web_lift, reactive_web_demo, reactive_routing)
+    .aggregate(
+      reactive_core,
+      reactive_transport,
+      reactive_web,
+      reactive_routing,
+      reactive_web_lift,
+      reactive_web_demo
+    )
 }
