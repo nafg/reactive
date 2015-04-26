@@ -7,7 +7,6 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{ A => _, _ }
 import reactive._
 import reactive.web._
-import reactive.web.javascript._
 import scala.util.Try
 import scala.util.Failure
 
@@ -84,16 +83,12 @@ trait TableEditor[A] extends TableView[A] {
           case KeyUp(38, _) => //Up
             opt(rows.now.indexOf(row)) filter (_ > 0) foreach { i =>
               val prevId = renderer(rows.now(i - 1)).id
-              Javascript {
-                window.document.getElementById(prevId).focus()
-              }
+              page.queue(js"document.getElementById($prevId).focus()")
             }
           case KeyUp(40, _) => //Down
             opt(rows.now.indexOf(row)) filter (_ < rows.now.size - 1) foreach { i =>
               val nextId = renderer(rows.now(i + 1)).id
-              Javascript {
-                window.document.getElementById(nextId).focus()
-              }
+              page.queue(js"document.getElementById($nextId).focus()")
             }
           case _ =>
         }
@@ -258,23 +253,19 @@ trait TableEditor[A] extends TableView[A] {
 }
 
 trait TableEditorPlus[A] extends TableEditor[A] {
-  def isClean = window.get("isClean").asInstanceOf[Assignable[JsTypes.JsBoolean]]
-  actions.distinct foreach { as => Javascript { isClean := as.isEmpty } }
+  actions.distinct foreach { as => page queue js"window.isClean = ${as.isEmpty}" }
 
   override def render = {
-    Javascript {
-      window.onbeforeunload := { e: JsExp[JsTypes.JsObj] =>
-        If(!isClean) {
-          val reply = JsVar[JsTypes.JsString]()
-          reply := "You have unsaved changes!"
-          val evt = JsVar[JsTypes.JsObj]()
-          evt := e
-          If (evt === null) { evt := window.event }
-          If (evt !== null) { evt.get("returnValue") := reply }
-          Return(reply)
+    page queue js"""
+      window.onbeforeunload = function(evt) {
+        if(!window.isClean) {
+          var reply = "You have unsaved changes!"
+          if (!evt) evt = window.event
+          if (evt) evt.returnValue = reply
+          return reply
         }
       }
-    }
+    """
     super.render
   }
 }
