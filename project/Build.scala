@@ -71,7 +71,6 @@ object ReactiveBuild extends Build {
 
   lazy val root = (project in file("."))
     .settings(nonPublishingSettings: _*)
-    .settings(sbtunidoc.Plugin.unidocSettings: _*)
     .aggregate(
       core,
       transport,
