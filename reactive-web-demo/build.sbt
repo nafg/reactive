@@ -20,7 +20,7 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, scalaSource in Co
 }
 
 // Automatically copy the Core API Docs into the "copied-docs" managed resource folder
-resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_core, Compile)) map {
+resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (core, Compile)) map {
   (dir, docs) =>
   val dest = dir / "copied-docs" / "reactive-core-api"
   IO.copyDirectory(docs, dest)
@@ -28,7 +28,7 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_
 }
 
 // Automatically copy the Web API Docs into the "copied-docs" managed resource folder
-resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_web, Compile)) map {
+resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (web, Compile)) map {
   (dir, docs) =>
   val dest = dir / "copied-docs" / "reactive-web-api"
   IO.copyDirectory(docs, dest)
@@ -36,7 +36,7 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_
 }
 
 // Automatically copy the web-lift API Docs into the "copied-docs" managed resource folder
-resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_web_lift, Compile)) map {
+resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (web_lift, Compile)) map {
   (dir, docs) =>
   val dest = dir / "copied-docs" / "reactive-web-lift-api"
   IO.copyDirectory(docs, dest)
@@ -44,7 +44,7 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_
 }
 
 // Automatically copy the routing API Docs into the "copied-docs" managed resource folder
-resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (reactive_routing, Compile)) map {
+resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (routing, Compile)) map {
   (dir, docs) =>
   val dest = dir / "copied-docs" / "reactive-routing-api"
   IO.copyDirectory(docs, dest)

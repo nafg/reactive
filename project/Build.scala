@@ -47,37 +47,37 @@ object ReactiveBuild extends Build {
 
   val nonPublishingSettings = defaults :+ (publish := ())
 
-  lazy val reactive_core = Project("core", file("reactive-core"))
+  lazy val core = (project in file("reactive-core"))
     .settings(publishingSettings: _*)
 
-  lazy val reactive_routing = Project("routing", file("reactive-routing"))
+  lazy val routing = (project in file("reactive-routing"))
     .settings(publishingSettings: _*)
 
-  lazy val reactive_transport = Project("transport", file("reactive-transport"))
+  lazy val transport = (project in file("reactive-transport"))
     .settings(publishingSettings: _*)
-    .dependsOn(reactive_core)
+    .dependsOn(core)
 
-  lazy val reactive_web = Project("web", file("reactive-web"))
+  lazy val web = (project in file("reactive-web"))
     .settings(publishingSettings: _*)
-    .dependsOn(reactive_core, reactive_transport)
+    .dependsOn(core, transport)
 
-  lazy val reactive_web_lift = Project("web-lift", file("reactive-web-lift"))
+  lazy val web_lift = (project in file("reactive-web-lift"))
     .settings(publishingSettings: _*)
-    .dependsOn(reactive_web, reactive_routing)
+    .dependsOn(web, routing)
 
-  lazy val reactive_web_demo = Project("demo", file("reactive-web-demo"))
+  lazy val web_demo = (project in file("reactive-web-demo"))
     .settings(nonPublishingSettings: _*)
-    .dependsOn(reactive_web_lift)
+    .dependsOn(web_lift)
 
-  lazy val root = Project("scala-reactive", file("."))
+  lazy val root = (project in file("."))
     .settings(nonPublishingSettings: _*)
     .settings(sbtunidoc.Plugin.unidocSettings: _*)
     .aggregate(
-      reactive_core,
-      reactive_transport,
-      reactive_web,
-      reactive_routing,
-      reactive_web_lift,
-      reactive_web_demo
+      core,
+      transport,
+      web,
+      routing,
+      web_lift,
+      web_demo
     )
 }
