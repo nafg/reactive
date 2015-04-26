@@ -2,17 +2,6 @@ import sbt._
 import Keys._
 
 object ReactiveBuild extends Build {
-  val pomCommon = <xml:group>
-    <url>http://scalareactive.org</url>
-    <licenses><license><name>Modified Apache</name></license></licenses>
-    <scm>
-      <connection>scm:git:git://github.com/nafg/reactive.git</connection>
-      <developerConnection>scm:git:git@github.com:nafg/reactive.git</developerConnection>
-      <url>git@github.com:nafg/reactive.git</url>
-    </scm>
-    <developers><developer><id>nafg</id></developer></developers>
-  </xml:group>
-
   val sonatypeSnapshots = "https://oss.sonatype.org/content/repositories/snapshots/"
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
@@ -52,7 +41,14 @@ object ReactiveBuild extends Build {
       if(f.exists) Seq(Credentials(f))
       else Nil
     },
-    pomExtra := pomCommon
+    pomExtra := <developers><developer><id>nafg</id></developer></developers>,
+    homepage := Some(url("http://scalareactive.org")),
+    licenses := Seq(("Modified Apache", url("https://github.com/nafg/reactive/blob/master/LICENSE.txt"))),
+    scmInfo := Some(ScmInfo(
+      url("https://github.com/nafg/reactive"),
+      "scm:git:git://github.com/nafg/reactive.git",
+      Some("scm:git:git@github.com:nafg/reactive.git")
+    ))
   )
 
   val nonPublishingSettings = defaults :+ (publish := ())
