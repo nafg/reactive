@@ -5,3 +5,5 @@ scalaVersion in ThisBuild := "2.11.7"
 organization in ThisBuild := "cc.co.scala-reactive"
 
 scalacOptions in (ThisBuild, Compile, compile) += "-deprecation"
+
+sbtunidoc.Plugin.unidocSettings
