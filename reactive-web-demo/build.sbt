@@ -1,5 +1,7 @@
 name := "reactive-web-demo"
 
+description := "Reactive-web demo app (http://scalareactive.org)"
+
 seq(webSettings: _*)
 
 libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test")
