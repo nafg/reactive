@@ -23,8 +23,8 @@ object SseTransportType extends PagesCache {
             OutputStreamResponse(
               (os: OutputStream) => {
                 val osw = new OutputStreamWriter(os)
-                spc.sseTransport.write(osw, req.header("Last-Event-ID") map (_.toLong) openOr 0)
-                osw.close()
+                try spc.sseTransport.write(osw, req.header("Last-Event-ID") map (_.toLong) openOr 0)
+                finally osw.close()
               },
               List(
                 "Content-Type" -> "text/event-stream",
@@ -83,7 +83,8 @@ class SseTransportType(page: Page) extends TransportType {
         next.value match {
           case Some(ms) =>
             val msg = ms.elem
-            writer.write(s"id: ${msg.num}\ndata: ${msg.data}\n\n")
+            val lines = msg.data.lines.map("data: " + _ + "\n").mkString
+            writer.write(s"id: ${msg.num}\n$lines\n")
             writer.flush()
             loop(ms.next, msg.num)
           case None =>

@@ -23,11 +23,11 @@ class SseTests extends FunSuite with Matchers with Eventually with SpanSugar {
       page.spc.sseTransport.write(sw)
     }
     Thread.sleep(200)
-    page.spc.sseTransport.queued fire StringRenderable("hello")
+    page.spc.sseTransport.queued fire StringRenderable("hello\nworld")
     Await.ready(fut, duration.Duration.Inf)
 
     eventually(timeout(3000.millis)) {
-      sw.toString should equal ("id: 1\ndata: hello\n\n")
+      sw.toString should equal ("id: 1\ndata: hello\ndata: world\n\n")
     }
   }
 }
