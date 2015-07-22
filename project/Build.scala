@@ -33,10 +33,10 @@ object ReactiveBuild extends Build {
       "Scaladocs - scala-reactive", "-groups"
     ),
     libraryDependencies ++= List(
-      "org.scalatest" %% "scalatest" % "2.2.0" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
+      "org.scalatest" %% "scalatest" % "2.2.5" % "test",
+      "org.scalacheck" %% "scalacheck" % "1.12.1" % "test"
     ),
-    testOptions in Test += Tests.Argument("-oF")
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oF")
   )
 
   val publishingSettings = defaults ++ Seq(

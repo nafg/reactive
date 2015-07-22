@@ -4,7 +4,7 @@ seq(webSettings: _*)
 
 libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test")
 
-libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6"
+libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6.2"
 
 scanDirectories in Compile := Nil
 
