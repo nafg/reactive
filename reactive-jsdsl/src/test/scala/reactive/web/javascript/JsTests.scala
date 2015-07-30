@@ -8,6 +8,8 @@ import org.scalatest.FunSuite
 import org.scalatest.Matchers
 
 class JsTests extends FunSuite with Matchers with Observing {
+  def stats(f: => Any): List[String] = JsStatement.inScope(f)._2 map JsStatement.render
+
   test("Operators") {
     (1.$ + 2).render should equal (new JsOp(1, 2, "+").render)
     (1.$ & 2).render should equal (new JsOp(1, 2, "&").render)
@@ -74,20 +76,18 @@ class JsTests extends FunSuite with Matchers with Observing {
     }
     implicit object ext extends Extend[obj, extendObj]
     val obj = jsProxy[obj](())
-    implicit val page = new TestPage
-    val queued = page.collectQueued {
-      Javascript {
-        obj.method(obj.method("This is a scala string"))
-        JsVar[JsObj] := obj.self
-        obj.nullary
-        obj.prop := 2
-        obj.self.prop := 3
-        obj.get("otherProp") := "xyz"
-        obj.getSelf(1).getSelf(2)
-        obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
-          obj.takeCallback2{ _: JsExp[JsTypes.JsVoid] =>
-            obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)
-          }
+    implicit object idCounter extends IdCounter
+    val js = stats {
+      obj.method(obj.method("This is a scala string"))
+      JsVar[JsObj] := obj.self
+      obj.nullary
+      obj.prop := 2
+      obj.self.prop := 3
+      obj.get("otherProp") := "xyz"
+      obj.getSelf(1).getSelf(2)
+      obj.takeCallback{ _: JsExp[JsTypes.JsVoid] =>
+        obj.takeCallback2{ _: JsExp[JsTypes.JsVoid] =>
+          obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4)
         }
       }
     }
@@ -102,7 +102,7 @@ class JsTests extends FunSuite with Matchers with Observing {
       "obj.getSelf(1).getSelf(2);",
       "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4);}));}));"
     )
-    (queued, expected).zipped foreach { case (a, b) => a.render should equal (b) }
+    (js, expected).zipped foreach { case (a, b) => a shouldBe b }
   }
 
   test("JsStub+Extend"){
@@ -121,20 +121,18 @@ class JsTests extends FunSuite with Matchers with Observing {
     implicit object extendWindow extends Extend[Window, Window2]
     implicit object jqElem2jqJstree extends Extend[JQueryElem, JQueryJsTreeElem]
 
-    implicit val page = new TestPage
-    val res = page.collectQueued {
-      Javascript {
-        window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
-          window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
-            //TODO not chained
-            window.jQuery(".items").jstree("create",
-              JsRaw[JsTypes.JsString](null),
-              "last"
-            ).bind("rename.jstree"){ _: JsExp[JsObj] =>
-                Ajax{ x: Int => println("Got rename "+x+"!") } apply 10
-              }
-          }, 1000)
-        }
+    implicit val page = Page()
+    val res = stats {
+      window.jQueryReady{ _: JsExp[JsTypes.JsVoid] =>
+        window.setTimeout({ _: JsExp[JsTypes.JsVoid] =>
+          //TODO not chained
+          window.jQuery(".items").jstree("create",
+            JsRaw[JsTypes.JsString](null),
+            "last"
+          ).bind("rename.jstree"){ _: JsExp[JsObj] =>
+              Ajax{ x: Int => println("Got rename "+x+"!") } apply 10
+            }
+        }, 1000)
       }
     }
     res.length should equal (1)
@@ -151,7 +149,7 @@ class JsTests extends FunSuite with Matchers with Observing {
         ");"+
         "})"+
         ");"
-    (res, List(expected)).zipped foreach { case (a, b) => a.render should equal (b) }
+    (res, List(expected)).zipped foreach { case (a, b) => a shouldBe b }
   }
 
   test("Function bodies do not get repeated") {
@@ -186,9 +184,9 @@ class JsTests extends FunSuite with Matchers with Observing {
       JsStatement.render(JsStatement.pop) should equal("window.alert(window.encodeURIComponent(\"Message\"));")
     }
 
-    implicit val page = new TestPage
+    implicit val page = Page()
 
-    val (_, theStatements) = JsStatement.inScope{
+    val theStatements = stats {
       If(true) {
         window.alert("True")
       }.ElseIf (false){
@@ -242,8 +240,7 @@ class JsTests extends FunSuite with Matchers with Observing {
       val myAjax = Ajax { x: String => println("Got " + x) }
       myAjax("Hello server!")
     }
-    val rendered = theStatements map JsStatement.render
-    //    theStatements map JsStatement.render foreach println
+    val rendered = theStatements
     val target = List(
       """if(true) {window.alert("True");} else if(false) {window.alert("False");} else {if(true) {} else {}}""",
       """while(true) {window.alert("Again!");}""",

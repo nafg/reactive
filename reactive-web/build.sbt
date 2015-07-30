@@ -1,4 +1,4 @@
-name := "reactive-web"
+name := "reactive-web-base"
 
 description := "FRP-based abstractions to control the browser from the server"
 

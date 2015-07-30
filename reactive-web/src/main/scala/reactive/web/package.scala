@@ -1,7 +1,7 @@
 package reactive
 
 import scala.xml.{ Elem, Group, Node, NodeSeq }
-import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
+import web.javascript.{ JsExp, JsTypes, =|>, Javascript, JsStatement, window, Ajax }
 import reactive.logging.Logger
 import net.liftweb.util.CanBind
 
@@ -41,8 +41,6 @@ package object web {
   }
 
   implicit def jsInterpolator(sc: StringContext): JsInterpolator = new JsInterpolator(sc)
-
-  implicit val canRenderJsStatement: CanRender[javascript.JsStatement] = CanRender(JavascriptStatementRenderable(_))
 
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
@@ -130,14 +128,4 @@ package object web {
    */
   private[web] def bindFunc2seqContentFunc[T](bindFunc: SeqSignal[NodeSeq => NodeSeq])(andThen: SeqSignal[NodeSeq] => T): NodeSeq => T =
     ns => andThen(bindFunc.now.map(_(ns)).signal)
-
-  /**
-   * Given a Class instance, extract the original scala identifier name.
-   * Class names can be of the form [[abc] $] name [$ [nnn] ...]
-   */
-  private[web] def scalaClassName(c: Class[_]) = {
-    val name = c.getSimpleName
-    val dropEnd = name.replaceAll("""(\$\d*)*\z""", "")
-    dropEnd.toList.reverse.takeWhile('$' != _).reverse.mkString
-  }
 }

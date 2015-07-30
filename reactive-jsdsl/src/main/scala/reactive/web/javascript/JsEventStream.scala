@@ -1,6 +1,7 @@
-package reactive
-package web
-package javascript
+package reactive.web.javascript
+
+import reactive.{ CanForwardTo, EventStream }
+import reactive.web.Page
 
 import net.liftweb.json.{ Formats, DefaultFormats }
 
@@ -125,7 +126,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   //  def foldLeft[U](initial: U)(f: (U,T)=>U): EventStream[U]
   //  def |[U>:T](that: EventStream[U]): EventStream[U]
   //  def hold[U>:T](init: U): Signal[U]
-  //  
+  //
   //  def nonrecursive: EventStream[T]
 
 }

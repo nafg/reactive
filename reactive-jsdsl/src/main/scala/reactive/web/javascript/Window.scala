@@ -1,6 +1,4 @@
-package reactive
-package web
-package javascript
+package reactive.web.javascript
 
 import JsTypes._
 

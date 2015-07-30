@@ -1,7 +1,7 @@
 package reactive
 package web
 
-import javascript._
+import javascript.{ Apply, JsExp, JsLiterable, JsStatement, JsTypes }
 
 import scala.xml._
 import scala.util.matching.Regex
@@ -12,6 +12,7 @@ import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonAST.JBool
 
 import reactive.logging.HasLogger
+import reactive.Util.scalaClassName
 
 /**
  * A [[Page]] for testing purposes, that
@@ -87,7 +88,7 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
               case e: Exception =>
                 Console.err.println("TestPage: Could not apply DomMutation " + dm)
             }
-          case JavascriptStatementRenderable(Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg)))) =>
+          case JsStatement.Renderable(Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg)))) =>
             confirms ::= (msg, b => ajaxEvents.fire((id, JBool(b))))
           case _ =>
         }

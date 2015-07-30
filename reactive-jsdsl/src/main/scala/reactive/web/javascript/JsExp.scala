@@ -1,6 +1,8 @@
-package reactive
-package web
-package javascript
+package reactive.web.javascript
+
+import reactive.CanForwardTo
+import reactive.Util.scalaClassName
+import reactive.web.Page
 
 import net.liftweb.json._
 

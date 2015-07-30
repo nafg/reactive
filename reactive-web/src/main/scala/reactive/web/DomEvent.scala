@@ -1,7 +1,7 @@
 package reactive
 package web
 
-import javascript._
+import javascript.{ $, FromJs, JsTypes, JsLiterable }
 import JsTypes._
 import net.liftweb.json.Serialization
 import net.liftweb.json.JsonAST.JValue

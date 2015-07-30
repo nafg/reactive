@@ -53,17 +53,26 @@ object ReactiveBuild extends Build {
     .settings(publishingSettings: _*)
     .dependsOn(core)
 
-  lazy val web = (project in file("reactive-web"))
+  lazy val jsdsl = (project in file("reactive-jsdsl"))
     .settings(publishingSettings: _*)
-    .dependsOn(core, transport)
+    .dependsOn(transport)
+
+  lazy val web_base = (project in file("reactive-web"))
+    .settings(publishingSettings: _*)
+    .dependsOn(core, jsdsl)
 
   lazy val web_html = (project in file("reactive-web-html"))
     .settings(publishingSettings: _*)
-    .dependsOn(web)
+    .dependsOn(web_base)
 
   lazy val web_widgets = (project in file("reactive-web-widgets"))
     .settings(publishingSettings: _*)
     .dependsOn(web_html)
+
+  lazy val web = (project in file("reactive-web-aggregated"))
+    .settings(publishingSettings: _*)
+    .settings(name := "reactive-web")
+    .dependsOn(web_widgets)
 
   lazy val web_lift = (project in file("reactive-web-lift"))
     .settings(publishingSettings: _*)
@@ -78,8 +87,12 @@ object ReactiveBuild extends Build {
     .aggregate(
       core,
       transport,
-      web,
+      jsdsl,
+      web_base,
       routing,
+      web_html,
+      web_widgets,
+      web,
       web_lift,
       web_demo
     )

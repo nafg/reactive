@@ -1,7 +1,7 @@
 package reactive
 package web
 
-import javascript._
+import javascript.JsExp
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.Group
