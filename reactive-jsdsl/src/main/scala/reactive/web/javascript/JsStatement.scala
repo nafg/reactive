@@ -1,6 +1,10 @@
-package reactive
-package web
-package javascript
+package reactive.web.javascript
+
+import reactive.Observing
+import reactive.web.Page
+import reactive.web.IdCounter
+import reactive.web.CanRender
+import reactive.web.Renderable
 
 import JsTypes._
 
@@ -172,6 +176,11 @@ object JsStatement {
     ret
   }
   def peek = currentScope.headOption
+
+  case class Renderable(statement: JsStatement) extends reactive.web.Renderable {
+    def render = JsStatement.render(statement)
+  }
+  implicit val canRenderJsStatement: CanRender[JsStatement] = CanRender(Renderable(_))
 }
 
 final private class Block(block: => Unit) extends JsStatement {

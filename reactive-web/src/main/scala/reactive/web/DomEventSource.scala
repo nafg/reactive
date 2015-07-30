@@ -2,7 +2,7 @@ package reactive
 package web
 
 import net.liftweb.util.Helpers.urlDecode
-import javascript._
+import javascript.{ $, =|>, buildJs, JsEventStream, JsExp, JsForwardable, JsIdentable, JsTypes, ToJs }
 import JsTypes._
 
 import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
@@ -11,6 +11,7 @@ import scala.collection.mutable.WeakHashMap
 import scala.reflect.{ classTag, ClassTag }
 
 import reactive.logging.Logger
+import reactive.Util.scalaClassName
 
 import scala.language.higherKinds
 

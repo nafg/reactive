@@ -3,7 +3,7 @@ package web
 
 import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
 
-import javascript._
+import javascript.{ $, JsLiterable, JsTypes }
 
 /**
  * Instances of this trait specify how to encode element property values to the client

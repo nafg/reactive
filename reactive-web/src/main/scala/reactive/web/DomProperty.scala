@@ -2,7 +2,7 @@ package reactive
 package web
 
 import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
-import javascript._
+import javascript.{ Assignable, buildJs, CanForwardJs, JsEventStream, JsExp, JsForwardable, JsTypes, window }
 
 import scala.ref.WeakReference
 

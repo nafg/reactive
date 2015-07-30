@@ -1,5 +1,6 @@
-package reactive
-package web
+package reactive.web
+
+import reactive.Util.scalaClassName
 
 import scala.reflect.{ classTag, ClassTag }
 
