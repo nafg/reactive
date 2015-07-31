@@ -127,22 +127,29 @@ class Boot {
       if(item.children.isEmpty) m >> markdownTemplate
       else m >> emptyPage >> PlaceHolder submenus (item.children.map(i => itemToMenu(i, p)): _*)
     }
+
+    val modules = Seq(
+      "reactive-core",
+      "reactive-routing",
+      "reactive-transport",
+      "reactive-jsdsl",
+      "reactive-web-base",
+      "reactive-web-html",
+      "reactive-web-widgets",
+      "reactive-web",
+      "reactive-web-lift"
+    )
+    val projSubs =
+      (Menu("Combined") / "api" / "unidoc" / **) +:
+        modules.map(m => Menu(m) / "api" / m / **)
     val menus = docTree.map(itemToMenu(_)) :+ (
-      Menu("Scaladocs") / "3" >> PlaceHolder submenus (
-        Menu("reactive-core") / "reactive-core-api" / **,
-        Menu("reactive-routing") / "reactive-routing-api" / **,
-        Menu("reactive-web") / "reactive-web-api" / **,
-        Menu("reactive-web-lift") / "reactive-web-lift-api" / **
-      )
-    ) :+
+      Menu("Scaladocs") / "3" >> PlaceHolder submenus (projSubs: _*)
+      ) :+
         reactive.web.demo.snippet.DemoPane.menu
     def sitemap = () => SiteMap(menus: _*)
     LiftRules.setSiteMapFunc(sitemap)
     LiftRules.liftRequest.append {
-      case Req("reactive-core-api" :: _, _, _) => false
-      case Req("reactive-routing-api" :: _, _, _) => false
-      case Req("reactive-web-api" :: _, _, _)  => false
-      case Req("reactive-web-lift-api" :: _, _, _)  => false
+      case Req("api" :: _, _, _) => false
     }
     LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
     LiftRules.useXhtmlMimeType = false

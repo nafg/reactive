@@ -1,11 +1,10 @@
 package reactive
 package web
 
-import net.liftweb.util.Helpers.urlDecode
 import javascript.{ $, =|>, buildJs, JsEventStream, JsExp, JsForwardable, JsIdentable, JsTypes, ToJs }
 import JsTypes._
 
-import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
+import scala.xml.{ NodeSeq, UnprefixedAttribute, MetaData }
 
 import scala.collection.mutable.WeakHashMap
 import scala.reflect.{ classTag, ClassTag }
