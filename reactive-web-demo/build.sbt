@@ -2,13 +2,9 @@ name := "reactive-web-demo"
 
 description := "Reactive-web demo app (http://scalareactive.org)"
 
-seq(webSettings: _*)
-
-libraryDependencies += ("org.mortbay.jetty" % "jetty" % "6.1.26" % "container,test")
+enablePlugins(JettyPlugin)
 
 libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6.2"
-
-scanDirectories in Compile := Nil
 
 // To change the default port, use the following line
 // (port in container.Configuration) := 9999
@@ -64,6 +60,4 @@ resourceGenerators in Compile <+= (resourceManaged in Compile, doc in (root, Sca
 // Use the copied-docs folder as an addition to the webapp resources.
 // When the resourceGenerators run, this dir will contain
 // "reactive-core-api" and "reactive-web-api" directories.
-webappResources in Compile <+= (resourceManaged in Compile) { dir =>
-  dir / "copied-docs"
-}
+unmanagedResourceDirectories in Compile += (resourceManaged in Compile).value / "copied-docs"
