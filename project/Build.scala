@@ -4,6 +4,8 @@ import Keys._
 object ReactiveBuild extends Build {
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
+  def branchName = "git rev-parse --abbrev-ref HEAD".!!.trim
+
   val defaults = Seq(
     resolvers += Resolver.sonatypeRepo("snapshots") ,
     checksums in update := Nil,
@@ -11,7 +13,7 @@ object ReactiveBuild extends Build {
       "-sourcepath",
       baseDirectory.value.getAbsolutePath,
       "-doc-source-url",
-      s"http://github.com/nafg/reactive/blob/master/${ baseDirectory.value.getName }€{FILE_PATH}.scala",
+      s"http://github.com/nafg/reactive/blob/$branchName/${ baseDirectory.value.getName }€{FILE_PATH}.scala",
       "-doc-title",
       "Scaladocs - scala-reactive", "-groups"
     ),
