@@ -15,7 +15,8 @@ object ReactiveBuild extends Build {
       "-doc-title",
       "Scaladocs - scala-reactive", "-groups"
     ),
-    testOptions in Test += Tests.Argument("-oF")
+    testOptions in Test += Tests.Argument("-oF"),
+    autoAPIMappings := true
   )
 
   val publishingSettings = defaults ++ Seq(

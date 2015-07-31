@@ -6,4 +6,8 @@ organization in ThisBuild := "cc.co.scala-reactive"
 
 scalacOptions in (ThisBuild, Compile, compile) += "-deprecation"
 
-sbtunidoc.Plugin.unidocSettings
+import sbtunidoc.Plugin._
+import UnidocKeys._
+unidocSettings
+
+unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(web_demo)
