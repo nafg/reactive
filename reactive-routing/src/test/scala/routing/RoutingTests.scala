@@ -7,23 +7,6 @@ import org.scalatest.Matchers
 class RoutingTests extends FunSuite with Matchers with Inside {
   def printType[A : Manifest](a: A) = println(s"$a : ${manifest[A]}")
 
-  implicit object intStringable extends Stringable[Int] {
-    def format = _.toString
-    def parse = s => try Some(s.toInt) catch { case _: Exception => None }
-  }
-  implicit object strStringable extends Stringable[String] {
-    def format = identity
-    def parse = Some(_)
-  }
-  implicit object boolStringable extends Stringable[Boolean] {
-    def format = _.toString
-    def parse = {
-      case "true" => Some(true)
-      case "false" => Some(false)
-      case _ => None
-    }
-  }
-
   val p = "add" :/: arg[Int] :/: "plus" :/: arg[Int] :/: "please"
   val p2 = "addall" :/: **
   val p3 = "test" :/: arg[Int] :&: param[Int]("test1") :&: param[Int]("test2") :&: params[Int]("test3")
@@ -32,7 +15,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
   val p5 = "test" :&: param[Int]("test1")
 
   val r = p >> { a => b => a + b }
-  val r2 = p2 >> { xs => xs.map(intStringable.parse).flatten.sum }
+  val r2 = p2 >> { xs => xs.map(implicitly[Stringable[Int]].parse).flatten.sum }
   val r3 = p3 >> { x => test1 => test2 => test3 => (x, test1, test2, test3) }
 
   test("Constructing links") {
