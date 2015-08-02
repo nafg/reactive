@@ -27,6 +27,14 @@ object Stringable {
     def format = _.toString
     def parse = s => Try(s.toInt).toOption
   }
+  implicit val bool: Stringable[Boolean] = new Stringable[Boolean] {
+    def format = _.toString
+    def parse = {
+      case "true" => Some(true)
+      case "false" => Some(false)
+      case _ => None
+    }
+  }
   implicit val instant: Stringable[Instant] = new Stringable[Instant] {
     val isoDate: DateTimeFormatter = DateTimeFormatter.ISO_DATE
     def format = _.toString

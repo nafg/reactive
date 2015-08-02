@@ -18,5 +18,6 @@ object StringableProperties extends Properties("Stringable") {
   property("string") = testStringable(implicitly[Stringable[String]])
   property("long") = testStringable(implicitly[Stringable[Long]])
   property("int") = testStringable(implicitly[Stringable[Int]])
+  property("bool") = testStringable(implicitly[Stringable[Boolean]])
   property("instant") = testStringable(implicitly[Stringable[Instant]])
 }
