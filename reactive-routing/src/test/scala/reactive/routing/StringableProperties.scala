@@ -1,10 +1,9 @@
-package routing
+package reactive.routing
 
 import java.time.Instant
 
 import org.scalacheck.{Arbitrary, Prop, Properties}
 import Prop._
-import reactive.routing.Stringable
 
 object StringableProperties extends Properties("Stringable") {
   implicit def arbInstant = Arbitrary {
