@@ -9,7 +9,7 @@ libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6.2"
 webappPostProcess := { outDir =>
   val docs = outDir / "api"
   IO.copyDirectory((doc in(core, Compile)).value, docs / "reactive-core")
-  IO.copyDirectory((doc in(routing, Compile)).value, docs / "reactive-routing")
+  IO.copyDirectory((doc in(routingJVM, Compile)).value, docs / "reactive-routing")
   IO.copyDirectory((doc in(transport, Compile)).value, docs / "reactive-transport")
   IO.copyDirectory((doc in(jsdsl, Compile)).value, docs / "reactive-jsdsl")
   IO.copyDirectory((doc in(web_base, Compile)).value, docs / "reactive-web-base")

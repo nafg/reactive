@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport._
 
 object ReactiveBuild extends Build {
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
@@ -49,8 +50,11 @@ object ReactiveBuild extends Build {
   lazy val core = (project in file("reactive-core"))
     .settings(publishingSettings: _*)
 
-  lazy val routing = (project in file("reactive-routing"))
+  lazy val routing = (crossProject.crossType(CrossType.Pure) in file("reactive-routing"))
+    .settings(name := "reactive-routing")
     .settings(publishingSettings: _*)
+  lazy val routingJS = routing.js
+  lazy val routingJVM = routing.jvm
 
   lazy val transport = (project in file("reactive-transport"))
     .settings(publishingSettings: _*)
@@ -79,7 +83,7 @@ object ReactiveBuild extends Build {
 
   lazy val web_lift = (project in file("reactive-web-lift"))
     .settings(publishingSettings: _*)
-    .dependsOn(web_widgets, routing)
+    .dependsOn(web_widgets, routingJVM)
 
   lazy val web_demo = (project in file("reactive-web-demo"))
     .settings(nonPublishingSettings: _*)
@@ -92,7 +96,8 @@ object ReactiveBuild extends Build {
       transport,
       jsdsl,
       web_base,
-      routing,
+      routingJS,
+      routingJVM,
       web_html,
       web_widgets,
       web,
