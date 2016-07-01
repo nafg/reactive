@@ -2,7 +2,8 @@ package reactive
 package web
 
 import net.liftweb.json._
-import upickle._
+import upickle.Js
+import upickle.default._
 
 object LiftJsonToUpickle {
   def apply(in: JValue): Js.Value = in match {

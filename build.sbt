@@ -1,6 +1,6 @@
-crossScalaVersions in ThisBuild := Seq("2.11.7", "2.10.5")
+crossScalaVersions in ThisBuild := Seq("2.11.8", "2.10.6")
 
-scalaVersion in ThisBuild := "2.11.7"
+scalaVersion in ThisBuild := "2.11.8"
 
 organization in ThisBuild := "cc.co.scala-reactive"
 

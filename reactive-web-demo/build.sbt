@@ -4,7 +4,7 @@ description := "Reactive-web demo app (http://scalareactive.org)"
 
 enablePlugins(JettyPlugin)
 
-libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6.2"
+libraryDependencies += "net.liftweb" %% "lift-markdown" % "2.6.3"
 
 webappPostProcess := { outDir =>
   val docs = outDir / "api"
