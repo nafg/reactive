@@ -10,4 +10,4 @@ import sbtunidoc.Plugin._
 import UnidocKeys._
 unidocSettings
 
-unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(web_demo)
+unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(routingJS, web_demo)
