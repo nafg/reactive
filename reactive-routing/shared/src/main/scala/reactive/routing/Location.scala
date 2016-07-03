@@ -1,7 +1,7 @@
 package reactive
 package routing
 
-import java.net.URLEncoder
+import Compat._
 
 case class Location(path: List[String], query: List[(String, String)] = Nil) {
   /** Append path components */
@@ -37,8 +37,7 @@ case class Location(path: List[String], query: List[(String, String)] = Nil) {
 
   /** Get a URL-encoded `String` representing this `Location` */
   def toUrl = {
-    val enc = URLEncoder.encode(_: String, "UTF-8")
-    val q = if(query.isEmpty) "" else "?" + query.map{case (k,v) => enc(k)+"="+enc(v)}.mkString("&")
-    path.map(enc).mkString("/", "/", q)
+    val q = if(query.isEmpty) "" else "?" + query.map{case (k,v) => encodeURIComponent(k)+"="+encodeURIComponent(v)}.mkString("&")
+    path.map(encodeURIComponent).mkString("/", "/", q)
   }
 }

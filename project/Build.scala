@@ -50,7 +50,7 @@ object ReactiveBuild extends Build {
   lazy val core = (project in file("reactive-core"))
     .settings(publishingSettings: _*)
 
-  lazy val routing = (crossProject.crossType(CrossType.Pure) in file("reactive-routing"))
+  lazy val routing = (crossProject.crossType(CrossType.Full) in file("reactive-routing"))
     .settings(
       name := "reactive-routing",
       description := "Type safe routing library",
