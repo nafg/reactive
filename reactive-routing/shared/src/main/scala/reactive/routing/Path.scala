@@ -31,8 +31,11 @@ object Path {
   import nsub._
 
   class PathRouteOpsBase[R <: RouteType](path: Path[R]) {
-    def >>?[A](rte: R#Route[A])(implicit mapRoute: CanLiftRouteMapping[R]): PathRoute[R, A] = new PathRoute[R, A](path, rte)
-    def >>[A](rte: R#Func[A])(implicit mapRoute: CanLiftRouteMapping[R], lift: FnToPF[R]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
+    def >>?[A](rte: R#Route[A])(implicit mapRoute: AndThen[R#Route]): PathRoute[R, A] = new PathRoute[R, A](path, rte)
+    def >>[A](rte: R#Func[A])(implicit mapRoute: AndThen[R#Route], lift: FnToPF[R]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
+    def toOp[A] = new {
+      def apply[V <: HttpVerb](v: V) = Operation[R, HttpOp[V, A]](path)
+    }
   }
   class PathComponentOpsBase[R <: RouteType, P <: Path[R]](path: P with Path[R]) extends PathRouteOpsBase[R](path) {
     def :/:(s: String) = PLit[R, P](s, path)

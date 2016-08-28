@@ -1,15 +1,16 @@
 package reactive
 package routing
 
+import scala.language.higherKinds
+
 /**
- * Represents the structure of a [[Path]] or [[Sitelet]]. See subclasses, [[RConst]] and [[RFunc]].
+  * Represents the structure of a [[Path]] or [[Sitelet]]. See subclasses, [[RConst]] and [[RFunc]].
  * @note There are no actual instances of [[RouteType]]. It is used for its type projections.
  */
 sealed trait RouteType {
-  import scala.language.higherKinds
   type Route[+R]
   type Func[R]
-  type EncodeFunc
+  type EncodeFunc = Func[Location]
 }
 
 /**
@@ -20,7 +21,6 @@ sealed trait RouteType {
 final class RConst private extends RouteType {
   type Route[+R] = R
   type Func[R] = R
-  type EncodeFunc = Location
 }
 
 /**
@@ -33,20 +33,44 @@ final class RConst private extends RouteType {
 final class RFunc[In, N <: RouteType] private extends RouteType {
   type Route[+R] = PartialFunction[In, N#Route[R]]
   type Func[R] = In => N#Func[R]
-  type EncodeFunc = In => N#EncodeFunc
 }
 
-trait CanLiftRouteMapping[R <: RouteType] {
-  def apply[A, B](f: A => B): R#Route[A] => R#Route[B]
+trait AndThen[F[_]] {
+  def apply[A, B](cont: A => B): F[A] => F[B]
 }
-object CanLiftRouteMapping {
-  implicit val const: CanLiftRouteMapping[RConst] = new CanLiftRouteMapping[RConst] {
-    override def apply[A, B](f: A => B) = f
+object AndThen {
+  type Id[A] = A
+  implicit def const: AndThen[Id] = new AndThen[Id] {
+    def apply[A, B](cont: A => B) = cont
   }
-  implicit def pf[In, N <: RouteType](implicit next: CanLiftRouteMapping[N]): CanLiftRouteMapping[RFunc[In, N]] = new CanLiftRouteMapping[RFunc[In, N]] {
-    override def apply[A, B](f: A => B) = _ andThen next(f)
+  implicit def func[In, Next <: RouteType](implicit next: AndThen[Next#Func]): AndThen[RFunc[In, Next]#Func] = new AndThen[RFunc[In, Next]#Func] {
+    def apply[A, B](cont: A => B) = _ andThen next(cont)
+  }
+  implicit def pf[In, Next <: RouteType](implicit next: AndThen[Next#Route]): AndThen[RFunc[In, Next]#Route] = new AndThen[RFunc[In, Next]#Route] {
+    def apply[A, B](cont: A => B) = _ andThen next(cont)
   }
 }
+
+//trait Unlift[R <: RouteType] {
+//  def apply[A](pf: R#Route[Option[A]]): R#Route[A]
+//}
+//object Unlift {
+//  implicit def const: Unlift[RConst] = new Unlift[RConst] {
+//    override def apply[A](x: Option[A]): A =
+//  }
+//}
+//trait AndThenPF[F[_], G[_, _]] {
+//  def apply[A, B](cont: PartialFunction[A, B]): G[F[A], F[B]]
+//}
+//object AndThenPF {
+//  type Id[A] = A
+//  implicit def const: AndThenPF[Id, PartialFunction] = new AndThenPF[Id, PartialFunction] {
+//    override def apply[A, B](cont: PartialFunction[A, B]) = cont
+//  }
+//  implicit def pf[In, Next <: RouteType] = new AndThenPF {
+//    override def apply[A, B](cont: PartialFunction[A, B]) =
+//  }
+//}
 
 trait FnToPF[R <: RouteType] {
   type Partial[A] = R#Route[A]

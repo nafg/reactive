@@ -33,16 +33,16 @@ class RoutingTests extends FunSuite with Matchers with Inside {
   }
 
   test("Running urls") {
-    r.run(Location("add" :: "10" :: "plus" :: "20" :: "please" :: Nil)) should equal (30)
-    r.run.isDefinedAt(Location("add" :: "10" :: "and" :: "20" :: "please" :: Nil)) should equal (false)
-    r.run.isDefinedAt(Location("add" :: "10" :: "plus" :: "20" :: Nil)) should equal (false)
+    r.run(Call(Location("add" :: "10" :: "plus" :: "20" :: "please" :: Nil))) should equal (30)
+    r.run.isDefinedAt(Call(Location("add" :: "10" :: "and" :: "20" :: "please" :: Nil))) should equal (false)
+    r.run.isDefinedAt(Call(Location("add" :: "10" :: "plus" :: "20" :: Nil))) should equal (false)
 
     List(
-      Location(Nil),
-      Location("addall" :: Nil),
-      Location("addall" :: "1" :: Nil),
-      Location("addall" :: "1" :: "2" :: Nil),
-      Location("addall" :: "1" :: "2" :: "3" :: Nil)
+      Call(Location(Nil)),
+      Call(Location("addall" :: Nil)),
+      Call(Location("addall" :: "1" :: Nil)),
+      Call(Location("addall" :: "1" :: "2" :: Nil)),
+      Call(Location("addall" :: "1" :: "2" :: "3" :: Nil))
     ).map(r2.run.lift) should equal (List(
       None,
       Some(0),
@@ -52,25 +52,25 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     ))
 
     r3.run(
-      Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "30", "test2" -> "40", "test3" -> "1", "test3" -> "2", "test3" -> "a"))
+      Call(Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "30", "test2" -> "40", "test3" -> "1", "test3" -> "2", "test3" -> "a")))
     ) should equal ((10, Some(20), Some(30), List(1, 2)))
-    r3.run.isDefinedAt(Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "X30", "test2" -> "40", "test3" -> "1", "test3" -> "2"))) should equal (false)
+    r3.run.isDefinedAt(Call(Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "X30", "test2" -> "40", "test3" -> "1", "test3" -> "2")))) should equal (false)
   }
 
   test("Sites") {
     val s = r & r2 & r3
 
     List(
-      Location("add" :: "10" :: "plus" :: "20" :: "please" :: Nil),
-      Location("add" :: "10" :: "and" :: "20" :: "please" :: Nil),
-      Location("add" :: "10" :: "plus" :: "20" :: Nil),
-      Location(Nil),
-      Location("addall" :: Nil),
-      Location("addall" :: "1" :: Nil),
-      Location("addall" :: "1" :: "2" :: Nil),
-      Location("addall" :: "1" :: "2" :: "3" :: Nil),
-      Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "30", "test2" -> "40", "test3" -> "1", "test3" -> "2", "test3" -> "a")),
-      Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "X30", "test2" -> "40", "test3" -> "1", "test3" -> "2"))
+      Call(Location("add" :: "10" :: "plus" :: "20" :: "please" :: Nil)),
+      Call(Location("add" :: "10" :: "and" :: "20" :: "please" :: Nil)),
+      Call(Location("add" :: "10" :: "plus" :: "20" :: Nil)),
+      Call(Location(Nil)),
+      Call(Location("addall" :: Nil)),
+      Call(Location("addall" :: "1" :: Nil)),
+      Call(Location("addall" :: "1" :: "2" :: Nil)),
+      Call(Location("addall" :: "1" :: "2" :: "3" :: Nil)),
+      Call(Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "30", "test2" -> "40", "test3" -> "1", "test3" -> "2", "test3" -> "a"))),
+      Call(Location("test" :: "10" :: Nil, List("test1" -> "20", "test2" -> "X30", "test2" -> "40", "test3" -> "1", "test3" -> "2")))
     ).map(s.run.lift) should equal (List(
       Some(30),
       None,
@@ -102,7 +102,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val ll = zz.construct.map(_(10)(20)(30))
     ll.head should equal (Location("10" :: "add" :: "20" :: "plus" :: "30" :: "please" :: Nil, Nil))
 
-    zz.run(Location("10" :: "add" :: "20" :: "plus" :: "30" :: "please" :: Nil, Nil)) should equal (60)
+    zz.run(Call(Location("10" :: "add" :: "20" :: "plus" :: "30" :: "please" :: Nil, Nil))) should equal (60)
   }
 
   test("map") {
@@ -112,7 +112,7 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val l = z.construct.map(_(10)(20))
     l should equal (site.construct.map(_(10)(20)))
 
-    val res = z.run(l.head)
+    val res = z.run(Call(l.head))
 
     implicitly[res.type <:< String]
 
@@ -122,8 +122,8 @@ class RoutingTests extends FunSuite with Matchers with Inside {
   test("map with various Path types") {
     val site2 = r & r2
     val z2 = site2 map ("000" + _)
-    val res2 = z2 run Location(List("add", "15", "plus", "20", "please"))
-    val res3 = z2 run Location(List("addall", "10", "15", "20", "25"))
+    val res2 = z2 run Call(Location(List("add", "15", "plus", "20", "please")))
+    val res3 = z2 run Call(Location(List("addall", "10", "15", "20", "25")))
     implicitly[res2.type <:< String]
     implicitly[res3.type <:< String]
 
@@ -146,24 +146,24 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val rt3 = "plus3" :/: arg[Int] >> (_ + 3)
     val s1 = rt2 & rt3
     val sitelet = rt1 & s1
-    sitelet.run(Location("plus1" :: "10" :: Nil)) shouldBe 11
+    sitelet.run(Call(Location("plus1" :: "10" :: Nil))) shouldBe 11
     val pathMapped = sitelet.mapPath("base" :/: _).by(identity)
     pathMapped.construct.head(10) shouldBe Location("base" :: "plus1" :: "10" :: Nil)
   }
 
   test("Route can be a PartialFunction") {
     val rt = arg[Int] >>? { case i if i > 10 => i * 2 }
-    rt.run.isDefinedAt(Location("10" :: Nil)) shouldBe false
-    rt.run.isDefinedAt(Location("11" :: Nil)) shouldBe true
-    rt.run.apply(Location("11" :: Nil)) shouldBe 22
+    rt.run.isDefinedAt(Call(Location("10" :: Nil))) shouldBe false
+    rt.run.isDefinedAt(Call(Location("11" :: Nil))) shouldBe true
+    rt.run.apply(Call(Location("11" :: Nil))) shouldBe 22
   }
 
   test("Can mapPath by a PartialFunction") {
     val rt = arg[Int] >>? { case i if i > 10 => (i * 2).toDouble }
     val pathMapped = rt.mapPath(arg[String] :/: _) byPF (pf => { case str if str.length == 3 => pf })
-    pathMapped.run.isDefinedAt(Location("aaa" :: "10" :: Nil)) shouldBe false
-    pathMapped.run.isDefinedAt(Location("aaaa" :: "11" :: Nil)) shouldBe false
-    pathMapped.run.isDefinedAt(Location("aaa" :: "11" :: Nil)) shouldBe true
-    pathMapped.run.apply(Location("aaa" :: "11" :: Nil)) shouldBe 22
+    pathMapped.run.isDefinedAt(Call(Location("aaa" :: "10" :: Nil))) shouldBe false
+    pathMapped.run.isDefinedAt(Call(Location("aaaa" :: "11" :: Nil))) shouldBe false
+    pathMapped.run.isDefinedAt(Call(Location("aaa" :: "11" :: Nil))) shouldBe true
+    pathMapped.run.apply(Call(Location("aaa" :: "11" :: Nil))) shouldBe 22
   }
 }

@@ -15,11 +15,27 @@ package object lift {
     )
 
   /**
+   * Converts a `net.liftweb.http.Req` to a [[Call]]
+   */
+  def reqToCall(req: Req): Call = {
+    val method = req.requestType.method
+    Call(
+      Location(
+        req.path.wholePath,
+        req.params.toList.flatMap { case (k, vs) => vs.map(k -> _) }
+      ),
+      HttpVerb.verbs
+        .find(_.method == method)
+        .getOrElse(sys.error(s"Unknown verb: $method"))
+    )
+  }
+
+  /**
    * Converts a [[Sitelet]] of `Req => LiftResponse` to the format expected by `LiftRules.dispatch`
    */
   def siteToDispatch(site: Sitelet[_, Req => LiftResponse]): PartialFunction[Req, () => Box[LiftResponse]] = new PartialFunction[Req, () => Box[LiftResponse]] {
-    def isDefinedAt(req: Req) = site.run isDefinedAt reqToLoc(req)
-    def apply(req: Req) = () => Full(site.run(reqToLoc(req))(req))
+    def isDefinedAt(req: Req) = site.run isDefinedAt reqToCall(req)
+    def apply(req: Req) = () => Full(site.run(reqToCall(req))(req))
   }
 
 
