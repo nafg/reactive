@@ -1,10 +1,7 @@
 package reactive
 package routing
 
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-
-import util.Try
+import scala.util.Try
 
 /**
 * A typeclass for converting values to and from strings
@@ -14,7 +11,7 @@ trait Stringable[A] {
   def parse: String => Option[A]
 }
 
-object Stringable {
+object Stringable extends StringablesCompat {
   implicit val string: Stringable[String] = new Stringable[String] {
     def format = identity
     def parse = Some(_)
@@ -34,10 +31,5 @@ object Stringable {
       case "false" => Some(false)
       case _ => None
     }
-  }
-  implicit val instant: Stringable[Instant] = new Stringable[Instant] {
-    val isoDate: DateTimeFormatter = DateTimeFormatter.ISO_DATE
-    def format = _.toString
-    def parse = s => Try(Instant.parse(s)).toOption
   }
 }
