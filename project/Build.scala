@@ -23,17 +23,17 @@ object ReactiveBuild extends Build {
   )
 
   val publishingSettings = defaults ++ Seq(
-    publishTo := (
-      if (version.value.trim.endsWith("SNAPSHOT"))
-        Some(Resolver.sonatypeRepo("snapshots") )
-      else
-        Some("staging" at sonatypeStaging)
-    ),
+    publishTo := Some("Reactive Bintray" at "https://api.bintray.com/maven/naftoligug/maven/reactive/;publish=1"),
     publishMavenStyle := true,
     credentials ++= {
-      val f = file("/private/nafg/.credentials")
-      if(f.exists) Seq(Credentials(f))
-      else Nil
+      sys.env.get("BINTRAYKEY").toSeq map (key =>
+        Credentials(
+          "Bintray API Realm",
+          "api.bintray.com",
+          "naftoligug",
+          key
+        )
+      )
     },
     pomExtra := <developers><developer><id>nafg</id></developer></developers>,
     homepage := Some(url("http://scalareactive.org")),
