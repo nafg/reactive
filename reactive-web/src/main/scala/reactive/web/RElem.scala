@@ -1,10 +1,6 @@
 package reactive
 package web
 
-import net.liftweb.http._
-import js._
-import JsCmds._
-import JE._
 import net.liftweb.util.Helpers._
 import net.liftweb.common._
 import net.liftweb.actor._
@@ -32,21 +28,44 @@ class ElemFuncWrapper(renderer: Elem => Elem) extends (NodeSeq => NodeSeq) {
 object RElem {
   /**
    * Given an `Elem`, if it doesn't have an id attribute, add one
-   * by calling [[reactive.web.Page.newId]], and return the
+   * by calling [[reactive.web.Page#nextId]], or if no `Page` is
+   * available generate a random id, and return the
    * new `Elem`.
    */
-  def withId(elem: Elem): Elem = elem.attributes get "id" match {
+  def withId(elem: Elem)(implicit page: Page = null): Elem = elem.attributes get "id" match {
     case Some(id) => elem
-    case None     => elem % new UnprefixedAttribute("id", Page.newId, Null)
+    case None     => elem % new UnprefixedAttribute("id", Option(page).map(_.nextId) getOrElse "reactiveWebId_" + randomString(7), Null)
   }
+
+  /**
+   * Wrap a `NodeSeq` function so that it can access the element's id
+   * @param f a curried function that takes the element's id and then
+   * the element.
+   * @return a function that takes a `NodeSeq` and calls `f` with the
+   * element's id and the element. If the `NodeSeq` is not an `Elem`
+   * it is converted to one via [[reactive.web.nodeSeqToElem]]. If
+   * it has no `id` attribute one is added, via [[withId]].
+   * @example {{{
+   *   ".sel" #> RElem.withElemId { id =>
+   *     onServer[Click]{ _ => println(s"Clicked elem \$id") }
+   *   }
+   * }}}
+   */
+  def withElemId[R](f: String => Elem => R)(implicit page: Page): NodeSeq => R = { ns =>
+    val e = nodeSeqToElem(ns)
+    val el = RElem.withId(e)
+    val id = el.attributes("id").text
+    f(id)(el)
+  }
+
   /**
    * An RElem based on a scala.xml.Elem.
    * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
    * @param children any addition RElems to append
    */
-  case class ElemWrapper(parent: Elem, val children: RElem*) extends RElem {
-    val baseElem = parent
-    val properties, events = Nil
+  class ElemWrapper(val baseElem: Elem, children: RElem*) extends RElem {
+    def properties = Nil
+    def events = Nil
     override def renderer(implicit p: Page) = e => {
       val sup = super.renderer(p)(e)
       sup.copy(child = {
@@ -54,31 +73,10 @@ object RElem {
       })
     }
 
-    override def toString = "ElemWrapper("+(baseElem :: children.toList).mkString(",")+")"+(Page.currentPageOption match {
-      case Some(p) => ":  "+render(p)
-      case _       => ""
-    })
+    override def toString = (baseElem :: children.toList).mkString("ElemWrapper(", ",", ")")
   }
 
   private[reactive] val elems = new scala.collection.mutable.WeakHashMap[String, RElem] //TODO
-
-  /**
-   * Wraps a Scala String=>Unit function in a Lift AFuncHolder that
-   * runs the provided function in the client scope. Exceptions are intercepted.
-   */
-  @deprecated("Not supported, to be removed in the future", "0.2")
-  def ajaxFunc(f: String => Unit): S.AFuncHolder = S.LFuncHolder {
-    case Nil => JsCmds.Noop
-    case s :: _ => Reactions.inLocalScope {
-      try {
-        f(s)
-      } catch {
-        case e: Exception =>
-          e.printStackTrace
-          JsCmds.Noop
-      }
-    }
-  }
 
   /**
    * Creates an RElem from the given scala.xml.Elem. One may provide 0 or more RElems to append.
@@ -91,7 +89,9 @@ object RElem {
    */
   def apply(text: String): RElem = new ElemWrapper(<span>{ text }</span>)
 
-  implicit def rElemToNsFunc(rElem: RElem)(implicit page: Page): NodeSeq => NodeSeq = rElem.toNSFunc(page)
+  implicit class rElemToNsFunc(rElem: RElem)(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq) = rElem.toNSFunc(page)(ns)
+  }
 }
 
 /**
@@ -170,10 +170,4 @@ trait RElem extends PageIds {
       case (e, _)                      => e
     }
   }
-
-  /**
-   * Calls render with the value of the CurrentPage RequestVar
-   */
-  @deprecated("Use render instead", "0.2")
-  def asHtml: Elem = render(CurrentPage.is)
 }

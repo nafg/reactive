@@ -5,11 +5,11 @@ import scala.annotation.implicitNotFound
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{ ParallelTestExecution, FunSuite }
 
-class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks with ParallelTestExecution {
+class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with ParallelTestExecution {
   implicit val observing0 = new Observing {}
   val ts = DeltaSeq(1, 2, 3, 4)
 
@@ -133,7 +133,7 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
 //    println("==================")
     //checkPrefixBased(List(List(true, false), List(false)))
 
-    forAll(Gen.listOf1(arbitrary[List[(Int, List[Int])]]), maxSize(10)){
+    forAll(Gen.nonEmptyListOf(arbitrary[List[(Int, List[Int])]]), maxSize(10)){
       case Nil => whenever(false) {}
       case head :: xss =>
         val s = BufferSignal(head: _*)
@@ -150,14 +150,14 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
           filtered.now should equal (xs filter (_._1 % 2 == 0))
         }
     }
-    forAll(for (list <- Gen.listOf1(arbitrary[List[Int]]); from <- Gen.choose(-2, list.length + 2); to <- Gen.choose(-2, list.length + 2)) yield (list, from, to), maxSize(10)) {
+    forAll(for (list <- Gen.nonEmptyListOf(arbitrary[List[Int]]); from <- Gen.choose(-2, list.length + 2); to <- Gen.choose(-2, list.length + 2)) yield (list, from, to), maxSize(10)) {
       case (Nil, _, _) => whenever(false){}
       case (head :: xss, from, to) =>
         val s = BufferSignal(head: _*)
         val sliced = s.now.slice(from, to).signal
         iter(s, xss)(xs => sliced.now should equal (xs.slice(from, to)))
     }
-    forAll(for (list1 <- Gen.listOf1(Gen.listOf1(arbitrary[Int])); list2 <- arbitrary[List[Int]]) yield (list1, list2), maxSize(10)) {
+    forAll(for (list1 <- Gen.nonEmptyListOf(Gen.nonEmptyListOf(arbitrary[Int])); list2 <- arbitrary[List[Int]]) yield (list1, list2), maxSize(10)) {
       case (head :: xss, toAppend) =>
         val s = BufferSignal(head: _*)
         val appended = (s.now ++ toAppend).signal
@@ -176,7 +176,7 @@ class DeltaSeqTests extends FunSuite with ShouldMatchers with PropertyChecks wit
           withClue("takeWhile: ")(t.now should equal (xs.takeWhile(_ == true)))
         }
     }
-    val gen = Gen.listOf1(Gen.listOf1(arbitrary[Boolean]))
+    val gen = Gen.nonEmptyListOf(Gen.nonEmptyListOf(arbitrary[Boolean]))
     forAll(gen, maxSize(10))(checkPrefixBased)
     /*
      // The REALLY thorough test -- systematic not random

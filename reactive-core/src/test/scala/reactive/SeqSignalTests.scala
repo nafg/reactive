@@ -1,11 +1,11 @@
 package reactive
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.FunSuite
 import scala.util.Random
 
 import CollectEvents._
 
-class ObservableBufferTests extends FunSuite with ShouldMatchers with Observing {
+class ObservableBufferTests extends FunSuite with Matchers with Observing {
   test("consistency between mutations and applyDeltas") {
     val ob1 = new ObservableBuffer[Int]
     val ob2 = new ObservableBuffer[Int]
@@ -29,7 +29,7 @@ class ObservableBufferTests extends FunSuite with ShouldMatchers with Observing 
   }
 }
 
-class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
+class SeqSignalTests extends FunSuite with Matchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1, 2, 3)
     val mapped = ss.now.map(_ * 10).signal
@@ -124,7 +124,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   }
 
   test("SeqSignals should fire change event and delta event after 'now' is set") {
-    def check[T, S[_] <: SeqSignal[_]](sig: S[T]): S[T] = {
+    def check[T, S <: SeqSignal[T]](sig: S with SeqSignal[T]): S = {
       var before = true
       sig.change =>> { x => x should equal (sig.now); before = false }
       sig.deltas ->> { before should equal (false) }
@@ -150,7 +150,7 @@ class SeqSignalTests extends FunSuite with ShouldMatchers with Observing {
   }
 }
 
-class BufferSignalTests extends FunSuite with ShouldMatchers with Observing {
+class BufferSignalTests extends FunSuite with Matchers with Observing {
   test("consistency") {
     val signal = BufferSignal(1, 2, 3)
     val ob = new ObservableBuffer[Int]

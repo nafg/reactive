@@ -2,7 +2,6 @@ package reactive
 package web
 
 import scala.xml.{ Elem, NodeSeq }
-import net.liftweb.http.js.JsCmds.SetHtml
 
 /**
  * A Cell is an RElem whose contents are determined by a simple Signal.
@@ -21,9 +20,7 @@ trait Cell extends RElem {
     val ret = super.addPage(elem)(page)
     import page.observing
     content.change foreach { s =>
-      Reactions.inAnyScope(page) {
-        Reactions.queue(DomMutation.ReplaceAll(id, s))
-      }
+      page.queue(DomMutation.ReplaceAll(id, s))
     }
     ret
   }
@@ -40,7 +37,7 @@ object Cell {
    * The Signal's value will be passed the children of the element used as the parent.
    * @param binding the binding-function-valued Signal
    */
-  def apply(binding: Signal[NodeSeq => NodeSeq])(implicit observing: Observing, p: Page, config: CanRenderDomMutationConfig): NodeSeq => NodeSeq = { ns: NodeSeq =>
+  def apply(binding: Signal[NodeSeq => NodeSeq])(implicit p: Page, config: CanRenderDomMutationConfig): NodeSeq => NodeSeq = { ns: NodeSeq =>
     new Cell {
       def renderer = config.domMutationRenderer
       val events, properties = Nil

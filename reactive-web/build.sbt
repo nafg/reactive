@@ -1,13 +1,11 @@
-name := "reactive-web"
+name := "reactive-web-base"
 
-description := "FRP-based abstractions for Ajax and Comet"
+description := "FRP-based abstractions to control the browser from the server"
 
-libraryDependencies += "javax.servlet" % "servlet-api" % "2.5" % "test"
+libraryDependencies += "net.liftweb" %% "lift-util" % "2.6.3" exclude("ch.qos.logback","logback-classic")
 
-{
-  val liftVersion = "2.5"
-  libraryDependencies ++= Seq(
-    "net.liftweb" %% "lift-testkit" % liftVersion exclude("ch.qos.logback","logback-classic"),
-    "net.liftweb" %% "lift-webkit" % liftVersion exclude("ch.qos.logback","logback-classic")
-  )
-}
+libraryDependencies += "com.lihaoyi" %% "upickle" % "0.4.1"
+
+libraryDependencies += "org.scalatest"  %% "scalatest"  % "2.2.5"  % "test"
+
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"

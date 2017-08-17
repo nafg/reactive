@@ -1,10 +1,32 @@
 package reactive
 
 import scala.xml.{ Elem, Group, Node, NodeSeq }
-import net.liftweb.http.{ js, SHtml, S }
-import js.JE.{ JsRaw, Str }
-import js.JsCmds
-import web.javascript.{ JsExp, JsTypes, =|>, Javascript, window, Ajax }
+import web.javascript.{ JsExp, JsTypes, =|>, Javascript, JsStatement, window, Ajax }
+import reactive.logging.Logger
+import net.liftweb.util.CanBind
+
+package web {
+  class CanBindIndirection[-A](val f: A => NodeSeq => Seq[NodeSeq])
+  trait CanBindIndirectionLow {
+    implicit def canBindSignal[A](implicit cba: CanBind[A], page: Page, rdm: CanRenderDomMutationConfig): CanBindIndirection[Signal[A]] = new CanBindIndirection[Signal[A]](
+      sig => ns => Cell {
+        sig.map(a => (ns: NodeSeq) => cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _))
+      } apply ns
+    )
+  }
+  object CanBindIndirection extends CanBindIndirectionLow {
+    implicit def canBindPropertyVar[A](implicit page: Page): CanBindIndirection[PropertyVar[A]] = new CanBindIndirection[PropertyVar[A]](
+      pv => ns => pv.render(page) apply ns
+    )
+    implicit def canBindSeqSignal[A](implicit cba: CanBind[A], page: Page, rdm: CanRenderDomMutationConfig): CanBindIndirection[SeqSignal[A]] = new CanBindIndirection[SeqSignal[A]](
+      sig => ns => Repeater {
+        sig.now.map(a => (ns: NodeSeq) =>
+          cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _)
+        ).signal
+      } apply ns
+    )
+  }
+}
 
 /**
  * reactive-web package
@@ -14,16 +36,11 @@ package object web {
     case class WrappedNonElemInSpan(xml: NodeSeq)
   }
 
-  @deprecated("Use DomEventSource", "0.2")
-  val DOMEventSource = DomEventSource
-  @deprecated("Use DomEventSource", "0.2")
-  type DOMEventSource[T <: DomEvent] = DomEventSource[T]
-  @deprecated("Use DomProperty", "0.2")
-  val DOMProperty = DomProperty
-  @deprecated("Use DomProperty", "0.2")
-  type DOMProperty = DomProperty
-  @deprecated("Use DomEvent", "0.2")
-  type DOMEvent = DomEvent
+  implicit def canBindFromInv[A](implicit cb: CanBindIndirection[A]): CanBind[A] = new CanBind[A] {
+    def apply(a: =>A)(ns: NodeSeq) = cb.f(a)(ns)
+  }
+
+  implicit def jsInterpolator(sc: StringContext): JsInterpolator = new JsInterpolator(sc)
 
   /**
    * Queues a javascript confirm dialog. The user's response is passed to the
@@ -111,16 +128,4 @@ package object web {
    */
   private[web] def bindFunc2seqContentFunc[T](bindFunc: SeqSignal[NodeSeq => NodeSeq])(andThen: SeqSignal[NodeSeq] => T): NodeSeq => T =
     ns => andThen(bindFunc.now.map(_(ns)).signal)
-
-  /**
-   * Given a Class instance, extract the original scala identifier name.
-   * Class names can be of the form [[abc] $] name [$ [nnn] ...]
-   */
-  private[web] def scalaClassName(c: Class[_]) = {
-    val name = c.getSimpleName
-    val dropEnd = name.replaceAll("""(\$\d*)*\z""", "")
-    dropEnd.toList.reverse.takeWhile('$' != _).reverse.mkString
-  }
-
-//  implicit def toForwardable[A : CanForwardFrom]
 }

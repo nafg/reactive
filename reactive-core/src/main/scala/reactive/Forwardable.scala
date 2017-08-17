@@ -5,14 +5,14 @@ package reactive
  * to have values forwarded to it.
  */
 trait CanForwardTo[-Target, Value] {
-  def forwarder(t: => Target): Value => Unit
+  def forwarder(t: Target): Value => Unit
 }
 object CanForwardTo {
   implicit def vari[T]: CanForwardTo[Var[T], T] = new CanForwardTo[Var[T], T] {
-    def forwarder(t: => Var[T]) = NamedFunction(">>"+t.debugName)(t.update)
+    def forwarder(t: Var[T]) = NamedFunction(">>"+t.debugName)(t.update)
   }
   implicit def eventSource[T]: CanForwardTo[EventSource[T], T] = new CanForwardTo[EventSource[T], T] {
-    def forwarder(t: => EventSource[T]) = NamedFunction(">>"+t.debugString)(t.fire)
+    def forwarder(t: EventSource[T]) = NamedFunction(">>"+t.debugString)(t.fire)
   }
 }
 
@@ -32,7 +32,7 @@ trait Forwardable[+T, +Self] extends Any {
    * Forwards values from this Forwardable to a target, for whose type a CanForwardTo exists (in the implicit scope).
    * @return the forwarding instance
    */
-  def >>[U >: T, S](target: => S)(implicit canForwardTo: CanForwardTo[S, U], observing: Observing): Self =
+  def >>[U >: T, S](target: S)(implicit canForwardTo: CanForwardTo[S, U], observing: Observing): Self =
     this foreach canForwardTo.forwarder(target)
 
   /**
@@ -42,7 +42,7 @@ trait Forwardable[+T, +Self] extends Any {
    *
    * @return the target
    */
-  def <<:[U >: T, S](target: => S)(implicit canForwardTo: CanForwardTo[S, U], observing: Observing): S = {
+  def <<:[U >: T, S](target: S)(implicit canForwardTo: CanForwardTo[S, U], observing: Observing): S = {
     this foreach canForwardTo.forwarder(target)
     target
   }

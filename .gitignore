@@ -21,3 +21,4 @@ jrockit.*.dump
 .classpath
 .project
 .cache
+bin/

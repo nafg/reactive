@@ -54,7 +54,7 @@ object BufferSignal {
     value = init
   }
   implicit def canForwardTo[A]: CanForwardTo[BufferSignal[A], Seq[A]] = new CanForwardTo[BufferSignal[A], Seq[A]] {
-    def forwarder(t: => BufferSignal[A]) = NamedFunction(">>"+t.debugName)(t.update)
+    def forwarder(t: BufferSignal[A]) = NamedFunction(">>"+t.debugName)(t.update)
   }
 }
 

@@ -1,84 +1,114 @@
 import sbt._
 import Keys._
-import com.github.siasia.WebPlugin._
-import com.github.siasia.PluginKeys._
+import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport._
 
 object ReactiveBuild extends Build {
-  val pomCommon = <xml:group>
-    <url>http://reactive-web.tk</url>
-    <licenses><license><name>Modified Apache</name></license></licenses>
-    <scm>
-      <connection>scm:git:git://github.com/nafg/reactive.git</connection>
-      <developerConnection>scm:git:git@github.com:nafg/reactive.git</developerConnection>
-      <url>git@github.com:nafg/reactive.git</url>
-    </scm>
-    <developers><developer><id>nafg</id></developer></developers>
-  </xml:group>
-
-  val sonatypeSnapshots = "http://oss.sonatype.org/content/repositories/snapshots/"
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 
-  val defaults = Defaults.defaultSettings ++ Seq(
-    organization := "cc.co.scala-reactive",
-    resolvers ++= List(
-      "Sonatype snapshots" at sonatypeSnapshots,
-      "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
-    ),
+  def branchName = "git rev-parse --abbrev-ref HEAD".!!.trim
+
+  val defaults = Seq(
+    resolvers += Resolver.sonatypeRepo("snapshots") ,
     checksums in update := Nil,
-    scalacOptions in (Compile, compile) += "-deprecation",
-    (scalacOptions in (Compile, doc) <++= (baseDirectory).map{ bd =>
-      val sourceUrl = "http://github.com/nafg/reactive/blob/master/" + bd.getName + "€{FILE_PATH}.scala"
-      Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", sourceUrl)
-    }),
-    scalaVersion := "2.10.0",
-    libraryDependencies ++= List(
-      "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.10.1-SNAPSHOT" % "test" cross CrossVersion.full,
-      "org.scala-lang" % "scala-actors" % "2.10.0"
+    scalacOptions in (Compile, doc) ++= Seq(
+      "-sourcepath",
+      baseDirectory.value.getAbsolutePath,
+      "-doc-source-url",
+      s"http://github.com/nafg/reactive/blob/$branchName/${ baseDirectory.value.getName }€{FILE_PATH}.scala",
+      "-doc-title",
+      "Scaladocs - scala-reactive", "-groups"
     ),
-    testOptions in Test += Tests.Argument("-oF")
+    testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oF"),
+    autoAPIMappings := true
   )
-  val publishingDefaults = defaults ++ Seq(
-    publishTo <<= (version) { version: String =>
-      if (version.trim.endsWith("SNAPSHOT"))
-        Some("snapshots" at sonatypeSnapshots)
+
+  val publishingSettings = defaults ++ Seq(
+    publishTo := (
+      if (version.value.trim.endsWith("SNAPSHOT"))
+        Some(Resolver.sonatypeRepo("snapshots") )
       else
         Some("staging" at sonatypeStaging)
-    },
+    ),
     publishMavenStyle := true,
     credentials ++= {
       val f = file("/private/nafg/.credentials")
       if(f.exists) Seq(Credentials(f))
       else Nil
-    }
+    },
+    pomExtra := <developers><developer><id>nafg</id></developer></developers>,
+    homepage := Some(url("http://scalareactive.org")),
+    licenses := Seq(("Modified Apache", url("https://github.com/nafg/reactive/blob/master/LICENSE.txt"))),
+    scmInfo := Some(ScmInfo(
+      url("https://github.com/nafg/reactive"),
+      "scm:git:git://github.com/nafg/reactive.git",
+      Some("scm:git:git@github.com:nafg/reactive.git")
+    ))
   )
 
-  lazy val reactive_core = Project(
-    "core",
-    file("reactive-core"),
-    settings = publishingDefaults ++ Seq(
-      pomExtra := pomCommon
+  val nonPublishingSettings = defaults :+ (publish := ())
+
+  lazy val core = (project in file("reactive-core"))
+    .settings(publishingSettings: _*)
+
+  lazy val routing = (crossProject.crossType(CrossType.Full) in file("reactive-routing"))
+    .settings(
+      name := "reactive-routing",
+      description := "Type safe routing library",
+      scalacOptions in(Compile, doc) ++= Seq("-implicits", "-implicits-show-all"),
+      libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.5" % "test",
+      libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"
+
     )
-  )
-  lazy val reactive_web = Project(
-    "web",
-    file("reactive-web"),
-    settings = publishingDefaults ++ Seq(
-      pomExtra := pomCommon
+    .settings(publishingSettings: _*)
+  lazy val routingJS = routing.js
+  lazy val routingJVM = routing.jvm
+
+  lazy val transport = (project in file("reactive-transport"))
+    .settings(publishingSettings: _*)
+    .dependsOn(core)
+
+  lazy val jsdsl = (project in file("reactive-jsdsl"))
+    .settings(publishingSettings: _*)
+    .dependsOn(transport)
+
+  lazy val web_base = (project in file("reactive-web"))
+    .settings(publishingSettings: _*)
+    .dependsOn(core, jsdsl)
+
+  lazy val web_html = (project in file("reactive-web-html"))
+    .settings(publishingSettings: _*)
+    .dependsOn(web_base)
+
+  lazy val web_widgets = (project in file("reactive-web-widgets"))
+    .settings(publishingSettings: _*)
+    .dependsOn(web_html)
+
+  lazy val web = (project in file("reactive-web-aggregated"))
+    .settings(publishingSettings: _*)
+    .settings(name := "reactive-web")
+    .dependsOn(web_widgets)
+
+  lazy val web_lift = (project in file("reactive-web-lift"))
+    .settings(publishingSettings: _*)
+    .dependsOn(web_widgets, routingJVM)
+
+  lazy val web_demo = (project in file("reactive-web-demo"))
+    .settings(nonPublishingSettings: _*)
+    .dependsOn(web_lift)
+
+  lazy val root = (project in file("."))
+    .settings(nonPublishingSettings: _*)
+    .aggregate(
+      core,
+      transport,
+      jsdsl,
+      web_base,
+      routingJS,
+      routingJVM,
+      web_html,
+      web_widgets,
+      web,
+      web_lift,
+      web_demo
     )
-  ) dependsOn(reactive_core)
-  lazy val reactive_web_demo = Project(
-    "demo",
-    file("reactive-web-demo"),
-    settings = defaults ++ Seq(
-      publishArtifact := false
-    )
-  ) dependsOn(reactive_web)
-  lazy val root = Project(
-    "root",
-    file("."),
-    settings = defaults ++ Seq(
-      publishArtifact := false
-    )
-  ) aggregate(reactive_core, reactive_web, reactive_web_demo)
 }

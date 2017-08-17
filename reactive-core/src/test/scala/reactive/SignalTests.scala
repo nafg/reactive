@@ -1,15 +1,16 @@
 package reactive
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.concurrent.AsyncAssertions
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.prop.PropertyChecks
-import org.scalacheck.Arbitrary
-import org.scalacheck.Gen
+import org.scalatest.time.{Seconds, Span}
 
-import scala.concurrent.future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with PropertyChecks {
+class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with AsyncAssertions {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -127,30 +128,39 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
     } should equal (List(4, 2))
   }
 
-  test("nonblocking: no re-entry") {
+  test("async: no re-entry") {
     val v0 = Var(0)
     val v = Var(1)
 
+    val waiter = new Waiter
     var n = 0
     for {
       _ <- v0
-      _ <- v.nonblocking
+      _ <- v.async
     } {
       n += 1
-      n should equal (1)
+      val nn = n
+      waiter {
+        nn should equal (1)
+      }
+      waiter.dismiss()
       n -= 1
     }
 
+    waiter.await(Dismissals(1))
+
     for (a <- (1 to 10).toList) {
-      future {
+      Future {
         for (b <- 1 to 10)
           v () = v.now + 1
       }
     }
+
+    waiter.await(Timeout(Span(2, Seconds)), Dismissals(100))
   }
 
   test("Signals should fire change event after 'now' is set") {
-    def check[T, S[_] <: Signal[_]](sig: S[T]): S[T] = { sig.change =>> (_ should equal (sig.now)); sig }
+    def check[T, S <: Signal[T]](sig: S with Signal[T]): S = { sig.change =>> (_ should equal (sig.now)); sig }
     val v = check(Var(10))
     val mapped = check(v.map(_ + 10))
     val flatMapped = check(v.flatMap(x => Var(x + 15): Signal[Int]))
@@ -199,7 +209,7 @@ class SignalTests extends FunSuite with ShouldMatchers with CollectEvents with P
   }
 }
 
-class VarTests extends FunSuite with ShouldMatchers with CollectEvents with Observing {
+class VarTests extends FunSuite with Matchers with CollectEvents with Observing {
   test("<-->") {
     val a = Var(10)
     val b = Var(20) <--> a

@@ -59,6 +59,7 @@ EventStream.prototype = {
       last = v
       to = window.setTimeout(onTimer, period)
     })
+    return throttled;
   }
 };
 JSON.stringify = JSON.stringify || function(v) {
@@ -108,13 +109,13 @@ window.reactive = {
       reactive.queuedAjaxEvents.push(e);
     };
   },
-  doAjax : function() {
+  doAjax : function(pageId) {
     var q = this.queuedAjaxEvents;
     this.queuedAjaxEvents = [];
     var s = JSON.stringify( { unique: this.unique++, events: q } );
-    liftAjax.lift_ajaxHandler(this.funcId + "=" + encodeURIComponent(s), null,
-        null, null);
+    this.sendAjax[pageId](s);
   },
+  sendAjax : { },
   createElem : function(label, attributes, innerHtml) {
     var e = document.createElement(label);
     for (k in attributes)

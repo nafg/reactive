@@ -1,8 +1,7 @@
 package reactive
 package web
 
-import javascript._
-import net.liftweb.http.S
+import javascript.{ $, FromJs, JsTypes, JsLiterable }
 import JsTypes._
 import net.liftweb.json.Serialization
 import net.liftweb.json.JsonAST.JValue
@@ -18,12 +17,12 @@ class EventEncoder[T <: DomEvent](val encodeExp: $[JsObj] => $[JsObj])
 
 object EventEncoder {
   val empty = Map.empty.$
-  implicit val blur = new EventEncoder[Blur](_ => empty)
-  implicit val change = new EventEncoder[Change](_ => empty)
-  implicit val error = new EventEncoder[Error](_ => empty)
-  implicit val focus = new EventEncoder[Focus](_ => empty)
-  implicit val resize = new EventEncoder[Resize](_ => empty)
-  implicit val unload = new EventEncoder[Unload](_ => empty)
+  implicit val blur: EventEncoder[Blur] = new EventEncoder[Blur](_ => empty)
+  implicit val change: EventEncoder[Change] = new EventEncoder[Change](_ => empty)
+  implicit val error: EventEncoder[Error] = new EventEncoder[Error](_ => empty)
+  implicit val focus: EventEncoder[Focus] = new EventEncoder[Focus](_ => empty)
+  implicit val resize: EventEncoder[Resize] = new EventEncoder[Resize](_ => empty)
+  implicit val unload: EventEncoder[Unload] = new EventEncoder[Unload](_ => empty)
 
   def modifiers(event: $[JsObj]) = javascript.Object(
     "alt" -> (event >> 'altKey),
@@ -32,19 +31,23 @@ object EventEncoder {
     "meta" -> (event >> 'metaKey)
   )
   def modifiersOnly(event: $[JsObj]) = javascript.Object("modifiers" -> modifiers(event))
-  implicit val click = new EventEncoder[Click](modifiersOnly)
-  implicit val dblClick = new EventEncoder[DblClick](modifiersOnly)
-  implicit val selectText = new EventEncoder[SelectText](modifiersOnly)
+  implicit val click: EventEncoder[Click] = new EventEncoder[Click](modifiersOnly)
+  implicit val dblClick: EventEncoder[DblClick] = new EventEncoder[DblClick](modifiersOnly)
+  implicit val selectText: EventEncoder[SelectText] = new EventEncoder[SelectText](modifiersOnly)
 
   def key(event: $[JsObj]) = javascript.Object(
     "code" -> ((event >> 'keyCode) || (event >> 'charCode)),
     "modifiers" -> modifiers(event)
   )
-  implicit val keyDown = new EventEncoder[KeyDown](key)
-  implicit val keyUp = new EventEncoder[KeyUp](key)
-  implicit val keyPress = new EventEncoder[KeyPress](key)
+  implicit val keyDown: EventEncoder[KeyDown] = new EventEncoder[KeyDown](key)
+  implicit val keyUp: EventEncoder[KeyUp] = new EventEncoder[KeyUp](key)
+  implicit val keyPress: EventEncoder[KeyPress] = new EventEncoder[KeyPress](key)
 
-  def buttons(event: $[JsObj]) = if (S.request.dmap(false)(_.isIE)) javascript.Object(
+  case class CalcIsIE(f: () => Boolean) {
+    def apply() = f()
+  }
+
+  def buttons(event: $[JsObj])(implicit isIE: CalcIsIE = CalcIsIE(() => false)) = if (isIE()) javascript.Object(
     "left" -> ((event >> 'buttons) & 1 !== 0),
     "middle" -> ((event >> 'buttons) & 4 !== 0),
     "right" -> ((event >> 'buttons) & 2 !== 0),
@@ -63,12 +66,12 @@ object EventEncoder {
       "y" -> (event >> 'clientY)
     )
   )
-  implicit def mouseDown = new EventEncoder[MouseDown](mouse)
-  implicit def mouseUp = new EventEncoder[MouseUp](mouse)
-  implicit def mouseMove = new EventEncoder[MouseMove](mouse)
+  implicit def mouseDown: EventEncoder[MouseDown] = new EventEncoder[MouseDown](mouse)
+  implicit def mouseUp: EventEncoder[MouseUp] = new EventEncoder[MouseUp](mouse)
+  implicit def mouseMove: EventEncoder[MouseMove] = new EventEncoder[MouseMove](mouse)
 
-  implicit def mouseOut = new EventEncoder[MouseOut](mouse) //TODO related
-  implicit def mouseOver = new EventEncoder[MouseOver](mouse) //TODO related
+  implicit def mouseOut: EventEncoder[MouseOut] = new EventEncoder[MouseOut](mouse) //TODO related
+  implicit def mouseOver: EventEncoder[MouseOver] = new EventEncoder[MouseOver](mouse) //TODO related
 }
 
 object DomEvent {

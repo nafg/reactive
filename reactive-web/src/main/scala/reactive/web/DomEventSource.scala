@@ -1,16 +1,18 @@
 package reactive
 package web
 
-import net.liftweb.http.{ S, SHtml }
-import net.liftweb.util.Helpers.urlDecode
-import javascript._
+import javascript.{ $, =|>, buildJs, JsEventStream, JsExp, JsForwardable, JsIdentable, JsTypes, ToJs }
 import JsTypes._
 
-import scala.xml.{ Elem, NodeSeq, UnprefixedAttribute, MetaData }
+import scala.xml.{ NodeSeq, UnprefixedAttribute, MetaData }
 
 import scala.collection.mutable.WeakHashMap
 import scala.reflect.{ classTag, ClassTag }
 
+import reactive.logging.Logger
+import reactive.Util.scalaClassName
+
+import scala.language.higherKinds
 
 class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
   def self = domEventSource
@@ -109,11 +111,9 @@ class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
    */
   def js(implicit page: Page): String = {
     (getEventObjectData(page) :: eventData.getOrElse(page, Nil)).map{
-      case EventData(enc, es) => JsExp render es.fireExp(enc)
-    }.mkString(";")+";reactive.doAjax()"
+      case EventData(enc, es) => JsExp render buildJs(es.fireExp(enc))
+    }.mkString(";")+";reactive.doAjax('"+page.id+"')"
   }
-  @deprecated("Use js", "0.2")
-  final def propagateJS(implicit page: Page) = js
 
   /**
    * Returns an attribute that will register a handler with the event.
@@ -134,12 +134,14 @@ object DomEventSource {
   /**
    * An implicit conversion from DomEventSource to NodeSeq=>NodeSeq. Requires an implicit Page. Calls render.
    */
-  implicit def toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page): NodeSeq => NodeSeq = des.render(page)
+  implicit class toNodeSeqFunc(des: DomEventSource[_])(implicit page: Page) extends (NodeSeq => NodeSeq) {
+    def apply(ns: NodeSeq) = des.render(page)(ns)
+  }
 
   /**
    * Implicitly provides the `foreach` method and `Forwardable` methods.
    */
-  implicit def canForeach[T <: DomEvent](des: DomEventSource[T])(implicit page: Page) = new DomEventSourceCanForeach(des)(page)
+  implicit class canForeach[T <: DomEvent](des: DomEventSource[T])(implicit page: Page) extends DomEventSourceCanForeach(des)(page)
 
   /**
    * Creates a new Click DomEventSource

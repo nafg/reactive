@@ -3,16 +3,13 @@ package web
 
 import scala.xml.{ Elem, NodeSeq }
 
-import net.liftweb.http.js.{ JsCmd, JsCmds, HtmlFixer }
-import JsCmds.{ Run, JsTry, Replace }
-import net.liftweb.util.Helpers.stringToSuper
 
 /**
  * This class is used internally by Repeater. It generates javascript to add and remove children from a DOM element.
  * @param parentId the id to insert and remove children from
  * @param children the RElems to be contained by the element with id parentId
  */
-class RepeaterManager(children: SeqSignal[RElem]) extends HtmlFixer {
+class RepeaterManager(children: SeqSignal[RElem]) {
   /**
    * Given an incremental update and the current set of children's ids, returns a JsCmd to apply the delta.
    * @param m the delta
@@ -84,9 +81,7 @@ trait Repeater extends RElem {
     val ret = super.addPage(elem)(page)
     import page.observing
     manager.createPageStream(id(page)) foreach { dms =>
-      Reactions.inAnyScope(page) {
-        dms foreach { dm => Reactions.queue(dm) }
-      }
+      dms foreach { dm => page.queue(dm) }
     }
     ret
   }

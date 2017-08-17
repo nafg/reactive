@@ -1,8 +1,10 @@
 package reactive
 
 import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 import org.scalatest.ParallelTestExecution
+
+import reactive.logging._
 
 object CollectEvents extends CollectEvents
 //TODO add collecting method to EventStream
@@ -23,9 +25,9 @@ trait CollectEvents {
   def collecting[A](es: EventStream[A])(f: =>Unit): List[A] = collectingReturning[A, Unit](es)(f)._1
 }
 
-class LoggerTests extends FunSuite with ShouldMatchers with Observing {
+class LoggerTests extends FunSuite with Matchers with Observing {
   test("doesn't StackOverflow") {
-    Logger.defaultLevel = Logger.Levels.Trace
+    Logger.defaultLevel = LogLevel.Trace
     Logger.all foreach { _ => }
     val es = new EventSource[Int]
     es foreach { _ => }
@@ -33,7 +35,7 @@ class LoggerTests extends FunSuite with ShouldMatchers with Observing {
   }
 }
 
-class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents with ParallelTestExecution {
+class EventStreamTests extends FunSuite with Matchers with CollectEvents with ParallelTestExecution {
   implicit val observing = new Observing {}
 
   test("hasListeners") {
@@ -253,7 +255,7 @@ class EventStreamTests extends FunSuite with ShouldMatchers with CollectEvents w
   }
 }
 
-class SuppressableTests extends FunSuite with ShouldMatchers with CollectEvents {
+class SuppressableTests extends FunSuite with Matchers with CollectEvents {
   test("supressing") {
     implicit val observing = new Observing {}
     val es = new Suppressable[Int] {}
@@ -268,7 +270,7 @@ class SuppressableTests extends FunSuite with ShouldMatchers with CollectEvents 
     collecting(es)(es fire 3) should equal (List(3))
   }
 }
-class BatchableTests extends FunSuite with ShouldMatchers with CollectEvents {
+class BatchableTests extends FunSuite with Matchers with CollectEvents {
   test("batching") {
     implicit val observing = new Observing {}
     val es = new Batchable[Int, Int] {}

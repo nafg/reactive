@@ -25,7 +25,7 @@ object SeqSignal {
    */
   def apply[A](orig: Signal[Seq[A]],
                diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc[A],
-               includeInit: Boolean = true): SeqSignal[A] = new SeqSignal[A] with Logger { owner =>
+               includeInit: Boolean = true): SeqSignal[A] = new SeqSignal[A] { owner =>
     val underlying: Signal[DeltaSeq[A]] = orig.foldLeft(if (includeInit) Nil else List(orig.now.toList)){
       case (old, xs) =>
         xs.toList :: old.take(1)

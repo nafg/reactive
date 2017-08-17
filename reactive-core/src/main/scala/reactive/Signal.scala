@@ -1,7 +1,16 @@
 package reactive
 
+import scala.concurrent.{ ExecutionContext, Future }
+
+import scala.language.higherKinds
+
 object Signal {
   def unapply[T](s: Signal[T]) = Some(s.now)
+
+  implicit object Applicative extends Applicative[Signal] {
+    def ap[A, B](f: Signal[A => B])(a: Signal[A]): Signal[B] = a.flatMap(aa => f.map(_(aa)))
+    def point[A](a: => A) = Val(a)
+  }
 }
 
 /**
@@ -32,6 +41,14 @@ trait Signal[+T] extends Foreachable[T] {
   def foreach(f: T => Unit)(implicit observing: Observing): Unit = {
     f(now)
     change.foreach(f)(observing)
+  }
+
+  def subscribe(f: T => Unit): Subscription =
+    change subscribe f
+
+  def subscribeNow(f: T => Unit): Subscription = {
+    f(now)
+    change subscribe f
   }
 
   /**
@@ -113,11 +130,8 @@ trait Signal[+T] extends Foreachable[T] {
    * @param that the other Signal
    * @return the Tuple2-valued Signal
    */
-  def zip[U](that: Signal[U]): Signal[(T, U)] = this flatMap { v1 =>
-    that map { v2 =>
-      (v1, v2)
-    }
-  }
+  def zip[U](that: Signal[U]): Signal[(T, U)] = (this :@: that) apPoint { t => u => (t, u) }
+
   /**
    * Returns a derived Signal that does not fire change events
    * during a prior call to fire on the same thread, thus
@@ -138,12 +152,18 @@ trait Signal[+T] extends Foreachable[T] {
   private type WithVolatility[T] = (T, () => Boolean)
 
   /**
-   * Returns a derived signal in which value propagation does not happen on the thread triggering the change and block it.
-   * This is helpful when handling values can be time consuming.
-   * The implementation delegates propagation to an actor (scala standard library), so
-   * values are handled sequentially.
+   * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
+   * but instead is executed by the global `ExecutionContext`.
+   * Chained `Future`s are used to ensure values are handled sequentially.
    */
-  def nonblocking: Signal[T] = new NonBlockingSignal[T](this)
+  final def nonblocking: Signal[T] = async(ExecutionContext.global)
+
+  /**
+   * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
+   * but instead is executed by the provided `ExecutionContext`.
+   * Chained `Future`s are used to ensure values are handled sequentially.
+   */
+  def async(implicit executionContext: ExecutionContext): Signal[T] = new AsyncSignal[T](this)
 
   /**
    * Returns a tuple-valued Signal whose value includes a function for testing staleness.
@@ -228,23 +248,19 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
     current = u
     change.fire(u)
   }
+  override def toString = debugName
 }
 
-protected class NonBlockingSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
-  override def debugName = parent.debugName+".nonblocking"
-  import scala.actors.Actor._
-  private val delegate = actor {
-    loop {
-      receive {
-        case x: T =>
-          current = x
-          change.fire(x)
-      }
-    }
-  }
+protected class AsyncSignal[T](parent: Signal[T])(implicit executionContext: ExecutionContext) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
+  override def debugName = parent.debugName+".async"
+  private val future = new AtomicRef(Future.successful(()))
   def parentHandler = {
     case (x, _) =>
-      delegate ! x
+      future.transform( _ andThen {
+        case _ =>
+          current = x
+          change.fire(x)
+      })
   }
 }
 
@@ -376,7 +392,7 @@ class Var[T](initial: T) extends Signal[T] {
     override def debugName = Var.this.debugName+".change"
   }
 
-  override def toString = "Var("+now+")"
+  override def toString = debugName
 
   def <-->(other: Var[T])(implicit observing: Observing): this.type = {
     this.distinct >> other
