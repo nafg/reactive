@@ -1,6 +1,6 @@
 name := "reactive-web-demo"
 
-description := "Reactive-web demo app (http://scalareactive.org)"
+description := "reactive-web demo app"
 
 enablePlugins(JettyPlugin)
 

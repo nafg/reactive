@@ -35,7 +35,7 @@ object ReactiveBuild {
       )
     },
     pomExtra := <developers><developer><id>nafg</id></developer></developers>,
-    homepage := Some(url("http://scalareactive.org")),
+    homepage := Some(url("https://github.com/nafg/reactive")),
     licenses := Seq(("Modified Apache", url("https://github.com/nafg/reactive/blob/master/LICENSE.txt"))),
     scmInfo := Some(ScmInfo(
       url("https://github.com/nafg/reactive"),

@@ -8,9 +8,7 @@ This is the reactive top-level repository. It contains the following subprojects
 * reactive-web: Powerful abstractions for rich web UIs; web framework agnostic
 * reactive-routing: A fully typesafe bidirectional routing library; web framework agnostic
 * reactive-web-lift: Lift-specific bindings for reactive-web and reactive-routing
-* reactive-web-demo: demo, serves as documentation for the above, and can be viewed live at http://scalareactive.org
-
-See the site for more details (http://scalareactive.org)
+* reactive-web-demo: demo, serves as documentation for the above. To run it, enter `sbt web_demo/jetty:start web_demo/jetty:join`
 
 
 #### Acknowledgement
