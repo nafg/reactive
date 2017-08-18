@@ -1,13 +1,14 @@
 Note, this is a draft and may be changed at any time.
 
 You may use this software under the following conditions:
+
 A. You must not use it in any way that encourages transgression of the Seven Noahide Laws (as defined by traditional Judaism; http://en.wikipedia.org/wiki/Seven_Laws_of_Noah is pretty good). They are:
   1. Theft
   2. Murder
   3. Adultery
-  4. Polytheism
-  5. Cruelty to animals (eating a limb of a living animal)
+  4. Idolatry (e.g. polytheism)
+  5. Eating part of an animal while it's alive
   6. Cursing G-d
-And they require a fair judicial system.
+  7. The requirement to establish a fair judicial system
 
-B. You must not use it in any way that transgresses the Apache Software License.
+B. https://www.apache.org/licenses/LICENSE-2.0 applies
