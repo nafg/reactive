@@ -1,27 +1,28 @@
 package bootstrap.liftweb
 
+import scala.xml.{Elem, NodeSeq}
+
 import net.liftweb.common.Full
-import net.liftweb.util.Html5
-import net.liftweb.util.Helpers.strToCssBindPromoter
+import net.liftweb.doc.snippet.CodeInjection
 import net.liftweb.http._
+import net.liftweb.markdown.ThreadLocalTransformer
+import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
-import Loc._
+import net.liftweb.util.Helpers.StringToCssBindPromoter
+import net.liftweb.util.Html5
+import reactive.Observing
+import reactive.logging._
 import reactive.web.lift._
 import reactive.web.widgets.Messages
 import reactive.web.widgets.lift.MessagesSnippet
-import scala.xml.Elem
-import scala.xml.NodeSeq
-import net.liftweb.doc.snippet.CodeInjection
 
-import reactive.Observing
-import reactive.logging._
 
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
 class Boot {
-  def boot() {
+  def boot(): Unit = {
     println("In boot")
     getClass.getClassLoader match {
       case rcl: java.net.URLClassLoader =>
@@ -31,10 +32,11 @@ class Boot {
     def shouldRedirect(r: Req) = !r.request.serverName.toLowerCase.endsWith("scalareactive.org") &&
       r.request.serverName != "localhost"
     LiftRules.statelessDispatch.append {
-      case r if shouldRedirect(r) => () => Full(
-        PermRedirectResponse("http://scalareactive.org" + r.uri, r, r.cookies: _*)
-      )
+      case r if shouldRedirect(r) =>
+        () => Full(PermRedirectResponse("http://scalareactive.org" + r.uri, r, r.cookies: _*))
     }
+
+    LiftRules.securityRules = () => SecurityRules(content = None)
 
     // where to search snippets
     LiftRules.addToPackages("reactive.web.demo")
@@ -44,7 +46,7 @@ class Boot {
     SseTransportType.init()
     MessagesSnippet.init(Messages.template("alert"))
 
-    val mdParser = new net.liftweb.markdown.ActuariusTransformer
+    val mdParser = new ThreadLocalTransformer
 
     def loadMarkdown(path: String): Elem = {
       val f = s"/site/$path.md"
@@ -58,13 +60,13 @@ class Boot {
             elem.attribute("class").map(_.text) match {
               case Some(brushRe(lang)) =>
                 CodeInjection.renderCodeMirror(elem.text, "", lang)
-              case other =>
+              case other               =>
                 elem
             }
         })
-      <div data-lift="surround?with=navigable;at=content">{
-        renderPres(html)
-      }</div>
+      <div data-lift="surround?with=navigable;at=content">
+        {renderPres(html)}
+      </div>
     }
     def markdownTemplate = Template { () =>
       val path = S.uri stripPrefix "/" stripSuffix "/" match {
@@ -75,7 +77,7 @@ class Boot {
     }
 
     def emptyPage = Template { () =>
-      <div data-lift="surround?with=navigable;at=content"/>
+        <div data-lift="surround?with=navigable;at=content"/>
     }
     def header = MenuCssClass("nav-header")
 
@@ -124,7 +126,7 @@ class Boot {
     def itemToMenu(item: Item, path: List[String] = Nil): Menu.Menuable = {
       val p = path :+ item.name
       val m = p.tail.foldLeft(Menu(item.name, item.title) / p.head)(_ / _)
-      if(item.children.isEmpty) m >> markdownTemplate
+      if (item.children.isEmpty) m >> markdownTemplate
       else m >> emptyPage >> PlaceHolder submenus (item.children.map(i => itemToMenu(i, p)): _*)
     }
 
@@ -145,17 +147,17 @@ class Boot {
     val menus = docTree.map(itemToMenu(_)) :+ (
       Menu("Scaladocs") / "3" >> PlaceHolder submenus (projSubs: _*)
       ) :+
-        reactive.web.demo.snippet.DemoPane.menu
+      reactive.web.demo.snippet.DemoPane.menu
     def sitemap = () => SiteMap(menus: _*)
     LiftRules.setSiteMapFunc(sitemap)
     LiftRules.liftRequest.append {
       case Req("api" :: _, _, _) => false
     }
-    LiftRules.excludePathFromContextPathRewriting.default.set{ _: String => true }
+    LiftRules.excludePathFromContextPathRewriting.default.set((_: String) => true)
     LiftRules.useXhtmlMimeType = false
 
     LiftRules.htmlProperties.default.set((r: Req) =>
-      new Html5Properties(r.userAgent)
+      Html5Properties(r.userAgent)
     )
 
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
@@ -168,7 +170,7 @@ class Boot {
 
 object Logging {
   implicit private object observing extends Observing
-  def init() {
+  def init(): Unit = {
     Logger.all foreach {
       case (level, LogEvent(subj, pred)) =>
         System.err.println(s"$level ($subj): $pred")

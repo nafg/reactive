@@ -2,7 +2,7 @@ package reactive.web.html
 
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
-import net.liftweb.util.Helpers.strToCssBindPromoter
+import net.liftweb.util.Helpers.StringToCssBindPromoter
 import reactive.Observing
 import reactive.web.TestPage
 import reactive.web.Change

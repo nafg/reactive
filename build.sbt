@@ -1,7 +1,7 @@
 import ReactiveBuild._
 
 
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.10.6")
+crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.3")
 
 scalaVersion in ThisBuild := "2.11.11"
 

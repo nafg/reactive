@@ -17,7 +17,7 @@ object JsEventStream {
 
 /**
  * Proxies an event stream implemented in javascript.
- * Requires reactive-web.js (which is automatically included by the lift:reactive snippet).
+ * Requires reactive-web.js (which is automatically included by the "reactive" snippet).
  */
 //TODO use PageIds??
 //TODO use JsStub

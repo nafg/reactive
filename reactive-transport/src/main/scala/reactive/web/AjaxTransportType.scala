@@ -35,7 +35,7 @@ trait AjaxTransportType extends TransportType {
                 case e: Exception => e.printStackTrace
               }
             case event =>
-              sys.error("Invalid reactive event format: " + compact(JsonAST.render(event)))
+              sys.error("Invalid reactive event format: " + JsonAST.compactRender(event))
           } finally {
             completionTime = Some(System.currentTimeMillis)
             notifyAll()
@@ -63,7 +63,7 @@ trait AjaxTransportType extends TransportType {
    * so work is not done twice.
    */
   protected def handleAjax(json: =>JValue): Seq[Renderable] = try {
-    tasks.transform(_ filter (_.completionTime map (System.currentTimeMillis - _ > 60000) getOrElse true))
+    tasks.transform(_ filter (_.completionTime forall (System.currentTimeMillis - _ > 60000)))
     json match {
       case JObject(List(JField("unique", JInt(key)), JField("events", JArray(events)))) =>
         lazy val newTask = new AjaxTask(key.toLong, events)
@@ -76,11 +76,11 @@ trait AjaxTransportType extends TransportType {
         task.runOnce()
         task.take
       case other =>
-        sys.error("Invalid reactive json format: " + compact(JsonAST.render(other)))
+        sys.error("Invalid reactive json format: " + JsonAST.compactRender(other))
     }
   } catch {
     case e: Exception =>
-      e.printStackTrace
+      e.printStackTrace()
       Nil
   }
 }

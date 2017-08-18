@@ -46,3 +46,7 @@ object ReactiveBuild {
 
   val nonPublishingSettings = defaults :+ (publish := ())
 }
+
+object Dependencies {
+  val liftVersion = "3.1.0"
+}

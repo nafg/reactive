@@ -4,7 +4,7 @@ import web._
 
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
-import net.liftweb.util.Helpers.strToCssBindPromoter
+import net.liftweb.util.Helpers.StringToCssBindPromoter
 import net.liftweb.util.CanBind
 import scala.xml.NodeSeq
 

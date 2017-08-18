@@ -5,7 +5,7 @@ package lift
 import scala.xml.NodeSeq
 
 import net.liftweb.http.S
-import net.liftweb.util.Helpers.strToCssBindPromoter
+import net.liftweb.util.Helpers.StringToCssBindPromoter
 
 /**
  * An [[HtmlResponse]] that loads the template from a file

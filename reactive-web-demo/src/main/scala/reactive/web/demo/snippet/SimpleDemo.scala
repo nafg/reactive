@@ -3,14 +3,10 @@ package web
 package demo
 package snippet
 
-import reactive.web.html._
-
 import scala.xml._
 
-import net.liftweb.util.{ Helpers, BindPlus }
-import Helpers._
-import BindPlus._
-import net.liftweb.http._
+import net.liftweb.util.Helpers._
+import reactive.web.html._
 
 // Extends Observing so any listeners we have can be garbage collected
 // once the snippet is garbage collected, and not before.

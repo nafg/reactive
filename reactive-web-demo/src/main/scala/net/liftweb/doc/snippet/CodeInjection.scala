@@ -1,34 +1,22 @@
 package net.liftweb.doc.snippet
 
+import scala.xml.Elem
 
-/*
-once again to lazy to add depedency
-https://github.com/MasseGuillaume/lift-doc
-*/
-
-import net.liftweb.util.Helpers._
+import net.liftweb.common.Full
 import net.liftweb.http.LiftRules
-import net.liftweb.common.{ Failure, Full }
-
-import xml.{NodeSeq, Elem}
 import net.liftweb.util.Helpers
 
 
-object CodeInjection
-{
-
-  def load( path: String ) = {
-
+object CodeInjection {
+  def load(path: String) =
     for {
       fileName      <- Full( path.split('/').last )           ?~ ( "cannot parse a filename: " + path )
       fileExtension <- Full( fileName.split('.').last )       ?~ ( "cannot parse a file extension: " + fileName )
       code          <- LiftRules.loadResourceAsString( path ) ?~ ( "template: " + path + " not found" )
       _ = println(fileName)
-    } yield renderCodeMirror( code, fileName, fileExtension )
-  }
+    } yield renderCodeMirror(code, fileName, fileExtension)
 
-  def renderCodeMirror( code:String, fileName:String, fileExtension:String ) : Elem = {
-
+  def renderCodeMirror(code:String, fileName:String, fileExtension:String): Elem = {
     val guid = Helpers.nextFuncName
 
     val mode = fileExtension match {
@@ -37,7 +25,7 @@ object CodeInjection
       case other => s"""{ name: "$other" }"""
     }
 
-    <lift:children>
+    <div data-lift="children">
       <label for={guid}>{ fileName }</label>
       <textarea id={guid}>{code.stripLineEnd}</textarea>
       <script>
@@ -51,6 +39,6 @@ object CodeInjection
           }})
         }})
       </script>
-    </lift:children>
+    </div>
   }
 }

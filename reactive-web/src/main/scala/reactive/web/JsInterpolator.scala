@@ -15,7 +15,6 @@ object LiftJsonToUpickle {
     case JNull | JNothing => Js.Null
     case JArray(xs)       => Js.Arr(xs map apply: _*)
     case JObject(xs)      => Js.Obj(xs map (f => (f.name, apply(f.value))): _*)
-    case JField(_, _)     => sys.error("JField is not a value")
   }
   def unapply(in: JValue) = Some(apply(in))
   implicit def writer: Writer[JValue] = Writer(apply)
@@ -42,7 +41,7 @@ object AjaxCall {
   private def addHandler(id: String)(pf: PartialFunction[Seq[Js.Value], Unit])(implicit page: Page) = {
     import page.observing
     page.ajaxEvents ?>> {
-      case (`id`, LiftJsonToUpickle(Js.Arr(xs @ _*))) if(pf.isDefinedAt(xs)) =>
+      case (`id`, LiftJsonToUpickle(Js.Arr(xs @ _*))) if pf isDefinedAt xs =>
         pf(xs)
     }
   }
