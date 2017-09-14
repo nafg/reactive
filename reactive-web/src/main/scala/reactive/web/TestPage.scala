@@ -29,7 +29,6 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
 
   private var confirms: List[(String, Boolean => Unit)] = Nil
 
-  private object xmlLazyLock
   /**
    * The current xml
    */
@@ -65,7 +64,6 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
    * A transport that simulates the dom mutations that a browser would apply,
    * by directly transforming a NodeSeq representing the state of
    * the html that would be in the browser
-   * @param _xml the initial NodeSeq (such as a rendered template)
    */
   object testTransport extends AccumulatingTransport {
     def currentPriority = 1000
@@ -82,14 +80,14 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
     queued foreach { renderable =>
       synchronized {
         renderable match {
-          case dmr @ DomMutationRenderable(dm) =>
+          case DomMutationRenderable(dm) =>
             try transform(_.applyDomMutation(dm))
             catch {
-              case e: Exception =>
+              case _: Exception =>
                 Console.err.println("TestPage: Could not apply DomMutation " + dm)
             }
           case JsStatement.Renderable(Apply(rendered(ajaxRE(id)), rendered(confirmRE(msg)))) =>
-            confirms ::= (msg, b => ajaxEvents.fire((id, JBool(b))))
+            confirms ::= msg -> (b => ajaxEvents.fire((id, JBool(b))))
           case _ =>
         }
         queuingNow.value :+= renderable
@@ -154,8 +152,8 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
       val events = (eventRE findAllIn eventAttr).matchData.toList
       val props = (propRE findAllIn eventAttr).matchData.toList
 
-      def replace(replacements: (String, JsExp[_ <: JsTypes.JsAny])*) = { s: String =>
-        replacements.foldLeft(s){ case (s, (m, e)) => s.replace(m, JsExp render e) }
+      def replace(replacements: (String, JsExp[_ <: JsTypes.JsAny])*) = { str: String =>
+        replacements.foldLeft(str){ case (s, (m, e)) => s.replace(m, JsExp render e) }
       }
       def replaceModifiers: Modifiers => String => String = {
         case Modifiers(alt, ctrl, shift, meta) =>

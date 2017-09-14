@@ -158,8 +158,8 @@ class EventStreamTests extends FunSuite with Matchers with CollectEvents with Pa
       (weakref1, weakref2, ret)
     }
     val observing1 = new Observing {}
-    var (weakref1, weakref2, es) = innerScope(observing1)
-    System.gc
+    val (weakref1, weakref2, _) = innerScope(observing1)
+    System.gc()
     if (weakref1.get.isEmpty) info("Warning - listener was gc'ed")
     if (weakref2.get.isDefined) info("Warning - listener was not gc'ed")
   }
@@ -171,13 +171,13 @@ class EventStreamTests extends FunSuite with Matchers with CollectEvents with Pa
       val takenWhile = es takeWhile f
       val weakref = new scala.ref.WeakReference(f)
       es fire 2
-      System.gc
+      System.gc()
       if (weakref.get.isEmpty) info("Warning - takeWhile EventSource was gc'ed")
       weakref
     }
     val weakref = makeTakenWhile
     es fire 10
-    System.gc
+    System.gc()
     if (weakref.get.isDefined) info("Warning - takeWhile EventSource was not gc'ed")
   }
 
@@ -188,7 +188,7 @@ class EventStreamTests extends FunSuite with Matchers with CollectEvents with Pa
     }
     es.zipWithStaleness.nonblocking.foreach {
       case (n, isStale) =>
-        for (b <- 1 to 10 if !isStale()) {
+        for (_ <- 1 to 10 if !isStale()) {
           last.synchronized {
             (n != last.value) should equal (isStale())
           }
@@ -257,7 +257,6 @@ class EventStreamTests extends FunSuite with Matchers with CollectEvents with Pa
 
 class SuppressableTests extends FunSuite with Matchers with CollectEvents {
   test("supressing") {
-    implicit val observing = new Observing {}
     val es = new Suppressable[Int] {}
 
     collecting(es)(es fire 1) should equal (List(1))
@@ -272,7 +271,6 @@ class SuppressableTests extends FunSuite with Matchers with CollectEvents {
 }
 class BatchableTests extends FunSuite with Matchers with CollectEvents {
   test("batching") {
-    implicit val observing = new Observing {}
     val es = new Batchable[Int, Int] {}
 
     collecting(es) {

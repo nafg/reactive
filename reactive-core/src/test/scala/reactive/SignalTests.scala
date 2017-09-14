@@ -1,16 +1,17 @@
 package reactive
 
-import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{FunSuite, Matchers}
-import org.scalatest.concurrent.AsyncAssertions
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import org.scalatest.prop.PropertyChecks
-import org.scalatest.time.{Seconds, Span}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with AsyncAssertions {
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
+import org.scalatest.concurrent.Waiters
+import org.scalatest.prop.PropertyChecks
+import org.scalatest.time.{Seconds, Span}
+import org.scalatest.{FunSuite, Matchers}
+
+
+class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with Waiters {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -67,7 +68,7 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
 
     collecting(flatMapped.deltas){
       collecting(flatMapped.change){
-        System.gc
+        System.gc()
         bufSig2 () = Seq(2, 3, 4, 5)
         flatMapped.now should equal (Seq(2, 3, 4, 5))
       } should equal (List(List(2, 3, 4, 5)))
@@ -149,9 +150,9 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
 
     waiter.await(Dismissals(1))
 
-    for (a <- (1 to 10).toList) {
+    for (_ <- (1 to 10).toList) {
       Future {
-        for (b <- 1 to 10)
+        for (_ <- 1 to 10)
           v () = v.now + 1
       }
     }
@@ -183,7 +184,7 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
     agg.now should equal (32)
 
     // inserts and removes, i.e., containing signal change
-    forAll(Arbitrary.arbitrary[List[Int]], maxSize(10)) { xs =>
+    forAll(Arbitrary.arbitrary[List[Int]], sizeRange(10)) { xs =>
       bufSig () = xs.map(Var(_))
       agg.now should equal (xs.sum)
 

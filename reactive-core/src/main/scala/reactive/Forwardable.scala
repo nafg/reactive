@@ -63,7 +63,7 @@ trait Forwardable[+T, +Self] extends Any {
    * Apply a PartialFunction for every applicable value
    */
   def ?>>(pf: PartialFunction[T, Unit])(implicit observing: Observing): Self =
-    this foreach NamedFunction("?>>"+pf)((pf orElse { case _ => }))
+    this foreach NamedFunction("?>>"+pf)(pf orElse { case _ => })
 
   /**
    * Run a block of code for every value

@@ -7,7 +7,7 @@ import logging.Logger
 private object _timer extends juTimer("reactive-core timer thread", true) with Logger {
   case class ExceptionRunningTask(throwable: Throwable)
   private def timerTask(block: =>Unit) = new TimerTask {
-    def run =
+    def run(): Unit =
       try
         block
       catch {

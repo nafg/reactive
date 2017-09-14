@@ -1,7 +1,7 @@
 package reactive
 
 trait Subscription {
-  protected var ref: AnyRef = null
+  protected var ref: AnyRef = _
   final def unsubscribe(): Unit = {
     cleanUp()
     ref = null
@@ -45,14 +45,14 @@ trait Observing {
    * as an alternative syntax to
    * signal.change.foreach{value => action} [(observing)]
    */
-  def observe[T](s: Signal[T])(f: T => Unit) = s.change.foreach(f)(this)
+  def observe[T](s: Signal[T])(f: T => Unit): Unit = s.change.foreach(f)(this)
   /**
    * You can write
    * [observing.] on(eventStream){event => action}
    * as an alternative syntax to
    * eventStream.change.foreach{event => action} [(observing)]
    */
-  def on[T](e: EventSource[T])(f: T => Unit) = e.foreach(f)(this)
+  def on[T](e: EventSource[T])(f: T => Unit): Unit = e.foreach(f)(this)
 }
 
 /**
@@ -61,5 +61,6 @@ trait Observing {
  */
 trait ObservingGroup extends Observing {
   protected def observings: List[Observing]
-  override private[reactive] def addSubscription(subscription: Subscription) = observings foreach (_ addSubscription subscription)
+  override private[reactive] def addSubscription(subscription: Subscription): Unit =
+    observings foreach (_ addSubscription subscription)
 }

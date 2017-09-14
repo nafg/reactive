@@ -4,8 +4,8 @@ package widgets
 
 import scala.xml.NodeSeq
 
-import net.liftweb.util.{ CssSel, Helpers, PassThru }
-import Helpers._
+import net.liftweb.util.CssSel
+import net.liftweb.util.Helpers._
 
 /**
  * Extensible trait to display tabular data

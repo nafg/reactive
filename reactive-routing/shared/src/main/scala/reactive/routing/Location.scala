@@ -25,8 +25,8 @@ case class Location(path: List[String], query: List[(String, String)] = Nil) {
   /** Get a `Tuple2` containing the named parameter's value, and the rest of this `Location` */
   def takeParam(name: String): Option[(String, Location)] =
     query.span(_._1 != name) match {
-      case (notIt, Nil) => None
-      case (notIt, (n, v) :: rest) => Some(v -> copy(query = notIt ++ rest))
+      case (_, Nil)                => None
+      case (notIt, (_, v) :: rest) => Some(v -> copy(query = notIt ++ rest))
     }
 
   /** Get a `Tuple2` containing the named parameter's values, and the rest of this `Location` */

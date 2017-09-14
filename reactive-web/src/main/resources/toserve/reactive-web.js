@@ -8,7 +8,7 @@ EventStream.prototype = {
     this.listeners.push(f);
   },
   removeListener : function(f) {
-    for (l in this.listeners) {
+    for (var l in this.listeners) {
       if (this.listeners[l] === f) {
         delete this.listeners[l];
         break;
@@ -16,7 +16,7 @@ EventStream.prototype = {
     }
   },
   fire : function(v) {
-    for (l in this.listeners) {
+    for (var l in this.listeners) {
       this.listeners[l](v);
     }
   },
@@ -52,13 +52,13 @@ EventStream.prototype = {
     var onTimer = function() {
       if(last !== undefined) throttled.fire(last);
       last = undefined
-    }
-    var to = window.setTimeout(onTimer, period)
+    };
+    var to = window.setTimeout(onTimer, period);
     this.addListener(function(v) {
-      window.clearTimeout(to)
-      last = v
+      window.clearTimeout(to);
+      last = v;
       to = window.setTimeout(onTimer, period)
-    })
+    });
     return throttled;
   }
 };
@@ -78,7 +78,7 @@ JSON.stringify = JSON.stringify || function(v) {
   case 'object':
     if (v instanceof Array) {
       els = [];
-      for (i in v)
+      for (var i in v)
         els.push(jsonify(v[i]));
       return "[" + String(els) + "],";
     } else {
@@ -118,7 +118,7 @@ window.reactive = {
   sendAjax : { },
   createElem : function(label, attributes, innerHtml) {
     var e = document.createElement(label);
-    for (k in attributes)
+    for (var k in attributes)
       e.setAttribute(k, attributes[k]);
     e.innerHTML = innerHtml;
     return e;

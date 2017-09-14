@@ -40,12 +40,10 @@ object JsExp extends ToJsHigh {
   }
 
   /**
-   * Returns a String representation of the javascript expression
-   */
-  def render(e: JsExp[_ <: JsAny]): String = e match {
-    case null => "null"
-    case e    => e.render
-  }
+    * Returns a String representation of the javascript expression
+    */
+  def render(e: JsExp[_ <: JsAny]): String =
+    if (e eq null) "null" else e.render
 }
 
 /**
@@ -136,7 +134,8 @@ trait Array[J <: JsAny] extends JsStub {
 }
 
 object Array {
-  implicit def fromJsType[J <: JsAny] = new Extend[JsExp[JsTypes.JsArray[J]], Array[J]]
+  implicit def fromJsType[J <: JsAny]: Extend[JsExp[JsArray[J]], Array[J]] =
+    new Extend[JsExp[JsTypes.JsArray[J]], Array[J]]
 
   /**
    * DSL to create a JsExp[JsArray[_]]
@@ -290,9 +289,9 @@ trait ToJsHigh extends ToJsMedium {
  */
 object ToJs {
   class From[S] {
-    type To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] = ToJs[S, J, E]
+    type To[J <: JsAny, E[X <: JsAny] <: JsExp[X]] = ToJs[S, J, E]
   }
-  class To[J <: JsAny, E[J <: JsAny] <: JsExp[J]] {
+  class To[J <: JsAny, E[X <: JsAny] <: JsExp[X]] {
     type From[S] = ToJs[S, J, E]
   }
 }
@@ -358,7 +357,8 @@ object CanMod {
 class CanPlus[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: (JsExp[L], JsExp[R]) => JsExp[T]) extends CanOp[L, R, T](f)
 
 trait CanAmpLow {
-  implicit def boolean[L <: JsAny, R <: JsAny] = new Can_&[L, R, JsBoolean](JsOp(_, _, "&"))
+  implicit def boolean[L <: JsAny, R <: JsAny]: Can_&[L, R, JsBoolean] =
+    new Can_&[L, R, JsBoolean](JsOp(_, _, "&"))
 }
 object Can_& extends CanAmpLow {
   implicit val numNum: Can_&[JsNumber, JsNumber, JsNumber] = new Can_&[JsNumber, JsNumber, JsNumber]((l, r) => JsOp(l, r, "&"))
@@ -366,7 +366,8 @@ object Can_& extends CanAmpLow {
 class Can_&[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: ($[L], $[R]) => $[T]) extends CanOp[L, R, T](f)
 
 trait CanBarLow {
-  implicit def boolean[L <: JsAny, R <: JsAny] = new Can_|[L, R, JsBoolean](JsOp(_, _, "|"))
+  implicit def boolean[L <: JsAny, R <: JsAny]: Can_|[L, R, JsBoolean] =
+    new Can_|[L, R, JsBoolean](JsOp(_, _, "|"))
 }
 object Can_| extends CanBarLow {
   implicit val numNum: Can_|[JsNumber, JsNumber, JsNumber] = new Can_|[JsNumber, JsNumber, JsNumber]((l, r) => JsOp(l, r, "|"))
@@ -388,9 +389,12 @@ class CanApply[-T <: JsAny, -P, +R <: JsAny](r: JsExp[T] => P => (JsExp[R] with 
 }
 
 object CanGet {
-  implicit def arrayIndex[R <: JsAny] = new CanGet[JsArray[R], JsNumber, R](a => i => new JsRaw[R](JsExp.render(a)+"["+JsExp.render(i)+"]") with Assignable[R])
-  implicit def arrayKey[R <: JsAny] = new CanGet[JsArray[R], JsString, R](a => k => new JsRaw[R](JsExp.render(a)+"["+JsExp.render(k)+"]") with Assignable[R])
-  implicit val objKey = new CanGet[JsObj, JsString, JsAny](o => k => new JsRaw[JsAny](JsExp.render(o)+"["+JsExp.render(k)+"]") with Assignable[JsAny])
+  implicit def arrayIndex[R <: JsAny]: CanGet[JsArray[R], JsNumber, R] =
+    new CanGet[JsArray[R], JsNumber, R](a => i => new JsRaw[R](JsExp.render(a)+"["+JsExp.render(i)+"]") with Assignable[R])
+  implicit def arrayKey[R <: JsAny]: CanGet[JsArray[R], JsString, R] =
+    new CanGet[JsArray[R], JsString, R](a => k => new JsRaw[R](JsExp.render(a)+"["+JsExp.render(k)+"]") with Assignable[R])
+  implicit val objKey: CanGet[JsObj, JsString, JsAny] =
+    new CanGet[JsObj, JsString, JsAny](o => k => new JsRaw[JsAny](JsExp.render(o)+"["+JsExp.render(k)+"]") with Assignable[JsAny])
 }
 class CanGet[-T <: JsAny, -I <: JsAny, R <: JsAny](r: $[T] => $[I] => Assignable[R]) {
   def apply(a: $[T], i: $[I]): Assignable[R] = r(a)(i)
@@ -406,7 +410,8 @@ class CanSelect[-T <: JsAny, T2 <: JsAny](f: JsExp[T] => JsExp[T2] => JsExp[T2])
 }
 
 object CanOrder {
-  implicit val numNum = new CanOrder[JsNumber, JsNumber, JsBoolean](op => l => r => JsOp(l, r, op))
+  implicit val numNum: CanOrder[JsNumber, JsNumber, JsBoolean] =
+    new CanOrder[JsNumber, JsNumber, JsBoolean](op => l => r => JsOp(l, r, op))
 }
 class CanOrder[-L <: JsAny, -R <: JsAny, +T <: JsAny](f: String => $[L] => $[R] => $[T]) extends (String => ($[L], $[R]) => $[T]) {
   def apply(op: String) = (left: $[L], right: $[R]) => f(op)(left)(right)
@@ -453,7 +458,7 @@ private[javascript] class StubInvocationHandler[T <: JsStub: ClassTag](val ident
       )
     } catch {
       case _: NoSuchMethodException | _: ClassNotFoundException =>
-        clazz.getInterfaces().map(findAndInvokeForwarder).find(_.isDefined) getOrElse (
+        clazz.getInterfaces.map(findAndInvokeForwarder).find(_.isDefined) getOrElse (
           clazz.getSuperclass match {
             case null => None
             case c    => findAndInvokeForwarder(c)

@@ -1,10 +1,9 @@
 package reactive
 package web
 
-import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
-import javascript.{ Assignable, buildJs, CanForwardJs, JsEventStream, JsExp, JsForwardable, JsTypes, window }
+import scala.xml.{Elem, NodeSeq, Null, UnprefixedAttribute}
 
-import scala.ref.WeakReference
+import reactive.web.javascript.{Assignable, CanForwardJs, JsEventStream, JsExp, JsForwardable, JsTypes, buildJs, window}
 
 /**
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server
@@ -14,6 +13,7 @@ import scala.ref.WeakReference
  * @param name The javascript name of the property
  */
 class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig) extends PageIds {
+  implicit val domMutationRenderer: CanRender[DomMutation] = config.domMutationRenderer
   class PropertyRenderer(attributeValue: String => Option[String] = _ => None)(implicit page: Page)
     extends ElemFuncWrapper(elem => includedEvents.foldLeft(
       addPage(elem) %
@@ -72,7 +72,7 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
      * With the thread-local 'ajaxPage' set to the Page addPage was called with,
      * the value Var is updated.
      */
-    def propagate(v: String) {
+    def propagate(v: String): Unit = {
       valuesES fire v
       // Send to all other pages the javascript to apply the new value,
       // other than the page on which this property started this ajax call
@@ -144,13 +144,13 @@ class DomProperty(val name: String)(implicit config: CanRenderDomMutationConfig)
     pageIds
       .filter{ case (p, _) => pagePred(p) }
       .foreach{ case (page, id) =>
-        page.queue(DomMutation.UpdateProperty(id, name, attributeName, a))
+        page.queue(DomMutation.UpdateProperty(id, name, attributeName, a))(domMutationRenderer)
       }
 
   /**
    * Change the value of this property in the browser DOM on all pages
    */
-  def update[T : PropertyCodec](value: T) = updateImpl[T](value)(_ => true)
+  def update[T : PropertyCodec](value: T): Unit = updateImpl[T](value)(_ => true)
 
   override def toString = "DomProperty(name=%s,attributeName=%s)" format (name, attributeName)
 }
@@ -176,7 +176,7 @@ object DomProperty {
    * An implicit `CanForwardJs` instance for `DomProperty`s.
    */
   implicit def canForwardJs[A <: JsTypes.JsAny](implicit page: Page): CanForwardJs[DomProperty, A] = new CanForwardJs[DomProperty, A] {
-    def forward(s: JsForwardable[A], t: DomProperty) =
+    def forward(s: JsForwardable[A], t: DomProperty): Unit =
       s.foreach{ x: JsExp[A] => t.readJS(t.id).asInstanceOf[Assignable[A]] := x }
   }
 

@@ -2,10 +2,11 @@ package reactive
 package web
 package lift
 
-import java.io.{ OutputStream, OutputStreamWriter, Writer }
+import java.io.{OutputStream, OutputStreamWriter, Writer}
+
 import scala.annotation.tailrec
-import net.liftweb.http.{ GetRequest, LiftRules, OutputStreamResponse, Req, S }
-import net.liftweb.common.Full
+
+import net.liftweb.http.{GetRequest, LiftRules, OutputStreamResponse, Req, S}
 
 /**
  * Contains the [[SseTransportType.init]] method which must

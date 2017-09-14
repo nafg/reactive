@@ -151,16 +151,16 @@ trait TableEditor[A] extends TableView[A] {
     { (a: Seq[RowType], b: Seq[RowType]) => LCS.lcsdiff[RowType, RowType](a, b, _.item == _.item) }
   )
   rows.deltas foreach { d => println("rows deltas: "+d) }
-  val edits = (inserts | rows.flatMap {
+  val edits = inserts | rows.flatMap {
     _.flatMap { r =>
       r.removes :: cols.collect {
         case c: EditableCol[_] => c.validity(r).distinct.change.collect {
-          case Valid(v)        => Update(r.item, c, v)
-          case Warning(v, msg) => Update(r.item, c, v)
+          case Valid(v)         => Update(r.item, c, v)
+          case Warning(v, _@_*) => Update(r.item, c, v)
         }
       }
     }.foldLeft(EventStream.empty[Edit])(_ | _)
-  })
+  }
   edits foreach { e => println("Edit: "+e) }
   actions <<: (edits.map(Left(_)) | refreshes.map(Right(_))).foldLeft(actions.now){
     case (as, Left(e))  => e :: as
@@ -215,7 +215,7 @@ trait TableEditor[A] extends TableView[A] {
         } andThen PropertyVar("disabled").fromSignal(redoActions map (_.isEmpty))
       } &
       ".save" #> onServer[Click]{ _ => //TODO use nonblocking
-        def doSave {
+        def doSave(): Unit = {
           Try {
             println("actions.now: "+actions.now)
             save(actions.now.reverse)
@@ -230,7 +230,7 @@ trait TableEditor[A] extends TableView[A] {
         val (warnings, errors) = cols.collect {
           case c: EditableCol[_] => c.validities.get.map(_._2.now)
         }.flatten.foldLeft((List[Warning[_, NodeSeq]](), List[Invalid[NodeSeq]]())){
-          case ((ws, is), v: Valid[_])      => (ws, is)
+          case ((ws, is), _: Valid[_])      => (ws, is)
           case ((ws, is), w: Warning[_, _]) => (w :: ws, is)
           case ((ws, is), i: Invalid[_])    => (ws, i :: is)
         }
@@ -243,11 +243,11 @@ trait TableEditor[A] extends TableView[A] {
                 Some values have warnings.
                 Are you sure you want to save anyway?
               </p>
-              <p><button class="btn btn-danger" onclick={ onServer[Click]{ _ => messages -= msg; doSave }.js }>Yes</button></p>
+              <p><button class="btn btn-danger" onclick={ onServer[Click]{ _ => messages -= msg; doSave() }.js }>Yes</button></p>
             </xml:group>
           messages += msg
         } else
-          doSave
+          doSave()
       }
   }
 }

@@ -4,29 +4,24 @@ import scala.collection.mutable.ArrayBuffer
 import scala.annotation.tailrec
 import scala.collection.mutable.Buffer
 
-/**
- * Represents the delta of a change to a Seq (such as a Buffer)
- * @tparam A the type of the old element
- * @tparam B the type of the new element
- */
 object SeqDelta {
   def flatten[A, B](deltas: Seq[SeqDelta[A, B]]): Seq[SingleDelta[A, B]] =
     recursively(deltas.toList)(List.empty[SingleDelta[A, B]])(_ :+ _)
 
   def single[A, B](ms: Seq[SeqDelta[A, B]]): Option[SeqDelta[A, B]] =
     if (ms.isEmpty) None
-    else if (ms.length == 1) Some(ms(0))
+    else if (ms.length == 1) Some(ms.head)
     else Some(Batch(ms: _*))
 
   def applyToSeq[A](ds: Seq[SeqDelta[A, A]])(seq: Seq[A]): Seq[A] = {
     val buf = ArrayBuffer(seq: _*)
     applyToBuffer(ds, buf)
-    buf.toSeq
+    buf
   }
   def applyToBuffer[A](ds: Seq[SeqDelta[A, A]], buf: Buffer[A]): Unit = flatten(ds) foreach {
-    case Include(i, e)     => buf.insert(i, e)
-    case Remove(i, e)      => buf.remove(i)
-    case Update(i, old, e) => buf.update(i, e)
+    case Include(i, e)   => buf.insert(i, e)
+    case Remove(i, _)    => buf.remove(i)
+    case Update(i, _, e) => buf.update(i, e)
   }
 
   @tailrec def recursively[A, B, C](deltas: List[SeqDelta[A, B]])(acc: C)(f: (C, SingleDelta[A, B]) => C): C = deltas match {
@@ -44,6 +39,12 @@ object SeqDelta {
     def toBatch: Batch[A, B] = Batch(source: _*)
   }
 }
+
+/**
+  * Represents the delta of a change to a Seq (such as a Buffer)
+  * @tparam A the type of the old element
+  * @tparam B the type of the new element
+  */
 sealed trait SeqDelta[+A, +B] {
   /**
    * The message that, if applied, would undo the result of this message

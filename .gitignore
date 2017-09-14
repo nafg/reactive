@@ -1,16 +1,7 @@
 target/
 lib/
-.scala_dependencies
-project/boot/
-*/project/boot/
-*.class
-lib_managed/
-reactive.wiki
 *~
-work/
-.git-bak/
 *.bak
-.directory
 hs_err*.log
 .history
 jrockit.*.dump

@@ -92,15 +92,15 @@ trait Logger {
   /**
    * Log a semantic event at the trace level
    */
-  def trace(pred: => Any) = log(LogLevel.Trace, pred)
+  def trace(pred: => Any): Unit = log(LogLevel.Trace, pred)
   /**
    * Log a semantic event at the warning level
    */
-  def warn(pred: => Any) = log(LogLevel.Warn, pred)
+  def warn(pred: => Any): Unit = log(LogLevel.Warn, pred)
   /**
    * Log a semantic event at the error level
    */
-  def error(pred: => Any) = log(LogLevel.Error, pred)
+  def error(pred: => Any): Unit = log(LogLevel.Error, pred)
 }
 
 trait HasLogger { outer =>

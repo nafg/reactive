@@ -1,32 +1,12 @@
 package reactive
 
-import scala.xml.{ Elem, Group, Node, NodeSeq }
-import web.javascript.{ JsExp, JsTypes, =|>, Javascript, JsStatement, window, Ajax }
-import reactive.logging.Logger
-import net.liftweb.util.CanBind
+import scala.language.implicitConversions
+import scala.xml.{Elem, Node, NodeSeq}
 
-package web {
-  class CanBindIndirection[-A](val f: A => NodeSeq => Seq[NodeSeq])
-  trait CanBindIndirectionLow {
-    implicit def canBindSignal[A](implicit cba: CanBind[A], page: Page, rdm: CanRenderDomMutationConfig): CanBindIndirection[Signal[A]] = new CanBindIndirection[Signal[A]](
-      sig => ns => Cell {
-        sig.map(a => (ns: NodeSeq) => cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _))
-      } apply ns
-    )
-  }
-  object CanBindIndirection extends CanBindIndirectionLow {
-    implicit def canBindPropertyVar[A](implicit page: Page): CanBindIndirection[PropertyVar[A]] = new CanBindIndirection[PropertyVar[A]](
-      pv => ns => pv.render(page) apply ns
-    )
-    implicit def canBindSeqSignal[A](implicit cba: CanBind[A], page: Page, rdm: CanRenderDomMutationConfig): CanBindIndirection[SeqSignal[A]] = new CanBindIndirection[SeqSignal[A]](
-      sig => ns => Repeater {
-        sig.now.map(a => (ns: NodeSeq) =>
-          cba(a)(ns).foldLeft(NodeSeq.Empty)(_ ++ _)
-        ).signal
-      } apply ns
-    )
-  }
-}
+import net.liftweb.util.CanBind
+import reactive.logging.Logger
+import reactive.web.javascript.{=|>, Ajax, Javascript, JsExp, JsTypes, window}
+
 
 /**
  * reactive-web package
@@ -67,7 +47,7 @@ package object web {
 
   /**
    * Add a javascript event handler
-   * @tparam e the event type (must be written explicitly)
+   * @tparam E the event type (must be written explicitly)
    * @param f the javascript function expression (can be implicity converted via the javascript dsl; see example)
    * @return a DomEventSource
    * @example
@@ -77,14 +57,14 @@ package object web {
    *   }
    * }}}
    */
-  def on[E <: DomEvent](f: JsExp[JsTypes.JsObj =|> JsTypes.JsVoid])(implicit m: Manifest[E], ee: EventEncoder[E], o: Observing, p: Page) = {
+  def on[E <: DomEvent](f: JsExp[JsTypes.JsObj =|> JsTypes.JsVoid])(implicit m: Manifest[E], ee: EventEncoder[E], p: Page) = {
     val des = new DomEventSource[E]
     des.jsEventStream(p) foreach f
     des
   }
   /**
    * Add a server (ajax) event handler
-   * @tparam e the event type (note that this can be inferred from the type of ''f'')
+   * @tparam E the event type (note that this can be inferred from the type of ''f'')
    * @param f the function that handles the event
    * @return a DomEventSource
    * @example

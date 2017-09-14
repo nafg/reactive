@@ -25,7 +25,7 @@ trait Div extends RElem {
  * Provides several factories for creating Divs
  */
 object Div {
-  import scala.xml.{Elem, NodeSeq}
+  import scala.xml.NodeSeq
   
   /**
    * Creates a Repeater Div that contains the RElems contained in the SeqSignal.

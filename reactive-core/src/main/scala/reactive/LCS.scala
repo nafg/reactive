@@ -1,7 +1,5 @@
 package reactive
 
-import scala.collection.mutable.ArrayBuffer
-
 /**
  * Based on Java code by Neil Jones at http://bix.ucsd.edu/bioalgorithms/downloads/code/LCS.java
  */
@@ -50,9 +48,6 @@ object LCS {
         }
       }
     }
-
-    // The length of the longest substring is S[n][m]
-    var pos = S(n)(m) - 1
 
     var lcs = List[T]()
 
@@ -114,9 +109,6 @@ object LCS {
         }
       }
     }
-
-    // The length of the longest substring is S[n][m]
-    var pos = S(n)(m) - 1
 
     var diffs = List[IncludeOrRemove[T, U]]()
 

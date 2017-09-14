@@ -1,7 +1,8 @@
 package reactive
 package web
 
-import scala.xml.{ Elem, Null, UnprefixedAttribute }
+import scala.collection.mutable
+import scala.xml.{Elem, Null, UnprefixedAttribute}
 
 import reactive.logging.Logger
 
@@ -13,7 +14,7 @@ import reactive.logging.Logger
 trait PageIds extends Logger {
   case class AssignedNewId(pageId: String, id: String)
 
-  protected var pageIds = new scala.collection.mutable.WeakHashMap[Page, String]()
+  protected val pageIds = mutable.WeakHashMap[Page, String]()
 
   private def nextId(implicit page: Page) = {
     val ret = page.nextId

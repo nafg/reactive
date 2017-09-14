@@ -1,13 +1,10 @@
 package reactive
-import java.io.{ PrintStream, ByteArrayOutputStream }
-
-import scala.annotation.implicitNotFound
+import java.io.{ByteArrayOutputStream, PrintStream}
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
-import org.scalatest.{ ParallelTestExecution, FunSuite }
+import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 
 class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with ParallelTestExecution {
   implicit val observing0 = new Observing {}
@@ -89,7 +86,7 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
   test("patch") {
     forAll(
       for (list <- arbitrary[List[Int]]; replacement <- arbitrary[List[Int]]; index <- Gen.choose(-1, list.length + 2); count <- arbitrary[Int]) yield (list, replacement, index, count),
-      maxSize(20)
+      sizeRange(20)
     ) {
         case (list, replacement, index, count) =>
           DeltaSeq(list: _*).patch(index, replacement, count) should equal (list.patch(index, replacement, count))
@@ -98,7 +95,7 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
   test("check slice") {
     forAll(
       for (list <- arbitrary[List[Int]]; from <- Gen.choose(-1, list.length + 2); until <- Gen.choose(-1, list.length + 2)) yield (list, from, until),
-      maxSize(20)
+      sizeRange(20)
     ) {
         case (list, from, until) =>
           DeltaSeq(list: _*).slice(from, until) should equal (list.slice(from, until))
@@ -111,7 +108,7 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
       Console.withOut(new PrintStream(baos)) { p }
     } catch {
       case e: Exception =>
-        Console.print(new String(baos.toByteArray()))
+        Console.print(new String(baos.toByteArray))
         println(Console.RED + e + Console.RESET)
         println
         throw e
@@ -119,7 +116,7 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
   }
 
   test("Repeating updatedFromParent") {
-    def iter[T](s: BufferSignal[T], xss: List[List[T]])(f: List[T] => Unit) {
+    def iter[T](s: BufferSignal[T], xss: List[List[T]])(f: List[T] => Unit): Unit = {
       printStack {
         println
         for (xs <- xss) {
@@ -133,7 +130,7 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
 //    println("==================")
     //checkPrefixBased(List(List(true, false), List(false)))
 
-    forAll(Gen.nonEmptyListOf(arbitrary[List[(Int, List[Int])]]), maxSize(10)){
+    forAll(Gen.nonEmptyListOf(arbitrary[List[(Int, List[Int])]]), sizeRange(10)){
       case Nil => whenever(false) {}
       case head :: xss =>
         val s = BufferSignal(head: _*)
@@ -150,14 +147,14 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
           filtered.now should equal (xs filter (_._1 % 2 == 0))
         }
     }
-    forAll(for (list <- Gen.nonEmptyListOf(arbitrary[List[Int]]); from <- Gen.choose(-2, list.length + 2); to <- Gen.choose(-2, list.length + 2)) yield (list, from, to), maxSize(10)) {
+    forAll(for (list <- Gen.nonEmptyListOf(arbitrary[List[Int]]); from <- Gen.choose(-2, list.length + 2); to <- Gen.choose(-2, list.length + 2)) yield (list, from, to), sizeRange(10)) {
       case (Nil, _, _) => whenever(false){}
       case (head :: xss, from, to) =>
         val s = BufferSignal(head: _*)
         val sliced = s.now.slice(from, to).signal
         iter(s, xss)(xs => sliced.now should equal (xs.slice(from, to)))
     }
-    forAll(for (list1 <- Gen.nonEmptyListOf(Gen.nonEmptyListOf(arbitrary[Int])); list2 <- arbitrary[List[Int]]) yield (list1, list2), maxSize(10)) {
+    forAll(for (list1 <- Gen.nonEmptyListOf(Gen.nonEmptyListOf(arbitrary[Int])); list2 <- arbitrary[List[Int]]) yield (list1, list2), sizeRange(10)) {
       case (head :: xss, toAppend) =>
         val s = BufferSignal(head: _*)
         val appended = (s.now ++ toAppend).signal
@@ -177,7 +174,7 @@ class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with Para
         }
     }
     val gen = Gen.nonEmptyListOf(Gen.nonEmptyListOf(arbitrary[Boolean]))
-    forAll(gen, maxSize(10))(checkPrefixBased)
+    forAll(gen, sizeRange(10))(checkPrefixBased)
     /*
      // The REALLY thorough test -- systematic not random
      // currently only single removes

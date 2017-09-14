@@ -29,7 +29,8 @@ package object javascript {
    */
   type =|>[-P <: JsAny, +R <: JsAny] = JsTypes.JsFunction1[P, R]
 
-  implicit def toForInable[T <: JsAny](exp: JsExp[JsArray[T]]) = ForInable(exp)
+  implicit def toForInable[T <: JsAny](exp: JsExp[JsArray[T]]): ForInable[T] =
+    ForInable(exp)
   def Each[T <: JsAny](exp: $[JsArray[T]]) = ForEachInable(exp)
   def Break = new Break
 
@@ -37,13 +38,6 @@ package object javascript {
    * Returns a JsIdent with the specified name
    */
   def $[T <: JsAny](name: Symbol) = JsIdent[T](name)
-
-  class ProxyName[T : ClassTag](val value: String)
-  object ProxyName {
-    implicit def fromString[T : ClassTag](s: String): ProxyName[T] = new ProxyName(s)
-    implicit def fromSymbol[T : ClassTag](s: Symbol): ProxyName[T] = new ProxyName(s.name)
-    implicit def fromUnit[T : ClassTag](s: Unit): ProxyName[T] = new ProxyName(scalaClassName(classTag[T].runtimeClass))
-  }
 
   /**
    * Returns a JsStub proxy for the specified type,
@@ -67,4 +61,11 @@ package object javascript {
   val window = jsProxy[Window]('window)
 
   def buildJs[A](f: => A): A = JsStatement.inScope(f)._1
+}
+
+class ProxyName[T : ClassTag](val value: String)
+object ProxyName {
+  implicit def fromString[T : ClassTag](s: String): ProxyName[T] = new ProxyName(s)
+  implicit def fromSymbol[T : ClassTag](s: Symbol): ProxyName[T] = new ProxyName(s.name)
+  implicit def fromUnit[T : ClassTag](s: Unit): ProxyName[T] = new ProxyName(scalaClassName(classTag[T].runtimeClass))
 }

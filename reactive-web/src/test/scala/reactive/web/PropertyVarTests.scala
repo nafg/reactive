@@ -1,12 +1,13 @@
-package reactive
-package web1
-import web._
+package reactive.web
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
-import net.liftweb.util.Helpers.StringToCssBindPromoter
-import net.liftweb.util.CanBind
 import scala.xml.NodeSeq
+
+import net.liftweb.util.CanBind
+import net.liftweb.util.Helpers.StringToCssBindPromoter
+import reactive.{Observing, Signal, Var}
+
+import org.scalatest.{FunSuite, Matchers}
+
 
 class PropertyVarTests extends FunSuite with Matchers {
   // compile time test that the implicits resolve successfully

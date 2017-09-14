@@ -47,7 +47,7 @@ class DomMutationTests extends FunSuite with Matchers with TableDrivenPropertyCh
   }
 
   test("Rendering") {
-    defaultDomMutationRenderer(InsertChildBefore("parentId", <elem/>, "beforeId")).render should equal (
+    DomMutationRenderer.default(InsertChildBefore("parentId", <elem/>, "beforeId")).render should equal (
       """reactive.insertChild('parentId',reactive.createElem('elem',{},""),'beforeId');"""
     )
   }

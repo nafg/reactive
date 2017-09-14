@@ -6,12 +6,12 @@ import scala.xml.{ Elem, NodeSeq }
 
 /**
  * This class is used internally by Repeater. It generates javascript to add and remove children from a DOM element.
- * @param parentId the id to insert and remove children from
  * @param children the RElems to be contained by the element with id parentId
  */
 class RepeaterManager(children: SeqSignal[RElem]) {
   /**
    * Given an incremental update and the current set of children's ids, returns a JsCmd to apply the delta.
+   * @param parentId the id to insert and remove children from
    * @param m the delta
    * @param ids the current ids of the child elements, in order
    * @return a JsCmd that when executed by the browser will cause update the DOM to reflect the change represented by the delta.
@@ -28,7 +28,7 @@ class RepeaterManager(children: SeqSignal[RElem]) {
         DomMutation.AppendChild(parentId, e)
       ids.patch(index, Seq(elem.id), 0) -> List(mutation)
 
-    case Update(index, oldElem, elem) =>
+    case Update(index, _, elem) =>
       val e = elem.render
       val oldId = ids(index)
       ids.patch(index, Seq(elem.id), 1) ->
@@ -41,9 +41,9 @@ class RepeaterManager(children: SeqSignal[RElem]) {
 
     case Batch(ms @ _*) =>
       ms.foldLeft[(Seq[String], List[DomMutation])]((ids, Nil)){
-        case ((ids, cmds), delta) =>
-          handleUpdate(parentId, delta, ids) match {
-            case (ids, cmd) => (ids, cmds ++ cmd)
+        case ((ids1, cmds), delta) =>
+          handleUpdate(parentId, delta, ids1) match {
+            case (ids2, cmd) => (ids2, cmds ++ cmd)
           }
       }
   }
@@ -53,7 +53,7 @@ class RepeaterManager(children: SeqSignal[RElem]) {
    */
   def createPageStream(parentId: String)(implicit p: Page): EventStream[List[DomMutation]] = {
     children.deltas.foldLeft((children.now.map(_.id(p)): Seq[String], Nil: List[DomMutation])){
-      case ((ids, cmds), deltas) =>
+      case ((ids, _), deltas) =>
         handleUpdate(parentId, deltas, ids)
     }.map(_._2)
   }

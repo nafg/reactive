@@ -28,11 +28,12 @@ class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])
   /**
    * Calls jsEventStream.foreach
    */
-  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F) = domEventSource.jsEventStream(page).foreach(f)
+  def foreach[E[J <: JsAny] <: $[J], F: ToJs.To[JsObj =|> JsVoid, E]#From](f: F): Unit =
+    domEventSource.jsEventStream(page).foreach(f)
   /**
    * Calls jsEventStream.foreach
    */
-  def foreach(f: $[JsObj =|> JsVoid]) = domEventSource.jsEventStream(page).foreach(f)
+  def foreach(f: $[JsObj =|> JsVoid]): Unit = domEventSource.jsEventStream(page).foreach(f)
 }
 
 /**
@@ -81,7 +82,7 @@ class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
    * Pairs a javascript expression to fire when this event occurs, with
    * a javascript event stream to fire it from.
    */
-  case class EventData[T <: JsAny](encode: $[T], es: JsEventStream[T])
+  case class EventData[U <: JsAny](encode: $[U], es: JsEventStream[U])
 
   private val eventData = WeakHashMap[Page, List[EventData[_ <: JsAny]]]()
   private def getEventObjectData(implicit p: Page) = eventObjectData.getOrElseUpdate(p, EventData(implicitly[EventEncoder[T]].encodeExp(Symbol("event").$), new JsEventStream[JsObj]))
@@ -92,7 +93,7 @@ class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
    * @param jsExp the javascript to be evaluated when it occurs
    * @param es the JsEventStream that the value will be fired from
    */
-  def addEventData[T <: JsAny](jsExp: $[T], es: JsEventStream[T])(implicit page: Page) = eventData.synchronized {
+  def addEventData[U <: JsAny](jsExp: $[U], es: JsEventStream[U])(implicit page: Page): Unit = eventData.synchronized {
     val ed = EventData(jsExp, es)
     eventData(page) = eventData.get(page) match {
       case Some(eds) =>

@@ -21,7 +21,7 @@ object Signal {
  *
  * To obtain a signal, see Var, Val, Timer, and BufferSignal. In addition, new signals can be derived from
  * existing signals using the transformation methods defined in this trait.
- * @param T the type of value this signal contains
+ * @tparam T the type of value this signal contains
  */
 //TODO provide change veto (cancel) support
 trait Signal[+T] extends Foreachable[T] {
@@ -149,7 +149,7 @@ trait Signal[+T] extends Foreachable[T] {
    */
   def distinct: Signal[T] = new DistinctSignal[T](this)
 
-  private type WithVolatility[T] = (T, () => Boolean)
+  private type WithVolatility[U] = (U, () => Boolean)
 
   /**
    * Returns a derived signal in which value propagation does not happen on the thread triggering the change,
@@ -184,7 +184,7 @@ trait Signal[+T] extends Foreachable[T] {
   def zipWithStaleness: Signal[(T, () => Boolean)] = new ChildSignal[T, WithVolatility[T], WithVolatility[T]](this, (now, new Volatility), identity) {
     override def debugName = parent.debugName+".zipWithStaleness"
     def parentHandler = {
-      case (parentEvent, (oldValue, volatility: Volatility)) =>
+      case (parentEvent, (_, volatility: Volatility)) =>
         val v = (parentEvent, new Volatility)
         current = v
         volatility.stale = true
@@ -217,7 +217,7 @@ trait Signal[+T] extends Foreachable[T] {
     }
   }
 
-  def debugName = "(%s: %s #%s)".format(toString, getClass(), System.identityHashCode(this))
+  def debugName = "(%s: %s #%s)".format(toString, getClass, System.identityHashCode(this))
 }
 
 private[reactive] class Volatility extends (() => Boolean) {
@@ -251,7 +251,7 @@ protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSi
   override def toString = debugName
 }
 
-protected class AsyncSignal[T](parent: Signal[T])(implicit executionContext: ExecutionContext) extends ChildSignal[T, T, Unit](parent, parent.now, _ => parent.now) {
+protected class AsyncSignal[T](parent: Signal[T])(implicit executionContext: ExecutionContext) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
   override def debugName = parent.debugName+".async"
   private val future = new AtomicRef(Future.successful(()))
   def parentHandler = {
@@ -348,7 +348,7 @@ protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, U
  * (and hence never fires change events)
  */
 case class Val[T](now: T) extends Signal[T] {
-  override def debugName = "Val(%s)" format (now)
+  override def debugName = "Val(%s)" format now
   def change = new EventSource[T] {}
 }
 
@@ -375,14 +375,14 @@ class Var[T](initial: T) extends Signal[T] {
   /**
    * Setter. Usage: var.value = x
    */
-  def value_=(v: T) {
+  def value_=(v: T): Unit = {
     _value = v
     change0.fire(v)
   }
   /**
    * Usage: var()=x
    */
-  final def update(v: T) = value = v
+  final def update(v: T): Unit = value = v
 
   /**
    * Fires an event after every mutation, consisting of the new value

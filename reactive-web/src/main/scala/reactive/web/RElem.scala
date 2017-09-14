@@ -1,10 +1,9 @@
 package reactive
 package web
 
-import net.liftweb.util.Helpers._
-import net.liftweb.common._
-import net.liftweb.actor._
 import scala.xml._
+
+import net.liftweb.util.Helpers._
 
 /**
  * Wraps an `Elem=>Elem` as a `NodeSeq=>NodeSeq` for compatibility
@@ -33,8 +32,8 @@ object RElem {
    * new `Elem`.
    */
   def withId(elem: Elem)(implicit page: Page = null): Elem = elem.attributes get "id" match {
-    case Some(id) => elem
-    case None     => elem % new UnprefixedAttribute("id", Option(page).map(_.nextId) getOrElse "reactiveWebId_" + randomString(7), Null)
+    case Some(_) => elem
+    case None    => elem % new UnprefixedAttribute("id", Option(page).map(_.nextId) getOrElse "reactiveWebId_" + randomString(7), Null)
   }
 
   /**
@@ -60,7 +59,7 @@ object RElem {
 
   /**
    * An RElem based on a scala.xml.Elem.
-   * @param parent the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
+   * @param baseElem the Elem to use. If it already has an id, it is the programmer's responsibility to ensure it is unique
    * @param children any addition RElems to append
    */
   class ElemWrapper(val baseElem: Elem, children: RElem*) extends RElem {
@@ -157,10 +156,10 @@ trait RElem extends PageIds {
    */
   def toNSFunc(implicit page: Page) = new ElemFuncWrapper(renderer(page))
 
-  protected def renderer(implicit page: Page): Elem => Elem = e => {
+  protected def renderer(implicit page: Page): Elem => Elem = { elem0 =>
     val elem = addPage(baseElem.copy(
-      child = e.child ++ baseElem.child,
-      attributes = e.attributes append baseElem.attributes
+      child = elem0.child ++ baseElem.child,
+      attributes = elem0.attributes append baseElem.attributes
     ))
     val withProps = properties.foldLeft(elem) {
       case (e, prop) => prop.render(e)(page)

@@ -3,7 +3,7 @@ package web
 package widgets
 
 import scala.xml._
-import net.liftweb.util._
+
 import net.liftweb.util.Helpers._
 
 /**

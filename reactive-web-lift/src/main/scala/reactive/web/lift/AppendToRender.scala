@@ -88,7 +88,7 @@ trait AppendToRender extends HasLogger {
   def currentPages = currentPageRender.toList.flatMap(_.currentPages)
 
   private object GetTransport { def unapply(x: Any) = currentPageRender }
-  private object & { def unapply[A](x: A) = Some(x, x) }
+  private object & { def unapply[A](x: A) = Some((x, x)) }
 
   /**
    * This is where we modify HTML `LiftResponse`s.
@@ -98,7 +98,7 @@ trait AppendToRender extends HasLogger {
   // TODO customizability
   protected def transformResponse: PartialFunction[LiftResponse, LiftResponse] = {
     case (xr: XhtmlResponse) & GetTransport(transport) =>
-      (NodeLoc(xr.out) \\? "body") match {
+      NodeLoc(xr.out) \\? "body" match {
         case Some(body) =>
           val nodes = transport.renderAndDestroy()
           val rendered = nodes.foldLeft(body)(_ appendChild _)

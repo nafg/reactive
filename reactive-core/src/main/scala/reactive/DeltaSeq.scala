@@ -12,8 +12,8 @@ import scala.collection.SeqLike
 object DeltaSeq extends SeqFactory[DeltaSeq] {
   class DeltaSeqCBF[A] extends CanBuildFrom[DeltaSeq[_], A, DeltaSeq[A]] {
     def apply(from: Coll) = from match {
-      case f: DeltaSeq[_] => new DeltaBuilder[A]
-      case other          => from.genericBuilder[A]
+      case _: DeltaSeq[_] => new DeltaBuilder[A]
+      case _              => from.genericBuilder[A]
     }
     def apply() = newBuilder[A]
   }
@@ -23,7 +23,7 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
   class DeltaBuilder[T] extends Builder[T, DeltaSeq[T]] {
     var list = List[T]()
     def result = DeltaSeq.fromSeq(list.reverse)
-    def clear { list = Nil }
+    def clear(): Unit = { list = Nil }
     def +=(elem: T) = { list ::= elem; this }
   }
 
@@ -35,9 +35,9 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
   }
   override def apply[A](xs: A*) = fromSeq(xs)
 
-  def updatedByValue[T](prev: DeltaSeq[T], seq: Seq[T]): DeltaSeq[T] = new DeltaSeq[T] {
+  def updatedByValue[T](prev: DeltaSeq[T], original: Seq[T]): DeltaSeq[T] = new DeltaSeq[T] {
     val signal = prev.signal
-    val underlying = seq
+    val underlying = original
     val fromDelta = Batch(LCS.lcsdiff[T, T](prev.underlying, seq, _ == _): _*)
   }
   def updatedByDeltas[T](prev0: DeltaSeq[T], delta: SeqDelta[T, T]): DeltaSeq[T] = new DeltaSeq[T] {
@@ -49,9 +49,9 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
 
 trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, DeltaSeq] with SeqLike[T, DeltaSeq[T]] {
   import DeltaSeq._
-  sealed abstract class Transformed[T, V] extends DeltaSeq[V] {
-    type This <: Transformed[T, V]
-    def parent: DeltaSeq[T]
+  sealed abstract class Transformed[U, V] extends DeltaSeq[V] {
+    type This <: Transformed[U, V]
+    def parent: DeltaSeq[U]
     /**
      * Given a DeltaSeq meant to replace the parent DeltaSeq,
      * return a DeltaSeq that is equivalent to reapplying the
@@ -79,13 +79,13 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
    * [10,11, 20,21, 30,31]                     [20,21, 30,31](Remove(0,10),Remove(0,11))   [20,21, 30,31, 40](Include(4, 40))
    *
    */
-    def updatedFromParent(parentUpdated: DeltaSeq[T]): This
+    def updatedFromParent(parentUpdated: DeltaSeq[U]): This
 
     lazy val signal = new SeqSignal[V] {
       private var current: This = Transformed.this.asInstanceOf[This]
       current.underlying
       def now = current
-      val pc: DeltaSeq[T] => Unit = { ds =>
+      val pc: DeltaSeq[U] => Unit = { ds =>
         current = current.updatedFromParent(ds.immutableCopy).asInstanceOf[This]
         current.underlying
         change fire now
@@ -94,20 +94,20 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       lazy val change = new EventSource[DeltaSeq[V]] {}
     }
   }
-  class Appended[T](val parent: DeltaSeq[T], val xs: Seq[T]) extends Transformed[T, T] { prev =>
-    type This = Appended[T]
+  class Appended[U](val parent: DeltaSeq[U], val xs: Seq[U]) extends Transformed[U, U] { prev =>
+    type This = Appended[U]
     val (underlying, fromDelta) = {
       val pu = parent.underlying
       (pu ++ xs, startDelta(pu ++ xs))
     }
-    def updatedFromParent(parentUpdated: DeltaSeq[T]): Appended[T] = new Appended[T](parentUpdated, prev.xs.asInstanceOf[Seq[T]]) {
+    def updatedFromParent(parentUpdated: DeltaSeq[U]): Appended[U] = new Appended[U](parentUpdated, prev.xs.asInstanceOf[Seq[U]]) {
       override val fromDelta = parentUpdated.fromDelta
       override val underlying = SeqDelta.patch(prev.underlying, fromDelta)
     }
   }
-  class FlatMapped[T, V](val parent: DeltaSeq[T], val f: T => GenTraversableOnce[V]) extends Transformed[T, V] { prev =>
-    type This = FlatMapped[T, V]
-    lazy val (underlying, indexMap) = {
+  class FlatMapped[U, V](val parent: DeltaSeq[U], val f: U => GenTraversableOnce[V]) extends Transformed[U, V] { prev =>
+    type This = FlatMapped[U, V]
+    lazy val (underlying: Seq[V], indexMap) = {
       val buf = new ArrayBuffer[V]
       var map = scala.collection.immutable.Map.empty[Int, Seq[Int]]
       var j = 0
@@ -118,16 +118,16 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
         map = map.updated(i, j to j + yl.size)
         j += y.size
       }
-      (buf.toSeq, map)
+      (buf, map)
     }
     lazy val fromDelta: SeqDelta[V, V] = startDelta(underlying)
 
-    def updatedFromParent(parentUpdated: DeltaSeq[T]): FlatMapped[T, V] = new FlatMapped[T, V](parentUpdated, prev.f) {
+    def updatedFromParent(parentUpdated: DeltaSeq[U]): FlatMapped[U, V] = new FlatMapped[U, V](parentUpdated, prev.f) {
       override lazy val (fromDelta, indexMap, underlying) = {
         var map = prev.indexMap
         val ds = new ArrayBuffer[SeqDelta[V, V]]
         val buf = prev.underlying.toBuffer
-        def applyDelta(d: SingleDelta[T, T]): Unit = d match {
+        def applyDelta(d: SingleDelta[U, U]): Unit = d match {
           case Remove(i, _) => // convert a remove on parent.prev to a remove on prev  (parent == parentUpdated)
             val prevFlatmappedIndices = map(i) dropRight 1
             map = map - i map {
@@ -166,12 +166,12 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
 //              println("<ds: "+ds)
 //          }
         }
-        (Batch(ds.toSeq: _*), map, buf.toSeq)
+        (Batch(ds: _*), map, buf)
       }
     }
   }
-  class Sliced[T](val parent: DeltaSeq[T], val from: Int, val until: Int) extends Transformed[T, T] { prev =>
-    type This = Sliced[T]
+  class Sliced[U](val parent: DeltaSeq[U], val from: Int, val until: Int) extends Transformed[U, U] { prev =>
+    type This = Sliced[U]
     lazy val underlying = parent.underlying.slice(from, until).toList
     lazy val fromDelta = startDelta(underlying)
     /*
@@ -202,14 +202,14 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
      *  2. If the slice would now be shorter than (until - from) and does not already include the last element of the parent (that is,
      *     slice.length + from < parent.length), insert the next element of the parent (parent(slice.length + from)).
      */
-    def updatedFromParent(parentUpdated: DeltaSeq[T]): Sliced[T] = new Sliced[T](parentUpdated, prev.from, prev.until) {
+    def updatedFromParent(parentUpdated: DeltaSeq[U]): Sliced[U] = new Sliced[U](parentUpdated, prev.from, prev.until) {
       override lazy val (fromDelta, underlying) = {
-        val ds = new ArrayBuffer[SeqDelta[T, T]]
+        val ds = new ArrayBuffer[SeqDelta[U, U]]
         val buf = prev.toList.toBuffer
-        var parentBuf = prev.parent.toList.toBuffer
+        val parentBuf = prev.parent.toList.toBuffer
         def actUntil = until min parentBuf.length
-        def applyDelta(d: SingleDelta[T, T]): Unit = d match {
-          case Remove(i, e) =>
+        def applyDelta(d: SingleDelta[U, U]): Unit = d match {
+          case Remove(i, _)  =>
             if ((i max from) < actUntil) {
               val j = i - from max 0
               ds += Remove(j, buf(j))
@@ -227,7 +227,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
               ds += Include(j, v)
               buf.insert(j, v)
               if (buf.length > until - from) {
-                ds += Remove(buf.length - 1, buf(buf.length - 1))
+                ds += Remove(buf.length - 1, buf.last)
                 buf.remove(buf.length - 1)
               }
             }
@@ -252,10 +252,10 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
       }
     }
   }
-  class TakenWhile[T](val parent: DeltaSeq[T], val p: T => Boolean) extends Transformed[T, T] { prev =>
-    type This = TakenWhile[T]
+  class TakenWhile[U](val parent: DeltaSeq[U], val p: U => Boolean) extends Transformed[U, U] { prev =>
+    type This = TakenWhile[U]
     lazy val predValues = parent.underlying.toStream map { x => x -> p(x) }
-    lazy val underlying: Seq[T] = predValues.takeWhile{ case (_, b) => b }.map(_._1)
+    lazy val underlying: Seq[U] = predValues.takeWhile{ case (_, b) => b }.map(_._1)
     lazy val fromDelta = startDelta(underlying)
 
     /*
@@ -280,17 +280,17 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
      * that is either outside of the parent sequence or whose element fails the predicate.
      * 
      */
-    def updatedFromParent(parentUpdated: DeltaSeq[T]): TakenWhile[T] = new TakenWhile[T](parentUpdated, prev.p.asInstanceOf[T => Boolean]) {
+    def updatedFromParent(parentUpdated: DeltaSeq[U]): TakenWhile[U] = new TakenWhile[U](parentUpdated, prev.p.asInstanceOf[U => Boolean]) {
       override lazy val (fromDelta, predValues, underlying) = {
         val buf = prev.toList.toBuffer
-        val ds = new ArrayBuffer[SeqDelta[T, T]]
+        val ds = new ArrayBuffer[SeqDelta[U, U]]
         var prdVals = prev.predValues
         def calcPrefixLength = {
-          def loop(n: Int, s: Stream[(T, Boolean)]): Int = if (s.isEmpty || !s.head._2) n else loop(n + 1, s.tail)
+          def loop(n: Int, s: Stream[(U, Boolean)]): Int = if (s.isEmpty || !s.head._2) n else loop(n + 1, s.tail)
           loop(0, prdVals)
         }
         var prefixLength = calcPrefixLength
-        def applyDelta(d: SingleDelta[T, T]): Unit = {
+        def applyDelta(d: SingleDelta[U, U]): Unit = {
           val oldPrefixLength = prefixLength
           d match {
             case Include(i, e) =>
@@ -350,7 +350,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
                 }
               }
 
-            case Update(i, o, e) =>
+            case Update(i, o, _) =>
               applyDelta(Remove(i, o))
               applyDelta(Include(i, o))
           }
@@ -370,14 +370,14 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
           //          println("<buf: "+buf)
           //          println("<ds: "+ds)
         }
-        (Batch(ds: _*), prdVals, buf.toSeq)
+        (Batch(ds: _*), prdVals, buf)
       }
     }
   }
-  class DroppedWhile[T](val parent: DeltaSeq[T], val p: T => Boolean) extends Transformed[T, T] { prev =>
-    type This = DroppedWhile[T]
-    lazy val predValues: Stream[(T, Boolean)] = parent.underlying.toStream map { x => x -> p(x) }
-    lazy val underlying: Seq[T] = predValues.dropWhile{ case (_, b) => b }.map(_._1)
+  class DroppedWhile[U](val parent: DeltaSeq[U], val p: U => Boolean) extends Transformed[U, U] { prev =>
+    type This = DroppedWhile[U]
+    lazy val predValues: Stream[(U, Boolean)] = parent.underlying.toStream map { x => x -> p(x) }
+    lazy val underlying: Seq[U] = predValues.dropWhile{ case (_, b) => b }.map(_._1)
     lazy val fromDelta = startDelta(underlying)
 
     /*
@@ -402,17 +402,17 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
      * that is either outside of the parent sequence or whose element fails the predicate.
      * 
      */
-    def updatedFromParent(parentUpdated: DeltaSeq[T]): DroppedWhile[T] = new DroppedWhile[T](parentUpdated, prev.p.asInstanceOf[T => Boolean]) {
+    def updatedFromParent(parentUpdated: DeltaSeq[U]): DroppedWhile[U] = new DroppedWhile[U](parentUpdated, prev.p.asInstanceOf[U => Boolean]) {
       override lazy val (fromDelta, predValues, underlying) = {
         val buf = prev.toList.toBuffer
-        val ds = new ArrayBuffer[SeqDelta[T, T]]
-        var prdVals: Stream[(T, Boolean)] = prev.predValues
+        val ds = new ArrayBuffer[SeqDelta[U, U]]
+        var prdVals: Stream[(U, Boolean)] = prev.predValues
         def calcPrefixLength = {
-          def loop(n: Int, s: Stream[(T, Boolean)]): Int = if (s.isEmpty || !s.head._2) n else loop(n + 1, s.tail)
+          def loop(n: Int, s: Stream[(U, Boolean)]): Int = if (s.isEmpty || !s.head._2) n else loop(n + 1, s.tail)
           loop(0, prdVals)
         }
         var prefixLength = calcPrefixLength
-        def applyDelta(d: SingleDelta[T, T]): Unit = {
+        def applyDelta(d: SingleDelta[U, U]): Unit = {
           val oldPrefixLength = prefixLength
           val oldPrdVals = prdVals
           d match {
@@ -506,7 +506,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
             //                }
             //              }
 
-            case Update(i, o, e) =>
+            case Update(i, o, _) =>
               applyDelta(Remove(i, o))
               applyDelta(Include(i, o))
           }
@@ -526,7 +526,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
 //          println("<buf: "+buf)
 //          println("<ds: "+ds)
         }
-        (Batch(ds: _*), prdVals, buf.toSeq)
+        (Batch(ds: _*), prdVals, buf)
       }
     }
   }

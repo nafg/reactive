@@ -2,22 +2,15 @@ package reactive
 package routing
 package lift
 
-import scala.xml.{Node, NodeSeq}
+import scala.xml.NodeSeq
+
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, NotFoundResponse, Req, S, XhtmlResponse}
+import net.liftweb.http.{LiftResponse, NotFoundResponse, Req, S}
 
 /**
  * A request handler that returns html, based on a provided template
  */
 trait HtmlResponse extends (Req => LiftResponse) {
-  private object OneNode {
-    def unapply(ns: NodeSeq): Option[Node] = ns match {
-      case n: Node                       => Some(n)
-      case ns: NodeSeq if ns.length == 1 => Some(ns(0))
-      case _                             => None
-    }
-  }
-
   /**
    * The template html, which
    * will be run through the Lift merge phase.

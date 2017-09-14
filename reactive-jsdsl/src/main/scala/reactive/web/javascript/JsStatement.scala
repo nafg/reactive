@@ -1,12 +1,8 @@
 package reactive.web.javascript
 
 import reactive.Observing
-import reactive.web.Page
-import reactive.web.IdCounter
-import reactive.web.CanRender
-import reactive.web.Renderable
-
-import JsTypes._
+import reactive.web.{CanRender, IdCounter, Page}
+import reactive.web.javascript.JsTypes._
 
 /**
  * Statements written with the JsStatement DSL, within a Javascript { ... } block
@@ -100,10 +96,7 @@ object JsStatement {
     vars ++ others
   }
 
-  def render(statement: JsStatement) = indent.value match {
-    case Some(i) => renderImpl(statement)
-    case _       => renderImpl(statement)
-  }
+  def render(statement: JsStatement) = renderImpl(statement)
 
   private def indentAndRender(statement: JsStatement) = indent.withValue(indent.value map (2 + _))(indentStr + render(statement))
 
@@ -122,7 +115,7 @@ object JsStatement {
     case w: While.While                  => "while("+JsExp.render(w.cond)+") "+render(w.body)
     case dw: Do.DoWhile                  => "do "+render(dw.body)+" while("+JsExp.render(dw.cond)+")"
     case s: Switch.Switch[_]             => "switch("+JsExp.render(s.input)+") {"+nl + s.matches.map(renderMatch).mkString+"}"
-    case b: Break                        => "break;"
+    case _: Break                        => "break;"
     case v: JsVar[_]                     => renderVar(v)+";"
     case a: Assignment[_, _]             => renderAssignment(a)+";"
     case f: For.For                      => "for("+f.init.map(renderAssignment).mkString(",")+";"+JsExp.render(f.cond)+";"+f.inc.map(renderAssignment).mkString(",")+") "+render(f.body)
@@ -149,7 +142,7 @@ object JsStatement {
   /**
    * Sets the top JsStatement block
    */
-  def currentScope_=(ss: List[JsStatement]) = {
+  def currentScope_=(ss: List[JsStatement]): Unit = {
     require(isInScope.value, "Cannot modify nonexistent javascript scope")
     stack.value = ss :: stack.value.tail
   }
@@ -167,7 +160,7 @@ object JsStatement {
     }
   }
 
-  def push(s: JsStatement) = {
+  def push(s: JsStatement): Unit = {
     currentScope ::= s
   }
   def pop: JsStatement = {
@@ -180,7 +173,7 @@ object JsStatement {
   case class Renderable(statement: JsStatement) extends reactive.web.Renderable {
     def render = JsStatement.render(statement)
   }
-  implicit val canRenderJsStatement: CanRender[JsStatement] = CanRender(Renderable(_))
+  implicit val canRenderJsStatement: CanRender[JsStatement] = CanRender(Renderable)
 }
 
 final private class Block(block: => Unit) extends JsStatement {

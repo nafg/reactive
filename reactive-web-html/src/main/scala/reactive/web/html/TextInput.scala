@@ -62,7 +62,7 @@ object TextInput {
    * @param value the Var to keep the TextInput's value in
    */
   def apply(value: Var[String] = Var(""))(implicit o: Observing, rdmConfig: CanRenderDomMutationConfig): TextInput = {
-    var ret = new TextInput
+    val ret = new TextInput
     ret.value updateOn ret.change
     value <--> ret.value
     ret

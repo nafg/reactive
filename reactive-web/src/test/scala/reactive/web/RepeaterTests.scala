@@ -33,7 +33,7 @@ class RepeaterTests extends FunSuite with Matchers with PropertyChecks {
   test("Repeater should send correct deltas") {
     val template = <div><span></span></div>
     import org.scalacheck.Gen._
-    forAll(nonEmptyListOf(listOf(alphaUpperChar map (_.toString))), maxSize(10)) { xss: List[List[String]] =>
+    forAll(nonEmptyListOf(listOf(alphaUpperChar map (_.toString))), sizeRange(10)) { xss: List[List[String]] =>
       whenever(xss.length >= 2) {
         val signal = BufferSignal(xss.head: _*)
         implicit val page = new TestPage({ implicit page =>
@@ -44,7 +44,7 @@ class RepeaterTests extends FunSuite with Matchers with PropertyChecks {
           try {
             signal () = xs
             (page.testTransportType.xml \\ "span").length should equal (signal.now.length)
-            (page.testTransportType.xml \\ "span" map (_.node.text)).toSeq should equal (signal.now)
+            (page.testTransportType.xml \\ "span" map (_.node.text)) should equal (signal.now)
           } catch {
             case e: Exception =>
               println(Console.RED + e)

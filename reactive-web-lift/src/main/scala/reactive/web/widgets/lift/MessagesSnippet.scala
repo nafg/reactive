@@ -1,8 +1,9 @@
 package reactive.web.widgets.lift
 
 import scala.xml.NodeSeq
-import net.liftweb.http.LiftRules
 
+import net.liftweb.http.LiftRules
+import reactive.web.CanRenderDomMutationConfig
 import reactive.web.widgets.Messages
 import reactive.web.lift.AppendToRender
 
@@ -14,7 +15,7 @@ object MessagesSnippet {
    * The [[Page]] needs to have an [[reactive.web.lift.AppendToRenderTransportType]].
    * @param tmplt The template to use. Defaults to `Messages.template()`.
    */
-  def init(tmplt: NodeSeq = Messages.template()) = {
+  def init(tmplt: NodeSeq = Messages.template())(implicit rdmCfg: CanRenderDomMutationConfig) = {
     assert(!inited, "Cannot initialize twice!")
     inited = true
     LiftRules.snippets.append {

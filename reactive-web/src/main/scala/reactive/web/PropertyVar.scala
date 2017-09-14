@@ -1,9 +1,9 @@
 package reactive
 package web
 
-import scala.xml.{ Elem, MetaData, NodeSeq, Null, UnprefixedAttribute }
+import scala.xml.{Elem, NodeSeq}
 
-import javascript.{ $, JsLiterable, JsTypes }
+import reactive.web.javascript.{$, JsLiterable, JsTypes}
 
 /**
  * Instances of this trait specify how to encode element property values to the client
@@ -100,8 +100,7 @@ object PropertyVar {
 
     /**
      * A PropertyVar initialized with a plain value
-     * @tparam T   The type of the PropertyVar and PropertyCodec
-     * @tparam A   The type of init
+     * @tparam A   The type of the PropertyVar and PropertyCodec
      * @param init The initial value to apply the PropertyVarInit to.
      * @return     A PropertyVar with the specified constant value.
      * @example {{{PropertyVar("size")(80)}}}

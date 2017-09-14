@@ -1,21 +1,15 @@
 package reactive
 package web
 
-import javascript.JsExp
-import scala.xml.Elem
-import scala.xml.NodeSeq
-import scala.xml.Group
-import scala.xml.Node
-import scala.xml.UnprefixedAttribute
-import scala.xml.Null
-import java.io.Writer
+import scala.collection.mutable.ListBuffer
+import scala.xml._
 
-import net.liftweb.util.Helpers._
+import net.liftweb.json.DefaultFormats
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonAST.compactRender
-import net.liftweb.json.DefaultFormats
+import net.liftweb.util.Helpers._
+import reactive.web.javascript.JsExp
 
-import scala.collection.mutable.ListBuffer
 
 trait DomMutationRenderer extends CanRender[DomMutation] {
   import DomMutation._
@@ -64,36 +58,38 @@ trait DomMutationRenderer extends CanRender[DomMutation] {
   def apply(dm: DomMutation) = DomMutationRenderable(dm)(dm match {
     case InsertChildBefore(parentId, child, prevId) =>
       createElem(parentId, child)("reactive.insertChild('%s',%s,'%s');".format(parentId, _, prevId))
-    case AppendChild(parentId, child) =>
+    case AppendChild(parentId, child)               =>
       createElem(parentId, child)("reactive.appendChild('%s',%s);".format(parentId, _))
-    case RemoveChild(parentId, oldId) =>
+    case RemoveChild(parentId, oldId)               =>
       "reactive.removeChild('%s','%s');".format(parentId, oldId)
-    case ReplaceChild(parentId, child, oldId) =>
+    case ReplaceChild(parentId, child, oldId)       =>
       createElem(parentId, child)("reactive.replaceChild('%s',%s,'%s');".format(parentId, _, oldId))
-    case ReplaceAll(parentId, child) =>
+    case ReplaceAll(parentId, child)                =>
       fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s);".format(parentId, _))
-    case up @ UpdateProperty(parentId, pname, aname, v) =>
+    case up @ UpdateProperty(parentId, pname, _, v) =>
       "reactive.updateProperty('%s','%s',%s);".format(parentId, pname, JsExp render up.codec.toJS(v))
   })
 
   //TODO should be written with DSL: JsStub for reactive object
 }
 
-case class DomMutationRenderable(domMutation: DomMutation)(val render: String) extends Renderable
-
-object BasicDomMutationRenderer extends DomMutationRenderer {
-  /**
-   * @return `content`
-   */
-  def processHtml(uid: String, content: NodeSeq) = content
-  /**
-   * @return `html.toString`
-   */
-  def renderHtml(html: NodeSeq) = html.toString
+object DomMutationRenderer {
+  /*implicit */object default extends DomMutationRenderer {
+    /**
+      * @return `content`
+      */
+    def processHtml(uid: String, content: NodeSeq) = content
+    /**
+      * @return `html.toString`
+      */
+    def renderHtml(html: NodeSeq) = html.toString
+  }
 }
 
+case class DomMutationRenderable(domMutation: DomMutation)(val render: String) extends Renderable
+
+
 object DomMutation {
-  implicit val defaultDomMutationRenderer = BasicDomMutationRenderer
   case class InsertChildBefore(parentId: String, child: Elem, beforeId: String) extends DomMutation {
     def updateElem = { e =>
       e.copy(child = xformId(beforeId)(c => child ++ c)(e.child))
@@ -134,7 +130,7 @@ sealed trait DomMutation {
    */
   def xformId(id: String)(f: Elem => NodeSeq): NodeSeq => NodeSeq = {
     case e: Elem =>
-      if (e.attribute("id").map(_.text) == Some(id))
+      if (e.attribute("id").map(_.text).contains(id))
         f(e)
       else
         e.copy(child = e.child flatMap xformId(id)(f))

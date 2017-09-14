@@ -18,7 +18,7 @@ class JsTests extends FunSuite with Matchers with Observing {
     (1.$ === 2).render should equal (new JsOp(1, 2, "==").render)
     (1.$ !== 2).render should equal (new JsOp(1, 2, "!=").render)
 
-    (!(true.$)).render should equal ("(!true)")
+    (!true.$).render should equal ("(!true)")
   }
 
   test("Functions") {
@@ -102,7 +102,7 @@ class JsTests extends FunSuite with Matchers with Observing {
       "obj.getSelf(1).getSelf(2);",
       "obj.takeCallback((function(arg0){return obj.takeCallback2((function(arg0){return obj.getSelf(1).getSelf2(2).getSelf(3).getSelf2(4);}));}));"
     )
-    (js, expected).zipped foreach { case (a, b) => a shouldBe b }
+    (js, expected).zipped foreach { case (x, y) => x shouldBe y }
   }
 
   test("JsStub+Extend"){
@@ -149,14 +149,14 @@ class JsTests extends FunSuite with Matchers with Observing {
         ");"+
         "})"+
         ");"
-    (res, List(expected)).zipped foreach { case (a, b) => a shouldBe b }
+    (res, List(expected)).zipped foreach { case (x, y) => x shouldBe y }
   }
 
   test("Function bodies do not get repeated") {
     def isClean = window.get("isClean").asInstanceOf[Assignable[JsTypes.JsBoolean]]
     val stmts = JsStatement.inScope{
       // This does not create a  statement
-      { e: $[JsTypes.JsObj] =>
+      { _: $[JsTypes.JsObj] =>
         Return()
       }: JsExp[JsObj =|> JsAny]
       // This does
@@ -175,7 +175,7 @@ class JsTests extends FunSuite with Matchers with Observing {
     stmts foreach println
     stmts.zipAll(List(
       """window.onbeforeunload=(function(arg0){if((!window["isClean"])) {var reply;var evt;reply="You have unsaved changes!";evt=arg0;if((evt==null)) {evt=window.event;}if((evt!=null)) {evt["returnValue"]=reply;}return reply;}return ;});"""
-    ), "", "") foreach { case (a, b) => a should equal (b) }
+    ), "", "") foreach { case (x, y) => x should equal (y) }
   }
 
   test("Statements") {
@@ -223,7 +223,7 @@ class JsTests extends FunSuite with Matchers with Observing {
       }
       Try {
         Throw("message")
-      } Catch { c =>
+      } Catch { _ =>
       } Finally {
       }
 

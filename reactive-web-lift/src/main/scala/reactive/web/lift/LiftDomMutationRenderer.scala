@@ -9,7 +9,7 @@ import scala.xml.Group
 object LiftDomMutationRenderer extends DomMutationRenderer {
   def processHtml(uid: String, content: NodeSeq) = S.session.
     map(s =>
-      s.fixHtml(s.processSurroundAndInclude("JS SetHTML id: "
+      s.normalizeHtml(s.processSurroundAndInclude("JS SetHTML id: "
         + uid,
         content))).
     openOr(content)

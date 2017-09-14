@@ -27,14 +27,14 @@ object NodePredicate {
     override def toString = '"' + s + '"'
   }
 
-  private def finder(c: Char): String => NodeLoc => Boolean = s => n => (c, n) match {
-    case ('#', nl                 ) => n.attr.get("id") == Some(s)
-    case ('.', nl                 ) => n.classes contains s
-    case (':', nl                 ) => n.attr.get("name") == Some(s)
+  private def finder(c: Char): String => NodeLoc => Boolean = s => nodeLoc => (c, nodeLoc) match {
+    case ('#', _)                   => nodeLoc.attr.get("id").contains(s)
+    case ('.', _)                   => nodeLoc.classes contains s
+    case (':', _)                   => nodeLoc.attr.get("name").contains(s)
     case ('=', NodeLoc(n, _)      ) => n.text == s
     case ('~', NodeLoc(n, _)      ) => n.text contains s
     case (_,   NodeLoc(e: Elem, _)) => e.label == c + s
-    case _                              => false
+    case _                          => false
   }
 }
 
@@ -184,34 +184,35 @@ sealed case class NodeLoc(node: Node, path: NodePath) {
       val list = l.reverse ++ r
       NodeLoc(p.node match {
         case e: Elem  => e.copy(child = list)
-        case _: Group => new Group(list)
+        case _: Group => Group(list)
       }, p.path)
     case _ => throw NavigationException("Cannot delete top node")
   }
 
   /**
-   * Modify the tree by applying a [[DomMutation]]
-   * @group Updates
-   */
+    * Modify the tree by applying a [[DomMutation]]
+    *
+    * @group Updates
+    */
   def applyDomMutation(dm: DomMutation) = dm match {
     case DomMutation.InsertChildBefore(parentId, child, beforeId) =>
       child +: (this \\! s"#$parentId" \! s"#$beforeId")
-    case DomMutation.AppendChild(parentId, child) =>
+    case DomMutation.AppendChild(parentId, child)                 =>
       (this \\! s"#$parentId") appendChild child
-    case dm@DomMutation.RemoveChild(parentId, oldId) =>
+    case DomMutation.RemoveChild(parentId, oldId)                 =>
       (this \\! s"#$parentId" \! s"#$oldId").delete
-    case DomMutation.ReplaceChild(parentId, child, oldId) =>
+    case DomMutation.ReplaceChild(parentId, child, oldId)         =>
       val parent = this \\! s"#$parentId"
-      parent setChildren parent.child.map{ c =>
+      parent setChildren parent.child.map { c =>
         if (c.id != oldId) c.node
         else child
-      }.toSeq
-    case DomMutation.ReplaceAll(parentId, child) =>
+      }
+    case DomMutation.ReplaceAll(parentId, child)                  =>
       this \\! s"#$parentId" setChildren child
-    case dm @ DomMutation.UpdateProperty(parentId, _, name, value) =>
+    case dm@DomMutation.UpdateProperty(parentId, _, attrName, _)  =>
       val parent = this \\! s"#$parentId"
-      val attr = dm.codec.toAttributeValue(dm.value)(name)
-      parent setAttr (name, attr)
+      val attr = dm.codec.toAttributeValue(dm.value)(attrName)
+      parent setAttr(attrName, attr)
   }
 
   /** @group XPath */

@@ -184,7 +184,7 @@ case class PParam[A, NR <: RouteType, N <: Path[NR]](param: Param[A], next: N) e
  */
 case class PParams[A, NR <: RouteType, N <: Path[NR]](params: Params[A], next: N) extends PParamBase[RFunc[List[A], NR]] {
   private val locParams = new Extractor((loc: Location) => Some(loc.takeParams(params.key)))
-  private val parseAll = new Extractor((xs: List[String]) => Some(xs.map(params.stringable.parse).flatten))
+  private val parseAll = new Extractor((xs: List[String]) => Some(xs.flatMap(params.stringable.parse(_))))
 
   override def encode(loc: Location): List[A] => NR#EncodeFunc = as => next.encode(loc && ((params.key, as map params.stringable.format)))
   override def run[R](f: PartialFunction[List[A], NR#Route[R]]): PartialFunction[Location, R] = {

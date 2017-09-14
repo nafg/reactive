@@ -1,16 +1,9 @@
 package reactive.web.html
 
+import scala.xml.{NodeSeq, Text}
+
 import reactive.Observing
-import reactive.web.DomEventSource
-import reactive.web.Page
-import reactive.web.PropertyCodec
-import reactive.web.PropertyVar
-import reactive.web.CanRenderDomMutationConfig
-import scala.xml.Elem
-import scala.xml.Text
-import reactive.web.ElemFuncWrapper
-import scala.xml.NodeSeq
-import reactive.web.Cell
+import reactive.web.{CanRenderDomMutationConfig, Cell, DomEventSource, Page, PropertyCodec, PropertyVar}
 
 class TextArea(initial: String)(implicit observing: Observing, defaultCodec: PropertyCodec[String], config: CanRenderDomMutationConfig) {
   private val textareaCodec = new PropertyCodec[String] {

@@ -2,13 +2,8 @@ package reactive
 package web
 package lift
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
-import org.scalatest.concurrent.Eventually
-import org.scalatest.time.SpanSugar
-import scala.concurrent._
-import ExecutionContext.Implicits._
-import java.io._
+import org.scalatest.{FunSuite, Matchers}
+
 
 class AppendToRenderTests extends FunSuite with Matchers {
   test("Render data correctly") {

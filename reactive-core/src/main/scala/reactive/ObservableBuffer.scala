@@ -73,9 +73,9 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
    * buffer1.messages foreach buffer2.applyDelta
    */
   def applyDelta: SeqDelta[T, T] => Unit = {
-    case Include(i, e)     => insert(i, e)
-    case Remove(i, e)      => remove(i)
-    case Update(i, old, e) => update(i, e)
-    case Batch(ms@_*)      => messages.batching { ms foreach applyDelta }
+    case Include(i, e)   => insert(i, e)
+    case Remove(i, _)    => remove(i)
+    case Update(i, _, e) => update(i, e)
+    case Batch(ms@_*)    => messages.batching { ms foreach applyDelta }
   }
 }

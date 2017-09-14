@@ -7,7 +7,16 @@ scalaVersion in ThisBuild := "2.11.11"
 
 organization in ThisBuild := "cc.co.scala-reactive"
 
-scalacOptions in(ThisBuild, Compile, compile) += "-deprecation"
+scalacOptions in ThisBuild ++=
+  Seq(
+    "-deprecation",
+    "-feature",
+    "-unchecked",
+    "-Xlint",
+    "-Ywarn-unused-import",
+    "-Ywarn-unused",
+    "-Ywarn-value-discard"
+  )
 
 enablePlugins(ScalaUnidocPlugin)
 

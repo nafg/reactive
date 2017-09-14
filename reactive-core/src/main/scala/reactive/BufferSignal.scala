@@ -14,14 +14,14 @@ class SeqVar[A](init: A*) extends Var(DeltaSeq.fromSeq(init)) with SeqSignal[A]
 class BufferSignal[T] extends SeqSignal[T] {
   lazy val underlying = new ObservableBuffer[T]
   val change = new EventSource[DeltaSeq[T]]
-  private val dl: SeqDelta[T, T] => Unit = { d =>
-    change fire now
-  }
   val now = new DeltaSeq[T] {
     def signal = BufferSignal.this
     val underlying = BufferSignal.this.underlying
     val fd = underlying.messages hold DeltaSeq.startDelta(underlying)
     def fromDelta = fd.now
+  }
+  private val dl: SeqDelta[T, T] => Unit = { _ =>
+    change fire now
   }
   underlying.messages addListener dl
 
@@ -38,14 +38,14 @@ class BufferSignal[T] extends SeqSignal[T] {
    * rather calculates the diff and applies it.
    * Usage: bufferSignal.value = newContentsSeq
    */
-  def value_=(v: Seq[T]) {
+  def value_=(v: Seq[T]): Unit = {
     val diff = Batch(LCS.lcsdiff(now, v, comparator): _*)
     underlying applyDelta diff
   }
   /**
    * Usage: bufferSignal ()= newContentsSeq
    */
-  final def update(v: Seq[T]) = value = v
+  final def update(v: Seq[T]): Unit = value = v
 
   override def toString = "BufferSignal("+now+")"
 }

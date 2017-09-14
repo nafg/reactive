@@ -15,7 +15,7 @@ class TestTransportTests extends FunSuite with Matchers with Observing {
     val signal = Var("A")
     implicit val page = new TestPage({ implicit p =>
       def snippet: NodeSeq => NodeSeq =
-        "span" #> Cell { signal map { s => { ns: NodeSeq => Text(s) } } }
+        "span" #> Cell { signal map { s => { _: NodeSeq => Text(s) } } }
       <html>{ snippet apply template }</html>
     })
 

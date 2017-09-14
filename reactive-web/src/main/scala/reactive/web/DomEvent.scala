@@ -1,11 +1,9 @@
 package reactive
 package web
 
-import javascript.{ $, FromJs, JsTypes, JsLiterable }
-import JsTypes._
-import net.liftweb.json.Serialization
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.DefaultFormats
+import reactive.web.javascript.JsTypes._
+import reactive.web.javascript.{$, FromJs, JsLiterable}
 
 /**
  * Implicit instances of EventEncoder are associated with DomEvents

@@ -4,8 +4,6 @@ package html
 
 import scala.xml.Elem
 
-import scala.annotation.tailrec
-
 import reactive.logging.Logger
 
 /**
@@ -49,17 +47,17 @@ class Select[T](
 
   private def adjustIndexFromDeltas(si: Int)(deltas: List[SeqDelta[_, _]]): Int = {
     deltas match {
-      case Nil =>
+      case Nil                              =>
         si
       case Include(i, _) :: rest if i <= si =>
         adjustIndexFromDeltas(si + 1)(rest)
-      case Remove(i, _) :: rest if i < si =>
+      case Remove(i, _) :: rest if i < si   =>
         adjustIndexFromDeltas(si - 1)(rest)
-      case Remove(i, _) :: rest if i == si =>
+      case Remove(i, _) :: _ if i == si     =>
         0
-      case Batch(ms @ _*) :: rest =>
+      case Batch(ms @ _*) :: rest           =>
         adjustIndexFromDeltas(adjustIndexFromDeltas(si)(ms.toList))(rest)
-      case other :: rest =>
+      case _ :: rest                        =>
         adjustIndexFromDeltas(si)(rest)
     }
   }
@@ -69,13 +67,13 @@ class Select[T](
    */
   //TODO what about multiple selections? Use another class?
   @deprecated("Use selectedItem ()= value instead", "0.2")
-  def selectItem(item: Option[T]) {
+  def selectItem(item: Option[T]): Unit = {
     selectedIndex() = item.map(items.now.indexOf(_)).filter(_ != -1)
   }
 
   lazy val children = items.now.map { item: T =>
     RElem {
-      if (selectedItem.now == Some(item))
+      if (selectedItem.now.contains(item))
         <option selected="selected">{ renderer(item) }</option>
       else
         <option>{ renderer(item) }</option>

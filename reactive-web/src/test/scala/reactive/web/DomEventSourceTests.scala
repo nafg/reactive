@@ -10,7 +10,7 @@ class DomEventSourceTests extends FunSuite with Matchers {
     implicit val page = new TestPage
     val e1 = property.render apply <elem1/>
     val e2 = property.render apply <elem1/>
-    ((e1 \ "@onclick").text.split(";").length) should equal(3)
-    ((e2 \ "@onclick").text.split(";").length) should equal(3)
+    (e1 \ "@onclick").text.split(";").length should equal(3)
+    (e2 \ "@onclick").text.split(";").length should equal(3)
   }
 }

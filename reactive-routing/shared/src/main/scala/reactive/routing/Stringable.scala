@@ -19,7 +19,7 @@ object Stringable extends StringablesCompat {
   }
   implicit def long: Stringable[Long] = new Stringable[Long] {
     def format = _.toString
-    def parse = s => try { Some(s.toLong) } catch { case e: NumberFormatException => None }
+    def parse = s => Try(s.toLong).toOption
   }
   implicit val int: Stringable[Int] = new Stringable[Int] {
     def format = _.toString

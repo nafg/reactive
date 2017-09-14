@@ -2,15 +2,10 @@ package reactive
 package web
 package widgets
 
-import scala.xml.NodeSeq
-import net.liftweb.common.Full
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import scala.xml.Text
+import scala.reflect.{ClassTag, classTag}
+import scala.xml.{NodeSeq, Text}
 
-import reactive.Observing
-import reactive.web.PropertyVar
-import scala.reflect.{ ClassTag, classTag }
+import net.liftweb.common.{Box, Failure, Full}
 
 
 object Validity {
@@ -22,7 +17,7 @@ object Validity {
   implicit def stringFailureMessage[From, To: ClassTag]: FailureMessage[From, To, String] = new FailureMessage[From, To, String] {
     def apply(value: From) = "Not a valid "+classTag[To].runtimeClass.getSimpleName+": "+value
   }
-  implicit def box2StrValidity[A](box: Box[A])(implicit fm: FailureMessage[String, A, String], m: Manifest[A]): Validity[A, String] = box match {
+  implicit def box2StrValidity[A](box: Box[A])(implicit fm: FailureMessage[String, A, String]): Validity[A, String] = box match {
     case Full(a)            => Valid(a)
     case Failure(msg, _, _) => Invalid(fm(msg))
     case _                  => Invalid(fm("Empty box"))
@@ -78,12 +73,13 @@ case class Invalid[+Msg](messages: Msg*) extends Validity[Nothing, Msg] {
 
 object NodeSeqValidity {
   import scala.language.implicitConversions
+
   import Validity._
 
-  implicit def nodeSeqFailureMessage[From, To](implicit m: Manifest[To], stringMessage: FailureMessage[From, To, String]): FailureMessage[From, To, NodeSeq] = new FailureMessage[From, To, NodeSeq] {
+  implicit def nodeSeqFailureMessage[From, To](implicit stringMessage: FailureMessage[From, To, String]): FailureMessage[From, To, NodeSeq] = new FailureMessage[From, To, NodeSeq] {
     def apply(value: From) = Text(stringMessage(value))
   }
-  implicit def box2NSValidity[A](box: Box[A])(implicit fm: FailureMessage[String, A, NodeSeq], m: Manifest[A]): Validity[A, NodeSeq] = box match {
+  implicit def box2NSValidity[A](box: Box[A])(implicit fm: FailureMessage[String, A, NodeSeq]): Validity[A, NodeSeq] = box match {
     case Full(a)            => Valid(a)
     case Failure(msg, _, _) => Invalid(fm(msg))
     case _                  => Invalid(fm("Empty box"))
@@ -96,6 +92,6 @@ case class ValLens[A, B, Msg](out: A => B, in: B => Validity[A, Msg])
 object ValLens {
   import Validity._
   implicit def idLens[A, Msg]: ValLens[A, A, Msg] = ValLens(identity, Valid(_))
-  implicit def intString[Msg](implicit fm: FailureMessage[String, Int, Msg]): ValLens[Int, String, Msg] = ValLens(_.toString, s => try { Valid(s.toInt) } catch { case e: NumberFormatException => Invalid(fm(s)) })
-  implicit def doubleString[Msg](implicit fm: FailureMessage[String, Double, Msg]): ValLens[Double, String, Msg] = ValLens(_.toString, s => try { Valid(s.toDouble) } catch { case e: NumberFormatException => Invalid(fm(s)) })
+  implicit def intString[Msg](implicit fm: FailureMessage[String, Int, Msg]): ValLens[Int, String, Msg] = ValLens(_.toString, s => try { Valid(s.toInt) } catch { case _: NumberFormatException => Invalid(fm(s)) })
+  implicit def doubleString[Msg](implicit fm: FailureMessage[String, Double, Msg]): ValLens[Double, String, Msg] = ValLens(_.toString, s => try { Valid(s.toDouble) } catch { case _: NumberFormatException => Invalid(fm(s)) })
 }

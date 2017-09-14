@@ -9,10 +9,10 @@ trait CanRenderDomMutationConfig extends ConfigBase {
   def domMutationRenderer: CanRender[DomMutation]
 }
 
-case class Config(domMutationRenderer: CanRender[DomMutation] = DomMutation.defaultDomMutationRenderer)
+case class Config(domMutationRenderer: CanRender[DomMutation] = DomMutationRenderer.default)
   extends CanRenderDomMutationConfig
 
 
 object Config {
-  implicit val defaults = Config()
+  implicit val defaults: Config = Config()
 }

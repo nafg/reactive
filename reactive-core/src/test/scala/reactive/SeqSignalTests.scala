@@ -22,7 +22,7 @@ class ObservableBufferTests extends FunSuite with Matchers with Observing {
         case 2 => if (ob1.nonEmpty) ob1.insertAll(Random.nextInt(ob1.length), (0 to Random.nextInt(100)) map (_ => Random.nextInt))
         case 3 => if (ob1.nonEmpty) ob1.update(Random.nextInt(ob1.length), Random.nextInt)
         case 4 => if (ob1.nonEmpty) ob1.remove(Random.nextInt(ob1.length))
-        case 5 => if (Random.nextBoolean) ob1.clear
+        case 5 => if (Random.nextBoolean) ob1.clear()
       }
       ob1 should equal(ob2)
     }
@@ -75,9 +75,9 @@ class SeqSignalTests extends FunSuite with Matchers with Observing {
     def test[T](s: SeqSignal[T]) = s.deltas.foreach { ds =>
       val flattened = SeqDelta.flatten(List(ds))
       flattened foreach {
-        case d @ Include(i, n) =>
+        case Include(i, n) =>
           s.now(i) should equal(n)
-        case d =>
+        case _             =>
       }
     }
 
@@ -132,7 +132,7 @@ class SeqSignalTests extends FunSuite with Matchers with Observing {
     }
     val v = check(BufferSignal(10, 20))
     val mapped = check((v.now :+ 30).signal)
-    val flatMapped = check(SeqSignal(v.flatMap(x => BufferSignal(40, 50))))
+    val flatMapped = check(SeqSignal(v.flatMap(_ => BufferSignal(40, 50))))
     v () = List(60, 70)
   }
 

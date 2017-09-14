@@ -26,15 +26,15 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   private var initialized = false
   def initExp = "new EventStream()"
   def render = "reactive.eventStreams["+id+"]"
-  def init: Unit = synchronized {
+  def init(): Unit = synchronized {
     if (!initialized) {
       initialized = true
       page queue render+"="+initExp
     }
   }
   private var ajaxQueued = false
-  def queueAjax = synchronized {
-    init
+  def queueAjax(): Unit = synchronized {
+    init()
     if (!ajaxQueued) {
       ajaxQueued = true
       foreach(JsRaw[T =|> JsVoid]("reactive.queueAjax("+id+")"))
@@ -42,7 +42,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
   }
 
   protected def child[U <: JsAny](renderer: => String) = {
-    init
+    init()
     new JsEventStream[U]()(page) {
       override def initExp: String = renderer
     }
@@ -51,7 +51,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * The javascript event stream's fire method, as a JsExp[JsFunction1[T,Void]]
    */
   def fireExp: $[T =|> JsVoid] = {
-    init
+    init()
     JsRaw(render+".fire")
   }
   /**
@@ -59,25 +59,25 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * All ajax calls queued (such as by invoking fire)
    * are scheduled to be processed after 500 milliseconds.
    */
-  def fire(v: JsExp[T]) {
+  def fire(v: JsExp[T]): Unit = {
     page queue JsExp.render(fireExp(v))
     page queue s"window.setTimeout(function() { reactive.doAjax('${page.id}') }, 500)"
   }
 
-  protected[reactive] def foreachImpl(f: $[T =|> JsVoid]) {
-    init
+  protected[reactive] def foreachImpl(f: $[T =|> JsVoid]): Unit = {
+    init()
     page queue render+".foreach("+JsExp.render(f)+")"
   }
   /**
    * Register a javascript callback function with the javascript event stream.
    */
-  def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F) {
+  def foreach[E[J <: JsAny] <: JsExp[J], F: ToJs.To[JsFunction1[T, JsVoid], E]#From](f: F): Unit = {
     foreachImpl(f)
   }
   /**
    * Register a javascript callback function with the javascript event stream.
    */
-  def foreach(f: $[T =|> JsVoid]) {
+  def foreach(f: $[T =|> JsVoid]): Unit = {
     foreachImpl(f)
   }
   /**
@@ -87,7 +87,7 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * @param extract a function that takes a value of type JValue (a lift-json AST) and returns values of type U
    */
   def toServer[U](extract: net.liftweb.json.JValue => U): EventStream[U] = {
-    queueAjax
+    queueAjax()
     page.ajaxEvents.collect { case (_id, json) if _id == id.toString => extract(json) }
   }
   /**
@@ -109,12 +109,14 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a flat-mapping function.
    */
-  def flatMap[U <: JsAny, F <% JsExp[JsFunction1[T, U]]](f: F): JsEventStream[U] = child(JsExp.render(parent)+".flatMap("+JsExp.render(f)+")")
+  def flatMap[U <: JsAny, F](f: F)(implicit view: F => JsExp[JsFunction1[T, U]]): JsEventStream[U] =
+    child(JsExp.render(parent)+".flatMap("+JsExp.render(f)+")")
   /**
    * Returns a new JsEventStream that proxies a new javascript event stream, derived
    * from the original javascript event stream with a filtering function.
    */
-  def filter[F <% JsExp[JsFunction1[T, JsBoolean]]](f: F): JsEventStream[T] = child(JsExp.render(parent)+".filter("+JsExp.render(f)+")")
+  def filter[F](f: F)(implicit ev$1: F => JsExp[JsFunction1[T, JsBoolean]]): JsEventStream[T] =
+    child(JsExp.render(parent)+".filter("+JsExp.render(f)+")")
 
   /**
    * Returns a JsEventStream proxying a new javascript event stream, derived from this one,
@@ -138,10 +140,11 @@ trait CanForwardJs[-T, V <: JsAny] {
   def forward(s: JsForwardable[V], t: T)
 }
 object CanForwardJs {
-  implicit def jes[V <: JsAny] = new CanForwardJs[JsEventStream[V], V] {
-    def forward(s: JsForwardable[V], t: JsEventStream[V]) =
-      s.foreach((x: $[V]) => t.fireExp(x))
-  }
+  implicit def jes[V <: JsAny]: CanForwardJs[JsEventStream[V], V] =
+    new CanForwardJs[JsEventStream[V], V] {
+      def forward(s: JsForwardable[V], t: JsEventStream[V]): Unit =
+        s.foreach((x: $[V]) => t.fireExp(x))
+    }
 }
 
 /**
