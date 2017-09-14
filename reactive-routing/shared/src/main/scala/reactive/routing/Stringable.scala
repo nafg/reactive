@@ -9,6 +9,7 @@ import scala.util.Try
 trait Stringable[A] {
   def format: A => String
   def parse: String => Option[A]
+  def unapply(s: String) = parse(s)
 }
 
 object Stringable extends StringablesCompat {

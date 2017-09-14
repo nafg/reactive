@@ -57,13 +57,9 @@ object Path {
   }
 }
 
-trait StringableExtractor[A] {
-  def stringable: Stringable[A]
-  final def unapply(s: String) = stringable.parse(s)
-}
-class Arg[A](val stringable: Stringable[A]) extends StringableExtractor[A]
-class Param[A](val key: String, val stringable: Stringable[A]) extends StringableExtractor[A]
-class Params[A](val key: String, val stringable: Stringable[A]) extends StringableExtractor[A]
+class Arg[A](val stringable: Stringable[A])
+class Param[A](val key: String, val stringable: Stringable[A])
+class Params[A](val key: String, val stringable: Stringable[A])
 
 /**
  * A path is a typesafe URL template.
@@ -148,7 +144,7 @@ case class PLit[NR <: RouteType, N <: Path[NR]](component: String, next: N with 
 case class PArg[A, NR <: RouteType, N <: Path[NR]](arg: Arg[A], next: N) extends RunnablePath[RFunc[A, NR]] {
   override def encode(l: Location): A => NR#EncodeFunc = a => next.encode(l :+ arg.stringable.format(a))
   override def run[R](f: PartialFunction[A, NR#Route[R]]): PartialFunction[Location, R] = {
-    case loc @ Location(arg(a) :: _, _) if f.isDefinedAt(a) && next.run(f(a)).isDefinedAt(loc.tail) =>
+    case loc @ Location(arg.stringable(a) :: _, _) if f.isDefinedAt(a) && next.run(f(a)).isDefinedAt(loc.tail) =>
       next.run(f(a))(loc.tail)
   }
 }
@@ -175,7 +171,7 @@ case class PParam[A, NR <: RouteType, N <: Path[NR]](param: Param[A], next: N) e
     next.encode(loc2)
   }
   override def run[R](f: PartialFunction[Option[A], NR#Route[R]]): PartialFunction[Location, R] = {
-    case locParam(param(a), loc2) if f.isDefinedAt(Some(a)) && next.run(f(Some(a))).isDefinedAt(loc2) =>
+    case locParam(param.stringable(a), loc2) if f.isDefinedAt(Some(a)) && next.run(f(Some(a))).isDefinedAt(loc2) =>
       next.run(f(Some(a)))(loc2)
     case loc if loc.query.forall(_._1 != param.key) && f.isDefinedAt(None) && next.run(f(None)).isDefinedAt(loc) =>
       next.run(f(None))(loc)
