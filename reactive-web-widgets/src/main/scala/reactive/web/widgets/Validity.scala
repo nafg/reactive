@@ -34,6 +34,9 @@ sealed trait Validity[+A, +Msg] {
   def flatMap[B, M2 >: Msg](f: A => Validity[B, M2]): Validity[B, M2]
   def filter[M2 >: Msg](p: A => Boolean)(implicit fm: Validity.FailureMessage[A, A, M2]): Validity[A, M2]
 
+  final def withFilter[M2 >: Msg](p: A => Boolean)(implicit fm: Validity.FailureMessage[A, A, M2]): Validity[A, M2] =
+    filter[M2](p)(fm)
+
   def warnIf[M2 >: Msg](p: A => Boolean, msg: => M2): Validity[A, M2]
 }
 case class Valid[+A](value: A) extends Validity[A, Nothing] {
