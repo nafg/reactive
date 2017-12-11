@@ -88,7 +88,7 @@ lazy val web_demo = (project in file("reactive-web-demo"))
   )
 
 lazy val root: Project = (project in file("."))
-  .settings(nonPublishingSettings: _*)
+  .settings(name := "reactive-root", nonPublishingSettings)
   .aggregate(
     core,
     transport,
