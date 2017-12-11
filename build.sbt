@@ -1,9 +1,9 @@
 import ReactiveBuild._
 
 
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.3")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
-scalaVersion in ThisBuild := "2.12.3"
+scalaVersion in ThisBuild := "2.12.4"
 
 organization in ThisBuild := "cc.co.scala-reactive"
 
