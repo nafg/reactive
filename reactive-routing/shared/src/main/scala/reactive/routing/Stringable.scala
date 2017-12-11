@@ -1,6 +1,8 @@
 package reactive
 package routing
 
+import java.time.Instant
+
 import scala.util.Try
 
 /**
@@ -12,7 +14,7 @@ trait Stringable[A] {
   def unapply(s: String) = parse(s)
 }
 
-object Stringable extends StringablesCompat {
+object Stringable {
   implicit val string: Stringable[String] = new Stringable[String] {
     def format = identity
     def parse = Some(_)
@@ -32,5 +34,9 @@ object Stringable extends StringablesCompat {
       case "false" => Some(false)
       case _ => None
     }
+  }
+  implicit val instant: Stringable[Instant] = new Stringable[Instant] {
+    def format = _.toString
+    def parse = s => Try(Instant.parse(s)).toOption
   }
 }
