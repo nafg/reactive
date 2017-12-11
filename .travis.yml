@@ -1,6 +1,10 @@
 language: scala
+
 jdk:
   - oraclejdk8
+
+script: "sbt +testQuick +publish"
+
 notifications:
   webhooks:
     urls:
