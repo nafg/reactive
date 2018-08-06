@@ -1,5 +1,8 @@
+import scala.sys.process._
+
+import sbt.Keys._
 import sbt._
-import Keys._
+
 
 object ReactiveBuild {
   val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
@@ -7,13 +10,13 @@ object ReactiveBuild {
   def branchName = "git rev-parse --abbrev-ref HEAD".!!.trim
 
   val defaults = Seq(
-    resolvers += Resolver.sonatypeRepo("snapshots") ,
+    resolvers += Resolver.sonatypeRepo("snapshots"),
     checksums in update := Nil,
-    scalacOptions in (Compile, doc) ++= Seq(
+    Compile / doc / scalacOptions ++= Seq(
       "-sourcepath",
       baseDirectory.value.getAbsolutePath,
       "-doc-source-url",
-      s"http://github.com/nafg/reactive/blob/$branchName/${ baseDirectory.value.getName }€{FILE_PATH}.scala",
+      s"http://github.com/nafg/reactive/blob/$branchName/${baseDirectory.value.getName}€{FILE_PATH}.scala",
       "-doc-title",
       "Scaladocs - scala-reactive", "-groups"
     ),
@@ -32,7 +35,7 @@ object ReactiveBuild {
           "naftoligug",
           key
         )
-      )
+        )
     },
     pomExtra := <developers><developer><id>nafg</id></developer></developers>,
     homepage := Some(url("https://github.com/nafg/reactive")),

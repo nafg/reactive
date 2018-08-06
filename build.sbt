@@ -71,19 +71,28 @@ lazy val web_demo = (project in file("reactive-web-demo"))
   .settings(nonPublishingSettings: _*)
   .dependsOn(web_lift)
   .settings(
-    webappPostProcess := { outDir =>
-      val docs = outDir / "api"
-      println("Copying to " + docs)
-      IO.copyDirectory((doc in(core, Compile)).value, docs / "reactive-core")
-      IO.copyDirectory((doc in(routingJVM, Compile)).value, docs / "reactive-routing")
-      IO.copyDirectory((doc in(transport, Compile)).value, docs / "reactive-transport")
-      IO.copyDirectory((doc in(jsdsl, Compile)).value, docs / "reactive-jsdsl")
-      IO.copyDirectory((doc in(web_base, Compile)).value, docs / "reactive-web-base")
-      IO.copyDirectory((doc in(web_html, Compile)).value, docs / "reactive-web-html")
-      IO.copyDirectory((doc in(web_widgets, Compile)).value, docs / "reactive-web-widgets")
-      IO.copyDirectory((doc in(web, Compile)).value, docs / "reactive-web")
-      IO.copyDirectory((doc in(web_lift, Compile)).value, docs / "reactive-web-lift")
-      IO.copyDirectory((doc in(root, ScalaUnidoc)).value, docs / "unidoc")
+    webappPostProcess := {
+      val projsDocs =
+        Def.task {
+          (projectID.value.name, (Compile / doc).value)
+        }
+          .all(
+            ScopeFilter(inProjects(core, routingJVM, transport, jsdsl, web_base, web_html, web_widgets, web, web_lift))
+          )
+          .value
+
+      val unidocs = (root / ScalaUnidoc / doc).value
+
+      { outDir =>
+        val docs = outDir / "api"
+
+        println("Copying docs to " + docs)
+
+        for ((proj, doc) <- projsDocs)
+          IO.copyDirectory(doc, docs / proj)
+
+        IO.copyDirectory(unidocs, docs / "unidoc")
+      }
     }
   )
 
