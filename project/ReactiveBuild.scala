@@ -44,7 +44,8 @@ object ReactiveBuild {
       url("https://github.com/nafg/reactive"),
       "scm:git:git://github.com/nafg/reactive.git",
       Some("scm:git:git@github.com:nafg/reactive.git")
-    ))
+    )),
+    publish / skip := isSnapshot.value
   )
 
   val nonPublishingSettings = defaults :+ (publish := ())
