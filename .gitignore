@@ -13,3 +13,6 @@ jrockit.*.dump
 .project
 .cache
 bin/
+.bloop/
+.metals/
+project/.sbtboot
