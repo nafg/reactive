@@ -19,7 +19,7 @@ is the type of the new `EventStream` (`JValue` being `lift-json`’s AST represe
 Alternatively, you can implicitly provide `toServer` with a `net.liftweb.json.Formats` and a `Manifest[U]`,
 and `lift-json` will do the extracting.
 
-### Javscript DSL
+### Javascript DSL
 
 Since `fire`, `foreach`, `map`, `flatMap`, and `filter` are proxy methods
 that really execute in javascript, you need to call them with values that can readily be rendered as javascript. To facilitate
@@ -112,7 +112,7 @@ Javascript {
 `reactive-web` has a powerful mechanism that lets you define Javascript API stubs as scala traits.
 You can then "call" Javascript APIs from scala code, simply by invoking methods on a proxy object.
 
-The way it works is simple. You write a trait that extends `JsStub`, named after the Javscript object it represents,
+The way it works is simple. You write a trait that extends `JsStub`, named after the Javascript object it represents,
 and define abstract methods in it that correspond to the methods of that object.
 The methods’ arguments should `JsExp`s, and they may return a `JsExp`, or another `JsStub` interface.
 You then obtain an instance by calling `jsProxy[theTrait]()`.

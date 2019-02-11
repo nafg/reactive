@@ -2,10 +2,8 @@ package reactive
 package web
 package widgets
 
-import reactive.Signal
-import reactive.Observing
-import reactive.Val
 import scala.xml.NodeSeq
+
 import reactive.web.html.Select
 
 case class Editor[A](renderer: NodeSeq => NodeSeq, value: Signal[Validity[A, NodeSeq]], pageIds: PageIds) extends (NodeSeq => NodeSeq) {
@@ -54,9 +52,6 @@ case class Editor[A](renderer: NodeSeq => NodeSeq, value: Signal[Validity[A, Nod
 object Editor {
   /**
    * Links an element's `value` attribute/property with a value.
-   * @tparam A       the type of the value returned
-   * @param in       how to convert from a String to that type
-   * @return         a function String=>Editor[A]
    */
   def value(value: String)(implicit observing: Observing, page: Page, rdmConfig: CanRenderDomMutationConfig): Editor[String] = {
     val pv = PropertyVar("value")(value) withEvents DomEventSource.change
@@ -65,7 +60,8 @@ object Editor {
 
   /**
    * Allows to choose a value from a select
-   * @return         a function Option[A] => Editor[Option[A]]
+   *
+   * @return a function {{{ Option[A] => Editor[Option[A]] }}}
    */
   def select[A](choices: Seq[A])(init: Option[A])(implicit observing: Observing, page: Page, rdmConfig: CanRenderDomMutationConfig): Editor[Option[A]] = {
     val s = Select(Val(choices))

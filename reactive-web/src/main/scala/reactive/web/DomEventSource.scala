@@ -1,18 +1,15 @@
 package reactive
 package web
 
-import javascript.{ $, =|>, buildJs, JsEventStream, JsExp, JsForwardable, JsIdentable, JsTypes, ToJs }
-import JsTypes._
-
-import scala.xml.{ NodeSeq, UnprefixedAttribute, MetaData }
-
-import scala.collection.mutable.WeakHashMap
-import scala.reflect.{ classTag, ClassTag }
-
-import reactive.logging.Logger
-import reactive.Util.scalaClassName
-
+import scala.collection.mutable
 import scala.language.higherKinds
+import scala.reflect.{ClassTag, classTag}
+import scala.xml.{MetaData, NodeSeq, UnprefixedAttribute}
+
+import reactive.Util.scalaClassName
+import reactive.logging.Logger
+import reactive.web.javascript.JsTypes._
+import reactive.web.javascript._
 
 class DomEventSourceCanForeach[T <: DomEvent](domEventSource: DomEventSource[T])(page: Page) extends Forwardable[T, DomEventSource[T]] with JsForwardable[JsObj] {
   def self = domEventSource
@@ -84,9 +81,10 @@ class DomEventSource[T <: DomEvent: ClassTag: EventEncoder] extends Logger {
    */
   case class EventData[U <: JsAny](encode: $[U], es: JsEventStream[U])
 
-  private val eventData = WeakHashMap[Page, List[EventData[_ <: JsAny]]]()
+  private val eventData = mutable.WeakHashMap[Page, List[EventData[_ <: JsAny]]]()
   private def getEventObjectData(implicit p: Page) = eventObjectData.getOrElseUpdate(p, EventData(implicitly[EventEncoder[T]].encodeExp(Symbol("event").$), new JsEventStream[JsObj]))
-  private val eventObjectData = WeakHashMap[Page, EventData[JsObj]]()
+
+  private val eventObjectData = mutable.WeakHashMap[Page, EventData[JsObj]]()
 
   /**
    * Register data to be fired whenever this event occurs on the specified page

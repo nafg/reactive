@@ -3,7 +3,7 @@ package web
 
 import scala.xml.{Elem, NodeSeq, Null, UnprefixedAttribute}
 
-import reactive.web.javascript.{Assignable, CanForwardJs, JsEventStream, JsExp, JsForwardable, JsTypes, buildJs, window}
+import reactive.web.javascript._
 
 /**
  * Represents a property and/or attribute of a DOM element, synchronized in from the client to the server

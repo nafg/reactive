@@ -3,31 +3,32 @@ package web
 package demo
 package snippet
 
+import net.liftweb.util.CssSel
+import net.liftweb.util.Helpers._
 import reactive.web.html._
 
-import net.liftweb.util.Helpers
-import Helpers._
-
-import scala.xml.{NodeSeq,Text}
+import scala.xml.{NodeSeq, Text}
 
 class SelectDemo extends PageSnippet {
 
-  val OSvariants = Map(
+  val OSVariants: Map[String, List[String]] = Map(
     "Windows" -> List("Windows XP", "Windows Vista", "Windows 7"),
     "Linux" -> List("Ubuntu", "Kubuntu", "Fedora")
   )
   val vowels: Set[Char] = "AEIOU".toSet
-  def consonantsInName(s: String) = s.toUpperCase.filter(c => c.isLetter && !vowels.contains(c)).toList.distinct
-  def vowelsInName(s: String) = s.toUpperCase.filter(vowels).toList.distinct
 
-  val OSSelect = Select(Val(OSvariants.keys.toList))
+  def consonantsInName(s: String): List[Char] = s.toUpperCase.filter(c => c.isLetter && !vowels.contains(c)).toList.distinct
 
-  val variantSelect = Select(OSSelect.selectedItem.map(_.toList.flatMap(OSvariants)))
+  def vowelsInName(s: String): List[Char] = s.toUpperCase.filter(vowels).toList.distinct
+
+  val OSSelect = Select(Val(OSVariants.keys.toList))
+
+  val variantSelect = Select(OSSelect.selectedItem.map(_.toList.flatMap(OSVariants)))
 
   val consonantSelect = Select(variantSelect.selectedItem.map(_.getOrElse("---")).map(consonantsInName))
   val vowelSelect = Select(variantSelect.selectedItem.map(_.getOrElse("---")).map(vowelsInName))
 
-  def render =
+  def render: CssSel =
     "#os" #> OSSelect &
       "#variant" #> variantSelect &
       "#consonant" #> consonantSelect &

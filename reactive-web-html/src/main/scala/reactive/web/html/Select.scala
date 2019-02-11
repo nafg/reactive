@@ -41,7 +41,7 @@ class Select[T](
   val selectedIndex = Select.selectedIndex(Some(0) filter (_ <= items.now.length)) updateOn (change, keyUp)
 
   /**
-   * A Var[Option[T]] that represents and sets the selected item.
+   * A `Var[Option[T]]` that represents and sets the selected item.
    */
   val selectedItem: Var[Option[T]] = Var(None)
 
@@ -158,16 +158,18 @@ object Select {
     new Select[T](items)(observing, config)
   /**
    * Creates a drop-down Select.
+   *
    * @tparam T the type of the items
-   * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
+   * @param items    a `Signal[Seq[T]]` representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    * @param renderer how to display items
    */
   def apply[T](items: Signal[Seq[T]], renderer: T => String)(implicit observing: Observing, config: CanRenderDomMutationConfig): Select[T] =
     new Select[T](SeqSignal(items), renderer)(observing, config)
   /**
    * Creates a drop-down Select that uses the items' toString method to render them
+   *
    * @tparam T the type of the items
-   * @param items a Signal[Seq[T]] representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
+   * @param items a `Signal[Seq[T]]` representing the dynamic list of items. When its value changes, a diff is calculated and used to update the select.
    */
   def apply[T](items: Signal[Seq[T]])(implicit observing: Observing, config: CanRenderDomMutationConfig): Select[T] =
     new Select[T](SeqSignal(items))(observing, config)

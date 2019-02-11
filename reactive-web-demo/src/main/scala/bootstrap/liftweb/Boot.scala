@@ -2,7 +2,6 @@ package bootstrap.liftweb
 
 import scala.xml.{Elem, NodeSeq}
 
-import net.liftweb.common.Full
 import net.liftweb.doc.snippet.CodeInjection
 import net.liftweb.http._
 import net.liftweb.markdown.ThreadLocalTransformer
@@ -53,7 +52,7 @@ class Boot {
             elem.attribute("class").map(_.text) match {
               case Some(brushRe(lang)) =>
                 CodeInjection.renderCodeMirror(elem.text, "", lang)
-              case other               =>
+              case _ =>
                 elem
             }
         })

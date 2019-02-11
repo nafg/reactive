@@ -1,18 +1,14 @@
 package reactive
 package web
 
-import javascript.{ Apply, JsExp, JsLiterable, JsStatement, JsTypes }
-
-import scala.xml._
 import scala.util.matching.Regex
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.Serialization
-import net.liftweb.json.DefaultFormats
-import net.liftweb.json.JsonAST.JBool
+import scala.xml._
 
-import reactive.logging.HasLogger
+import net.liftweb.json.JsonAST.{JBool, JString, JValue}
+import net.liftweb.json.{DefaultFormats, Serialization}
 import reactive.Util.scalaClassName
+import reactive.logging.HasLogger
+import reactive.web.javascript.{Apply, JsExp, JsLiterable, JsStatement, JsTypes}
 
 /**
  * A [[Page]] for testing purposes, that
@@ -176,16 +172,16 @@ class TestTransportType(page: Page, initialXml: =>Node = Group(Nil)) extends Tra
               replaceModifiers(m)(replace("(event.keyCode||event.charCode)" -> code.$)(obj))
             //TODO other events
           }
-          val jvalue = Serialization.read(eventValue)(DefaultFormats, manifest[JValue])
-          logger.trace(FiringAjaxEvent(page, jvalue))
-          ajaxEvents.fire((es, jvalue))
+          val jValue = Serialization.read(eventValue)(DefaultFormats, manifest[JValue])
+          logger.trace(FiringAjaxEvent(page, jValue))
+          ajaxEvents.fire((es, jValue))
       }
       props foreach {
         case Regex.Groups(es, id, prop) =>
           val e = if (node.id == id) node else apply(id)
-          val jvalue = JString(e.attr.getOrElse(prop, ""))
-          logger.trace(FiringAjaxEvent(page, jvalue))
-          ajaxEvents.fire((es, jvalue))
+          val jValue = JString(e.attr.getOrElse(prop, ""))
+          logger.trace(FiringAjaxEvent(page, jValue))
+          ajaxEvents.fire((es, jValue))
       }
     }
     node

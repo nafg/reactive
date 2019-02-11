@@ -6,7 +6,7 @@ import java.io.{OutputStream, OutputStreamWriter, Writer}
 
 import scala.annotation.tailrec
 
-import net.liftweb.http.{GetRequest, LiftRules, OutputStreamResponse, Req, S}
+import net.liftweb.http._
 
 /**
  * Contains the [[SseTransportType.init]] method which must
@@ -108,7 +108,7 @@ class SseTransportType(page: Page) extends TransportType {
     queued foreach { data =>
       val num = counter.run(a => (a + 1, a))
       synchronized {
-        val m = Some(new LinkedList(Message(num, data.render)))
+        val m = Some(new LinkedList[Message](Message(num, data.render)))
         allMessages.value match {
           case None =>
             allMessages.value = m

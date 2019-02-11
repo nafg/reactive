@@ -1,16 +1,14 @@
 package reactive.web.javascript
 
+import java.lang.reflect.{InvocationHandler, Method, Proxy}
+
+import scala.language.higherKinds
+import scala.reflect.{ClassTag, classTag}
+
+import net.liftweb.json._
 import reactive.CanForwardTo
 import reactive.Util.scalaClassName
 import reactive.web.Page
-
-import net.liftweb.json._
-
-import java.lang.reflect.{ InvocationHandler, Proxy, Method }
-
-import scala.reflect.{ ClassTag, classTag }
-
-import scala.language.higherKinds
 
 /**
  * Contains types that model javascript types.
@@ -32,11 +30,11 @@ object JsTypes {
   final class JsVoid private extends JsAny
 }
 
-import JsTypes._
+import reactive.web.javascript.JsTypes._
 
 object JsExp extends ToJsHigh {
   implicit def canForwardTo[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp], page: Page): CanForwardTo[JsExp[J =|> JsVoid], T] = new CanForwardTo[$[J =|> JsVoid], T] {
-    def forwarder(target: $[J =|> JsVoid]) = v => page.queue(target apply conv(v))
+    def forwarder(target: $[J =|> JsVoid]): T => Unit = v => page.queue(target apply conv(v))
   }
 
   /**
@@ -125,7 +123,8 @@ class JsExpMethods[+T <: JsAny](self: JsExp[T]) {
 }
 
 /**
- * Adds javascript Array API to JsExp[JsArray[J]]
+ * Adds javascript Array API to `JsExp[JsArray[J]]`
+ *
  * @tparam J the member type
  */
 trait Array[J <: JsAny] extends JsStub {
@@ -138,7 +137,7 @@ object Array {
     new Extend[JsExp[JsTypes.JsArray[J]], Array[J]]
 
   /**
-   * DSL to create a JsExp[JsArray[_]]
+   * DSL to create a `JsExp[JsArray[_]]`
    */
   def apply[A, J <: JsAny](elems: A*)(implicit conv: ToJsLit[A, J]): JsExp[JsArray[J]] = JsRaw(
     elems.map(conv(_).render).mkString("[", ",", "]")
@@ -168,7 +167,8 @@ class JsProp(val key: String, v: => JsExp[JsAny]) {
 }
 object JsProp {
   implicit class pair2prop[A](pair: => (String, A))(implicit conv: ToJsLit[A, _ <: JsAny]) extends JsProp(pair._1, conv(pair._2))
-  implicit class jspair2prop(pair: (String, JsExp[JsAny])) extends JsProp(pair._1, pair._2)
+
+  implicit class jsPair2prop(pair: (String, JsExp[JsAny])) extends JsProp(pair._1, pair._2)
 }
 
 /**

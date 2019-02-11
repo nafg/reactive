@@ -27,12 +27,11 @@ class SimpleDemo extends PageSnippet {
 
   // Create a Signal that binds the field's value
   // Its value will be kept up to date automatically
-  val fieldValue = field.value map { v =>
-    { _: NodeSeq => (Text(v): NodeSeq) }
+  val fieldValue = field.value map { v => { _: NodeSeq => Text(v): NodeSeq }
   }
 
   // Create a NodeSeq=>NodeSeq that renders fieldValue
-  // reactively in whatever element Cell is binded to.
+  // reactively in whatever element Cell is bound to.
   val cell = Cell(fieldValue)
 
   //////////////////////////////////////////////////////////////////
@@ -40,7 +39,7 @@ class SimpleDemo extends PageSnippet {
   //////////////////////////////////////////////////////////////////
 
   // Create an EventStream that fires timer ticks for up to 10 minutes
-  val clockES = new Timer(0, 2000, _ > (10.minutes))
+  val clockES = new Timer(0, 2000, _ > 10.minutes)
 
   // Create a signal from the EventStream whose value, until
   // the first tick is received, is 0L
@@ -64,7 +63,7 @@ class SimpleDemo extends PageSnippet {
   // be used in Lift binding.
   val repeater: NodeSeq => NodeSeq = Repeater {
     items.now.map{ i =>
-      ("#number" #> i): (NodeSeq => NodeSeq)
+      "#number" #> i: (NodeSeq => NodeSeq)
     }.signal
   }
 
@@ -72,7 +71,7 @@ class SimpleDemo extends PageSnippet {
   var numbers = Stream.from(1)
 
   // On each clock tick do an insert or remove
-  for (tick <- clockES) {
+  for (_ <- clockES) {
     // If items is empty then always do an append
     // Otherwise do either an append or a remove,
     // depending on the value of math.random
@@ -110,6 +109,6 @@ class SimpleDemo2 extends SimpleDemo {
         clockSig map { t => Text((t / 1000).toString) }
       } &
       "#div" #> Repeater {
-        items.now.map{ i => ("#number" #> i): (NodeSeq => NodeSeq) }.signal
+        items.now.map { i => "#number" #> i: (NodeSeq => NodeSeq) }.signal
       }
 }

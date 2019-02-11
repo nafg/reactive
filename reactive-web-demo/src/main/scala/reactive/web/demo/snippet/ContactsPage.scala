@@ -3,9 +3,8 @@ package web
 package demo
 package snippet
 
-import reactive.web.html._
-
 import net.liftweb.util.Helpers._
+import reactive.web.html._
 
 case class Contact(name: String, numbers: List[String]) {
   val id = Contacts.ids.run(a => (a + 1, a))
@@ -25,7 +24,8 @@ object Contacts {
     case -1 => contacts.value += c
     case n  => contacts.value(n) = c
   }
-  def delete(c: Contact) {
+
+  def delete(c: Contact): Unit = {
     contacts.now.indexWhere(_.id == c.id) match {
       case -1 =>
       case n  => contacts.value.remove(n)

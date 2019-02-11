@@ -18,7 +18,7 @@ removes, and updates. In addition multiple operations may be batched in
 a single event, so for example multiple deletions do not need to result
 in multiple, separate repaints. When you `map` or `flatMap`
 a `SeqSignal`, the resulting `SeqSignal` fires
-delta events whose relationship to the delta events fired by the orignal
+delta events whose relationship to the delta events fired by the original
 `SeqSignal` is defined by the function you pass to `map`
 or `flatMap`.
 

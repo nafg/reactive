@@ -2,10 +2,9 @@ package reactive
 package web
 package lift
 
-import net.liftweb.http.{ JavaScriptResponse, LiftRules, OkResponse, PostRequest, Req }
-import net.liftweb.http.js.JsCmds
 import net.liftweb.common.Full
-import net.liftweb.http.S
+import net.liftweb.http._
+import net.liftweb.http.js.JsCmds
 
 /**
  * This is the companion module for [[SimpleAjaxTransportType]],
@@ -20,7 +19,7 @@ object SimpleAjaxTransportType extends PagesCache {
   /**
    * Adds a page, or resets its "last seen" time
    */
-  override def addPage(page: Page) = {
+  override def addPage(page: Page): Unit = {
     super.addPage(page)
     pagesSeenTime.transform(_ + (page -> System.currentTimeMillis))
     cleanPages()
@@ -60,8 +59,8 @@ object SimpleAjaxTransportType extends PagesCache {
         getPage(pageId) match {
           case Some(page) =>
             addPage(page)
-            page.transportTypes.collectFirst { case sapc: SimpleAjaxTransportType => sapc } flatMap { sapc =>
-              req.json map (json => JavaScriptResponse(JsCmds.Run(sapc.handleAjax(json).map(_.render).mkString(";\n"))))
+            page.transportTypes.collectFirst { case satt: SimpleAjaxTransportType => satt } flatMap { satt =>
+              req.json map (json => JavaScriptResponse(JsCmds.Run(satt.handleAjax(json).map(_.render).mkString(";\n"))))
             }
           case None =>
             Full(JavaScriptResponse(JsCmds.Run("reactive.onAjaxCallLostServerState()")))

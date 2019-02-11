@@ -6,17 +6,13 @@ package snippet
 
 import scala.xml.NodeSeq
 
-import net.liftweb.http.{S, Templates}
-
-import net.liftweb.util._
-  import Helpers._
-
 import net.liftweb.common._
-
-import net.liftweb.sitemap._
-  import Loc._
-
 import net.liftweb.doc.snippet.CodeInjection
+import net.liftweb.http.{S, Templates}
+import net.liftweb.sitemap.Loc._
+import net.liftweb.sitemap._
+import net.liftweb.util.Helpers._
+import net.liftweb.util._
 
 object DemoPane {
   val menu = Menu.param[String]("ShowDemo","ShowDemo",Full(_),s=>s)  /"showdemo"  >>Hidden

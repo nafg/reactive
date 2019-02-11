@@ -3,6 +3,7 @@ package web
 package widgets
 
 import scala.xml.NodeSeq
+
 import net.liftweb.util.Helpers._
 
 /**
@@ -15,7 +16,7 @@ object ValidityCue {
      */
     def validitySelector = ".val"
     /**
-     * The css selector for the element to which validity messagese added
+     * The css selector for the element to which validity messages are added
      */
     def messageSelector = ".msg"
     /**
@@ -35,7 +36,8 @@ object ValidityCue {
         PropertyVar.toggleClass(warningClass)(classes.map(_._2)) andThen
         PropertyVar.toggleClass(invalidClass)(classes.map(_._3))
     }
-    def message[A](v: Validity[A, NodeSeq]): NodeSeq => NodeSeq = v match {
+
+    def message[A](validity: Validity[A, NodeSeq]): NodeSeq => NodeSeq = validity match {
       case Valid(_) => _ => NodeSeq.Empty
       case v        => _ => v.messages.map(ns => <p>{ ns }</p>)
     }

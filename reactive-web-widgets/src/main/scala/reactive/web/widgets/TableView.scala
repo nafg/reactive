@@ -104,7 +104,7 @@ trait TableView[A] {
   val refreshes = new EventSource[Unit]
 
   protected lazy val initialImpl = for {
-    _ <- refreshes hold ()
+    _ <- refreshes.hold(())
     filters <- params
   } yield fetch(filters)
 
@@ -126,7 +126,7 @@ trait TableView[A] {
    * (for instance `TableEditor` prompts if there are
    * unsaved changes).
    */
-  protected def fireRefresh(): Unit = refreshes fire ()
+  protected def fireRefresh(): Unit = refreshes.fire(())
 
   /**
    * Wrap an item in a `Row`

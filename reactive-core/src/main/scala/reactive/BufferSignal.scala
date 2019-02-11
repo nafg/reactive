@@ -14,7 +14,7 @@ class SeqVar[A](init: A*) extends Var(DeltaSeq.fromSeq(init)) with SeqSignal[A]
 class BufferSignal[T] extends SeqSignal[T] {
   lazy val underlying = new ObservableBuffer[T]
   val change = new EventSource[DeltaSeq[T]]
-  val now = new DeltaSeq[T] {
+  val now: DeltaSeq[T] = new DeltaSeq[T] {
     def signal = BufferSignal.this
     val underlying = BufferSignal.this.underlying
     val fd = underlying.messages hold DeltaSeq.startDelta(underlying)

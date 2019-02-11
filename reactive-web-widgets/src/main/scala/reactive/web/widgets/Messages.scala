@@ -87,11 +87,16 @@ class Messages {
   implicit object observing extends Observing
   val messages = BufferSignal[NodeSeq]()
   def apply() = messages.value
-  def update(ms: Seq[NodeSeq]) = messages.value = ms
-  def update(ms: NodeSeq) = messages.value = ms :: Nil
-  def update(ms: String) = messages.value = Text(ms) :: Nil
-  def +=(m: NodeSeq) = messages.value :+= m
-  def +=(s: String) = messages.value :+= Text(s)
+
+  def update(ms: Seq[NodeSeq]): Unit = messages.value = ms
+
+  def update(ms: NodeSeq): Unit = messages.value = ms :: Nil
+
+  def update(ms: String): Unit = messages.value = Text(ms) :: Nil
+
+  def +=(m: NodeSeq): Unit = messages.value :+= m
+
+  def +=(s: String): Unit = messages.value :+= Text(s)
   def -=(m: NodeSeq) = messages.value -= m
   def -=(s: String) = messages.value -= Text(s)
 

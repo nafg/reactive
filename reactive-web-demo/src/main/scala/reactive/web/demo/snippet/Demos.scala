@@ -3,12 +3,9 @@ package web
 package demo
 package snippet
 
-import scala.xml.{ NodeSeq, Text }
-
 import reactive.web.html._
 
-import net.liftweb.util._
-import Helpers._
+import scala.xml.{NodeSeq, Text}
 
 object Demos {
   def eventSourceInput(eventSource: EventSource[String])(implicit o: Observing, page: Page): NodeSeq = {

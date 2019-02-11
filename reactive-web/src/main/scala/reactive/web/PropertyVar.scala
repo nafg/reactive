@@ -44,7 +44,11 @@ object PropertyCodec {
     def toAttributeValue = (v: Int) => _ => Some(v.toString)
   }
   implicit val intOption: PropertyCodec[Option[Int]] = new PropertyCodec[Option[Int]] {
-    def fromString = _.toInt match { case -1 => None case n => Some(n) }
+    def fromString = str =>
+      str.toInt match {
+        case -1 => None
+        case n => Some(n)
+      }
     val toJS = { io: Option[Int] =>
       val i = implicitly[Int => $[JsTypes.JsNumber]]
       i(io getOrElse -1: Int)
@@ -52,10 +56,11 @@ object PropertyCodec {
     def toAttributeValue = v => _ => v.map(_.toString)
   }
   implicit val boolean: PropertyCodec[Boolean] = new PropertyCodec[Boolean] {
-    def fromString = _.toLowerCase match {
-      case "" | "false" | net.liftweb.util.Helpers.AsInt(0) => false
-      case _ => true
-    }
+    def fromString = str =>
+      str.toLowerCase match {
+        case "" | "false" | net.liftweb.util.Helpers.AsInt(0) => false
+        case _ => true
+      }
     def toJS = (b: Boolean) => if (b) true.$ else false.$
     def toAttributeValue = (v: Boolean) => name => if (v) Some(name) else None
   }
@@ -64,7 +69,7 @@ object PropertyCodec {
 object PropertyVar {
   /**
    * Intermediate step in creating a PropertyVar.
-   * The PropertVarFactory has the underlying stateless DomProperty
+   * The PropertyVarFactory has the underlying stateless DomProperty
    * and provides several apply methods to instantiate a PropertyVar that wraps it.
    */
   class PropertyVarFactory(name: String, attributeName: String) {
@@ -109,7 +114,8 @@ object PropertyVar {
   }
 
   /**
-   * Returns a PropertVarFactory.
+   * Returns a PropertyVarFactory.
+   *
    * @example PropertyVar(name)(init)
    * @param name the attribute and property name of the DomProperty
    */

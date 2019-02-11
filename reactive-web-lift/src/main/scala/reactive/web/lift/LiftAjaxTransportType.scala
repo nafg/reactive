@@ -2,8 +2,8 @@ package reactive
 package web
 package lift
 
-import net.liftweb.http.js.JsCmds
 import net.liftweb.http.S
+import net.liftweb.http.js.JsCmds
 import net.liftweb.json.parse
 
 /**
@@ -12,7 +12,7 @@ import net.liftweb.json.parse
  * to install the ajax handler.
  */
 class LiftAjaxTransportType extends AjaxTransportType {
-  private val handler = ((urlParam: String) => JsCmds.Run(handleAjax(parse(urlParam)).map(_.render).mkString(";\n")))
+  private val handler = (urlParam: String) => JsCmds.Run(handleAjax(parse(urlParam)).map(_.render).mkString(";\n"))
 
   private val funcId = S.fmapFunc(S.contextFuncBuilder(S.SFuncHolder(handler)))(identity)
 

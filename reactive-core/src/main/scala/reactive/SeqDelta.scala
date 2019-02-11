@@ -1,8 +1,8 @@
 package reactive
 
-import scala.collection.mutable.ArrayBuffer
 import scala.annotation.tailrec
-import scala.collection.mutable.Buffer
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 object SeqDelta {
   def flatten[A, B](deltas: Seq[SeqDelta[A, B]]): Seq[SingleDelta[A, B]] =
@@ -18,7 +18,8 @@ object SeqDelta {
     applyToBuffer(ds, buf)
     buf
   }
-  def applyToBuffer[A](ds: Seq[SeqDelta[A, A]], buf: Buffer[A]): Unit = flatten(ds) foreach {
+
+  def applyToBuffer[A](ds: Seq[SeqDelta[A, A]], buf: mutable.Buffer[A]): Unit = flatten(ds) foreach {
     case Include(i, e)   => buf.insert(i, e)
     case Remove(i, _)    => buf.remove(i)
     case Update(i, _, e) => buf.update(i, e)

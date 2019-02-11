@@ -1,17 +1,15 @@
 package reactive.web.javascript
 
-import reactive.{ CanForwardTo, EventStream }
-import reactive.web.Page
-
-import net.liftweb.json.{ Formats, DefaultFormats }
-
-import JsTypes._
-
 import scala.language.higherKinds
+
+import net.liftweb.json.{DefaultFormats, Formats}
+import reactive.web.Page
+import reactive.web.javascript.JsTypes._
+import reactive.{CanForwardTo, EventStream}
 
 object JsEventStream {
   implicit def canForwardTo[T, J <: JsAny](implicit conv: ToJs.From[T]#To[J, JsExp]): CanForwardTo[JsEventStream[J], T] = new CanForwardTo[JsEventStream[J], T] {
-    def forwarder(target: JsEventStream[J]) = v => target.fire(conv(v))
+    def forwarder(target: JsEventStream[J]): T => Unit = v => target.fire(conv(v))
   }
 }
 
@@ -22,10 +20,11 @@ object JsEventStream {
 //TODO use PageIds??
 //TODO use JsStub
 class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with JsForwardable[T] { parent =>
-  lazy val id = page.nextNumber
+  lazy val id: Int = page.nextNumber
   private var initialized = false
   def initExp = "new EventStream()"
-  def render = "reactive.eventStreams["+id+"]"
+
+  def render: String = "reactive.eventStreams[" + id + "]"
   def init(): Unit = synchronized {
     if (!initialized) {
       initialized = true
@@ -41,14 +40,14 @@ class JsEventStream[T <: JsAny]()(implicit page: Page) extends JsExp[JsObj] with
     }
   }
 
-  protected def child[U <: JsAny](renderer: => String) = {
+  protected def child[U <: JsAny](renderer: => String): JsEventStream[U] = {
     init()
     new JsEventStream[U]()(page) {
       override def initExp: String = renderer
     }
   }
   /**
-   * The javascript event stream's fire method, as a JsExp[JsFunction1[T,Void]]
+   * The javascript event stream's fire method, as a `JsExp[JsFunction1[T,Void]]`
    */
   def fireExp: $[T =|> JsVoid] = {
     init()

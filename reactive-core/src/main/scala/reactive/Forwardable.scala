@@ -69,5 +69,5 @@ trait Forwardable[+T, +Self] extends Any {
    * Run a block of code for every value
    */
   def ->>(block: => Unit)(implicit observing: Observing): Self =
-    this foreach NamedFunction("->>{...}")({ _ => block })
+    this.foreach(NamedFunction[T, Unit]("->>{...}")(_ => block))
 }

@@ -24,7 +24,7 @@ trait AjaxTransportType extends TransportType {
      * Runs this task if it hasn't been run yet.
      * If `runOnce` has already been invoked, does nothing.
      */
-    def runOnce() = synchronized {
+    def runOnce(): Unit = synchronized {
       if(!started) {
         started = true
         withTransport(accum) {
@@ -32,7 +32,7 @@ trait AjaxTransportType extends TransportType {
             case JObject(JField(jsEventStreamId, eventJson) :: Nil) =>
               try ajaxEvents.fire((jsEventStreamId, eventJson))
               catch {
-                case e: Exception => e.printStackTrace
+                case e: Exception => e.printStackTrace()
               }
             case event =>
               sys.error("Invalid reactive event format: " + JsonAST.compactRender(event))

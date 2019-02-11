@@ -6,7 +6,7 @@ import reactive.Observing
 import reactive.web.{CanRenderDomMutationConfig, Cell, DomEventSource, Page, PropertyCodec, PropertyVar}
 
 class TextArea(initial: String)(implicit observing: Observing, defaultCodec: PropertyCodec[String], config: CanRenderDomMutationConfig) {
-  private val textareaCodec = new PropertyCodec[String] {
+  private val textareaCodec: PropertyCodec[String] = new PropertyCodec[String] {
     def fromString = defaultCodec.fromString
     val toJS = defaultCodec.toJS
     def toAttributeValue = _ => _ => None

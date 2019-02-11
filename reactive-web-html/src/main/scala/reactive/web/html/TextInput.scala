@@ -5,7 +5,8 @@ package html
 
 /**
  * Represents a text input field in the DOM
- * @param _value a Var used to update the value of the value property
+ *
+ * @param initialValue a Var used to update the value of the value property
  */
 //TODO should we be using Vars so much? Maybe in & out Signals?
 class TextInput(val initialValue: String = "")(implicit observing: Observing, rdmConfig: CanRenderDomMutationConfig) extends RElem {
@@ -45,13 +46,15 @@ class TextInput(val initialValue: String = "")(implicit observing: Observing, rd
 object TextInput {
   /**
    * The value DOM attribute/property. The contents of the input field.
-   * @param v the Var[String] to synchronize with the property
+   *
+   * @param init the initial value of the property
    */
   def value(init: String = "")(implicit observing: Observing, rdmConfig: CanRenderDomMutationConfig) = PropertyVar("value")(init)
 
   /**
    * The size DOM attribute/property. The width, in characters, of the input.
-   * @param v the Var[String] to synchronize with the property
+   *
+   * @param init an optional initial value of the property
    */
   def size(init: Option[Int] = None)(implicit observing: Observing, rdmConfig: CanRenderDomMutationConfig) = PropertyVar("size")(init)
 

@@ -1,13 +1,8 @@
 package reactive
 
+import scala.collection.generic.{CanBuildFrom, GenericTraversableTemplate, SeqFactory}
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.generic.SeqFactory
-import scala.collection.generic.CanBuildFrom
-import scala.collection.generic.GenericTraversableTemplate
-import scala.collection.GenTraversableOnce
-import scala.collection.mutable.Builder
-import scala.collection.immutable
-import scala.collection.SeqLike
+import scala.collection.{GenTraversableOnce, SeqLike, immutable, mutable}
 
 object DeltaSeq extends SeqFactory[DeltaSeq] {
   class DeltaSeqCBF[A] extends CanBuildFrom[DeltaSeq[_], A, DeltaSeq[A]] {
@@ -20,7 +15,8 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
   implicit def canBuildFrom[T]: CanBuildFrom[Coll, T, DeltaSeq[T]] = new DeltaSeqCBF[T]
 
   def newBuilder[T] = new DeltaBuilder[T]
-  class DeltaBuilder[T] extends Builder[T, DeltaSeq[T]] {
+
+  class DeltaBuilder[T] extends mutable.Builder[T, DeltaSeq[T]] {
     var list = List[T]()
     def result = DeltaSeq.fromSeq(list.reverse)
     def clear(): Unit = { list = Nil }
@@ -28,7 +24,8 @@ object DeltaSeq extends SeqFactory[DeltaSeq] {
   }
 
   def startDelta[A](xs: Seq[A], off: Int = 0): SeqDelta[A, A] = Batch(xs.zipWithIndex map { case (v, i) => Include(i + off, v) }: _*)
-  def fromSeq[A](xs: Seq[A]) = new DeltaSeq[A] {
+
+  def fromSeq[A](xs: Seq[A]): DeltaSeq[A] = new DeltaSeq[A] {
     val underlying = xs
     val fromDelta = startDelta(xs)
     val signal: SeqSignal[A] = new Val(this) with SeqSignal[A]
@@ -81,7 +78,7 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
    */
     def updatedFromParent(parentUpdated: DeltaSeq[U]): This
 
-    lazy val signal = new SeqSignal[V] {
+    lazy val signal: SeqSignal[V] = new SeqSignal[V] {
       private var current: This = Transformed.this.asInstanceOf[This]
       current.underlying
       def now = current
@@ -129,15 +126,15 @@ trait DeltaSeq[+T] extends immutable.Seq[T] with GenericTraversableTemplate[T, D
         val buf = prev.underlying.toBuffer
         def applyDelta(d: SingleDelta[U, U]): Unit = d match {
           case Remove(i, _) => // convert a remove on parent.prev to a remove on prev  (parent == parentUpdated)
-            val prevFlatmappedIndices = map(i) dropRight 1
+            val prevFlatMappedIndices = map(i) dropRight 1
             map = map - i map {
-              case (j, xs) if j > i => (j - 1, xs map (_ - prevFlatmappedIndices.size))
+              case (j, xs) if j > i => (j - 1, xs map (_ - prevFlatMappedIndices.size))
               case other            => other
             }
             // all removes happen at same index
-            prevFlatmappedIndices foreach { _ =>
-              ds += Remove(prevFlatmappedIndices.head, buf(prevFlatmappedIndices.head))
-              buf.remove(prevFlatmappedIndices.head)
+            prevFlatMappedIndices foreach { _ =>
+              ds += Remove(prevFlatMappedIndices.head, buf(prevFlatMappedIndices.head))
+              buf.remove(prevFlatMappedIndices.head)
             }
           case Include(i, e) =>
             val startIndex = map get i map (_.head) getOrElse buf.length

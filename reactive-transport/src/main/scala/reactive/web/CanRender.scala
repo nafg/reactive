@@ -13,7 +13,7 @@ object CanRender {
     def apply(renderable: T) = f(renderable)
   }
 
-  implicit val string: CanRender[String] = CanRender(StringRenderable(_))
+  implicit val string: CanRender[String] = CanRender(StringRenderable)
 
   implicit val renderable: CanRender[Renderable] = CanRender(identity)
 }

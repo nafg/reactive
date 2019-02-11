@@ -26,7 +26,7 @@ object Span {
    * @param content the Signal[NodeSeq] that represents the contents of the Span. Defaults to being empty.
    * @return a Span Cell
    */
-  def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty))(implicit config: CanRenderDomMutationConfig) = {
+  def apply(content: Signal[NodeSeq] = Val(NodeSeq.Empty))(implicit config: CanRenderDomMutationConfig): Span with Cell = {
     def tmp = content
     new Span with Cell {
       def renderer = config.domMutationRenderer

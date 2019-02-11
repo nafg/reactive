@@ -1,7 +1,7 @@
 package reactive
 package web
 
-import scala.xml.{ Elem, NodeSeq }
+import scala.xml.{Elem, NodeSeq}
 
 
 /**

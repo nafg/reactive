@@ -1,7 +1,6 @@
 package reactive
 
-import scala.concurrent.{ ExecutionContext, Future }
-
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
 object Signal {
@@ -102,8 +101,9 @@ trait Signal[+T] extends Foreachable[T] {
    * Whenever the parent's value changes, the signal's value changes to f(previous, parent.now)
    */
   def foldLeft[U](initial: U)(f: (U, T) => U): Signal[U] = new ChildSignal[T, U, U](this, f(initial, now), identity) {
-    override def debugName = Signal.this.debugName+".foldLeft("+initial+")("+f+")"
-    def parentHandler = (x, last) => {
+    override def debugName: String = Signal.this.debugName + ".foldLeft(" + initial + ")(" + f + ")"
+
+    def parentHandler: (T, U) => U = (x, last) => {
       val next = f(last, x)
       current = next
       change.fire(next)
@@ -116,8 +116,9 @@ trait Signal[+T] extends Foreachable[T] {
    * Whenever the parent's value changes, the signal's value changes to f(previous, parent.now)
    */
   def reduceLeft[U >: T](f: (U, T) => U): Signal[U] = new ChildSignal[T, U, U](this, now, identity) {
-    override def debugName = Signal.this.debugName+".reduceLeft("+f+")"
-    def parentHandler = (x, last) => {
+    override def debugName: String = Signal.this.debugName + ".reduceLeft(" + f + ")"
+
+    def parentHandler: (T, U) => U = (x, last) => {
       val next = f(last, x)
       current = next
       change.fire(next)
@@ -140,7 +141,7 @@ trait Signal[+T] extends Foreachable[T] {
    * For instance, if two Vars have a bidirectionally-enforced
    * mathematical relationship that can produce rounding errors.
    */
-  def nonrecursive: Signal[T] = new NonrecursiveSignal[T](this)
+  def nonrecursive: Signal[T] = new NonRecursiveSignal[T](this)
 
   /**
    * Returns a derived Signal that only fires change events that are not equal to the
@@ -177,13 +178,14 @@ trait Signal[+T] extends Foreachable[T] {
    * The test function is useful because it may be desirable to abort time-consuming work
    * if the value has been superseded
    * Example usage:
-   * for((v, isSuperseded) <- signal.zipWithStaleness) { doSomework(); if(!isSuperseded()) doSomeMoreWork() }
+   * for((v, isSuperseded) <- signal.zipWithStaleness) { doSomeWork(); if(!isSuperseded()) doSomeMoreWork() }
    */
   //TODO does this belong in Signal? Maybe only in EventStream? After all, it makes no sense for 'now' to include the staleness function; now._2() will always be false
   //TODO maybe a better solution is takeUntil(s: Signal[_] | EventStream[_]), as in Rx for .NET
   def zipWithStaleness: Signal[(T, () => Boolean)] = new ChildSignal[T, WithVolatility[T], WithVolatility[T]](this, (now, new Volatility), identity) {
-    override def debugName = parent.debugName+".zipWithStaleness"
-    def parentHandler = {
+    override def debugName: String = parent.debugName + ".zipWithStaleness"
+
+    def parentHandler: (T, (T, () => Boolean)) => (T, Volatility) = {
       case (parentEvent, (_, volatility: Volatility)) =>
         val v = (parentEvent, new Volatility)
         current = v
@@ -194,8 +196,9 @@ trait Signal[+T] extends Foreachable[T] {
   }
 
   /**
-   * Only available if this is a Signal[Seq[Signal[B]]] for some B, or a subtype thereof.
-   * Merges all the signals (including this one) into a single Signal[List[B]].
+   * Only available if this is a `Signal[Seq[Signal[B]]]` for some B, or a subtype thereof.
+   * Merges all the signals (including this one) into a single `Signal[List[B]]`.
+   *
    * @return a signal whose value is a List of all the values of the signals contained
    *         in this signal, updated whenever either this signal changes or any
    *         of the contained signals change.
@@ -204,7 +207,7 @@ trait Signal[+T] extends Foreachable[T] {
    * val totalCost = prices.sequence map (_.sum)
    * }}}
    * @usecase def sequence[B]: Signal[List[B]]
-   */
+   **/
   def sequence[B](implicit ev: T <:< Seq[Signal[B]]): Signal[List[B]] = {
     def cont(remaining: List[Signal[B]])(agg: List[B]): B => Signal[List[B]] = remaining match {
       case Nil          => x => Val(x :: agg) // should only be called if remaining is originally Nil
@@ -217,44 +220,50 @@ trait Signal[+T] extends Foreachable[T] {
     }
   }
 
-  def debugName = "(%s: %s #%s)".format(toString, getClass, System.identityHashCode(this))
+  def debugName: String = "(%s: %s #%s)".format(toString, getClass, System.identityHashCode(this))
 }
 
 private[reactive] class Volatility extends (() => Boolean) {
   @volatile private[reactive] var stale = false
-  def apply() = stale
+
+  def apply(): Boolean = stale
 }
 
 protected abstract class ChildSignal[T, U, S](protected val parent: Signal[T], protected var state: S, initial: S => U) extends Signal[U] {
-  val change = new EventSource[U] {
-    override def debugName = ChildSignal.this.debugName+".change"
-    val ref = ph
+  val change: EventSource[U] = new EventSource[U] {
+    override def debugName: String = ChildSignal.this.debugName + ".change"
+
+    val ref: (T, S) => S = ph
   }
-  protected var current = initial(state)
-  def now = current
+  protected var current: U = initial(state)
+
+  def now: U = current
 
   protected def parentHandler: (T, S) => S
   private lazy val ph = parentHandler
-  private val parentListener: T => Unit = NamedFunction(debugName+".parentListener")(x => synchronized {
+  private val parentListener: T => Unit = NamedFunction[T, Unit](debugName + ".parentListener")(x => synchronized {
     state = ph(x, state)
   })
   parent.change addListener parentListener
 }
 
 protected class MappedSignal[T, U](parent: Signal[T], f: T => U) extends ChildSignal[T, U, Unit](parent, (), _ => f(parent.now)) {
-  override def debugName = parent.debugName+".map("+f+")"
-  def parentHandler = (x, _) => {
+  override def debugName: String = parent.debugName + ".map(" + f + ")"
+
+  def parentHandler: (T, Unit) => Unit = (x, _) => {
     val u = f(x)
     current = u
     change.fire(u)
   }
-  override def toString = debugName
+
+  override def toString: String = debugName
 }
 
 protected class AsyncSignal[T](parent: Signal[T])(implicit executionContext: ExecutionContext) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
-  override def debugName = parent.debugName+".async"
+  override def debugName: String = parent.debugName + ".async"
   private val future = new AtomicRef(Future.successful(()))
-  def parentHandler = {
+
+  def parentHandler: (T, Unit) => Unit = {
     case (x, _) =>
       future.transform( _ andThen {
         case _ =>
@@ -300,20 +309,22 @@ object CanFlatMapSignal extends LowPriorityCanFlatMapSignalImplicits {
       parent.change addListener f0
       new parentChange.FlatMapped(Some(parent.now))(f) {
         private val f1 = f0
-        override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
+
+        override def debugName: String = "%s.flatMap(%s)" format(parent.debugName, f)
       }
     }
   }
 }
 
 protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) extends ChildSignal[T, U, Signal[U]](parent, f(parent.now), _.now) {
-  override def debugName = "%s.flatMap(%s)" format (parent.debugName, f)
+  override def debugName: String = "%s.flatMap(%s)" format(parent.debugName, f)
   private val thunk: U => Unit = x => synchronized {
     current = x
     change fire x
   }
   state.change addListener thunk
-  def parentHandler = (x, curSig) => {
+
+  def parentHandler: (T, Signal[U]) => Signal[U] = (x, curSig) => {
     curSig.change removeListener thunk
     val newSig = f(x)
     thunk(newSig.now)
@@ -322,10 +333,11 @@ protected class FlatMappedSignal[T, U](parent: Signal[T], f: T => Signal[U]) ext
   }
 }
 
-protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
-  override def debugName = parent.debugName+".nonrecursive"
+protected class NonRecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
+  override def debugName: String = parent.debugName + ".nonrecursive"
   protected val changing = new scala.util.DynamicVariable(false)
-  def parentHandler = (x, _) => {
+
+  def parentHandler: (T, Unit) => Unit = (x, _) => {
     if (!changing.value) changing.withValue(true) {
       current = x
       change fire x
@@ -334,8 +346,9 @@ protected class NonrecursiveSignal[T](parent: Signal[T]) extends ChildSignal[T, 
 }
 
 protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, Unit](parent, (), _ => parent.now) {
-  override def debugName = parent.debugName+".distinct"
-  def parentHandler = (x, _) => {
+  override def debugName: String = parent.debugName + ".distinct"
+
+  def parentHandler: (T, Unit) => Unit = (x, _) => {
     if (x != current) {
       current = x
       change fire x
@@ -348,8 +361,9 @@ protected class DistinctSignal[T](parent: Signal[T]) extends ChildSignal[T, T, U
  * (and hence never fires change events)
  */
 case class Val[T](now: T) extends Signal[T] {
-  override def debugName = "Val(%s)" format now
-  def change = new EventSource[T] {}
+  override def debugName: String = "Val(%s)" format now
+
+  def change: EventSource[T] = new EventSource[T] {}
 }
 
 /**
@@ -364,14 +378,14 @@ object Var {
  * A signal whose value can be changed directly
  */
 class Var[T](initial: T) extends Signal[T] {
-  override def debugName = "Var(%s)" format now
+  override def debugName: String = "Var(%s)" format now
   private var _value = initial
 
-  def now = value
+  def now: T = value
   //TODO do we need value? why not just now and now_= ? Or just now and update?
   //Advantage of setter other than update is to allow for += type assignments
   // 'var.value += 2' works; 'var ()+= 2' does not work.
-  def value = _value
+  def value: T = _value
   /**
    * Setter. Usage: var.value = x
    */
@@ -389,10 +403,10 @@ class Var[T](initial: T) extends Signal[T] {
    */
   lazy val change: EventStream[T] = change0
   private lazy val change0 = new EventSource[T] {
-    override def debugName = Var.this.debugName+".change"
+    override def debugName: String = Var.this.debugName + ".change"
   }
 
-  override def toString = debugName
+  override def toString: String = debugName
 
   def <-->(other: Var[T])(implicit observing: Observing): this.type = {
     this.distinct >> other

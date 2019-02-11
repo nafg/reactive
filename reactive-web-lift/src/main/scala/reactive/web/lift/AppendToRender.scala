@@ -2,13 +2,11 @@ package reactive
 package web
 package lift
 
-import reactive.logging._
+import scala.xml.{Node, Unparsed}
 
-import scala.xml.{ Node, Unparsed }
-
-import net.liftweb.http.{ LiftResponse, LiftRules }
-import net.liftweb.http.{ S, XhtmlResponse }
+import net.liftweb.http.{LiftResponse, LiftRules, S, XhtmlResponse}
 import net.liftweb.util.LoanWrapper
+import reactive.logging._
 
 /**
  * A [[Transport]] that inserts data
@@ -34,7 +32,7 @@ class RenderTransport extends AccumulatingTransport {
    */
   protected[web] def removeTransportType(transportType: AppendToRenderTransportType): Unit = transportTypes.transform(_ filter (transportType != _))
 
-  def destroy() = transportTypes.get foreach { pc =>
+  def destroy(): Unit = transportTypes.get foreach { pc =>
     pc unlinkTransport this
     removeTransportType(pc)
   }
@@ -127,11 +125,11 @@ trait AppendToRender extends HasLogger {
     }
 
     S addAround new LoanWrapper {
-      def apply[A](wrapee: => A) = {
+      def apply[A](wrappee: => A) = {
         if (S.request == S.originalRequest)
           currentPageRenders.transform(_ + (S.renderVersion -> new RenderTransport))
         try
-          wrapee
+          wrappee
         finally
           currentPageRender foreach { rt =>
             rt.renderAndDestroy()

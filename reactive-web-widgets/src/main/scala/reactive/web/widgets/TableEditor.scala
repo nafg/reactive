@@ -2,13 +2,11 @@ package reactive
 package web
 package widgets
 
+import scala.util.{Failure, Try}
 import scala.xml.NodeSeq
+
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{ A => _, _ }
-import reactive._
-import reactive.web._
-import scala.util.Try
-import scala.util.Failure
+import net.liftweb.util.{A => _, _}
 
 /**
  * Renders a table editor
@@ -62,7 +60,7 @@ trait TableEditor[A] extends TableView[A] {
         case Some((_, x)) => (xs, x)
         case None =>
           val x = makeNew
-          (xs :+ (row, x), x)
+          (xs :+ ((row, x)), x)
       }
     }
     val validities = rowMap[Signal[Validity[T, NodeSeq]]]
@@ -168,16 +166,16 @@ trait TableEditor[A] extends TableView[A] {
   }
   redoActions <<: (edits | refreshes).map(_ => List.empty[Edit])
 
-  override def fireRefresh {
+  override def fireRefresh(): Unit = {
     if (actions.now.isEmpty)
-      super.fireRefresh
+      super.fireRefresh()
     else {
       lazy val msg: NodeSeq = <xml:group>
                                 <p>You have usaved changes. Are you sure you want to discard them?</p>
                                 <button onclick={
                                   onServer[Click]{ _ =>
                                     messages -= msg
-                                    super.fireRefresh
+                                    super.fireRefresh()
                                   }.js
                                 }>Yes</button>
                               </xml:group>
@@ -219,7 +217,7 @@ trait TableEditor[A] extends TableView[A] {
           Try {
             println("actions.now: "+actions.now)
             save(actions.now.reverse)
-            refreshes fire ()
+            refreshes.fire(())
           } match {
             case Failure(e) =>
               messages += "Save failed: "+e.getMessage

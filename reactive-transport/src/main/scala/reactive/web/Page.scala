@@ -4,7 +4,6 @@ package web
 import scala.xml.NodeSeq
 
 import net.liftweb.json.JsonAST.JValue
-
 import reactive.logging.Logger
 
 trait IdCounter {
@@ -14,16 +13,17 @@ trait IdCounter {
 }
 
 object Page {
-  def apply(ttypes: (Page => TransportType)*): Page = new DfltPage(ttypes)
-  private final class DfltPage(ttypes: Seq[Page => TransportType]) extends Page {
-    private var initted = false
+  def apply(ttypes: (Page => TransportType)*): Page = new Default(ttypes)
+
+  private final class Default(ttypes: Seq[Page => TransportType]) extends Page {
+    private var initialized = false
     lazy val transportTypes = {
       val ret = ttypes map (_(this))
-      initted = true
+      initialized = true
       ret
     }
     override def toString = {
-      val ttStr = if(!initted) "?" else transportTypes.map(_.getClass.getSimpleName).mkString(",")
+      val ttStr = if (!initialized) "?" else transportTypes.map(_.getClass.getSimpleName).mkString(",")
       s"Page[id = $id, [$ttStr]]"
     }
   }
@@ -63,7 +63,7 @@ trait Page extends Logger with IdCounter {
   /**
    * Queues javascript to be rendered via whichever available [[Transport ]]has the highest priority
    */
-  def queue[T](renderable: T)(implicit canRender: CanRender[T]) = {
+  def queue[T](renderable: T)(implicit canRender: CanRender[T]): Unit = {
     val tts = Option(transportTypes) getOrElse Nil
     val transports = pageTransports.get ++ tts.flatMap(_.transports.get)
     if(transports.isEmpty) warn(DroppedNoTransport(id, canRender(renderable)))

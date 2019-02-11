@@ -66,8 +66,8 @@ trait DomMutationRenderer extends CanRender[DomMutation] {
       createElem(parentId, child)("reactive.replaceChild('%s',%s,'%s');".format(parentId, _, oldId))
     case ReplaceAll(parentId, child)                =>
       fixHtmlCmdFunc(parentId, child)("reactive.replaceAll('%s',%s);".format(parentId, _))
-    case up @ UpdateProperty(parentId, pname, _, v) =>
-      "reactive.updateProperty('%s','%s',%s);".format(parentId, pname, JsExp render up.codec.toJS(v))
+    case up@UpdateProperty(parentId, pName, _, v) =>
+      "reactive.updateProperty('%s','%s',%s);".format(parentId, pName, JsExp render up.codec.toJS(v))
   })
 
   //TODO should be written with DSL: JsStub for reactive object

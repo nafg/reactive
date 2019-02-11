@@ -47,8 +47,9 @@ package object web {
 
   /**
    * Add a javascript event handler
+   *
    * @tparam E the event type (must be written explicitly)
-   * @param f the javascript function expression (can be implicity converted via the javascript dsl; see example)
+   * @param f the javascript function expression (can be implicitly converted via the javascript dsl; see example)
    * @return a DomEventSource
    * @example
    * {{{

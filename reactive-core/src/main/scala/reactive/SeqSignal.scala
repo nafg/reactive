@@ -18,7 +18,7 @@ object SeqSignal {
     { (a: Seq[A], b: Seq[A]) => LCS.lcsdiff[A, A](a, b, _ == _) }
 
   /**
-   * This factory creates a SeqSignal that wraps an ordinary Signal[Seq[_]],
+   * This factory creates a SeqSignal that wraps an ordinary `Signal[Seq[_]]`,
    * with the behavior that whenever the original signal's value changes,
    * a diff is calculated and the new SeqSignal fires deltas representing
    * the change incrementally.
@@ -32,30 +32,35 @@ object SeqSignal {
     }.map {
       case Nil => DeltaSeq()
       case b :: a => new DeltaSeq[A] {
-        val underlying = b
+        val underlying: List[A] = b
         val fromDelta = Batch(diffFunc(a.headOption getOrElse Nil, b): _*)
-        val signal = owner
+        val signal: SeqSignal[A] = owner
       }
     }(CanMapSignal.canMapSignal)
-    def change = underlying.change
-    def now = underlying.now
-    override def toString = "SeqSignal("+now+")"
+
+    def change: EventStream[DeltaSeq[A]] = underlying.change
+
+    def now: DeltaSeq[A] = underlying.now
+
+    override def toString: String = "SeqSignal(" + now + ")"
   }
 
   def fromDeltas[A](orig: Seq[A], deltas0: EventStream[SeqDelta[A, A]]): SeqSignal[A] = new SeqSignal[A] { owner =>
-    override lazy val deltas = deltas0
-    val origDS = new DeltaSeq[A] {
-      val underlying = orig
-      val fromDelta = DeltaSeq startDelta orig
-      val signal = owner
+    override lazy val deltas: EventStream[SeqDelta[A, A]] = deltas0
+    val origDS: DeltaSeq[A] = new DeltaSeq[A] {
+      val underlying: Seq[A] = orig
+      val fromDelta: SeqDelta[A, A] = DeltaSeq startDelta orig
+      val signal: SeqSignal[A] = owner
     }
-    val underlying = deltas0.foldLeft[DeltaSeq[A]](origDS)(DeltaSeq.updatedByDeltas) hold origDS
-    def change = underlying.change
-    def now = underlying.now
+    val underlying: Signal[DeltaSeq[A]] = deltas0.foldLeft[DeltaSeq[A]](origDS)(DeltaSeq.updatedByDeltas) hold origDS
+
+    def change: EventStream[DeltaSeq[A]] = underlying.change
+
+    def now: DeltaSeq[A] = underlying.now
   }
 
   /**
-   * Given a Signal[Seq[A]], return an EventStream that fires the diff representing every change.
+   * Given a `Signal[Seq[A]]`, return an EventStream that fires the diff representing every change.
    */
   def diffStream[A](orig: Signal[Seq[A]],
                     diffFunc: (Seq[A], Seq[A]) => Seq[SeqDelta[A, A]] = defaultDiffFunc,

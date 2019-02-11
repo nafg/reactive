@@ -30,7 +30,7 @@ object Snippet {
   /**
    * @param func Snippet function. Call by name.
    */
-  def apply(name: String)(func: => (NodeSeq => NodeSeq)): Snippet = Snippet(name, { ns: NodeSeq => func(ns) })
+  def apply(name: String)(func: => NodeSeq => NodeSeq): Snippet = Snippet(name, { ns: NodeSeq => func(ns) })
 
   /**
    * Creates a [[Snippet]] named `"Title"` that appends `text` to

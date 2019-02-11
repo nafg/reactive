@@ -1,12 +1,10 @@
 package reactive.web
 package demo.snippet
 
+import scala.xml.{Elem, Group, NodeSeq}
+
 import net.liftweb.sitemap.FlexMenuBuilder
-import scala.xml.NodeSeq
 import net.liftweb.util.Helpers
-import scala.xml.Elem
-import scala.xml.Group
-import scala.xml.Text
 
 //object TopMenuBuilder extends FlexMenuBuilder {
 //  override def expandAny = false

@@ -2,10 +2,10 @@ package reactive
 package web
 package widgets
 
-import net.liftweb.util.{ CssSel, PassThru }
-import net.liftweb.util.Helpers._
-
 import scala.xml.NodeSeq
+
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{CssSel, PassThru}
 
 /**
  * Defines a type of filter.
@@ -168,7 +168,7 @@ trait PostFilter[RowType] { this: Filter[_] =>
  * A subclass of `Paginator` that works in memory
  */
 class PostPaginator[RowType](rowsPerPage: Int, rows: Signal[() => Int])(implicit observing: Observing, page: Page, rdmConfig: CanRenderDomMutationConfig) extends Paginator(rowsPerPage, rows) with PostFilter[RowType] {
-  lazy val filter = first map { f => { (_: Seq[RowType]) drop f take rowsPerPage } }
+  lazy val filter = first map { f => (_: Seq[RowType]).slice(f, f + rowsPerPage) }
 }
 
 /**
@@ -192,7 +192,7 @@ sealed trait Filterable[A] extends TableView[A] {
   class SortHeaders(initial: Option[SortState] = None)(implicit val page: Page) extends Filter[Option[SortState]] with FilterUI {
     val value = Var(initial)
 
-    protected def sortStateForCol(c: Col) = SortState(c, true)
+    protected def sortStateForCol(c: Col) = SortState(c, ascending = true)
 
     def renderCol(col: Col)(renderer: NodeSeq => NodeSeq): CssSel = {
       col.selector #> (".sort-col" #> renderer)
@@ -246,9 +246,9 @@ trait PostFilterable[A] extends Filterable[A] {
 
   override def filterRows: Signal[Seq[RowType]] => Signal[Seq[RowType]] = super.filterRows andThen {
     for {
-      rs <- _
+      rows <- _
       filters <- mergedPostFilters
-    } yield filters.foldLeft(rs) {
+    } yield filters.foldLeft(rows) {
       case (rs, filter) => filter(rs)
     }
   }
@@ -269,8 +269,9 @@ trait PostFilterable[A] extends Filterable[A] {
 
   /**
    * Creates a sortable column (`OrderedCol`).
+   *
    * @param selector0 The css selector inside of which to render the column
-   * @param rendered  The rendering function
+   * @param renderer0 The rendering function
    * @param get       Gets the value of the item on which the ordering is based
    */
   def sortCol[T](selector0: String, renderer0: RowType => NodeSeq => NodeSeq, get: A => T)(implicit ordering: Ordering[T] = null) =
@@ -284,9 +285,9 @@ trait PostFilterable[A] extends Filterable[A] {
    * A subclass of `SortHeaders` that sorts the rows in memory. Normally only works for `OrderedCol`s
    */
   class PostSortHeaders(initial: Option[SortState] = None)(implicit page: Page) extends SortHeaders(initial) with PostFilter {
-    override def sortStateForCol(c: Col) = c match {
-      case c: OrderedCol => SortState(c, true, Option(c.rowOrdering))
-      case c             => SortState(c, true, None)
+    override def sortStateForCol(col: Col) = col match {
+      case c: OrderedCol => SortState(c, ascending = true, Option(c.rowOrdering))
+      case c => SortState(c, ascending = true, None)
     }
 
     lazy val filter = value.map { sort =>

@@ -1,10 +1,9 @@
 package reactive.web
 
-import reactive.Util.scalaClassName
-
-import scala.reflect.{ classTag, ClassTag }
-
 import scala.language.implicitConversions
+import scala.reflect.{ClassTag, classTag}
+
+import reactive.Util.scalaClassName
 
 package object javascript {
   import JsTypes._

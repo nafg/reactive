@@ -373,7 +373,8 @@ final class CachedTopNodeLoc(node: Node) extends NodeLoc(node, Top) {
 sealed trait NodePath {
   def depth: Int
 }
-final case object Top extends NodePath {
+
+case object Top extends NodePath {
   val depth = 0
 }
 final case class Hole(left: List[Node], parent: NodeLoc, right: List[Node]) extends NodePath {

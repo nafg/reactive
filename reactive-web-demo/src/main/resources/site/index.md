@@ -60,7 +60,7 @@ To find out more about reactive-core and reactive-web, just
 explore the menu bar above. The Getting Started guide is
 [here](/web/GettingStarted).
 
-You can discuss reactive on the [scala-user](scala-user@googlegroups.com) mailing list.
+You can discuss reactive on the [scala-user](mailto:scala-user@googlegroups.com) mailing list.
 Looking forward to your feedback!
 
 The code is at [http://github.com/nafg/reactive](http://github.com/nafg/reactive).

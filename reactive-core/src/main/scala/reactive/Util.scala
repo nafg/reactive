@@ -5,7 +5,7 @@ object Util {
 
   /**
    * Given a Class instance, extract the original scala identifier name.
-   * Class names can be of the form `[[abc] $] name [$ [nnn] ...]`
+   * Class names can be of the form {{{[[abc] $] name [$ [nnn] ...]}}}
    */
   private[reactive] def scalaClassName(c: Class[_]) = {
     val name = c.getSimpleName

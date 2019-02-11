@@ -1,8 +1,8 @@
 package reactive
 package routing
 
-import net.liftweb.http.{ LiftResponse, Req }
 import net.liftweb.common._
+import net.liftweb.http.{LiftResponse, Req}
 
 package object lift {
   /**

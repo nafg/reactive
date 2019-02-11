@@ -115,11 +115,12 @@ window.reactive = {
     var s = JSON.stringify( { unique: this.unique++, events: q } );
     this.sendAjax[pageId](s);
   },
-  sendAjax : { },
-  createElem : function(label, attributes, innerHtml) {
+    sendAjax: {},
+    createElem: function (label, attributes, innerHtml) {
     var e = document.createElement(label);
     for (var k in attributes)
-      e.setAttribute(k, attributes[k]);
+        if (attributes.hasOwnProperty(k))
+            e.setAttribute(k, attributes[k]);
     e.innerHTML = innerHtml;
     return e;
   },

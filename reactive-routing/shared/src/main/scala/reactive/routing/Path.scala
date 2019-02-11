@@ -2,11 +2,12 @@ package reactive
 package routing
 
 private class Extractor[-A, +B](f: A => Option[B]) {
-  def unapply(a: A) = f(a)
+  def unapply(a: A): Option[B] = f(a)
 }
 
 /**
- * Provides the DSL, in conjuction with the package object
+ * Provides the DSL, in conjunction with the package object
+ *
  * @example {{{
  *   "lit" :/: arg[Int] :&: param[String]("q") >> { i => s => (i, s) }
  *   // is equivalent to
@@ -35,14 +36,18 @@ object Path {
     def >>[A](rte: R#Func[A])(implicit mapRoute: CanLiftRouteMapping[R], lift: FnToPF[R]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
   }
   class PathComponentOpsBase[R <: RouteType, P <: Path[R]](path: P with Path[R]) extends PathRouteOpsBase[R](path) {
-    def :/:(s: String) = PLit[R, P](s, path)
-    def :/:[A](arg: Arg[A]) = PArg[A, R, P](arg, path)
+    def :/:(s: String): PLit[R, P] = PLit[R, P](s, path)
+
+    def :/:[A](arg: Arg[A]): PArg[A, R, P] = PArg[A, R, P](arg, path)
   }
   class PathParamOpsBase[R <: RouteType, P <: Path[R]](path: P with Path[R]) extends PathRouteOpsBase[R](path) {
-    def :&:(s: String) = PLit[R, P](s, path)
-    def :&:[A](arg: Arg[A]) = PArg[A, R, P](arg, path)
-    def :&:[A](p: Param[A]) = PParam[A, R, P](p, path)
-    def :&:[A](p: Params[A]) = PParams[A, R, P](p, path)
+    def :&:(s: String): PLit[R, P] = PLit[R, P](s, path)
+
+    def :&:[A](arg: Arg[A]): PArg[A, R, P] = PArg[A, R, P](arg, path)
+
+    def :&:[A](p: Param[A]): PParam[A, R, P] = PParam[A, R, P](p, path)
+
+    def :&:[A](p: Params[A]): PParams[A, R, P] = PParams[A, R, P](p, path)
   }
   implicit class PathOps[R <: RouteType, P <: Path[R]](val path: P with Path[R])(implicit nsub: P <:!< PParamBase[R]) extends PathComponentOpsBase[R, P](path)
   implicit class PParamBaseOps[R <: RouteType, P <: PParamBase[R]](val path: P with Path[R]) extends PathParamOpsBase[R, P](path)
@@ -179,7 +184,7 @@ case class PParam[A, NR <: RouteType, N <: Path[NR]](param: Param[A], next: N) e
 }
 
 /**
- * `PParams` is a repeatable named url query parameter, each occurence of which
+ * `PParams` is a repeatable named url query parameter, each occurrence of which
  * is converted to and from a typed `List` of values. The actual conversion is provided by `arg`.
  */
 case class PParams[A, NR <: RouteType, N <: Path[NR]](params: Params[A], next: N) extends PParamBase[RFunc[List[A], NR]] {

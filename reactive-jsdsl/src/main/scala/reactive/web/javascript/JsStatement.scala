@@ -1,8 +1,8 @@
 package reactive.web.javascript
 
 import reactive.Observing
-import reactive.web.{CanRender, IdCounter, Page}
 import reactive.web.javascript.JsTypes._
+import reactive.web.{CanRender, IdCounter, Page}
 
 /**
  * Statements written with the JsStatement DSL, within a Javascript { ... } block

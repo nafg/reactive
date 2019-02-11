@@ -48,17 +48,17 @@ class ObservableBuffer[T] extends ArrayBuffer[T] {
     )
   }
 
-  override def update(n: Int, newelement: T): Unit = {
-    val oldelement = apply(n)
-    super.update(n, newelement)
-    messages fire Update(n, oldelement, newelement)
+  override def update(n: Int, newElement: T): Unit = {
+    val oldElement = apply(n)
+    super.update(n, newElement)
+    messages fire Update(n, oldElement, newElement)
   }
 
   override def remove(index: Int): T = {
-    val oldelement = apply(index)
+    val oldElement = apply(index)
     super.remove(index)
-    messages fire Remove(index, oldelement)
-    oldelement
+    messages fire Remove(index, oldElement)
+    oldElement
   }
 
   override def clear(): Unit = {
