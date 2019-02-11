@@ -35,11 +35,11 @@ package object routing {
    */
   def params[A](key: String)(implicit stringable: Stringable[A]) = new Params[A](key, stringable)
 
-  implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RConst, PLit[RConst, PNil]](PLit(s, PNil))
+  implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RConst](PLit(s, PNil))
 
-  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[A >>: RConst, PArg[A, RConst, PNil]](PArg(arg, PNil))
+  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[A >>: RConst](PArg(arg, PNil))
 
-  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[Option[A] >>: RConst, PParam[A, RConst, PNil]](PParam(param, PNil))
+  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[Option[A] >>: RConst](PParam(param, PNil))
 
-  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[List[A] >>: RConst, PParams[A, RConst, PNil]](PParams(params, PNil))
+  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[List[A] >>: RConst](PParams(params, PNil))
 }
