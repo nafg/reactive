@@ -45,7 +45,7 @@ object ReactiveBuild {
       "scm:git:git://github.com/nafg/reactive.git",
       Some("scm:git:git@github.com:nafg/reactive.git")
     )),
-    publish / skip := isSnapshot.value
+    publish / skip := sys.env.contains("CI") && isSnapshot.value
   )
 
   val nonPublishingSettings = defaults :+ (publish := ())
