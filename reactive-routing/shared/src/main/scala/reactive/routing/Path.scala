@@ -17,20 +17,6 @@ private class Extractor[-A, +B](f: A => Option[B]) {
  *       automatically since scala looks in the companion object.
  */
 object Path {
-  /** from https://gist.github.com/milessabin/c9f8befa932d98dcc7a4
-   * @author Miles Sabin
-   */
-  private object nsub {
-    // Encoding for "A is not a subtype of B"
-    trait <:!<[A, B]
-
-    // Uses ambiguity to rule out the cases we're trying to exclude
-    implicit def nsub[A, B] : A <:!< B = null
-    implicit def nsubAmbig1[A, B >: A] : A <:!< B = null
-    implicit def nsubAmbig2[A, B >: A] : A <:!< B = null
-  }
-  import nsub._
-
   class PathRouteOpsBase[R <: RouteType](path: Path[R]) {
     def >>?[A](rte: R#Route[A])(implicit mapRoute: CanLiftRouteMapping[R]): PathRoute[R, A] = new PathRoute[R, A](path, rte)
     def >>[A](rte: R#Func[A])(implicit mapRoute: CanLiftRouteMapping[R], lift: FnToPF[R]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
@@ -49,17 +35,9 @@ object Path {
 
     def :&:[A](p: Params[A]): PParams[A, R] = PParams[A, R](p, path)
   }
-  implicit class PathOps[R <: RouteType, P <: Path[R]](val path: P with Path[R])(implicit nsub: P <:!< PParamBase[R]) extends PathComponentOpsBase[R](path)
-  implicit class PParamBaseOps[R <: RouteType](val path: PParamBase[R]) extends PathParamOpsBase[R](path)
 
-  /**
-   * part of a workaround that allows [[Path]] to be covariant
-   */
-  implicit class PathIsRunnable[R <: RouteType](path: Path[R]) {
-    def run[A](route: R#Route[A]): PartialFunction[Location, A] = path match {
-      case p: RunnablePath[R] => p.run[A](route)
-    }
-  }
+  implicit class PSegmentBaseOps[R <: RouteType](val path: PSegmentBase[R]) extends PathComponentOpsBase[R](path)
+  implicit class PParamBaseOps[R <: RouteType](val path: PParamBase[R]) extends PathParamOpsBase[R](path)
 }
 
 class Arg[A](val stringable: Stringable[A])
@@ -75,19 +53,15 @@ class Params[A](val key: String, val stringable: Stringable[A])
  * @tparam RT the [[RouteType]] that determines the structure of the route.
  * It depends directly on the actual `Path` chain.
  */
-sealed trait Path[+RT <: RouteType] { this: RunnablePath[_ <: RT] =>
+sealed trait Path[RT <: RouteType] {
   protected[routing] def encode(location: Location): RT#EncodeFunc
+
   /**
    * Returns a [[Location]], or a curried function returning a Location,
    * depending on the [[RouteType]]
    */
   def construct: RT#EncodeFunc = encode(Location(Nil))
-}
 
-/**
- * part of a workaround that allows [[Path]] to be covariant
- */
-sealed trait RunnablePath[RT <: RouteType] extends Path[RT] {
   /**
    * Given a route value, returns a `PartialFunction` that
    * parses a [[Location]] and passes the parameters
@@ -96,6 +70,8 @@ sealed trait RunnablePath[RT <: RouteType] extends Path[RT] {
   def run[R](route: RT#Route[R]): PartialFunction[Location, R]
 }
 
+sealed trait PSegmentBase[RT <: RouteType] extends Path[RT]
+
 /**
  * Every [[Path]] chain ends with `PNil`
  * (the empty `Path`), or [[PAny]] ([[**]]).
@@ -103,7 +79,7 @@ sealed trait RunnablePath[RT <: RouteType] extends Path[RT] {
  * aliased as `PNil`.
  * However the DSL does not require you to actually write `PNil`.
  */
-sealed trait PNil extends RunnablePath[RConst] {
+sealed trait PNil extends PSegmentBase[RConst] {
   override def encode(l: Location): Location = l
   override def run[R](r: R): PartialFunction[Location, R] = {
     case loc if loc.path.isEmpty => r
@@ -121,7 +97,7 @@ private case object PNil0 extends PNil
  * aliased as `PAny`.
  */
 // TODO no reason not to use an Arg-like typesafe bijection
-sealed trait PAny extends RunnablePath[RFunc[List[String], RConst]] {
+sealed trait PAny extends PSegmentBase[RFunc[List[String], RConst]] {
   override def encode(l: Location): List[String] => Location = l ++ _
   override def run[R](f: PartialFunction[List[String], R]): PartialFunction[Location, R] = {
     case loc if f.isDefinedAt(loc.path) => f(loc.path)
@@ -134,7 +110,7 @@ private case object PAny0 extends PAny
  * `PLit` is a fixed-string url path component. It
  * is not converted to or from a value.
  */
-case class PLit[NR <: RouteType](component: String, next: Path[NR]) extends RunnablePath[NR] {
+case class PLit[NR <: RouteType](component: String, next: Path[NR]) extends PSegmentBase[NR] {
   override def encode(l: Location): NR#EncodeFunc = next.encode(l :+ component)
   override def run[R](f: NR#Route[R]): PartialFunction[Location, R] = {
     case loc @ Location(`component` :: _, _) if next.run(f).isDefinedAt(loc.tail) =>
@@ -146,7 +122,7 @@ case class PLit[NR <: RouteType](component: String, next: Path[NR]) extends Runn
  * `PArg` is a url path component that is converted to and
  * from a typed value. The actual conversion is provided by `arg`.
  */
-case class PArg[A, NR <: RouteType](arg: Arg[A], next: Path[NR]) extends RunnablePath[RFunc[A, NR]] {
+case class PArg[A, NR <: RouteType](arg: Arg[A], next: Path[NR]) extends PSegmentBase[RFunc[A, NR]] {
   override def encode(l: Location): A => NR#EncodeFunc = a => next.encode(l :+ arg.stringable.format(a))
   override def run[R](f: PartialFunction[A, NR#Route[R]]): PartialFunction[Location, R] = {
     case loc @ Location(arg.stringable(a) :: _, _) if f.isDefinedAt(a) && next.run(f(a)).isDefinedAt(loc.tail) =>
@@ -157,7 +133,7 @@ case class PArg[A, NR <: RouteType](arg: Arg[A], next: Path[NR]) extends Runnabl
 /**
  * Marker trait, used by the DSL so that `:&:` is used rather than `:/:`
  */
-sealed trait PParamBase[NR <: RouteType] extends RunnablePath[NR]
+sealed trait PParamBase[NR <: RouteType] extends Path[NR]
 
 /**
  * `PParam` is an optional named url query parameter that is converted to and
