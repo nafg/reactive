@@ -91,20 +91,6 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     xs.head.path should equal ("add" :: "10" :: "plus" :: "20" :: "please" :: Nil)
   }
 
-  test("mapPath") {
-    val site = r & r
-
-    val z = site mapPath ("test" :/: _) by { x => x}
-    val l = z.construct.map(_(10)(20))
-    l.head should equal (Location("test" :: "add" :: "10" :: "plus" :: "20" :: "please" :: Nil, Nil))
-
-    val zz = site.mapPath(arg[Int] :/: _) by { f => a => b => c => f(a)(b) + c }
-    val ll = zz.construct.map(_(10)(20)(30))
-    ll.head should equal (Location("10" :: "add" :: "20" :: "plus" :: "30" :: "please" :: Nil, Nil))
-
-    zz.run(Location("10" :: "add" :: "20" :: "plus" :: "30" :: "please" :: Nil, Nil)) should equal (60)
-  }
-
   test("map") {
     val site = r & r
     val z = site map ("000" + _)
@@ -137,7 +123,9 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val s3 = "c" :/: arg[Boolean] >> { i => i }
     val s4 = s1 & s2 & s3
 
-    s4.mapPath(_ => PLit("hello", PNil)) by identity
+    s4.run(Location("a" :: "10" :: Nil)) shouldBe 10
+    s4.run(Location("b" :: "10" :: Nil)) shouldBe "10"
+    s4.run(Location("c" :: "true" :: Nil)) shouldBe true
   }
 
   test("Can & together sitelets, not only Sitelet&PathRoute") {
@@ -147,8 +135,6 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     val s1 = rt2 & rt3
     val sitelet = rt1 & s1
     sitelet.run(Location("plus1" :: "10" :: Nil)) shouldBe 11
-    val pathMapped = sitelet.mapPath("base" :/: _).by(identity)
-    pathMapped.construct.head(10) shouldBe Location("base" :: "plus1" :: "10" :: Nil)
   }
 
   test("Route can be a PartialFunction") {
@@ -156,14 +142,5 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     rt.run.isDefinedAt(Location("10" :: Nil)) shouldBe false
     rt.run.isDefinedAt(Location("11" :: Nil)) shouldBe true
     rt.run.apply(Location("11" :: Nil)) shouldBe 22
-  }
-
-  test("Can mapPath by a PartialFunction") {
-    val rt = arg[Int] >>? { case i if i > 10 => (i * 2).toDouble }
-    val pathMapped = rt.mapPath(arg[String] :/: _) byPF (pf => { case str if str.length == 3 => pf })
-    pathMapped.run.isDefinedAt(Location("aaa" :: "10" :: Nil)) shouldBe false
-    pathMapped.run.isDefinedAt(Location("aaaa" :: "11" :: Nil)) shouldBe false
-    pathMapped.run.isDefinedAt(Location("aaa" :: "11" :: Nil)) shouldBe true
-    pathMapped.run.apply(Location("aaa" :: "11" :: Nil)) shouldBe 22
   }
 }
