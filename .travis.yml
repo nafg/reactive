@@ -3,7 +3,13 @@ language: scala
 jdk:
   - oraclejdk8
 
-script: "sbt +testQuick +publish"
+script: "sbt +testQuick"
+
+deploy:
+  provider: script
+  script: sbt +publish
+  on:
+    tags: true
 
 notifications:
   webhooks:

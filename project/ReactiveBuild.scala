@@ -44,11 +44,10 @@ object ReactiveBuild {
       url("https://github.com/nafg/reactive"),
       "scm:git:git://github.com/nafg/reactive.git",
       Some("scm:git:git@github.com:nafg/reactive.git")
-    )),
-    publish / skip := sys.env.contains("CI") && isSnapshot.value
+    ))
   )
 
-  val nonPublishingSettings = defaults :+ (publish := ())
+  val nonPublishingSettings = defaults :+ (publish / skip := true)
 }
 
 object Dependencies {
