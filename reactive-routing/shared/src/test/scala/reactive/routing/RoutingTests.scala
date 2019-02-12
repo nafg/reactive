@@ -85,20 +85,11 @@ class RoutingTests extends FunSuite with Matchers with Inside {
     ))
   }
 
-  test("Constructing locations from sites") {
-    val s = r & r
-    val xs = s.construct map (_(10)(20))
-    xs.head.path should equal ("add" :: "10" :: "plus" :: "20" :: "please" :: Nil)
-  }
-
   test("map") {
     val site = r & r
     val z = site map ("000" + _)
 
-    val l = z.construct.map(_(10)(20))
-    l should equal (site.construct.map(_(10)(20)))
-
-    val res = z.run(l.head)
+    val res = z.run(p.construct(10)(20))
 
     implicitly[res.type <:< String]
 

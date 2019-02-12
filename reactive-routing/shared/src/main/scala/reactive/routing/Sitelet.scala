@@ -33,10 +33,6 @@ object Sitelet {
  */
 trait Sitelet[R <: RouteType, +A] {
   /**
-   * Computes the [[Location]]s for each [[PathRoute]]
-   */
-  def construct: Seq[R#EncodeFunc]
-  /**
    * Computes the value, if any, for the specified location.
    * The location is parsed by each path until a path is found
    * that can parse it, and then the extracted arguments are
@@ -61,7 +57,7 @@ trait Sitelet[R <: RouteType, +A] {
  */
 class PathRoute[R <: RouteType, +A](val path: Path[R], val route: R#Route[A])(implicit mapRoute: CanLiftRouteMapping[R]) extends Sitelet[R, A] {
   override def run = path run route
-  override def construct: Seq[R#EncodeFunc] = List(path.construct)
+
   override def map[B](f: A => B): PathRoute[R, B] = new PathRoute(path, mapRoute(f)(route))
 }
 
@@ -70,7 +66,7 @@ class PathRoute[R <: RouteType, +A](val path: Path[R], val route: R#Route[A])(im
  */
 class RouteSeq[R <: RouteType, +A](val pathRoutes: Seq[PathRoute[R, A]]) extends Sitelet[R, A] {
   override def run = pathRoutes.foldLeft(PartialFunction.empty[Location, A])(_ orElse _.run)
-  override def construct: Seq[R#EncodeFunc] = pathRoutes.map(_.path.construct)
+
   override def map[B](f: A => B) = new RouteSeq(pathRoutes map (_ map f))
 }
 
@@ -93,7 +89,6 @@ trait CanAndSiteletLow {
   implicit def other[R1 <: RouteType, R2 <: RouteType]: CanAndSitelet[R1, R2, RouteType] = new CanAndSitelet[R1, R2, RouteType] {
     def apply[A, B, C](s1: Sitelet[R1, A], s2: Sitelet[R2, B])(implicit lub: Lub[A, B, C]) =
       new SiteletConcat[R1, R2, RouteType, A, B, C](s1, s2) {
-        override def construct = s1.construct ++ s2.construct
       }
   }
 }
@@ -102,7 +97,6 @@ object CanAndSitelet extends CanAndSiteletLow {
   implicit def same[R <: RouteType]: CanAndSitelet[R, R, R] = new CanAndSitelet[R, R, R] {
     def apply[A, B, C](s1: Sitelet[R, A], s2: Sitelet[R, B])(implicit lub: Lub[A, B, C]) =
       new SiteletConcat[R, R, R, A, B, C](s1, s2) {
-        override def construct = s1.construct ++ s2.construct
       }
   }
 }
