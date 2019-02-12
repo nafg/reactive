@@ -17,10 +17,11 @@ package object lift {
   /**
    * Converts a [[Sitelet]] of `Req => LiftResponse` to the format expected by `LiftRules.dispatch`
    */
-  def siteToDispatch(site: Sitelet[_, Req => LiftResponse]): PartialFunction[Req, () => Box[LiftResponse]] = new PartialFunction[Req, () => Box[LiftResponse]] {
-    def isDefinedAt(req: Req) = site.run isDefinedAt reqToLoc(req)
-    def apply(req: Req) = () => Full(site.run(reqToLoc(req))(req))
-  }
+  def siteToDispatch(site: Sitelet[Req => LiftResponse]): PartialFunction[Req, () => Box[LiftResponse]] =
+    new PartialFunction[Req, () => Box[LiftResponse]] {
+      def isDefinedAt(req: Req) = site.run isDefinedAt reqToLoc(req)
+      def apply(req: Req) = () => Full(site.run(reqToLoc(req))(req))
+    }
 
 
   /**
