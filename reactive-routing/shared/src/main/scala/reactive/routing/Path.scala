@@ -17,16 +17,25 @@ private class Extractor[-A, +B](f: A => Option[B]) {
  *       automatically since scala looks in the companion object.
  */
 object Path {
-  class PathRouteOpsBase[R <: RouteType](path: Path[R]) {
+
+  trait PathRouteOpsBase[R <: RouteType] {
+    def path: Path[R]
+
     def >>?[A](rte: R#Route[A])(implicit mapRoute: CanLiftRouteMapping[R]): PathRoute[R, A] = new PathRoute[R, A](path, rte)
     def >>[A](rte: R#Func[A])(implicit mapRoute: CanLiftRouteMapping[R], lift: FnToPF[R]): PathRoute[R, A] = new PathRoute[R, A](path, lift(rte))
   }
-  class PathComponentOpsBase[R <: RouteType](path: Path[R]) extends PathRouteOpsBase[R](path) {
+
+  trait PathComponentOpsBase[R <: RouteType] {
+    def path: Path[R]
+
     def :/:(s: String): PLit[R] = PLit[R](s, path)
 
     def :/:[A](arg: Arg[A]): PArg[A, R] = PArg[A, R](arg, path)
   }
-  class PathParamOpsBase[R <: RouteType](path: Path[R]) extends PathRouteOpsBase[R](path) {
+
+  trait PathParamOpsBase[R <: RouteType] {
+    def path: Path[R]
+
     def :&:(s: String): PLit[R] = PLit[R](s, path)
 
     def :&:[A](arg: Arg[A]): PArg[A, R] = PArg[A, R](arg, path)
@@ -36,8 +45,11 @@ object Path {
     def :&:[A](p: Params[A]): PParams[A, R] = PParams[A, R](p, path)
   }
 
-  implicit class PSegmentBaseOps[R <: RouteType](val path: PSegmentBase[R]) extends PathComponentOpsBase[R](path)
-  implicit class PParamBaseOps[R <: RouteType](val path: PParamBase[R]) extends PathParamOpsBase[R](path)
+  implicit class PathOps[R <: RouteType](val path: Path[R]) extends PathRouteOpsBase[R]
+
+  implicit class PSegmentBaseOps[R <: RouteType](val path: PSegmentBase[R]) extends PathComponentOpsBase[R]
+
+  implicit class PParamBaseOps[R <: RouteType](val path: PParamBase[R]) extends PathParamOpsBase[R]
 }
 
 class Arg[A](val stringable: Stringable[A])

@@ -35,11 +35,19 @@ package object routing {
    */
   def params[A](key: String)(implicit stringable: Stringable[A]) = new Params[A](key, stringable)
 
-  implicit class StringPathOps(s: String) extends Path.PathComponentOpsBase[RConst](PLit(s, PNil))
+  implicit class StringPathOps(s: String) extends Path.PathRouteOpsBase[RConst] with Path.PathComponentOpsBase[RConst] {
+    val path = PLit(s, PNil)
+  }
 
-  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathComponentOpsBase[A >>: RConst](PArg(arg, PNil))
+  implicit class ArgPathOps[A](arg: Arg[A]) extends Path.PathRouteOpsBase[A >>: RConst] with Path.PathComponentOpsBase[A >>: RConst] {
+    val path = PArg(arg, PNil)
+  }
 
-  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathParamOpsBase[Option[A] >>: RConst](PParam(param, PNil))
+  implicit class ParamPathOps[A](param: Param[A]) extends Path.PathRouteOpsBase[Option[A] >>: RConst] with Path.PathParamOpsBase[Option[A] >>: RConst] {
+    val path = PParam(param, PNil)
+  }
 
-  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathParamOpsBase[List[A] >>: RConst](PParams(params, PNil))
+  implicit class ParamsPathOps[A](params: Params[A]) extends Path.PathRouteOpsBase[List[A] >>: RConst] with Path.PathParamOpsBase[List[A] >>: RConst] {
+    val path = PParams(params, PNil)
+  }
 }
