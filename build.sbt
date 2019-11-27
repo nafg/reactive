@@ -13,9 +13,8 @@ scalacOptions in ThisBuild ++=
     "-deprecation",
     "-feature",
     "-unchecked",
-    "-Xlint",
-    "-Ywarn-unused-import",
-    "-Ywarn-unused",
+    "-Xlint:_",
+    "-Ywarn-unused:_",
     "-Ywarn-value-discard"
   )
 
