@@ -1,10 +1,10 @@
 package reactive
 package web
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class DomPropertyTests extends FunSuite with Matchers {
+class DomPropertyTests extends AnyFunSuite with Matchers {
   test("DomProperty has one id per page") {
     implicit val page = new TestPage
     val property = DomProperty("someName")

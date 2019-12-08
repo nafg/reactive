@@ -1,12 +1,12 @@
 package reactive
 package web
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
 
 import scala.xml.Elem
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class RElemTests extends FunSuite with Matchers {
+class RElemTests extends AnyFunSuite with Matchers {
   test("Rendering an RElem to an Elem with an id should retain that id") {
     implicit val page = new TestPage
     val elem = <anElem id="anId"/>

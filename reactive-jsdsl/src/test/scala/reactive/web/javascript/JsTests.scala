@@ -4,10 +4,10 @@ package javascript
 
 import JsTypes._
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class JsTests extends FunSuite with Matchers with Observing {
+class JsTests extends AnyFunSuite with Matchers with Observing {
   def stats(f: => Any): List[String] = JsStatement.inScope(f)._2 map JsStatement.render
 
   test("Operators") {

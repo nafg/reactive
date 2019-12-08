@@ -1,10 +1,11 @@
 package reactive
 package routing
 
-import org.scalatest.{ FunSuite, Inside }
-import org.scalatest.Matchers
+import org.scalatest.Inside
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class RoutingTests extends FunSuite with Matchers with Inside {
+class RoutingTests extends AnyFunSuite with Matchers with Inside {
   def printType[A : Manifest](a: A) = println(s"$a : ${manifest[A]}")
 
   val p = "add" :/: arg[Int] :/: "plus" :/: arg[Int] :/: "please"

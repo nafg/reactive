@@ -1,11 +1,11 @@
 package reactive
-import org.scalatest.Matchers
-import org.scalatest.FunSuite
 import scala.util.Random
 
 import CollectEvents._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ObservableBufferTests extends FunSuite with Matchers with Observing {
+class ObservableBufferTests extends AnyFunSuite with Matchers with Observing {
   test("consistency between mutations and applyDeltas") {
     val ob1 = new ObservableBuffer[Int]
     val ob2 = new ObservableBuffer[Int]
@@ -29,7 +29,7 @@ class ObservableBufferTests extends FunSuite with Matchers with Observing {
   }
 }
 
-class SeqSignalTests extends FunSuite with Matchers with Observing {
+class SeqSignalTests extends AnyFunSuite with Matchers with Observing {
   test("map(Seq=>TransformedSeq)") {
     val ss = BufferSignal(1, 2, 3)
     val mapped = ss.now.map(_ * 10).signal
@@ -150,7 +150,7 @@ class SeqSignalTests extends FunSuite with Matchers with Observing {
   }
 }
 
-class BufferSignalTests extends FunSuite with Matchers with Observing {
+class BufferSignalTests extends AnyFunSuite with Matchers with Observing {
   test("consistency") {
     val signal = BufferSignal(1, 2, 3)
     val ob = new ObservableBuffer[Int]

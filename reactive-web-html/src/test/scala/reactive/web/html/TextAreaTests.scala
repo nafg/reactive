@@ -1,13 +1,13 @@
 package reactive.web.html
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
 import net.liftweb.util.Helpers.StringToCssBindPromoter
 import reactive.Observing
 import reactive.web.TestPage
 import reactive.web.Change
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class TextAreaTests extends FunSuite with Matchers {
+class TextAreaTests extends AnyFunSuite with Matchers {
   test("TextArea") {
     implicit object obs extends Observing
 

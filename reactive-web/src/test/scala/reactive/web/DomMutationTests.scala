@@ -1,11 +1,11 @@
 package reactive
 package web
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class DomMutationTests extends FunSuite with Matchers with TableDrivenPropertyChecks {
+class DomMutationTests extends AnyFunSuite with Matchers with TableDrivenPropertyChecks {
   import DomMutation._
 
   test("Apply to xml") {

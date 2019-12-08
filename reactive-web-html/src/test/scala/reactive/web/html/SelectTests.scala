@@ -2,10 +2,10 @@ package reactive
 package web
 package html
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class SelectTests extends FunSuite with Matchers with Observing {
+class SelectTests extends AnyFunSuite with Matchers with Observing {
   test("Selection should initally be defined") {
     val select = Select(Val(List("A", "B")))
     select.selectedIndex.now.isDefined should be(true)
