@@ -3,10 +3,12 @@ import java.io.{ByteArrayOutputStream, PrintStream}
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
-import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
+import org.scalatest.ParallelTestExecution
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class DeltaSeqTests extends FunSuite with Matchers with PropertyChecks with ParallelTestExecution {
+class DeltaSeqTests extends AnyFunSuite with Matchers with ScalaCheckPropertyChecks with ParallelTestExecution {
   implicit val observing0 = new Observing {}
   val ts = DeltaSeq(1, 2, 3, 4)
 

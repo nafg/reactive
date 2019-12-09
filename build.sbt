@@ -31,9 +31,8 @@ lazy val routing = (crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Fu
     name := "reactive-routing",
     description := "Type safe routing library",
     scalacOptions in(Compile, doc) ++= Seq("-implicits", "-implicits-show-all"),
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test",
-    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.2" % "test"
-
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.0" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.2" % Test
   )
   .settings(publishingSettings: _*)
 lazy val routingJS = routing.js

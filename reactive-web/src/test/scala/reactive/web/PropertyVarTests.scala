@@ -6,10 +6,11 @@ import net.liftweb.util.CanBind
 import net.liftweb.util.Helpers.StringToCssBindPromoter
 import reactive.{Observing, Signal, Var}
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 
-class PropertyVarTests extends FunSuite with Matchers {
+class PropertyVarTests extends AnyFunSuite with Matchers {
   // compile time test that the implicits resolve successfully
   { implicit page: Page =>
     implicitly[CanBind[Signal[NodeSeq => NodeSeq]]]

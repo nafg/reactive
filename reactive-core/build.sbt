@@ -2,6 +2,4 @@ name := "reactive-core"
 
 description := "An FRP framework"
 
-libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.0.8"  % "test"
-
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.2" % "test"
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-14" % "3.1.0.0" % Test

@@ -1,14 +1,14 @@
 package reactive
 package web
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
-import org.scalatest.prop.PropertyChecks
 import scala.xml.{ Elem, NodeSeq }
 import net.liftweb.util.Helpers._
 import net.liftweb.util.CanBind
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class RepeaterTests extends FunSuite with Matchers with PropertyChecks {
+class RepeaterTests extends AnyFunSuite with Matchers with ScalaCheckPropertyChecks {
   // compile time test that the implicits resolve successfully
   { implicit page: Page =>
     implicitly[CanBind[SeqSignal[NodeSeq => NodeSeq]]]

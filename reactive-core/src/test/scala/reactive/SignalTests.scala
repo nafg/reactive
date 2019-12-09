@@ -6,12 +6,13 @@ import scala.concurrent.Future
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.Waiters
-import org.scalatest.prop.PropertyChecks
 import org.scalatest.time.{Seconds, Span}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 
-class SignalTests extends FunSuite with Matchers with CollectEvents with PropertyChecks with Waiters {
+class SignalTests extends AnyFunSuite with Matchers with CollectEvents with ScalaCheckPropertyChecks with Waiters {
   implicit val observing = new Observing {}
   test("map") {
     val s = Var(10)
@@ -210,7 +211,7 @@ class SignalTests extends FunSuite with Matchers with CollectEvents with Propert
   }
 }
 
-class VarTests extends FunSuite with Matchers with CollectEvents with Observing {
+class VarTests extends AnyFunSuite with Matchers with CollectEvents with Observing {
   test("<-->") {
     val a = Var(10)
     val b = Var(20) <--> a

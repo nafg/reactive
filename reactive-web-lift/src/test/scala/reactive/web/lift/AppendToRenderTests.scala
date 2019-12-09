@@ -2,10 +2,11 @@ package reactive
 package web
 package lift
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 
-class AppendToRenderTests extends FunSuite with Matchers {
+class AppendToRenderTests extends AnyFunSuite with Matchers {
   test("Render data correctly") {
     object page extends Page {
       val atrtt = new AppendToRenderTransportType(this) {

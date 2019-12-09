@@ -2,15 +2,15 @@ package reactive
 package web
 package lift
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.SpanSugar
 import scala.concurrent._
 import ExecutionContext.Implicits._
 import java.io._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class SseTests extends FunSuite with Matchers with Eventually with SpanSugar {
+class SseTests extends AnyFunSuite with Matchers with Eventually with SpanSugar {
   test("SseTransportType") {
     object page extends Page {
       val spc = new SseTransportType(this) {
