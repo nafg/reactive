@@ -4,4 +4,4 @@ description := "Type safe DSL for constructing javascript expressions and statem
 
 libraryDependencies += "net.liftweb" %% "lift-util" % Dependencies.liftVersion
 
-libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.1.2"  % "test"
+libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.0"  % "test"
