@@ -6,4 +6,4 @@ libraryDependencies += "net.liftweb" %% "lift-util" % Dependencies.liftVersion
 
 libraryDependencies += "io.circe" %% "circe-parser" % "0.11.2"
 
-libraryDependencies += "org.scalatestplus" %% "scalacheck-1-14" % "3.1.2.0" % Test
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-14" % "3.1.3.0" % Test
