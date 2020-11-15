@@ -1,0 +1,9 @@
+pull_request_rules:
+  - name: automatic merge successful scala-steward PRs
+    conditions:
+      - author=scala-steward
+      - status-success=Travis CI - Pull Request
+    actions:
+      merge:
+        method: merge
+        strict: true
