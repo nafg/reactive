@@ -2,9 +2,9 @@ import ReactiveBuild._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+ThisBuild / crossScalaVersions := Seq("2.12.8", "2.13.0")
 
-scalaVersion in ThisBuild := "2.12.8"
+ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
 
 organization in ThisBuild := "cc.co.scala-reactive"
 
@@ -13,9 +13,8 @@ scalacOptions in ThisBuild ++=
     "-deprecation",
     "-feature",
     "-unchecked",
-    "-Xlint",
-    "-Ywarn-unused-import",
-    "-Ywarn-unused",
+    "-Xlint:_",
+    "-Ywarn-unused:_",
     "-Ywarn-value-discard"
   )
 
