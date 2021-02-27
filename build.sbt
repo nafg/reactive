@@ -2,7 +2,7 @@ import ReactiveBuild._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+crossScalaVersions in ThisBuild := Seq("2.13.5", "2.12.8")
 
 scalaVersion in ThisBuild := "2.12.8"
 
