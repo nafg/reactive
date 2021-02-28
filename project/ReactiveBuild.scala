@@ -51,5 +51,5 @@ object ReactiveBuild {
 }
 
 object Dependencies {
-  val liftVersion = "3.4.2"
+  val liftVersion = "3.4.3"
 }
