@@ -3,4 +3,4 @@ name := "reactive-web-lift"
 description := "Lift bindings for reactive-web"
 
 libraryDependencies += "net.liftweb" %% "lift-webkit" % Dependencies.liftVersion
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.4" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % "test"
